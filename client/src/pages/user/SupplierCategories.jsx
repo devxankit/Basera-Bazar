@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
 import { ArrowLeft, Search, MapPin, ChevronRight, Store } from 'lucide-react';
+import { motion } from 'framer-motion';
 import aggregateImg from '../../assets/suppliers/aggregate supplier.jpg';
 import brickImg from '../../assets/suppliers/brick supplier.jpg';
 import cementImg from '../../assets/suppliers/cement supplier.jpg';
-import materialsImg from '../../assets/suppliers/construction materials supplier.jpg';
+import materialsImg from '../../assets/suppliers/cnstruction materials supplier.jpg';
 import sandImg from '../../assets/suppliers/sand supplier.jpg';
 import tmtImg from '../../assets/suppliers/tmt supplier.jpg';
 import { useLocationContext } from '../../context/LocationContext';
@@ -57,7 +58,9 @@ const SupplierCategories = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Header */}
-      <div className="bg-white border-b border-slate-100 px-6 py-5 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+      <div 
+        className="bg-white border-b border-slate-100 px-6 py-5 flex items-center justify-between sticky top-0 z-50 shadow-sm"
+      >
         <div className="flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="p-1 text-primary-900 hover:bg-slate-50 transition-all">
             <ArrowLeft size={22} />
@@ -70,7 +73,9 @@ const SupplierCategories = () => {
       </div>
 
       {/* Location Bar (Ref #1 style) */}
-      <div className="px-5 pt-4">
+      <div 
+        className="px-5 pt-4"
+      >
         <div className="bg-indigo-50/50 border border-indigo-100/50 rounded-2xl p-4 flex items-center gap-3">
           <MapPin size={18} className="text-indigo-500" />
           <span className="text-xs font-semibold text-indigo-700/80 uppercase tracking-widest">Suppliers in {currentLocation.split(',')[0]}</span>
@@ -78,16 +83,18 @@ const SupplierCategories = () => {
       </div>
 
       {/* List */}
-      <div className="p-5 space-y-4 pb-32">
+      <div 
+        className="p-5 space-y-4 pb-32"
+      >
         {categories.map((cat, idx) => (
           <div key={cat.id} className="space-y-2">
             <button
               onClick={() => navigate(`/browse/supplier?sub=${cat.id}`)}
-              className="w-full bg-white p-5 rounded-[28px] border border-slate-100 shadow-xl shadow-slate-200/40 flex items-center justify-between group active:scale-[0.98] transition-all"
+              className="w-full bg-white p-5 rounded-[28px] border border-slate-100 shadow-xl shadow-slate-200/40 flex items-center justify-between group transition-all"
             >
               <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center p-2 group-hover:scale-110 transition-transform">
-                  <img src={cat.image} alt={cat.label} className="w-full h-full object-contain" />
+                <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center p-2 group-hover:scale-110 transition-transform">
+                  <img src={cat.image} alt={cat.label} className="w-full h-full object-contain" style={{ mixBlendMode: 'multiply' }} />
                 </div>
                 <div className="text-left space-y-2">
                   <h3 className="text-[14px] font-semibold text-primary-900 leading-tight tracking-wide">{cat.label}</h3>
@@ -115,7 +122,9 @@ const SupplierCategories = () => {
       </div>
 
       {/* Floating View All Button (Ref #1) */}
-      <div className="fixed bottom-24 left-0 right-0 flex justify-center z-50 px-5">
+      <div 
+        className="fixed bottom-24 left-0 right-0 flex justify-center z-50 px-5"
+      >
         <button 
           onClick={() => navigate('/browse/supplier')}
           className="bg-[#3f51b5] text-white px-8 py-4 rounded-2xl shadow-[0_8px_30px_rgb(63,81,181,0.4)] flex items-center gap-3 active:scale-95 transition-all group"

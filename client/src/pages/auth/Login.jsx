@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -16,35 +17,64 @@ export default function Login() {
     setTimeout(() => { setLoading(false); navigate('/'); }, 1500);
   };
 
+  // Animation variants
+  const fadeInUp = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.5, ease: "easeOut" }
+  };
+
+  const staggerContainer = {
+    animate: {
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#edeef5', display: 'flex', flexDirection: 'column', maxWidth: '430px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      style={{ minHeight: '100vh', backgroundColor: '#edeef5', display: 'flex', flexDirection: 'column', maxWidth: '430px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}
+    >
 
       {/* ── HEADER: full-width white bar ── */}
-      <div style={{ backgroundColor: '#ffffff', display: 'flex', alignItems: 'center', padding: '18px 20px', position: 'relative' }}>
-        <button onClick={handleBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#2336b0', display: 'flex', alignItems: 'center', position: 'relative', z_index: 2 }}>
+      <motion.div 
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        style={{ backgroundColor: '#ffffff', display: 'flex', alignItems: 'center', padding: '18px 20px', position: 'relative', borderBottom: '1px solid #dde1f0' }}
+      >
+        <button onClick={handleBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#2336b0', display: 'flex', alignItems: 'center', position: 'relative', zIndex: 2 }}>
           <ArrowLeft size={26} strokeWidth={2} />
         </button>
         <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: '20px', fontWeight: '600', color: '#2336b0', pointerEvents: 'none' }}>
           Customer Login
         </span>
-      </div>
+      </motion.div>
 
       {/* ── CONTENT ── */}
-      <div style={{ flex: 1, padding: '0 28px', backgroundColor: '#edeef5' }}>
+      <motion.div 
+        variants={staggerContainer}
+        initial="initial"
+        animate="animate"
+        style={{ flex: 1, padding: '0 28px', backgroundColor: '#edeef5' }}
+      >
 
         {/* Welcome text */}
-        <div style={{ textAlign: 'center', paddingTop: '52px', paddingBottom: '44px' }}>
+        <motion.div variants={fadeInUp} style={{ textAlign: 'center', paddingTop: '52px', paddingBottom: '44px' }}>
           <div style={{ fontSize: '30px', fontWeight: '600', color: '#1b2c7a', lineHeight: 1.2, marginBottom: '10px', trackingTight: '-0.02em' }}>
             Welcome Back!
           </div>
           <div style={{ fontSize: '17px', fontWeight: '500', color: '#5468b8' }}>
             Sign in to your account to continue
           </div>
-        </div>
+        </motion.div>
 
         <form onSubmit={handleLogin}>
           {/* Email input */}
-          <div style={{ position: 'relative', marginBottom: '18px' }}>
+          <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '18px' }}>
             <span style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: '#4a567a', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
               <Mail size={22} strokeWidth={1.8} />
             </span>
@@ -67,10 +97,10 @@ export default function Login() {
                 outline: 'none',
               }}
             />
-          </div>
+          </motion.div>
 
           {/* Password input */}
-          <div style={{ position: 'relative', marginBottom: '10px' }}>
+          <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '10px' }}>
             <span style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: '#4a567a', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
               <Lock size={22} strokeWidth={1.8} />
             </span>
@@ -100,17 +130,20 @@ export default function Login() {
             >
               {showPassword ? <EyeOff size={24} strokeWidth={2} /> : <Eye size={24} strokeWidth={2} />}
             </button>
-          </div>
+          </motion.div>
 
           {/* Forgot Password */}
-          <div style={{ textAlign: 'right', marginBottom: '28px', marginTop: '8px' }}>
+          <motion.div variants={fadeInUp} style={{ textAlign: 'right', marginBottom: '28px', marginTop: '8px' }}>
             <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: '600', color: '#1b2c7a' }}>
               Forgot Password?
             </button>
-          </div>
+          </motion.div>
 
-          {/* Sign In button — deep navy with bottom shadow for embossed look */}
-          <button
+          {/* Sign In button */}
+          <motion.button
+            variants={fadeInUp}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={loading}
             style={{
@@ -134,19 +167,22 @@ export default function Login() {
             onMouseDown={e => { e.currentTarget.style.boxShadow = '0 2px 0 #182489'; e.currentTarget.style.transform = 'translateY(4px)'; }}
             onMouseUp={e => { e.currentTarget.style.boxShadow = '0 6px 0 #182489'; e.currentTarget.style.transform = 'translateY(0)'; }}
           >
-            {loading ? <Loader2 size={22} style={{ animation: 'spin 1s linear infinite' }} /> : 'Sign In'}
-          </button>
+            {loading ? <Loader2 size={22} className="animate-spin" /> : 'Sign In'}
+          </motion.button>
         </form>
 
         {/* OR divider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', margin: '36px 12px' }}>
+        <motion.div 
+          variants={fadeInUp}
+          style={{ display: 'flex', alignItems: 'center', gap: '16px', margin: '36px 12px' }}
+        >
           <div style={{ flex: 1, height: '1px', backgroundColor: '#cdd1e8' }} />
           <span style={{ fontSize: '16px', fontWeight: '500', color: '#8898cc' }}>or</span>
           <div style={{ flex: 1, height: '1px', backgroundColor: '#cdd1e8' }} />
-        </div>
+        </motion.div>
 
         {/* Sign Up link */}
-        <div style={{ textAlign: 'center', paddingBottom: '40px' }}>
+        <motion.div variants={fadeInUp} style={{ textAlign: 'center', paddingBottom: '40px' }}>
           <span style={{ fontSize: '17px', fontWeight: '500', color: '#8898cc' }}>Don't have an account? </span>
           <button
             onClick={() => navigate('/signup')}
@@ -154,10 +190,8 @@ export default function Login() {
           >
             Sign Up
           </button>
-        </div>
-      </div>
-
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }

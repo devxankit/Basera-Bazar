@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
 import { ChevronRight, ArrowLeft } from 'lucide-react';
-import aptImg from '../../assets/properties categories/appartments.jpg';
+import houseImg from '../../assets/properties categories/house.jpg';
 import hostelImg from '../../assets/properties categories/hostel.jpg';
 import officeImg from '../../assets/properties categories/office.jpg';
+import plotImg from '../../assets/properties categories/plot.jpeg';
 import warehouseImg from '../../assets/properties categories/warehouse.jpg';
 import { useLocationContext } from '../../context/LocationContext';
+import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -20,10 +22,10 @@ const PropertyCategories = () => {
   const { currentLocation } = useLocationContext();
 
   const categories = [
-    { id: 'apartment', label: 'Apartments / House / Flats', image: aptImg },
+    { id: 'apartment', label: 'Apartments / House / Flats', image: houseImg },
     { id: 'hostel', label: 'Hostel / PG', image: hostelImg },
     { id: 'office', label: 'Office / Shop', image: officeImg },
-    { id: 'plot', label: 'Plots / Lands', image: 'https://cdn-icons-png.flaticon.com/512/4335/4335191.png' },
+    { id: 'plot', label: 'Plots / Lands', image: plotImg },
     { id: 'warehouse', label: 'Warehouse / Godown', image: warehouseImg }
   ];
 
@@ -50,7 +52,9 @@ const PropertyCategories = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Header */}
-      <div className="bg-white border-b border-slate-100 px-6 py-5 flex items-center gap-4 sticky top-0 z-50 shadow-sm">
+      <div 
+        className="bg-white border-b border-slate-100 px-6 py-5 flex items-center gap-4 sticky top-0 z-50 shadow-sm"
+      >
         <button onClick={() => navigate(-1)} className="p-1 text-primary-900 border border-slate-100 rounded-lg hover:bg-slate-50 transition-all">
           <ArrowLeft size={22} />
         </button>
@@ -58,7 +62,9 @@ const PropertyCategories = () => {
       </div>
 
       {/* List */}
-      <div className="p-5 space-y-4 flex-grow pb-20">
+      <div 
+        className="p-5 space-y-4 flex-grow pb-20"
+      >
         {categories.map((cat) => (
           <button
             key={cat.id}
@@ -66,8 +72,8 @@ const PropertyCategories = () => {
             className="w-full bg-white p-5 rounded-[28px] border border-slate-100 shadow-xl shadow-slate-200/40 flex items-center justify-between group active:scale-[0.98] transition-all"
           >
             <div className="flex items-center gap-5">
-              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center p-2 group-hover:scale-110 transition-transform">
-                <img src={cat.image} alt={cat.label} className="w-full h-full object-contain" />
+              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center p-2 group-hover:scale-110 transition-transform">
+                <img src={cat.image} alt={cat.label} className="w-full h-full object-contain" style={{ mixBlendMode: 'multiply' }} />
               </div>
               <div className="text-left space-y-1">
                 <h3 className="text-[14px] font-semibold text-primary-900 leading-tight tracking-wide">{cat.label}</h3>

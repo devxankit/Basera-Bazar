@@ -1,4 +1,11 @@
-const STORAGE_KEY = 'baserabazar_db';
+const STORAGE_KEY = 'baserabazar_db_v3';
+
+import heroRealEstate from '../assets/images/hero_real_estate.png';
+import heroSupplier from '../assets/images/hero_supplier.png';
+import heroHomeService from '../assets/images/hero_home_service.png';
+import propFeatured1 from '../assets/images/prop_featured_1.png';
+import srvAcFix from '../assets/images/srv_ac_fix.png';
+import srvSecurityCam from '../assets/images/srv_security_cam.png';
 
 const initialData = {
   users: [
@@ -12,26 +19,26 @@ const initialData = {
     {
       id: 'l1', title: 'Residential Plot For Sale', category: 'property', type: 'FOR SALE',
       price: { value: '52.00', unit: 'L' }, location: 'Muzaffarpur, Bihar',
-      image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80',
+      image: propFeatured1,
       featured: true, details: { propertyType: 'plot', area: '2,040', areaUnit: 'sqft', facing: 'East', description: 'Prime residential plot.' },
       owner: { name: 'Sanjeev Singh', phone: '+91 98765 43210' }
     },
     {
       id: 'l4', title: 'Modern 3BHK Apartment', category: 'property', type: 'FOR RENT',
-      price: { value: '15,000', unit: '/mo' }, location: 'Patna, Bihar',
-      image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80',
+      price: { value: '15,000', unit: '/mo' }, location: 'Muzaffarpur, Bihar',
+      image: heroRealEstate,
       details: { propertyType: 'apartment', bedrooms: 3, bathrooms: 2, description: 'Fully furnished modern apartment in heart of city.' }
     },
     {
       id: 'prop_com_1', title: 'Retail Shop Space', category: 'property', type: 'FOR RENT',
-      price: { value: '25,000', unit: '/mo' }, location: 'Kankarbagh, Patna',
-      image: 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=800&q=80',
+      price: { value: '25,000', unit: '/mo' }, location: 'Muzaffarpur, Bihar',
+      image: heroRealEstate,
       details: { propertyType: 'commercial', area: '500', areaUnit: 'sqft', description: 'High footfall retail shop space on main road.' }
     },
     {
       id: 'prop_villa_1', title: 'Luxury Villa', category: 'property', type: 'FOR SALE',
-      price: { value: '1.20', unit: 'Cr' }, location: 'Danapur, Patna',
-      image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80',
+      price: { value: '1.20', unit: 'Cr' }, location: 'Muzaffarpur, Bihar',
+      image: propFeatured1,
       featured: true, details: { propertyType: 'villa', bedrooms: 4, bathrooms: 4, description: 'Premium luxury villa with private garden and pool.' }
     },
 
@@ -40,7 +47,7 @@ const initialData = {
       id: 'l3', title: 'CCTV & Computers Service', category: 'service', type: 'BOOKING',
       price: { value: '500', unit: '/visit' }, location: 'Muzaffarpur, Bihar',
       businessName: 'NEW PATNA COMPUTER', rating: 5.0, experience: '10 years of experience',
-      image: 'https://images.unsplash.com/photo-1581094288338-2314dddb7ecc?w=800&q=80',
+      image: srvSecurityCam,
       featured: true, details: { propertyType: 'ac maintenance', description: 'All types of AC repair and maintenance services.' },
       owner: { 
         name: 'Ravi Kumar', 
@@ -50,40 +57,22 @@ const initialData = {
         businessAddress: 'CHHOTI KALYANI ROAD, CHHOTI KALYANI, Muzaffarpur, Bihar, 842001'
       },
       portfolio: [
-        'https://images.unsplash.com/photo-1581094288338-2314dddb7ecc?w=800&q=80',
-        'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=800&q=80',
-        'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=800&q=80',
-        'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&q=80'
-      ],
-      about: 'CCTV Dealers Laptop Dealers Laptop Repair & Services Cartridge Ink Dealers Cartridge Ink Dealers-HP Computer & Printer Sales Repairing Services Computer Accessory Dealers Computer Dealers Computer Dealers-Del...'
-    },
-    {
-      id: 'srv_plumb_1', title: 'Shanawaz AC Services', category: 'service', type: 'BOOKING',
-      price: { value: '300', unit: '/visit' }, location: 'Damodarpur, Muzaffarpur, Bihar',
-      businessName: 'Shahnwaz AC Services', rating: 4.5, experience: '5 years of experience',
-      image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&q=80',
-      featured: true, details: { propertyType: 'ac maintenance', description: 'Expert plumbing services for residential and commercial.' },
-      owner: { 
-        name: 'Shanawaz', 
-        phone: '9876543210',
-        email: 'shanawaz@basera.com',
-        fullAddress: 'Damodarpur, Muzaffarpur, Bihar'
-      },
-      portfolio: [
-        'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&q=80'
+        srvSecurityCam,
+        srvAcFix,
+        heroHomeService
       ],
       about: 'Specialized in AC maintenance and deep cleaning.'
     },
     {
       id: 'srv_elec_1', title: 'Bright Light Electricians', category: 'service', type: 'BOOKING',
       price: { value: '400', unit: '/visit' }, location: 'Gaya, Bihar',
-      image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&q=80',
+      image: heroHomeService,
       details: { propertyType: 'electrical', description: 'Wiring, appliance repair, and general electrical works.' }
     },
     {
       id: 'srv_clean_1', title: 'Sparkle Deep Cleaning', category: 'service', type: 'BOOKING',
       price: { value: '2,500', unit: '/home' }, location: 'Muzaffarpur, Bihar',
-      image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&q=80',
+      image: heroHomeService,
       details: { propertyType: 'cleaning', description: 'Complete home deep cleaning services with professional equipment.' }
     },
 
@@ -91,47 +80,105 @@ const initialData = {
     {
       id: 'l2', title: 'Thakur Enterprises', category: 'supplier', type: 'SUPPLIER',
       location: 'Muzaffarpur, Bihar',
-      image: 'https://images.unsplash.com/photo-1590060417631-41961919d873?w=800&q=80',
+      image: heroSupplier,
       details: { propertyType: 'bricks', skuCount: 3, description: 'Quality bricks and construction materials supplier.' },
-      owner: { name: 'Amit Thakur', phone: '+91 91234 56789' }
+      owner: { 
+        name: 'Thakur Enterprises',
+        contactPerson: 'Ashish Kumar', 
+        phone: '7070966162',
+        email: 'thakur@basera.com',
+        memberSince: 'Mar 2026',
+        fullAddress: 'Pandit Pakri Chowk, Subhankarpur, Muzaffarpur Bihar',
+        district: 'Muzaffarpur',
+        state: 'Bihar',
+        verificationStatus: 'Active',
+        experience: 'New'
+      }
     },
     {
       id: 'l5', title: 'Bihar Construction Materials', category: 'supplier', type: 'SUPPLIER',
       location: 'Patna, Bihar',
-      image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80',
-      featured: true, details: { propertyType: 'aggregate', skuCount: 12, description: 'Sand, stone, and aggregate wholesale supplier.' }
+      image: heroSupplier,
+      featured: true, 
+      details: { propertyType: 'aggregate', skuCount: 12, description: 'Sand, stone, and aggregate wholesale supplier.' },
+      owner: {
+        name: 'Bihar Construction Materials',
+        contactPerson: 'Rajesh Sharma',
+        phone: '9876543210',
+        email: 'bihar.const@gmail.com',
+        memberSince: 'Jan 2025',
+        fullAddress: 'Boring Road, Patna, Bihar',
+        district: 'Patna',
+        state: 'Bihar',
+        verificationStatus: 'Active',
+        experience: '5+ Years'
+      }
     },
     {
       id: 'sup_cement_1', title: 'Ultra Cements Dealer', category: 'supplier', type: 'SUPPLIER',
       location: 'Hajipur, Bihar',
-      image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80',
-      details: { propertyType: 'cement', skuCount: 5, description: 'Authorized dealer for top cement brands.' }
+      image: heroSupplier,
+      details: { propertyType: 'cement', skuCount: 5, description: 'Authorized dealer for top cement brands.' },
+      owner: {
+        name: 'Ultra Cements Dealer',
+        contactPerson: 'Manoj Singh',
+        phone: '9988776655',
+        email: 'ultra.hajipur@gmail.com',
+        memberSince: 'Jun 2024',
+        fullAddress: 'Station Road, Hajipur, Bihar',
+        district: 'Vaishali',
+        state: 'Bihar',
+        verificationStatus: 'Active',
+        experience: '2+ Years'
+      }
     },
     {
       id: 'sup_paint_1', title: 'Colors & Co. Hardware', category: 'supplier', type: 'SUPPLIER',
       location: 'Bhagalpur, Bihar',
-      image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800&q=80',
-      details: { propertyType: 'paint', skuCount: 150, description: 'Interior and exterior paints, primers, and painting tools.' }
+      image: heroSupplier,
+      details: { propertyType: 'paint', skuCount: 150, description: 'Interior and exterior paints, primers, and painting tools.' },
+      owner: {
+        name: 'Colors & Co. Hardware',
+        contactPerson: 'Vikram Sahay',
+        phone: '8877665544',
+        email: 'colors bhagalpur@gmail.com',
+        memberSince: 'Feb 2023',
+        fullAddress: 'Khali Market, Bhagalpur, Bihar',
+        district: 'Bhagalpur',
+        state: 'Bihar',
+        verificationStatus: 'Active',
+        experience: '8+ Years'
+      }
     }
   ],
   leads: [],
   banners: [
-    { id: 'b1', title: 'Find Your Dream Home', imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6199f7ea8f?w=1200&q=80', isActive: true },
-    { id: 'b2', title: 'Expert Property Consultants', imageUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&q=80', isActive: true },
-    { id: 'b3', title: 'Verified Service Partners', imageUrl: 'https://images.unsplash.com/photo-1541829070764-84a7d30dee3f?w=1200&q=80', isActive: true }
+    { id: 'b1', title: 'Find Your Dream Home', imageUrl: heroRealEstate, isActive: true },
+    { id: 'b2', title: 'Expert Property Consultants', imageUrl: heroSupplier, isActive: true },
+    { id: 'b3', title: 'Verified Service Partners', imageUrl: heroHomeService, isActive: true }
   ]
 };
 
 class DataEngine {
   constructor() {
     this.data = this._load();
-    // Migration: ensure banners exist if they were added later
-    if (!this.data.banners || this.data.banners.length === 0) {
+    
+    // Migration: Force update banners if they use old Unsplash URLs
+    const hasExternalBanners = this.data.banners?.some(b => 
+      typeof b.imageUrl === 'string' && b.imageUrl.includes('unsplash.com')
+    );
+
+    if (!this.data.banners || this.data.banners.length === 0 || hasExternalBanners) {
       this.data.banners = initialData.banners;
       this._save();
     }
-    // Migration: Ensure we have all sample data loaded (if new items were added to initialData)
-    if ((this.data.listings?.length || 0) < initialData.listings.length) {
+
+    // Migration: Force update listings if they use old Unsplash URLs
+    const hasExternalListings = this.data.listings?.some(l => 
+      typeof l.image === 'string' && l.image.includes('unsplash.com')
+    );
+
+    if ((this.data.listings?.length || 0) < initialData.listings.length || hasExternalListings) {
       this.data.listings = initialData.listings;
       this._save();
     }

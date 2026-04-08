@@ -13,6 +13,21 @@ import SupplierCategories from './pages/user/SupplierCategories';
 import Login from './pages/auth/Login';
 import SignUp from './pages/auth/SignUp';
 import ServiceProfile from './pages/user/ServiceProfile';
+import PartnerLogin from './pages/partner/PartnerLogin';
+import PartnerRegistration from './pages/partner/PartnerRegistration';
+import PartnerHome from './pages/partner/PartnerHome';
+import PartnerInventory from './pages/partner/PartnerInventory';
+import PartnerInquiries from './pages/partner/PartnerInquiries';
+import PartnerProfile from './pages/partner/PartnerProfile';
+import PartnerSubscription from './pages/partner/PartnerSubscription';
+import AddService from './pages/partner/AddService';
+import AddProperty from './pages/partner/AddProperty';
+import AddProduct from './pages/partner/AddProduct';
+import PartnerLayout from './components/layout/PartnerLayout';
+import PartnerServiceDetails from './pages/partner/PartnerServiceDetails';
+import PartnerHelp from './pages/partner/PartnerHelp';
+import PartnerAbout from './pages/partner/PartnerAbout';
+import PartnerEditProfile from './pages/partner/PartnerEditProfile';
 
 const UserLayout = ({ children }) => {
   const navigate = useNavigate();
@@ -114,6 +129,55 @@ function App() {
             </div>
           </UserLayout>
         } />
+
+        {/* Partner Module Routes */}
+        <Route path="/partner/login" element={<PartnerLogin />} />
+        <Route path="/partner/register" element={<PartnerRegistration />} />
+        
+        <Route path="/partner/home" element={
+          <PartnerLayout>
+            <PartnerHome />
+          </PartnerLayout>
+        } />
+
+        {/* Real Partner Navigation Routes */}
+        <Route path="/partner/properties" element={
+          <PartnerLayout>
+            <PartnerInventory />
+          </PartnerLayout>
+        } />
+        <Route path="/partner/services" element={
+          <PartnerLayout>
+            <PartnerInventory />
+          </PartnerLayout>
+        } />
+        <Route path="/partner/products" element={
+          <PartnerLayout>
+            <PartnerInventory />
+          </PartnerLayout>
+        } />
+        <Route path="/partner/leads" element={
+          <PartnerLayout>
+            <PartnerInquiries />
+          </PartnerLayout>
+        } />
+        <Route path="/partner/profile" element={
+          <PartnerLayout>
+            <PartnerProfile />
+          </PartnerLayout>
+        } />
+        <Route path="/partner/subscription" element={
+          <PartnerLayout>
+            <PartnerSubscription />
+          </PartnerLayout>
+        } />
+        <Route path="/partner/add-service" element={<AddService />} />
+        <Route path="/partner/add-property" element={<AddProperty />} />
+        <Route path="/partner/add-product" element={<AddProduct />} />
+        <Route path="/partner/service-details/:id" element={<PartnerServiceDetails />} />
+        <Route path="/partner/help" element={<PartnerHelp />} />
+        <Route path="/partner/about" element={<PartnerAbout />} />
+        <Route path="/partner/edit-profile" element={<PartnerEditProfile />} />
       </Routes>
     </Router>
     </LocationProvider>

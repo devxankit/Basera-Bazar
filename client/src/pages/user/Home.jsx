@@ -3,8 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import BannerCarousel from '../../components/common/BannerCarousel';
 import { Search, Building2, Wrench, Store, ArrowRight, MapPin, Heart, Plus, Briefcase } from 'lucide-react';
 import { useLocationContext } from '../../context/LocationContext';
+import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+
+import propFeatured1 from '../../assets/images/prop_featured_1.png';
+import srvAcFix from '../../assets/images/srv_ac_fix.png';
+import srvSecurityCam from '../../assets/images/srv_security_cam.png';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -59,7 +64,9 @@ const Home = () => {
 
       {/* Vertical Selection Section (Ref #3) */}
       <div className="px-5 space-y-4">
-        <h2 className="text-lg font-semibold text-primary-900 tracking-tight uppercase">Browse Categories</h2>
+        <h2 className="text-lg font-semibold text-primary-900 tracking-tight uppercase">
+          Browse Categories
+        </h2>
         <div className="grid grid-cols-3 gap-3">
           {categories.map((cat) => (
             <button 
@@ -93,8 +100,8 @@ const Home = () => {
         
         <div className="flex gap-4 overflow-x-auto px-5 pb-4 no-scrollbar">
           {[
-            { id: 'l1', price: '52.00 L', area: '2,040 sqft', img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80', city: 'Muzaffarpur' },
-            { id: 'prop_villa_1', price: '1.20 Cr', area: '3,200 sqft', img: 'https://images.unsplash.com/photo-1600585154340-be6199f7ea8f?w=1200&q=80', city: 'Danapur' }
+            { id: 'l1', price: '52.00 L', area: '2,040 sqft', img: propFeatured1, city: 'Muzaffarpur' },
+            { id: 'prop_villa_1', price: '1.20 Cr', area: '3,200 sqft', img: propFeatured1, city: 'Danapur' }
           ].filter(item => selectedCity === 'All Locations' || (item.city && item.city.includes(selectedCity))).map((item, i) => (
             <div 
               key={i} 
@@ -129,8 +136,8 @@ const Home = () => {
         
         <div className="flex gap-4 overflow-x-auto px-5 pb-4 no-scrollbar">
           {[
-            { id: 'l3', title: 'CCTV & Computers Service', city: 'Muzaffarpur' },
-            { id: 'srv_plumb_1', title: 'Shanawaz AC Services', city: 'Patna' }
+            { id: 'l3', title: 'CCTV & Computers Service', img: srvSecurityCam, city: 'Muzaffarpur' },
+            { id: 'srv_plumb_1', title: 'Shanawaz AC Services', img: srvAcFix, city: 'Patna' }
           ].filter(item => selectedCity === 'All Locations' || (item.city && item.city.includes(selectedCity))).map((item) => (
             <div 
               key={item.id} 
@@ -138,7 +145,7 @@ const Home = () => {
               className="min-w-[280px] bg-white rounded-[32px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden active:scale-[0.98] transition-all cursor-pointer group"
             >
               <div className="h-40 relative">
-                <img src={`https://images.unsplash.com/photo-${item.id === 'l3' ? '1581094288338-2314dddb7ecc' : '1584622650111-993a426fbf0a'}?w=800&q=80`} className="w-full h-full object-cover shadow-inner opacity-90 group-hover:opacity-100 transition-opacity" alt="Service" />
+                <img src={item.img} className="w-full h-full object-cover shadow-inner opacity-90 group-hover:opacity-100 transition-opacity" alt="Service" />
                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-widest text-emerald-600 border border-emerald-100 shadow-sm">
                   Active
                 </div>
