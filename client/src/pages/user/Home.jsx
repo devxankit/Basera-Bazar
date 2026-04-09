@@ -73,33 +73,19 @@ const Home = () => {
 
   return (
     <div className="space-y-6 pb-20 bg-slate-50 min-h-screen">
-      
-      {/* Location Selector Bar */}
-      <div className="px-5 pt-6">
-        <div className="bg-white/70 backdrop-blur-md border border-white rounded-[32px] p-2 flex items-center justify-between shadow-lg shadow-slate-200/50">
-          <div className="flex items-center gap-3 px-4 py-2">
-            <div className="bg-emerald-500/10 p-2 rounded-2xl">
-              <MapPin size={18} className="text-emerald-600" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Browsing Area</span>
-              <span className="text-[15px] font-bold text-[#1f2355] leading-none shrink-0">{currentLocation}</span>
-            </div>
+      {/* Ultra-Slim Location Info Bar */}
+      <div className="pt-2 px-3 xs:px-6"> 
+        <button 
+          onClick={() => window.dispatchEvent(new CustomEvent('open-location-selector'))}
+          className="w-full bg-[#f8fafc] border border-slate-200 rounded-2xl py-2.5 px-3 flex items-center gap-2 active:scale-[0.98] transition-all"
+        >
+          <div className="bg-[#1f2355] p-1.5 rounded-lg shadow-sm flex-shrink-0">
+            <Building2 size={14} className="text-white" />
           </div>
-          <button 
-            onClick={() => {
-              // We'll dispatch a custom event that the Header can listen to, or we can use a state/modal logic
-              // For now, we'll try to find the location pill in the header and click it or just alert
-              // Ideally, we'd have the Modal state in a context, but since it's local to Header, 
-              // we can simply expose it or add a similar modal here.
-              // I'll add a logic to refresh or redirect if needed, but the best way is to trigger the Header modal.
-              window.dispatchEvent(new CustomEvent('open-location-selector'));
-            }}
-            className="bg-[#1f2355] text-white px-5 py-3 rounded-2xl text-[12px] font-bold uppercase tracking-widest transition-all active:scale-95 shadow-md shadow-slate-200"
-          >
-            Change
-          </button>
-        </div>
+          <p className="text-[clamp(12px,3.5vw,16px)] font-semibold text-[#181d5f] whitespace-nowrap min-w-0">
+            Showing content in <span className="text-[#fa8639] font-extrabold">{currentLocation}</span>
+          </p>
+        </button>
       </div>
 
       {/* Banner Section */}

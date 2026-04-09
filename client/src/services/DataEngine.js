@@ -37,12 +37,8 @@ class DataEngine {
       }
       
       if (table === 'banners') {
-        // Fallback to local banners if no backend banners yet
-        return [
-          { id: 'b1', title: 'Find Your Dream Home', imageUrl: '/src/assets/images/hero_real_estate.png', isActive: true },
-          { id: 'b2', title: 'Expert Property Consultants', imageUrl: '/src/assets/images/hero_supplier.png', isActive: true },
-          { id: 'b3', title: 'Verified Service Partners', imageUrl: '/src/assets/images/hero_home_service.png', isActive: true }
-        ];
+        // Return empty so the UI component uses its bundled defaults
+        return [];
       }
 
       return [];
