@@ -1,6 +1,7 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { LocationProvider } from './context/LocationContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
 import { Briefcase } from 'lucide-react';
@@ -13,6 +14,8 @@ import SupplierCategories from './pages/user/SupplierCategories';
 import Login from './pages/auth/Login';
 import SignUp from './pages/auth/SignUp';
 import ServiceProfile from './pages/user/ServiceProfile';
+import UserProfile from './pages/user/UserProfile';
+import EditProfile from './pages/user/EditProfile';
 import PartnerLogin from './pages/partner/PartnerLogin';
 import PartnerRegistration from './pages/partner/PartnerRegistration';
 import PartnerHome from './pages/partner/PartnerHome';
@@ -28,6 +31,13 @@ import PartnerServiceDetails from './pages/partner/PartnerServiceDetails';
 import PartnerHelp from './pages/partner/PartnerHelp';
 import PartnerAbout from './pages/partner/PartnerAbout';
 import PartnerEditProfile from './pages/partner/PartnerEditProfile';
+
+// Route guard — redirects unauthenticated users to /login
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return null;
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
 
 const UserLayout = ({ children }) => {
   const navigate = useNavigate();
@@ -66,8 +76,9 @@ const UserLayout = ({ children }) => {
 function App() {
   return (
     <LocationProvider>
-      <Router>
-      <Routes>
+      <AuthProvider>
+        <Router>
+          <Routes>
         {/* User Module Routes */}
         <Route path="/" element={
           <UserLayout>
@@ -84,6 +95,16 @@ function App() {
           <UserLayout>
             <ServiceProfile />
           </UserLayout>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <UserLayout><UserProfile /></UserLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/edit-profile" element={
+          <ProtectedRoute>
+            <UserLayout><EditProfile /></UserLayout>
+          </ProtectedRoute>
         } />
 
         {/* Category Specific Selectors */}
@@ -119,13 +140,6 @@ function App() {
           <UserLayout>
             <div className="p-8 text-center text-slate-400 font-semibold uppercase tracking-widest pt-20">
               Lead Activity Coming Soon
-            </div>
-          </UserLayout>
-        } />
-        <Route path="/profile" element={
-          <UserLayout>
-            <div className="p-8 text-center text-slate-400 font-semibold uppercase tracking-widest pt-20">
-              User Profile Coming Soon
             </div>
           </UserLayout>
         } />
@@ -180,6 +194,7 @@ function App() {
         <Route path="/partner/edit-profile" element={<PartnerEditProfile />} />
       </Routes>
     </Router>
+    </AuthProvider>
     </LocationProvider>
   );
 }

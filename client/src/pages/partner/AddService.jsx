@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { db } from '../../services/DataEngine';
 
 const SERVICE_CATEGORIES = [
   'AC maintenance', 'CCTV Services', 'Architect', 'Carpenter', 'Civil Engineer', 
@@ -57,6 +58,7 @@ export default function AddService() {
 
   const [activeStep, setActiveStep] = useState(1);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
 
@@ -160,42 +162,57 @@ export default function AddService() {
     }));
   };
 
-  const handleSave = () => {
-    // Get active partner for data isolation
-    const partnerData = JSON.parse(sessionStorage.getItem('activePartner') || '{}');
-    const partnerId = partnerData.email || 'unknown';
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (isSubmitting) return;
 
     try {
-      // Mock Persistence
-      const existing = JSON.parse(localStorage.getItem('baserabazar_partner_services') || '[]');
+      setIsSubmitting(true);
       
-      if (editId) {
-        // Update Mode
-        const updated = existing.map(item => 
-          item.id.toString() === editId 
-            ? { ...formData, id: Number(editId), type: 'service', partnerId, updatedAt: new Date().toISOString() } 
-            : item
-        );
-        localStorage.setItem('baserabazar_partner_services', JSON.stringify(updated));
-        console.log('Service Updated Successfully');
-      } else {
-        // Create Mode
-        const newService = {
-          ...formData,
-          id: Date.now(),
-          type: 'service',
-          partnerId, // Attach current partner ID
-          status: 'Active',
-          createdAt: new Date().toISOString()
-        };
-        localStorage.setItem('baserabazar_partner_services', JSON.stringify([...existing, newService]));
-        console.log('Service Saved Successfully:', newService);
+      // 1. Upload Images
+      let thumbnailUrl = formData.thumbnail;
+      if (formData.thumbnail && formData.thumbnail.startsWith('data:')) {
+        const thumbBlob = await fetch(formData.thumbnail).then(r => r.blob());
+        const thumbRes = await db.uploadFile(thumbBlob);
+        thumbnailUrl = thumbRes.url;
       }
+
+      const portfolioUrls = [];
+      for (const img of formData.portfolio) {
+        if (img.startsWith('data:')) {
+          const blob = await fetch(img).then(r => r.blob());
+          const res = await db.uploadFile(blob);
+          portfolioUrls.push(res.url);
+        } else {
+          portfolioUrls.push(img);
+        }
+      }
+
+      // 2. Prepare Payload
+      const payload = {
+        ...formData,
+        category: 'service',
+        image: thumbnailUrl,
+        images: portfolioUrls,
+        title: formData.serviceName,
+        details: {
+          serviceType: formData.serviceType,
+          experience: formData.experience,
+          description: formData.detailedDescription || formData.shortDescription,
+          businessName: formData.businessName
+        },
+        location_text: `${formData.businessAddress}, ${formData.district}, ${formData.state}`
+      };
+
+      // 3. Submit to API
+      await db.create('listings', payload);
       
       setShowSuccessModal(true);
     } catch (error) {
-       console.error('Error saving data:', error);
-       alert('Failed to save service. Your browser storage might be full. Try clearing your browser cache or deleting old listings to free up space.');
+       console.error('Error saving service:', error);
+       alert(error.response?.data?.message || 'Failed to save service. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -516,13 +533,11 @@ export default function AddService() {
 
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-slate-100 z-[70] max-w-md mx-auto">
         <button 
-          onClick={(e) => {
-            console.log(editId ? 'Update Service clicked' : 'Create Service clicked');
-            handleSubmit(e);
-          }}
-          className="w-full bg-[#001b4e] text-white py-5 rounded-[24px] font-medium text-[18px] shadow-2xl shadow-blue-900/30 active:scale-[0.98] transition-all"
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className={`w-full bg-[#001b4e] text-white py-5 rounded-[24px] font-medium text-[18px] shadow-2xl shadow-blue-900/30 active:scale-[0.98] transition-all ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
         >
-          {editId ? 'Update Service' : 'Create Service'}
+          {isSubmitting ? 'Processing...' : (editId ? 'Update Service' : 'Create Service')}
         </button>
       </div>
     </div>

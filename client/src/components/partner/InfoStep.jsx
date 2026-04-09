@@ -2,9 +2,11 @@ import React, { useState, useRef } from 'react';
 import { 
   User, Mail, Phone, Lock, MapPin, ChevronDown, Camera, 
   ShieldCheck, Eye, EyeOff, Navigation, Info, Building2, 
-  FileText, CreditCard, Hash, Map, Box, Trash2, Image as ImageIcon
+  FileText, CreditCard, Hash, Map, Box, Trash2, Image as ImageIcon,
+  CheckCircle2, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import api from '../../services/api';
 
 const INDIA_DISTRICTS = {
   'Bihar': ['Muzaffarpur', 'Patna', 'Gaya', 'Darbhanga', 'Bhagalpur', 'Hajipur', 'Purnia', 'Arrah', 'Begusarai', 'Munger', 'Bihar Sharif', 'Katihar', 'Sitamarhi', 'Siwan', 'Bhojpur', 'Saran'],
@@ -36,6 +38,12 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isOptionalOpen, setIsOptionalOpen] = useState(false);
+  
+  // Verification States
+  const [isVerified, setIsVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otp, setOtp] = useState('');
   
   const profileInputRef = useRef(null);
   const businessLogoRef = useRef(null);
@@ -99,6 +107,42 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
 
   const handleTogglePassword = () => setShowPassword(!showPassword);
   const handleToggleConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
+
+  const handleSendOtp = async () => {
+    if (formData.phone.length !== 10) return;
+    try {
+      setVerifying(true);
+      const response = await api.post('/auth/send-otp', { phone: formData.phone });
+      if (response.data.success) {
+        setShowOtpInput(true);
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to send OTP.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) return;
+    try {
+      setVerifying(true);
+      const response = await api.post('/auth/verify-otp', {
+        phone: formData.phone,
+        otp: otp,
+        role: 'partner'
+      });
+      
+      if (response.data.success) {
+        setIsVerified(true);
+        setShowOtpInput(false);
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || "Invalid OTP.");
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const states = Object.keys(INDIA_DISTRICTS);
   const districts = formData.state ? INDIA_DISTRICTS[formData.state] : [];
@@ -168,14 +212,58 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
               onChange={handleChange}
               placeholder="Email for communications" 
             />
-            <InputField 
-              icon={<Phone size={18} />} 
-              label="Phone Number *" 
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="+91 XXXXX XXXXX" 
-            />
+            <div className="relative">
+              <InputField 
+                icon={<Phone size={18} />} 
+                label="Phone Number *" 
+                name="phone"
+                disabled={isVerified}
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="+91 XXXXX XXXXX" 
+                style={{ paddingRight: isVerified ? '120px' : (formData.phone.length === 10 ? '100px' : '18px') }}
+              />
+              {formData.phone.length === 10 && !isVerified && !showOtpInput && (
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={verifying}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[#001b4e] bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-all"
+                >
+                  {verifying ? <Loader2 size={16} className="animate-spin" /> : 'Verify'}
+                </button>
+              )}
+              {isVerified && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-emerald-600 font-bold text-[14px]">
+                  <CheckCircle2 size={18} /> Verified
+                </div>
+              )}
+            </div>
+
+            {showOtpInput && !isVerified && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative"
+              >
+                <InputField 
+                  icon={<ShieldCheck size={18} />} 
+                  label="OTP Verification" 
+                  name="otp"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Enter 6-digit OTP" 
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyOtp}
+                  disabled={otp.length !== 6 || verifying}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-[#001b4e] text-white px-4 py-1.5 rounded-lg text-[13px] font-bold disabled:opacity-50"
+                >
+                  {verifying ? <Loader2 size={16} className="animate-spin" /> : 'Check'}
+                </button>
+              </motion.div>
+            )}
             <InputField 
               icon={<Lock size={18} />} 
               label="Password *" 
@@ -449,7 +537,8 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
         </button>
         <button
           onClick={onComplete}
-          className="flex-[2] py-5 bg-[#001b4e] text-white rounded-2xl font-bold text-[16px] shadow-lg shadow-indigo-900/20 active:bg-[#001b4e]/90 transition-all font-sans"
+          disabled={!isVerified}
+          className={`flex-[2] py-5 ${!isVerified ? 'bg-slate-300' : 'bg-[#001b4e]'} text-white rounded-2xl font-bold text-[16px] shadow-lg shadow-indigo-900/20 active:bg-[#001b4e]/90 transition-all font-sans`}
         >
           {isPremium ? 'Proceed to Payment' : 'Create Account'}
         </button>
@@ -458,7 +547,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
   );
 }
 
-function InputField({ label, icon, type = "text", placeholder, toggle, value, onChange, name }) {
+function InputField({ label, icon, type = "text", placeholder, toggle, value, onChange, name, disabled }) {
   return (
     <div className="relative">
       {icon && (
@@ -473,6 +562,7 @@ function InputField({ label, icon, type = "text", placeholder, toggle, value, on
         type={type}
         name={name}
         value={value}
+        disabled={disabled}
         onChange={onChange}
         placeholder={placeholder}
         className={`w-full bg-white border border-slate-200 rounded-2xl py-4.5 ${icon ? 'pl-12' : 'pl-5'} pr-12 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all`}

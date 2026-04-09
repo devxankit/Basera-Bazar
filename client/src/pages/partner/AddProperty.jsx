@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { db } from '../../services/DataEngine';
 
 const CATEGORIES = ['Office', 'Shop', 'Hostel/PG', 'Apartment/House/Flat', 'Plot/Lands', 'Warehouse/Godown'];
 const TYPES = ['Commercial', 'Residential', 'Agricultural', 'Industrial'];
@@ -195,40 +196,66 @@ export default function AddProperty() {
     }
   };
 
-  const submitFinalProperty = () => {
+  const submitFinalProperty = async () => {
     try {
-      const activePartner = JSON.parse(sessionStorage.getItem('activePartner') || '{}');
-      const partnerEmail = activePartner.email || 'guest@partner.com';
+      setIsSubmitting(true);
       
-      const existingData = JSON.parse(localStorage.getItem('baserabazar_partner_services') || '[]');
-      const existingItem = existingData.find(item => item.id.toString() === editId?.toString());
+      // 1. Upload Images to Cloudinary first
+      const uploadedImageUrls = [];
       
-      const newProperty = {
-        ...formData,
-        id: editId ? Number(editId) : Date.now(),
-        partnerId: partnerEmail,
-        type: 'property', 
-        status: existingItem ? existingItem.status : 'Pending', // Defaults to Pending
-        serviceName: formData.title, // For cross compatibility with inventory mapping
-        category: formData.category,
-        serviceType: formData.intention,
-        createdAt: existingItem ? existingItem.createdAt : new Date().toISOString(),
-      };
-      
-      let updatedData;
-      if (editId) {
-        updatedData = existingData.map(item => item.id.toString() === editId ? newProperty : item);
+      // Thumbnail
+      if (formData.thumbnail && formData.thumbnail.startsWith('data:')) {
+        const thumbBlob = await fetch(formData.thumbnail).then(r => r.blob());
+        const thumbRes = await db.uploadFile(thumbBlob);
+        formData.image = thumbRes.url; // Use 'image' for backend compatibility
       } else {
-        updatedData = [newProperty, ...existingData];
+        formData.image = formData.thumbnail;
       }
 
-      localStorage.setItem('baserabazar_partner_services', JSON.stringify(updatedData));
+      // Additional Images
+      for (const imgData of formData.images) {
+        if (imgData.startsWith('data:')) {
+          const blob = await fetch(imgData).then(r => r.blob());
+          const res = await db.uploadFile(blob);
+          uploadedImageUrls.push(res.url);
+        } else {
+          uploadedImageUrls.push(imgData);
+        }
+      }
+
+      // 2. Prepare Payload
+      const payload = {
+        ...formData,
+        images: uploadedImageUrls,
+        category: 'property', // Force category
+        details: {
+          propertyType: formData.propertyType || formData.category, // Map based on what UI sends
+          area: formData.builtUpArea,
+          areaUnit: formData.unit,
+          description: formData.description,
+          bedrooms: formData.bedrooms,
+          bathrooms: formData.bathrooms,
+          furnishing: formData.furnishing,
+          facing: formData.facing,
+          constructionStatus: formData.constructionStatus
+        },
+        price: {
+          value: formData.price,
+          unit: formData.intention === 'For Sale' ? 'L' : '/mo'
+        },
+        location_text: formData.completeAddress + ", " + formData.district + ", " + formData.state
+      };
+
+      // 3. Create Listing via API
+      await db.create('listings', payload);
       
       setShowConfirmModal(false);
-      navigate('/partner/properties'); // Redirect to inventory
+      navigate('/partner/inventory'); // Redirect to inventory
     } catch (error) {
-      console.error('Error saving property data:', error);
-      alert('Failed to save property. Your browser storage might be full. Try clearing your browser cache or deleting old listings to free up space.');
+      console.error('Error saving property:', error);
+      alert(error.response?.data?.message || 'Failed to save property. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

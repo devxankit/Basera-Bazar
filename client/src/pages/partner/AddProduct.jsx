@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { db } from '../../services/DataEngine';
 
 const SUPPLIER_CATEGORIES_ALL = [
   'Aggregate supplier', 
@@ -42,6 +43,7 @@ export default function AddProduct() {
 
   const [activeStep, setActiveStep] = useState(1);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [partnerCategories, setPartnerCategories] = useState([]);
   
   const [formData, setFormData] = useState({
@@ -195,40 +197,60 @@ export default function AddProduct() {
     setFormData(prev => ({ ...prev, specifications: newSpecs }));
   };
 
-  const submitFinalProduct = () => {
+  const submitFinalProduct = async () => {
     try {
-      const activePartner = JSON.parse(sessionStorage.getItem('activePartner') || '{}');
-      const partnerEmail = activePartner.email || 'guest@partner.com';
+      setIsSubmitting(true);
       
-      const existingData = JSON.parse(localStorage.getItem('baserabazar_partner_services') || '[]');
-      const existingItem = existingData.find(item => item.id.toString() === editId?.toString());
-      
-      const newProduct = {
-        ...formData,
-        id: editId ? Number(editId) : Date.now(),
-        partnerId: partnerEmail,
-        type: 'product', 
-        status: existingItem ? existingItem.status : 'Pending', // Defaults to Pending
-        serviceName: formData.title, // Cross compatibility mapping
-        category: formData.category,
-        serviceType: 'Supplier', // ServiceType mapping for inventory
-        createdAt: existingItem ? existingItem.createdAt : new Date().toISOString(),
-      };
-      
-      let updatedData;
-      if (editId) {
-        updatedData = existingData.map(item => item.id.toString() === editId ? newProduct : item);
-      } else {
-        updatedData = [newProduct, ...existingData];
+      // 1. Upload Images
+      let thumbnailUrl = formData.thumbnail;
+      if (formData.thumbnail && formData.thumbnail.startsWith('data:')) {
+        const thumbBlob = await fetch(formData.thumbnail).then(r => r.blob());
+        const thumbRes = await db.uploadFile(thumbBlob);
+        thumbnailUrl = thumbRes.url;
       }
 
-      localStorage.setItem('baserabazar_partner_services', JSON.stringify(updatedData));
+      const galleryUrls = [];
+      for (const img of formData.images) {
+        if (img.startsWith('data:')) {
+          const blob = await fetch(img).then(r => r.blob());
+          const res = await db.uploadFile(blob);
+          galleryUrls.push(res.url);
+        } else {
+          galleryUrls.push(img);
+        }
+      }
+
+      // 2. Prepare Payload
+      const payload = {
+        title: formData.title,
+        category: 'supplier',
+        sub_category: formData.category, // Map UI category to sub_category
+        brand: formData.brand,
+        price: {
+          value: formData.price,
+          unit: formData.unit
+        },
+        image: thumbnailUrl,
+        images: galleryUrls,
+        location_text: `${formData.completeAddress}, ${formData.district}, ${formData.state}`,
+        details: {
+          description: formData.description,
+          specifications: formData.specifications,
+          minOrderQty: formData.minOrderQty,
+          priceOnRequest: formData.priceOnRequest
+        }
+      };
+
+      // 3. Submit
+      await db.create('listings', payload);
       
       setShowConfirmModal(false);
-      navigate('/partner/products'); 
+      navigate('/partner/inventory'); 
     } catch (error) {
-      console.error('Error saving product data:', error);
-      alert('Failed to save product. Your browser storage might be full. Try clearing your browser cache or deleting old listings to free up space.');
+      console.error('Error saving product:', error);
+      alert(error.response?.data?.message || 'Failed to save product. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -347,9 +369,10 @@ export default function AddProduct() {
               <div className="space-y-3">
                 <button 
                   onClick={submitFinalProduct}
-                  className="w-full bg-[#001b4e] text-white py-4 rounded-xl font-bold text-[16px] shadow-lg shadow-blue-900/30 active:scale-95 transition-all"
+                  disabled={isSubmitting}
+                  className="w-full bg-[#001b4e] text-white py-4 rounded-xl font-bold text-[16px] shadow-lg shadow-blue-900/30 active:scale-95 transition-all disabled:opacity-50"
                 >
-                  Yes, List My Product
+                  {isSubmitting ? 'Processing...' : 'Yes, List My Product'}
                 </button>
                 <button 
                   onClick={() => setShowConfirmModal(false)}

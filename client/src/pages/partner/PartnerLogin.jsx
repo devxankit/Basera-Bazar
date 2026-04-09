@@ -1,24 +1,55 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logo from '../../assets/baseralogo.png';
+import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PartnerLogin() {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { login } = useAuth();
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+  const handleSendOtp = async () => {
+    if (phone.length !== 10) return;
+    try {
+      setLoading(true);
+      const response = await api.post('/auth/send-otp', { phone });
+      if (response.data.success) {
+        setOtpSent(true);
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to send OTP.');
+    } finally {
       setLoading(false);
-      navigate('/'); // Redirect to dashboard or home for now
-    }, 1500);
+    }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!otp) return;
+    
+    try {
+      setLoading(true);
+      const response = await api.post('/auth/verify-otp', {
+        phone,
+        otp,
+        role: 'partner'
+      });
+      
+      if (response.data.success) {
+        login(response.data.user, response.data.token);
+        navigate('/partner/home');
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || 'Invalid OTP.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fadeInUp = {
@@ -67,38 +98,44 @@ export default function PartnerLogin() {
         <form onSubmit={handleLogin} className="space-y-5">
           <motion.div variants={fadeInUp} className="relative group">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-focus-within:text-[#001b4e] group-focus-within:bg-indigo-50 transition-colors">
-              <Mail size={20} />
+              <Phone size={20} />
             </div>
             <input
-              type="email"
+              type="tel"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Phone Number"
+              maxLength={10}
               className="w-full bg-white border border-slate-200 rounded-2xl py-4.5 pl-16 pr-4 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-400 outline-none focus:border-[#001b4e] focus:ring-4 focus:ring-indigo-50 transition-all"
             />
+            {!otpSent && phone.length === 10 && (
+              <button
+                type="button"
+                onClick={handleSendOtp}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[#f97316] hover:underline"
+              >
+                Send OTP
+              </button>
+            )}
           </motion.div>
 
-          <motion.div variants={fadeInUp} className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-focus-within:text-[#001b4e] group-focus-within:bg-indigo-50 transition-colors">
-              <Lock size={20} />
-            </div>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="w-full bg-white border border-slate-200 rounded-2xl py-4.5 pl-16 pr-14 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-400 outline-none focus:border-[#001b4e] focus:ring-4 focus:ring-indigo-50 transition-all"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#001b4e] transition-colors"
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </motion.div>
+          {otpSent && (
+            <motion.div variants={fadeInUp} className="relative group">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-focus-within:text-[#001b4e] group-focus-within:bg-indigo-50 transition-colors">
+                <Lock size={20} />
+              </div>
+              <input
+                type="text"
+                required
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="6-digit OTP"
+                maxLength={6}
+                className="w-full bg-white border border-slate-200 rounded-2xl py-4.5 pl-16 pr-14 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-400 outline-none focus:border-[#001b4e] focus:ring-4 focus:ring-indigo-50 transition-all"
+              />
+            </motion.div>
+          )}
 
           {/* Login Button */}
           <motion.button

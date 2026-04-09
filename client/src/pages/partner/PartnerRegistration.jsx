@@ -6,6 +6,9 @@ import RoleStep from '../../components/partner/RoleStep';
 import PlanStep from '../../components/partner/PlanStep';
 import InfoStep from '../../components/partner/InfoStep';
 import PartnerModal from '../../components/partner/PartnerModal';
+import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../services/DataEngine';
 
 export default function PartnerRegistration() {
   const navigate = useNavigate();
@@ -41,6 +44,8 @@ export default function PartnerRegistration() {
     pincode: '',
     profileImage: null
   });
+  
+  const [authState, setAuthState] = useState(null); // { token, user }
 
   const nextStep = () => setStep(prev => Math.min(prev + 1, 3));
   const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
@@ -65,30 +70,70 @@ export default function PartnerRegistration() {
     }
   };
 
-  const handleConfirmRegistration = () => {
+  const handleConfirmRegistration = async () => {
+    if (!authState) {
+       alert("Please verify your phone number first.");
+       return;
+    }
+
     setIsSubmitting(true);
-    
-    // Simulate API delay
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setModalConfig(prev => ({ ...prev, isOpen: false }));
-      
-      // Store session info for dashboard simulation
-      const partnerData = {
-        name: formData.fullName || 'Partner',
-        email: formData.email,
-        phone: formData.phone,
-        businessName: formData.businessName,
-        role: selectedRole,
-        plan: selectedPlan,
-        category: formData.category,
-        isLoggedIn: true
+    try {
+      // 3. Handle Image Uploads for Profile/Business Logo
+      let profileUrl = formData.profileImage;
+      if (formData.profileImage && formData.profileImage.startsWith('data:')) {
+         const res = await db.uploadFile(await fetch(formData.profileImage).then(r => r.blob()));
+         profileUrl = res.url;
+      }
+
+      let logoUrl = formData.businessLogo;
+      if (formData.businessLogo && formData.businessLogo.startsWith('data:')) {
+         const res = await db.uploadFile(await fetch(formData.businessLogo).then(r => r.blob()));
+         logoUrl = res.url;
+      }
+
+      // 4. Temporarily save token to api instance for the profile update
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // 5. Update Profile with full details
+      const roleMapping = {
+        'agent': 'property_agent',
+        'service': 'service_provider',
+        'supplier': 'supplier'
       };
-      sessionStorage.setItem('activePartner', JSON.stringify(partnerData));
-      
-      // Navigate to partner home
+      const backendRole = roleMapping[selectedRole] || 'service_provider';
+
+      const updatePayload = {
+        name: formData.fullName,
+        email: formData.email,
+        partner_type: backendRole,
+        image: profileUrl,
+        business_details: {
+          name: formData.businessName,
+          category: formData.category, // From supplier selection or general
+          address: formData.address || `${formData.district}, ${formData.state}`,
+          logo: logoUrl,
+          description: formData.businessDescription
+        },
+        kyc_details: {
+          pan_card: formData.pan,
+          adhaar_card: formData.aadhar,
+          gst_number: formData.gst
+        }
+      };
+
+      await api.put('/auth/profile', updatePayload);
+
+      // 6. Finalize Auth Session
+      login(userData, token);
+
+      setModalConfig(prev => ({ ...prev, isOpen: false }));
       navigate('/partner/home');
-    }, 2000);
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert(error.response?.data?.message || "Registration failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getStepTitle = () => {
@@ -163,6 +208,7 @@ export default function PartnerRegistration() {
                 setFormData={setFormData} 
                 onBack={prevStep} 
                 onComplete={handleCompleteRequest}
+                onVerified={(userData, token) => setAuthState({ user: userData, token })}
                 role={selectedRole}
                 plan={selectedPlan}
               />

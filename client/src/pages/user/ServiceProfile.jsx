@@ -6,6 +6,7 @@ import {
   Navigation, Info, Image as ImageIcon, Contact,
   ChevronRight, Building2, Mail, Award, Clock, Send, X, User as UserIcon, ListFilter, CheckCircle2
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -17,11 +18,19 @@ const ServiceProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('About');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [enquiryData, setEnquiryData] = useState({ name: '', phone: '', email: '', message: '' });
+
+  useEffect(() => {
+    if (user) {
+      setEnquiryData(prev => ({ ...prev, name: user.name, phone: user.phone, email: user.email }));
+    }
+  }, [user]);
 
   useEffect(() => {
     if (location.search.includes('enquire=true')) {
@@ -33,6 +42,12 @@ const ServiceProfile = () => {
     const fetchService = async () => {
       const data = await db.getById('listings', id);
       setService(data);
+      if (data) {
+        setEnquiryData(prev => ({
+          ...prev,
+          message: `Hi I am interested in your service "${data.title}". Please provide more details and pricing.`
+        }));
+      }
       setLoading(false);
     };
     fetchService();
@@ -272,11 +287,23 @@ const ServiceProfile = () => {
               </div>
             </div>
 
-            <form className="space-y-5 overflow-y-auto px-1 -mx-1" onSubmit={(e) => { 
-              e.preventDefault(); 
-              setIsModalOpen(false); 
-              setTimeout(() => setShowSuccessModal(true), 150); 
-            }}>
+            <form 
+              className="space-y-5 overflow-y-auto px-1 -mx-1" 
+              onSubmit={async (e) => { 
+                e.preventDefault(); 
+                await db.create('leads', {
+                  ...enquiryData,
+                  userId: user?.id || null, // Link to user if logged in
+                  listingId: id,
+                  listingTitle: service.title,
+                  category: 'service',
+                  type: 'enquiry',
+                  date: new Date().toISOString()
+                });
+                setIsModalOpen(false); 
+                setTimeout(() => setShowSuccessModal(true), 150); 
+              }}
+            >
               <div className="space-y-2">
                 <label className="text-[13px] font-medium text-[#1f2355]">Inquiry Type</label>
                 <div className="relative">
@@ -301,7 +328,14 @@ const ServiceProfile = () => {
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <UserIcon size={18} className="text-[#1f2355]/40" />
                   </div>
-                  <input type="text" placeholder="Enter your full name" className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px] text-[#1f2355] placeholder:text-slate-400" required />
+                  <input 
+                    type="text" 
+                    placeholder="Enter your full name" 
+                    className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px] text-[#1f2355] placeholder:text-slate-400" 
+                    required 
+                    value={enquiryData.name}
+                    onChange={(e) => setEnquiryData({ ...enquiryData, name: e.target.value })}
+                  />
                 </div>
               </div>
 
@@ -311,17 +345,32 @@ const ServiceProfile = () => {
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Phone size={18} className="text-[#1f2355]/40" />
                   </div>
-                  <input type="tel" placeholder="Enter your phone number" className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px] text-[#1f2355] placeholder:text-slate-400" required />
+                  <input 
+                    type="tel" 
+                    placeholder="Enter 10-digit phone number" 
+                    className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px] text-[#1f2355] placeholder:text-slate-400" 
+                    required 
+                    maxLength={10}
+                    value={enquiryData.phone}
+                    onChange={(e) => setEnquiryData({ ...enquiryData, phone: e.target.value.replace(/\D/g, '') })}
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[13px] font-medium text-[#1f2355]">Email (Optional)</label>
+                <label className="text-[13px] font-medium text-[#1f2355]">Email Address</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Mail size={18} className="text-[#1f2355]/40" />
                   </div>
-                  <input type="email" placeholder="Enter your email address" className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px] text-[#1f2355] placeholder:text-slate-400" />
+                  <input 
+                    type="email" 
+                    placeholder="Enter your email address" 
+                    className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px] text-[#1f2355] placeholder:text-slate-400" 
+                    required 
+                    value={enquiryData.email}
+                    onChange={(e) => setEnquiryData({ ...enquiryData, email: e.target.value })}
+                  />
                 </div>
               </div>
 
@@ -330,8 +379,9 @@ const ServiceProfile = () => {
                 <textarea 
                   rows="3" 
                   className="w-full p-4 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px] text-[#1f2355] placeholder:text-slate-400 resize-none leading-relaxed" 
-                  defaultValue={`Hi I am interested in your service "${service.title}". Please provide more details and pricing.`}
                   required 
+                  value={enquiryData.message}
+                  onChange={(e) => setEnquiryData({ ...enquiryData, message: e.target.value })}
                 />
               </div>
 
@@ -341,7 +391,16 @@ const ServiceProfile = () => {
               </div>
 
               <div className="pb-8">
-                <button type="submit" className="w-full bg-[#fa8639] mb-4 hover:bg-[#e0752d] text-white py-4 rounded-xl font-semibold text-[15px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-[0_8px_20px_-6px_rgba(250,134,57,0.5)] flex items-center justify-center gap-2">
+                <button 
+                  type="submit" 
+                  disabled={!enquiryData.name || enquiryData.phone.length < 10 || !enquiryData.email || !enquiryData.message}
+                  className={cn(
+                    "w-full mb-4 py-4 rounded-xl font-semibold text-[15px] uppercase tracking-widest active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg",
+                    (!enquiryData.name || enquiryData.phone.length < 10 || !enquiryData.email || !enquiryData.message)
+                    ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                    : "bg-[#fa8639] hover:bg-[#e0752d] text-white shadow-[0_8px_20px_-6px_rgba(250,134,57,0.5)]"
+                  )}
+                >
                   <Send size={18} className="-translate-y-0.5" strokeWidth={2} />
                   Send Enquiry
                 </button>

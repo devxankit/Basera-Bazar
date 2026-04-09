@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
 import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Heart, Tag, Home, Ruler, Send, ArrowRightSquare, LayoutGrid, Mail, User as UserIcon, X, Info, ShoppingCart, Building2, Calendar, Award, ShieldCheck, Map as MapIcon, Package, Plus, Minus, ChevronDown, Trash2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Skeleton from '../../components/common/Skeleton';
@@ -15,6 +16,7 @@ function cn(...inputs) {
 const ListingDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('details');
@@ -26,6 +28,8 @@ const ListingDetails = () => {
   const [cart, setCart] = useState([]);
   const [selectedCat, setSelectedCat] = useState(null);
   const [selection, setSelection] = useState({ subtype: '', brand: '', quantity: 1 });
+  const [enquiryData, setEnquiryData] = useState({ name: '', phone: '', email: '', message: '' });
+  const [quotationData, setQuotationData] = useState({ name: '', phone: '', email: '', message: '' });
 
   const isSupplier = listing?.category === 'supplier';
   const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -97,10 +101,33 @@ const ListingDetails = () => {
   };
 
   useEffect(() => {
+    if (listing) {
+      setEnquiryData(prev => ({
+        ...prev,
+        message: `Hi, I am interested in the ${listing.category === 'supplier' ? 'supplier' : 'property'} "${listing.title}". Please provide more details.`
+      }));
+    }
+  }, [listing]);
+
+  useEffect(() => {
+    setQuotationData(prev => ({
+      ...prev,
+      message: generateQuotationMessage()
+    }));
+  }, [cart]);
+
+  useEffect(() => {
     if (isSupplier && activeTab === 'details') {
       setActiveTab('products');
     }
   }, [isSupplier, activeTab]);
+
+  useEffect(() => {
+    if (user) {
+      setEnquiryData(prev => ({ ...prev, name: user.name, phone: user.phone, email: user.email }));
+      setQuotationData(prev => ({ ...prev, name: user.name, phone: user.phone, email: user.email }));
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -430,17 +457,9 @@ const ListingDetails = () => {
                         <div className="flex items-center gap-2">
                           <button 
                             onClick={() => openProductModal(cat.name)}
-                            className="bg-[#4caf50] text-white px-4 py-2.5 rounded-xl text-[13px] font-bold shadow-sm active:scale-95 transition-all hover:bg-[#43a047]"
+                            className="bg-[#4caf50] text-white px-6 py-2.5 rounded-xl text-[13px] font-bold shadow-sm active:scale-95 transition-all hover:bg-[#43a047]"
                           >
                             Add Product
-                          </button>
-                          <button 
-                            className={cn(
-                              "w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-90",
-                              inCartCount > 0 ? "bg-[#34a853]/10 text-[#34a853]" : "bg-slate-50 text-slate-400"
-                            )}
-                          >
-                            <ShoppingCart size={20} />
                           </button>
                         </div>
                       </div>
@@ -552,34 +571,31 @@ const ListingDetails = () => {
       </div>
 
       {/* Floating Sticky Footer */}
-      <div className="fixed bottom-0 w-full max-w-md mx-auto border-t border-slate-100 bg-white/95 backdrop-blur-md z-[60] py-4 px-6 md:px-8">
-        <div className="flex gap-3">
-          {isSupplier && cartItemCount > 0 ? (
-            <button 
-              onClick={() => setIsCartViewOpen(true)}
-              className="w-full bg-[#1f2355] text-white py-4 rounded-full font-bold text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-slate-200 active:scale-95 transition-all"
-            >
-               <ShoppingCart size={18} strokeWidth={2.5} />
-               View Cart ({cartItemCount})
-            </button>
-          ) : (
-            <button 
-              onClick={() => isSupplier ? navigate(-1) : setIsModalOpen(true)}
-              className={cn(
-                "py-4 rounded-full font-bold text-[16px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg w-full",
-                isSupplier ? "bg-slate-200 text-[#1f2355] hover:bg-slate-300 shadow-slate-200/50" : "bg-[#fa8639] text-white hover:bg-[#e0752d] shadow-orange-200/50"
-              )}
-            >
-              {isSupplier ? "Continue" : (
-                <>
-                  <Send size={18} className="-translate-y-0.5" strokeWidth={2.5} />
-                  Send Enquiry
-                </>
-              )}
-            </button>
-          )}
+      {(!isSupplier || cartItemCount > 0) && (
+        <div className="fixed bottom-0 w-full max-w-md mx-auto border-t border-slate-100 bg-white/95 backdrop-blur-md z-[60] py-4 px-6 md:px-8">
+          <div className="flex gap-3">
+            {isSupplier ? (
+              <button 
+                onClick={() => setIsCartViewOpen(true)}
+                className="w-full bg-[#1f2355] text-white py-4 rounded-full font-bold text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-slate-200 active:scale-95 transition-all"
+              >
+                 <ShoppingCart size={18} strokeWidth={2.5} />
+                 Continue ({cartItemCount})
+              </button>
+            ) : (
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className={cn(
+                  "py-4 rounded-full font-bold text-[16px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg w-full bg-[#fa8639] text-white hover:bg-[#e0752d] shadow-orange-200/50"
+                )}
+              >
+                <Send size={18} className="-translate-y-0.5" strokeWidth={2.5} />
+                Send Enquiry
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Enquiry Modal */}
       {isModalOpen && (
@@ -599,34 +615,89 @@ const ListingDetails = () => {
                 <p className="text-[12px] font-medium text-[#1f2355]/70">{listing.location}</p>
               </div>
             </div>
-            <form className="space-y-5 max-h-[60vh] overflow-y-auto px-1 -mx-1" onSubmit={(e) => { e.preventDefault(); setIsModalOpen(false); setTimeout(() => setShowSuccessModal(true), 150); }}>
+            <form 
+              className="space-y-5 max-h-[60vh] overflow-y-auto px-1 -mx-1" 
+              onSubmit={async (e) => { 
+                e.preventDefault(); 
+                await db.create('leads', {
+                  ...enquiryData,
+                  userId: user?.id || null, // Link to user if logged in
+                  listingId: listing.id,
+                  listingTitle: listing.title,
+                  category: listing.category,
+                  type: 'enquiry',
+                  date: new Date().toISOString()
+                });
+                setIsModalOpen(false); 
+                setTimeout(() => setShowSuccessModal(true), 150); 
+              }}
+            >
               <div className="space-y-2">
                 <label className="text-[13px] font-medium text-[#1f2355]">Full Name</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><UserIcon size={18} className="text-[#1f2355]/40" /></div>
-                  <input type="text" placeholder="Enter your full name" className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px]" required />
+                  <input 
+                    type="text" 
+                    placeholder="Enter your full name" 
+                    className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px]" 
+                    required 
+                    value={enquiryData.name}
+                    onChange={(e) => setEnquiryData({ ...enquiryData, name: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-[13px] font-medium text-[#1f2355]">Phone Number</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Phone size={18} className="text-[#1f2355]/40" /></div>
-                  <input type="tel" placeholder="Enter your phone number" className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px]" required />
+                  <input 
+                    type="tel" 
+                    placeholder="Enter 10-digit phone number" 
+                    className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px]" 
+                    required 
+                    maxLength={10}
+                    value={enquiryData.phone}
+                    onChange={(e) => setEnquiryData({ ...enquiryData, phone: e.target.value.replace(/\D/g, '') })}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[13px] font-medium text-[#1f2355]">Email (Optional)</label>
+                <label className="text-[13px] font-medium text-[#1f2355]">Email Address</label>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Mail size={18} className="text-[#1f2355]/40" /></div>
-                   <input type="email" placeholder="Enter your email address" className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px]" />
+                   <input 
+                    type="email" 
+                    placeholder="Enter your email address" 
+                    className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px]" 
+                    required 
+                    value={enquiryData.email}
+                    onChange={(e) => setEnquiryData({ ...enquiryData, email: e.target.value })}
+                   />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-[13px] font-medium text-[#1f2355]">Message</label>
-                <textarea rows="3" className="w-full p-4 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px] resize-none" defaultValue={`Hi, I am interested in the ${isSupplier ? 'supplier' : 'property'} "${listing.title}". Please provide more details.`} required />
+                <textarea 
+                  rows="3" 
+                  className="w-full p-4 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px] resize-none" 
+                  value={enquiryData.message}
+                  onChange={(e) => setEnquiryData({ ...enquiryData, message: e.target.value })}
+                  required 
+                />
               </div>
               <div className="pb-2">
-                <button type="submit" className="w-full bg-[#1f2355] hover:bg-[#161a42] text-white py-4 rounded-xl font-medium text-[15px] active:scale-[0.98] transition-all shadow-lg shadow-[#1f2355]/20">Send Enquiry</button>
+                <button 
+                  type="submit" 
+                  disabled={!enquiryData.name || enquiryData.phone.length < 10 || !enquiryData.email || !enquiryData.message}
+                  className={cn(
+                    "w-full py-4 rounded-xl font-medium text-[15px] active:scale-[0.98] transition-all shadow-lg",
+                    (!enquiryData.name || enquiryData.phone.length < 10 || !enquiryData.email || !enquiryData.message)
+                    ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                    : "bg-[#1f2355] hover:bg-[#161a42] text-white shadow-[#1f2355]/20"
+                  )}
+                >
+                  Send Enquiry
+                </button>
               </div>
             </form>
           </div>
@@ -804,7 +875,13 @@ const ListingDetails = () => {
                   setIsCartViewOpen(false);
                   setIsQuotationModalOpen(true);
                 }}
-                className="w-full bg-[#1f2355] text-white py-5 rounded-[24px] font-bold text-[16px] shadow-xl shadow-[#1f2355]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                disabled={cartItemCount === 0}
+                className={cn(
+                  "w-full py-5 rounded-[24px] font-bold text-[16px] shadow-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]",
+                  cartItemCount === 0 
+                    ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none" 
+                    : "bg-[#1f2355] text-white shadow-[#1f2355]/20"
+                )}
               >
                 Continue <ChevronRight size={20} />
               </button>
@@ -847,51 +924,91 @@ const ListingDetails = () => {
                </div>
 
                <div className="space-y-6">
-                 <h3 className="text-[16px] font-bold text-[#1f2355] pl-1">Your Information</h3>
-                 
-                 <div className="space-y-2">
-                   <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Name</label>
-                   <div className="relative">
-                      <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400"><UserIcon size={20} /></div>
-                      <input type="text" placeholder="Enter your name" className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-[20px] outline-none focus:border-[#1f2355] transition-all font-semibold text-[#1f2355]" />
-                   </div>
-                 </div>
+                  <h3 className="text-[16px] font-bold text-[#1f2355] pl-1">Your Information</h3>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Name</label>
+                    <div className="relative">
+                       <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400"><UserIcon size={20} /></div>
+                       <input 
+                        type="text" 
+                        placeholder="Enter your name" 
+                        className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-[20px] outline-none focus:border-[#1f2355] transition-all font-semibold text-[#1f2355]" 
+                        required 
+                        value={quotationData.name}
+                        onChange={(e) => setQuotationData({ ...quotationData, name: e.target.value })}
+                       />
+                    </div>
+                  </div>
 
-                 <div className="space-y-2">
-                   <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Phone</label>
-                   <div className="relative">
-                      <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400"><Phone size={20} /></div>
-                      <input type="tel" placeholder="Enter your phone number" className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-[20px] outline-none focus:border-[#1f2355] transition-all font-semibold text-[#1f2355]" />
-                   </div>
-                 </div>
+                  <div className="space-y-2">
+                    <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Phone</label>
+                    <div className="relative">
+                       <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400"><Phone size={20} /></div>
+                       <input 
+                         type="tel" 
+                         placeholder="Enter 10-digit phone number" 
+                         className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-[20px] outline-none focus:border-[#1f2355] transition-all font-semibold text-[#1f2355]" 
+                         required 
+                         maxLength={10}
+                         value={quotationData.phone}
+                         onChange={(e) => setQuotationData({ ...quotationData, phone: e.target.value.replace(/\D/g, '') })}
+                       />
+                    </div>
+                  </div>
 
-                 <div className="space-y-2">
-                   <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Email</label>
-                   <div className="relative">
-                      <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400"><Mail size={20} /></div>
-                      <input type="email" placeholder="Enter your email" className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-[20px] outline-none focus:border-[#1f2355] transition-all font-semibold text-[#1f2355]" />
-                   </div>
-                 </div>
+                  <div className="space-y-2">
+                    <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Email</label>
+                    <div className="relative">
+                       <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400"><Mail size={20} /></div>
+                       <input 
+                        type="email" 
+                        placeholder="Enter your email" 
+                        className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-[20px] outline-none focus:border-[#1f2355] transition-all font-semibold text-[#1f2355]" 
+                        required 
+                        value={quotationData.email}
+                        onChange={(e) => setQuotationData({ ...quotationData, email: e.target.value })}
+                       />
+                    </div>
+                  </div>
 
-                 <div className="space-y-2">
-                    <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Message</label>
-                    <textarea 
-                      rows="8"
-                      className="w-full p-5 bg-white border border-slate-200 rounded-[24px] outline-none focus:border-[#1f2355] transition-all font-medium text-[#1f2355] text-[14px] leading-relaxed resize-none"
-                      defaultValue={generateQuotationMessage()}
-                    />
-                 </div>
-               </div>
+                  <div className="space-y-2">
+                     <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Message</label>
+                     <textarea 
+                       rows="8"
+                       className="w-full p-5 bg-white border border-slate-200 rounded-[24px] outline-none focus:border-[#1f2355] transition-all font-medium text-[#1f2355] text-[14px] leading-relaxed resize-none"
+                       value={quotationData.message}
+                       onChange={(e) => setQuotationData({ ...quotationData, message: e.target.value })}
+                       required
+                     />
+                  </div>
+                </div>
             </div>
 
             <div className="pt-6 shrink-0">
                <button 
-                onClick={() => {
+                onClick={async () => {
+                  await db.create('leads', {
+                    ...quotationData,
+                    userId: user?.id || null, // Link to user if logged in
+                    items: cart,
+                    listingId: listing.id,
+                    listingTitle: listing.title,
+                    category: listing.category,
+                    type: 'quotation',
+                    date: new Date().toISOString()
+                  });
                   setIsQuotationModalOpen(false);
                   setCart([]); // Clear cart
                   setTimeout(() => setShowSuccessModal(true), 150);
                 }}
-                className="w-full bg-[#1f2355] text-white py-5 rounded-[24px] font-bold text-[16px] shadow-xl shadow-[#1f2355]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                disabled={!quotationData.name || quotationData.phone.length < 10 || !quotationData.email || !quotationData.message}
+                className={cn(
+                  "w-full py-5 rounded-[24px] font-bold text-[16px] shadow-xl transition-all flex items-center justify-center gap-2",
+                  (!quotationData.name || quotationData.phone.length < 10 || !quotationData.email || !quotationData.message)
+                  ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                  : "bg-[#1f2355] text-white shadow-[#1f2355]/20 active:scale-[0.98]"
+                )}
               >
                 Submit Enquiry
               </button>

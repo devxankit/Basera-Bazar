@@ -3,10 +3,12 @@ import logo from '../../assets/baseralogo.png';
 import { ChevronDown, MapPin, User, Bell, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import LocationModal from '../common/LocationModal';
+import { useAuth } from '../../context/AuthContext';
 import { useLocationContext } from '../../context/LocationContext';
 
 const Header = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { currentLocation, setCurrentLocation } = useLocationContext();
 
@@ -37,7 +39,7 @@ const Header = () => {
 
           {/* Profile Icon Action */}
           <button 
-            onClick={() => navigate('/login')}
+            onClick={() => navigate(isAuthenticated ? '/profile' : '/login')}
             className="h-10 w-10 bg-[#e8eaf6] flex items-center justify-center rounded-full text-[#181d5f] transition-all active:scale-95 border border-[#d0d4eb] flex-shrink-0"
           >
             <User size={20} strokeWidth={2.5} />
