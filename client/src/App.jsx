@@ -43,32 +43,33 @@ const UserLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isHome = location.pathname === '/';
+  const isAuth = location.pathname === '/login' || location.pathname === '/signup';
+  const isCategory = location.pathname.startsWith('/category/');
+  const isBrowse = location.pathname.startsWith('/browse/');
   const showFloatingButton = isHome;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
       {isHome && <Header />}
-      <main className={`flex-grow ${(!isHome && location.pathname !== '/login' && location.pathname !== '/signup') ? 'pt-4' : ''}`}>
+      <main className={`flex-grow ${(!isHome && !isAuth && !isCategory && !isBrowse) ? 'pt-4' : ''}`}>
         {children}
       </main>
 
       {showFloatingButton && (
-        <div className="fixed bottom-24 left-0 right-0 z-[60] flex justify-end px-5 pointer-events-none max-w-md mx-auto">
+        <div className="fixed bottom-32 left-0 right-0 z-[60] flex justify-end px-5 pointer-events-none max-w-md mx-auto">
           <button 
             onClick={() => navigate('/partner/register')}
-            className="pointer-events-auto bg-[#fa8639] text-white px-5 py-3.5 rounded-full flex items-center gap-2.5 shadow-[0_12px_30px_-5px_rgba(250,134,57,0.6)] active:scale-95 transition-all outline-none"
+            className="pointer-events-auto bg-[#fa8639] text-white px-5 py-3.5 rounded-full flex items-center gap-2.5 shadow-[0_15px_30px_-5px_rgba(250,134,57,0.5)] active:scale-95 transition-all outline-none border border-white/20"
           >
             <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
               <Briefcase size={16} className="text-white" />
             </div>
-            <span className="text-[13px] font-semibold tracking-wide uppercase">Become Partner</span>
+            <span className="text-[13px] font-bold tracking-wide uppercase">Become Partner</span>
           </button>
         </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto w-full">
-        <BottomNav />
-      </div>
+      <BottomNav />
     </div>
   );
 };

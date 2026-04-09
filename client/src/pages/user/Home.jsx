@@ -73,7 +73,34 @@ const Home = () => {
 
   return (
     <div className="space-y-6 pb-20 bg-slate-50 min-h-screen">
-
+      
+      {/* Location Selector Bar */}
+      <div className="px-5 pt-6">
+        <div className="bg-white/70 backdrop-blur-md border border-white rounded-[32px] p-2 flex items-center justify-between shadow-lg shadow-slate-200/50">
+          <div className="flex items-center gap-3 px-4 py-2">
+            <div className="bg-emerald-500/10 p-2 rounded-2xl">
+              <MapPin size={18} className="text-emerald-600" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Browsing Area</span>
+              <span className="text-[15px] font-bold text-[#1f2355] leading-none shrink-0">{currentLocation}</span>
+            </div>
+          </div>
+          <button 
+            onClick={() => {
+              // We'll dispatch a custom event that the Header can listen to, or we can use a state/modal logic
+              // For now, we'll try to find the location pill in the header and click it or just alert
+              // Ideally, we'd have the Modal state in a context, but since it's local to Header, 
+              // we can simply expose it or add a similar modal here.
+              // I'll add a logic to refresh or redirect if needed, but the best way is to trigger the Header modal.
+              window.dispatchEvent(new CustomEvent('open-location-selector'));
+            }}
+            className="bg-[#1f2355] text-white px-5 py-3 rounded-2xl text-[12px] font-bold uppercase tracking-widest transition-all active:scale-95 shadow-md shadow-slate-200"
+          >
+            Change
+          </button>
+        </div>
+      </div>
 
       {/* Banner Section */}
       <div className="px-5">

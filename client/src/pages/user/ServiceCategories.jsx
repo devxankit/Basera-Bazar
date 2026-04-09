@@ -45,7 +45,7 @@ const ServiceCategories = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Premium Subtle Header Section */}
       <div
-        className="bg-white border-b border-slate-100 px-6 pt-10 pb-6 space-y-4 relative z-50 shadow-sm"
+        className="bg-white border-b border-slate-100 px-6 pt-5 pb-5 space-y-4 relative z-50 shadow-sm"
       >
         <div className="flex items-center justify-between">
           <button onClick={() => navigate(-1)} className="p-2 border border-slate-100 rounded-xl hover:bg-slate-50 transition-all text-primary-900">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Building2, Wrench, Store } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -17,35 +18,43 @@ const BottomNav = () => {
   ];
 
   return (
-    <nav className="z-50 bg-white border-t border-slate-100 flex items-center justify-around px-2 pb-safe-offset-4 pt-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
-      {navItems.map((item) => (
-        <NavLink
-          key={item.path}
-          to={item.path}
-          className={({ isActive }) => 
-            cn(
-              "flex flex-col items-center gap-1.5 px-3 py-1 transition-all",
-              isActive ? "text-primary-600" : "text-slate-400"
-            )
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <div className={cn(
-                "p-2 rounded-2xl transition-all duration-300",
-                isActive ? "bg-primary-50 shadow-sm" : "bg-transparent"
-              )}>
-                <item.icon size={22} strokeWidth={isActive ? 2 : 2} />
-              </div>
-              <span className={cn(
-                "text-[10px] font-semibold uppercase tracking-widest",
-                isActive ? "text-primary-700" : "text-slate-400"
-              )}>{item.label}</span>
-            </>
-          )}
-        </NavLink>
-      ))}
-    </nav>
+    <div className="fixed bottom-6 left-0 right-0 z-50 px-6 max-w-md mx-auto pointer-events-none">
+      <nav className="pointer-events-auto bg-white/80 backdrop-blur-xl border border-white/40 flex items-center justify-between px-3 py-2.5 rounded-[32px] shadow-[0_15px_35px_-5px_rgba(0,0,0,0.1)]">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={({ isActive }) => 
+              cn(
+                "flex flex-col items-center gap-1 transition-all flex-1 py-1 relative",
+                isActive ? "text-[#1f2355]" : "text-slate-400"
+              )
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <div className={cn(
+                  "p-2.5 rounded-2xl transition-all duration-500",
+                  isActive ? "bg-indigo-50/80 scale-110 shadow-sm" : "bg-transparent scale-100"
+                )}>
+                  <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                </div>
+                <span className={cn(
+                  "text-[9px] font-bold uppercase tracking-[0.1em]",
+                  isActive ? "text-[#1f2355]" : "text-slate-400"
+                )}>{item.label}</span>
+                {isActive && (
+                  <motion.div 
+                    layoutId="nav-pill"
+                    className="absolute -top-1 w-1 h-1 bg-[#fa8639] rounded-full"
+                  />
+                )}
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+    </div>
   );
 };
 
