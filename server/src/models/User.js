@@ -57,9 +57,26 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null // Optional for OTP-only users
   },
+  role: {
+    type: String,
+    enum: ['Customer', 'Admin', 'Agent', 'Supplier', 'Service Provider', 'user', 'super_admin'],
+    default: 'Customer'
+  },
+  rating: {
+    type: Number,
+    default: 0
+  },
+  last_login: {
+    type: Date,
+    default: null
+  },
   deleted_at: {
     type: Date,
     default: null
+  },
+  token_version: {
+    type: Number,
+    default: 0
   }
 }, { timestamps: true });
 

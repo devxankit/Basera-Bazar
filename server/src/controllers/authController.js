@@ -1,12 +1,13 @@
 const { User, Otp } = require('../models/User');
 const { Partner } = require('../models/Partner');
+const { AdminUser } = require('../models/Admin');
 const { sendOTP } = require('../utils/sms');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 // Helper function to generate a secure JWT Token
-const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET, {
+const generateToken = (id, role, email, version = 0) => {
+  return jwt.sign({ id, role, email, version }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || '30d',
   });
 };
@@ -160,7 +161,7 @@ const verifyOtp = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Name, email, and password are required for signup.' });
       }
 
-      const Model = role === 'partner' ? Partner : User;
+      const Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
 
       // Final safety check (uniqueness already validated on frontend, but double-check here)
       const phoneConflict = await Model.findOne({ phone });
@@ -183,7 +184,7 @@ const verifyOtp = async (req, res) => {
 
     } else {
       // LOGIN flow: Find existing user
-      const Model = role === 'partner' ? Partner : User;
+      const Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
       account = await Model.findOne({ phone });
 
       if (!account) {
@@ -196,7 +197,7 @@ const verifyOtp = async (req, res) => {
     }
 
     // 4. Generate and return JWT
-    const token = generateToken(account._id, assignedRole);
+    const token = generateToken(account._id, assignedRole, account.email, account.token_version);
 
     res.status(200).json({
       success: true,
@@ -206,6 +207,7 @@ const verifyOtp = async (req, res) => {
         phone: account.phone,
         email: account.email,
         name: account.name,
+        profileImage: account.profileImage || '',
         role: assignedRole,
       },
     });
@@ -268,7 +270,7 @@ const loginWithPassword = async (req, res) => {
 
     console.log(`[Login Attempt] Identifier: ${identifier}, Role: ${role}`);
 
-    const Model = role === 'partner' ? Partner : User;
+    const Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
 
     // Search by email or phone
     const account = await Model.findOne({
@@ -299,12 +301,15 @@ const loginWithPassword = async (req, res) => {
 
     // Verify password
     const isMatch = await account.matchPassword(password);
+    console.log(`[Login Attempt] Identifier: ${identifier}, isMatch: ${isMatch}`);
+    
     if (!isMatch) {
       console.log(`[Login Failed] Incorrect password for identifier: ${identifier}`);
-      return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });
+      return res.status(401).json({ success: false, message: `Incorrect password. Please try again.` });
     }
 
-    const token = generateToken(account._id, role);
+    const token = generateToken(account._id, role, account.email, account.token_version);
+    console.log(`[Login Success] User: ${account.email}, Role: ${role}`);
 
     res.status(200).json({
       success: true,
@@ -314,13 +319,14 @@ const loginWithPassword = async (req, res) => {
         phone: account.phone,
         email: account.email,
         name: account.name,
+        profileImage: account.profileImage || '',
         role,
       },
     });
 
   } catch (error) {
-    console.error('Login Error:', error);
-    res.status(500).json({ success: false, message: 'Server error during login.' });
+    console.error('Login Error Trace:', error);
+    res.status(500).json({ success: false, message: `Server error: ${error.message}` });
   }
 };
 
@@ -337,7 +343,7 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide all required fields.' });
     }
 
-    const Model = role === 'partner' ? Partner : User;
+    const Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
 
     const existing = await Model.findOne({ $or: [{ phone }, { email }] });
     if (existing) {
@@ -345,13 +351,13 @@ const register = async (req, res) => {
     }
 
     const newUser = await Model.create({ name: fullName, email, phone, password });
-    const token = generateToken(newUser._id, role);
+    const token = generateToken(newUser._id, role, newUser.email, newUser.token_version);
 
     res.status(201).json({
       success: true,
       message: 'Account created successfully!',
       token,
-      user: { id: newUser._id, name: newUser.name, phone: newUser.phone, email: newUser.email, role },
+      user: { id: newUser._id, name: newUser.name, phone: newUser.phone, email: newUser.email, profileImage: newUser.profileImage || '', role },
     });
 
   } catch (error) {

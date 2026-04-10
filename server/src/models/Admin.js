@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const adminUserSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    default: 'Super Admin'
+  },
   email: {
     type: String,
     required: true,
@@ -8,20 +12,49 @@ const adminUserSchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   },
-  password_hash: {
+  password: {
     type: String,
     required: true
   },
-  role: {
+  phone: { type: String, default: '' },
+  address: { type: String, default: '' },
+  city: { type: String, default: '' },
+  state: { type: String, default: '' },
+    role: {
     type: String,
-    enum: ['super_admin'],
-    default: 'super_admin'
+    enum: ['super_admin', 'SuperAdmin', 'Admin'],
+    default: 'Admin'
+  },
+  status: {
+    type: String,
+    enum: ['Active', 'Inactive', 'Suspended'],
+    default: 'Active'
   },
   permissions: {
     type: [String],
-    default: [] // For granular scaling if needed in future despite single role
+    default: []
+  },
+  profileImage: {
+    type: String,
+    default: ''
+  },
+  token_version: {
+    type: Number,
+    default: 0
   }
 }, { timestamps: true });
+
+// Hash password before saving
+adminUserSchema.pre('save', async function() {
+  if (!this.isModified('password')) return;
+  const salt = await require('bcryptjs').genSalt(10);
+  this.password = await require('bcryptjs').hash(this.password, salt);
+});
+
+// Compare password method
+adminUserSchema.methods.matchPassword = async function(enteredPassword) {
+  return await require('bcryptjs').compare(enteredPassword, this.password);
+};
 
 // email unique index is handled by field definition
 

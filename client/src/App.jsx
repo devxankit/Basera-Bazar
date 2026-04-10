@@ -31,12 +31,40 @@ import PartnerServiceDetails from './pages/partner/PartnerServiceDetails';
 import PartnerHelp from './pages/partner/PartnerHelp';
 import PartnerAbout from './pages/partner/PartnerAbout';
 import PartnerEditProfile from './pages/partner/PartnerEditProfile';
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminUserDetails from './pages/admin/AdminUserDetails';
+import AdminUserSubscriptions from './pages/admin/AdminUserSubscriptions';
+import AdminUserForm from './pages/admin/AdminUserForm';
+import AdminMandiBazar from './pages/admin/AdminMandiBazar';
+import AdminProperties from './pages/admin/AdminProperties';
+import AdminServices from './pages/admin/AdminServices';
+import AdminProducts from './pages/admin/AdminProducts';
+import AdminLeads from './pages/admin/AdminLeads';
+import AdminEditProfile from './pages/admin/AdminEditProfile';
+import AdminPaymentReport from './pages/admin/AdminPaymentReport';
+import AdminSubscriptionPlans from './pages/admin/AdminSubscriptionPlans';
+import AdminLayout from './components/layout/AdminLayout';
+import AdminAllActivities from './pages/admin/AdminAllActivities';
+import AdminPendingProperties from './pages/admin/AdminPendingProperties';
+import AdminPendingOthers from './pages/admin/AdminPendingOthers';
 
 // Route guard — redirects unauthenticated users to /login
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return null;
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+// Admin Route Guard
+const AdminRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return null;
+  if (!isAuthenticated || user?.role !== 'super_admin') {
+    return <Navigate to="/admin/login" replace />;
+  }
+  return children;
 };
 
 const UserLayout = ({ children }) => {
@@ -193,6 +221,160 @@ function App() {
         <Route path="/partner/help" element={<PartnerHelp />} />
         <Route path="/partner/about" element={<PartnerAbout />} />
         <Route path="/partner/edit-profile" element={<PartnerEditProfile />} />
+
+        {/* Admin Module Routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        
+        <Route path="/admin/dashboard" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminDashboard />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/profile" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminEditProfile />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/users" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminUsers />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/users/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminUserDetails />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/users/add" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminUserForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/users/edit/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminUserForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/users/subscriptions/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminUserSubscriptions />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/mandi-bazar" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminMandiBazar />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/properties" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminProperties />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/services" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminServices />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/products" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminProducts />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/leads" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminLeads />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/subscriptions/plans" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminSubscriptionPlans />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/reports/payments" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminPaymentReport />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        
+        {/* New Dashboard Oversight Routes */}
+        <Route path="/admin/dashboard/activities" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminAllActivities />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/dashboard/pending/properties" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminPendingProperties />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/dashboard/pending/others" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminPendingOthers />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        {/* Placeholder Admin Routes */}
+        {['subscriptions', 'banners', 'reports'].map(path => (
+          <Route key={path} path={`/admin/${path}`} element={
+            <AdminRoute>
+              <AdminLayout>
+                <div className="p-8 text-center text-slate-400 font-semibold uppercase tracking-widest pt-20">
+                  {path.replace('-', ' ')} coming soon
+                </div>
+              </AdminLayout>
+            </AdminRoute>
+          } />
+        ))}
       </Routes>
     </Router>
     </AuthProvider>

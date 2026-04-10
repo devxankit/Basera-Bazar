@@ -61,6 +61,14 @@ const partnerSchema = new mongoose.Schema({
     enum: ['service_provider', 'property_agent', 'supplier', 'mandi_seller'],
     required: true
   },
+  role: {
+    type: String,
+    enum: ['Agent', 'Supplier', 'Service Provider'],
+    required: false
+  },
+  state: { type: String, trim: true },
+  district: { type: String, trim: true },
+  address: { type: String, trim: true },
   unique_seller_id: {
     type: String,
     sparse: true,
@@ -104,6 +112,10 @@ const partnerSchema = new mongoose.Schema({
   deleted_at: {
     type: Date,
     default: null
+  },
+  token_version: {
+    type: Number,
+    default: 0
   }
 }, { timestamps: true });
 

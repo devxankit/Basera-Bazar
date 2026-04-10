@@ -60,6 +60,21 @@ const propertyListingSchema = new mongoose.Schema({
     deposit: { type: Number },
     maintenance: { type: Number }
   },
+  details: {
+    area: { 
+      value: { type: Number },
+      unit: { type: String, enum: ['sqft', 'sqyrd', 'sqmt', 'acre'], default: 'sqft' }
+    },
+    bhk: { type: Number },
+    bathrooms: { type: Number },
+    furnishing: { type: String, enum: ['unfurnished', 'semi-furnished', 'fully-furnished'], default: 'unfurnished' },
+    floor_number: { type: Number },
+    total_floors: { type: Number },
+    parking: { type: String, enum: ['none', 'covered', 'open'], default: 'none' },
+    facing: { type: String, enum: ['north', 'south', 'east', 'west', 'no-preference'], default: 'no-preference' },
+    possession: { type: String, enum: ['ready', 'under-construction'], default: 'ready' }
+  },
+  images: [{ type: String }],
   status: {
     type: String,
     enum: ['draft', 'pending_approval', 'active', 'sold_rented', 'inactive', 'suspended', 'deleted'],

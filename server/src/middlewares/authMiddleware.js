@@ -7,7 +7,7 @@ require('dotenv').config();
  * If they do, it decodes the token and attaches the user info to the `req` object.
  * If they don't, it blocks the request.
  */
-const protect = (req, res, next) => {
+const protect = async (req, res, next) => {
   let token;
 
   // Check if the authorization header exists and starts with 'Bearer'
@@ -20,8 +20,43 @@ const protect = (req, res, next) => {
       // Decode the token using our secret key to verify it hasn't been tampered with
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Attach the decoded user data to the request object so the next route can use it!
-      req.user = decoded;
+      // SYSTEM-WIDE FRESHNESS FIX:
+      // Fetch the latest user data from the database based on the ID.
+      // This ensures that req.user always contains the newest name, email, and photo
+      // even if the user refreshed the page with a "stale" token.
+      const { AdminUser } = require('../models/Admin');
+      const { User } = require('../models/User');
+      const { Partner } = require('../models/Partner');
+
+      let userFound;
+      if (decoded.role === 'super_admin' || decoded.role === 'SuperAdmin') {
+        userFound = await AdminUser.findById(decoded.id).select('-password');
+      } else if (decoded.role === 'partner') {
+        userFound = await Partner.findById(decoded.id).select('-password');
+      } else {
+        userFound = await User.findById(decoded.id).select('-password');
+      }
+
+      if (!userFound) {
+        return res.status(401).json({ success: false, message: 'User no longer exists.' });
+      }
+
+      // Check if user is active
+      if (userFound.is_active === false || userFound.onboarding_status === 'suspended') {
+        return res.status(403).json({ success: false, message: 'Your account has been deactivated. All sessions closed.' });
+      }
+
+      // Token Version Check (Session Closure)
+      // If the incoming token was issued BEFORE the last session reset, block it.
+      if (userFound.token_version !== undefined && decoded.version !== undefined) {
+        if (decoded.version < userFound.token_version) {
+          return res.status(401).json({ success: false, message: 'Session expired. Please re-login.' });
+        }
+      }
+
+      // Attach the REAL database object to req.user
+      req.user = userFound.toObject();
+      req.user.id = userFound._id; // Ensure compatibility
       
       // Move on to the actual router function
       next();

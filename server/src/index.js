@@ -7,7 +7,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Request Logger Middleware
 app.use((req, res, next) => {
@@ -52,8 +53,8 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`🚀 BaseraBazar Backend running on port ${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 BaseraBazar Backend running on http://localhost:${PORT}`);
 });
 
 // Handle server errors (like EADDRINUSE)
