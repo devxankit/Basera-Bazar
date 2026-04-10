@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
 import { ArrowLeft, Search, MapPin, ChevronRight, Store } from 'lucide-react';
-import { motion } from 'framer-motion';
 import aggregateImg from '../../assets/suppliers/aggregate supplier.jpg';
 import brickImg from '../../assets/suppliers/brick supplier.jpg';
 import cementImg from '../../assets/suppliers/cement supplier.jpg';
@@ -10,26 +9,20 @@ import materialsImg from '../../assets/suppliers/cnstruction materials supplier.
 import sandImg from '../../assets/suppliers/sand supplier.jpg';
 import tmtImg from '../../assets/suppliers/tmt supplier.jpg';
 import { useLocationContext } from '../../context/LocationContext';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
-function cn(...inputs) {
-  return twMerge(clsx(inputs));
-}
+const categories = [
+  { id: 'aggregate', label: 'Aggregate Supplier', image: aggregateImg },
+  { id: 'bricks', label: 'Bricks Suppliers', image: brickImg },
+  { id: 'cement', label: 'Cement Supplier', image: cementImg },
+  { id: 'materials', label: 'Construction Materials Supplier', image: materialsImg },
+  { id: 'sand', label: 'Sand Supplier', image: sandImg },
+  { id: 'tmt', label: 'TMT Supplier', image: tmtImg }
+];
 
 const SupplierCategories = () => {
   const navigate = useNavigate();
   const [counts, setCounts] = useState({});
   const { currentLocation } = useLocationContext();
-
-  const categories = [
-    { id: 'aggregate', label: 'Aggregate Supplier', image: aggregateImg },
-    { id: 'bricks', label: 'Bricks Suppliers', image: brickImg },
-    { id: 'cement', label: 'Cement Supplier', image: cementImg },
-    { id: 'materials', label: 'Construction Materials Supplier', image: materialsImg },
-    { id: 'sand', label: 'Sand Supplier', image: sandImg },
-    { id: 'tmt', label: 'TMT Supplier', image: tmtImg }
-  ];
 
   useEffect(() => {
     const fetchCounts = async () => {

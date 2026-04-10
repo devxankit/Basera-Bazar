@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import BannerCarousel from '../../components/common/BannerCarousel';
 import { Search, Building2, Wrench, Store, ArrowRight, MapPin, Heart, Plus, Briefcase, Loader2 } from 'lucide-react';
 import { useLocationContext } from '../../context/LocationContext';
-import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { db } from '../../services/DataEngine';
@@ -15,7 +14,6 @@ function cn(...inputs) {
 const Home = () => {
   const navigate = useNavigate();
   const { currentLocation } = useLocationContext();
-  const selectedCity = currentLocation?.split(',')[0].trim() || 'Muzaffarpur';
 
   const [properties, setProperties] = useState([]);
   const [services, setServices] = useState([]);
@@ -131,7 +129,7 @@ const Home = () => {
           </div>
           
           <div className="flex gap-4 overflow-x-auto px-5 pb-4 no-scrollbar">
-            {properties.map((item, i) => (
+            {properties.map((item) => (
               <div 
                 key={item.id} 
                 onClick={() => navigate(`/listing/${item.id}`)}

@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  User, Mail, Phone, Lock, Shield, Briefcase, MapPin, 
-  Save, X, AlertCircle, CheckCircle2, Loader2, ChevronRight, 
-  UserPlus, Edit3, Key, Activity, Heart, Star, LayoutGrid,
-  Map, Package, Zap, Globe, Building2
+  User, Mail, Phone, Shield, Briefcase, MapPin, 
+  UserPlus, Key, Activity, LayoutGrid, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
@@ -56,7 +54,6 @@ export default function AdminUserForm() {
   useEffect(() => {
     const fetchInitData = async () => {
       try {
-        // 1. Fetch Dynamic Form Dependencies Parallelly
         const [subRes, catRes] = await Promise.all([
           api.get('/admin/subscriptions/plans'),
           api.get('/admin/system/categories?type=service')
@@ -65,7 +62,6 @@ export default function AdminUserForm() {
         if (subRes.data.success) setSubscriptions(subRes.data.data);
         if (catRes.data.success) setServiceCategories(catRes.data.data);
 
-        // 2. Fetch User Data if Editing
         if (isEdit) {
           const response = await api.get(`/admin/users/${id}`);
           if (response.data.success) {
@@ -129,20 +125,17 @@ export default function AdminUserForm() {
     setFormData(prev => {
       const newData = { ...prev, [name]: type === 'checkbox' ? checked : value };
       
-      // Reset dependent fields when role changes
       if (name === 'role') {
         if (value === 'Supplier') newData.partner_type = 'supplier';
         else if (value === 'Service Provider') newData.partner_type = 'service_provider';
         else newData.partner_type = 'property_agent';
         
-        // Reset location if not partner
         if (value === 'Customer' || value === 'Admin') {
           newData.state = '';
           newData.district = '';
         }
       }
 
-      // Reset district if state changes
       if (name === 'state') newData.district = '';
 
       return newData;
@@ -159,7 +152,6 @@ export default function AdminUserForm() {
     });
   };
 
-  const isPartner = ['Agent', 'Supplier', 'Service Provider'].includes(formData.role);
   const isSupplier = formData.role === 'Supplier';
   const isServiceProvider = formData.role === 'Service Provider';
   const isCustomer = formData.role === 'Customer' || formData.role === 'Admin';

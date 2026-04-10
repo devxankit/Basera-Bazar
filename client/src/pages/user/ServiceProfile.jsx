@@ -22,21 +22,15 @@ const ServiceProfile = () => {
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('About');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(() => location.search.includes('enquire=true'));
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [enquiryData, setEnquiryData] = useState({ name: '', phone: '', email: '', message: '' });
+  const [enquiryData, setEnquiryData] = useState(() => ({ 
+    name: user?.name || '', 
+    phone: user?.phone || '', 
+    email: user?.email || '', 
+    message: '' 
+  }));
 
-  useEffect(() => {
-    if (user) {
-      setEnquiryData(prev => ({ ...prev, name: user.name, phone: user.phone, email: user.email }));
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (location.search.includes('enquire=true')) {
-      setIsModalOpen(true);
-    }
-  }, [location]);
 
   useEffect(() => {
     const fetchService = async () => {

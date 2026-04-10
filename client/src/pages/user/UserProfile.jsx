@@ -8,7 +8,7 @@ import {
   Package, Wrench, Settings, ArrowLeft, Building2, MapPin, 
   ExternalLink, Clock, CheckCircle2, ShoppingCart, MessageSquare, Briefcase, Send
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -119,7 +119,7 @@ const UserProfile = () => {
            
            <div className="flex items-center justify-between pt-2">
              <div className="flex items-center gap-2 text-slate-400 text-[12px] font-medium">
-               <Calendar size={14} /> Joined {new Date(user.joinedAt || Date.now()).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+               <Calendar size={14} /> Joined {new Date(user.joinedAt || 1775815502031).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
              </div>
               <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center gap-2 text-red-500 font-bold text-[13px] uppercase tracking-wider px-3 py-1.5 hover:bg-red-50 rounded-xl transition-all">
                 <LogOut size={16} /> Logout

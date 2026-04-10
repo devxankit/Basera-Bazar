@@ -14,32 +14,25 @@ import paintImg from '../../assets/professional service/painter.jpg';
 import plumbImg from '../../assets/professional service/plumber.jpg';
 import survImg from '../../assets/professional service/surveyor ameen.jpg';
 import vastuImg from '../../assets/professional service/vastu consultant.jpg';
-import { motion } from 'framer-motion';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
-function cn(...inputs) {
-  return twMerge(clsx(inputs));
-}
+const services = [
+  { title: 'AC maintenance', image: acImg },
+  { title: 'CCTV Services', image: cctvImg },
+  { title: 'Architect', image: arcImg },
+  { title: 'Carpenter', image: carpImg },
+  { title: 'Civil Engineer', image: civilImg },
+  { title: 'Electrician', image: elecImg },
+  { title: 'Interior Designer', image: intImg },
+  { title: 'Lift Installation', image: liftImg },
+  { title: 'packers and movers', image: pmImg },
+  { title: 'Painter', image: paintImg },
+  { title: 'Plumber', image: plumbImg },
+  { title: 'Surveyor Ameen', image: survImg },
+  { title: 'Vastu Consultant', image: vastuImg }
+];
 
 const ServiceCategories = () => {
   const navigate = useNavigate();
-
-  const services = [
-    { title: 'AC maintenance', image: acImg },
-    { title: 'CCTV Services', image: cctvImg },
-    { title: 'Architect', image: arcImg },
-    { title: 'Carpenter', image: carpImg },
-    { title: 'Civil Engineer', image: civilImg },
-    { title: 'Electrician', image: elecImg },
-    { title: 'Interior Designer', image: intImg },
-    { title: 'Lift Installation', image: liftImg },
-    { title: 'packers and movers', image: pmImg },
-    { title: 'Painter', image: paintImg },
-    { title: 'Plumber', image: plumbImg },
-    { title: 'Surveyor Ameen', image: survImg },
-    { title: 'Vastu Consultant', image: vastuImg }
-  ];
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">

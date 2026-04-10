@@ -8,26 +8,19 @@ import officeImg from '../../assets/properties categories/office.jpg';
 import plotImg from '../../assets/properties categories/plot.jpeg';
 import warehouseImg from '../../assets/properties categories/warehouse.jpg';
 import { useLocationContext } from '../../context/LocationContext';
-import { motion } from 'framer-motion';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
-function cn(...inputs) {
-  return twMerge(clsx(inputs));
-}
+const categories = [
+  { id: 'apartment', label: 'Apartments / House / Flats', image: houseImg },
+  { id: 'hostel', label: 'Hostel / PG', image: hostelImg },
+  { id: 'office', label: 'Office / Shop', image: officeImg },
+  { id: 'plot', label: 'Plots / Lands', image: plotImg },
+  { id: 'warehouse', label: 'Warehouse / Godown', image: warehouseImg }
+];
 
 const PropertyCategories = () => {
   const navigate = useNavigate();
   const [counts, setCounts] = useState({});
   const { currentLocation } = useLocationContext();
-
-  const categories = [
-    { id: 'apartment', label: 'Apartments / House / Flats', image: houseImg },
-    { id: 'hostel', label: 'Hostel / PG', image: hostelImg },
-    { id: 'office', label: 'Office / Shop', image: officeImg },
-    { id: 'plot', label: 'Plots / Lands', image: plotImg },
-    { id: 'warehouse', label: 'Warehouse / Godown', image: warehouseImg }
-  ];
 
   useEffect(() => {
     const fetchCounts = async () => {

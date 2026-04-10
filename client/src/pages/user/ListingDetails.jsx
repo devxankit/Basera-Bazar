@@ -101,28 +101,6 @@ const ListingDetails = () => {
   };
 
   useEffect(() => {
-    if (listing) {
-      setEnquiryData(prev => ({
-        ...prev,
-        message: `Hi, I am interested in the ${listing.category === 'supplier' ? 'supplier' : 'property'} "${listing.title}". Please provide more details.`
-      }));
-    }
-  }, [listing]);
-
-  useEffect(() => {
-    setQuotationData(prev => ({
-      ...prev,
-      message: generateQuotationMessage()
-    }));
-  }, [cart]);
-
-  useEffect(() => {
-    if (isSupplier && activeTab === 'details') {
-      setActiveTab('products');
-    }
-  }, [isSupplier, activeTab]);
-
-  useEffect(() => {
     if (user) {
       setEnquiryData(prev => ({ ...prev, name: user.name, phone: user.phone, email: user.email }));
       setQuotationData(prev => ({ ...prev, name: user.name, phone: user.phone, email: user.email }));
@@ -133,10 +111,23 @@ const ListingDetails = () => {
     const fetchListing = async () => {
       const data = await db.getById('listings', id);
       setListing(data);
+      if (data) {
+        setEnquiryData(prev => ({
+          ...prev,
+          message: `Hi, I am interested in the ${data.category === 'supplier' ? 'supplier' : 'property'} "${data.title}". Please provide more details.`
+        }));
+      }
       setLoading(false);
     };
     fetchListing();
   }, [id]);
+
+  useEffect(() => {
+    setQuotationData(prev => ({
+      ...prev,
+      message: generateQuotationMessage()
+    }));
+  }, [cart]);
 
   if (loading) return (
     <div className="pb-32 bg-slate-50 min-h-screen relative font-sans animate-in fade-in duration-700">
