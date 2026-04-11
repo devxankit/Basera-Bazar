@@ -40,6 +40,8 @@ const serviceListingSchema = new mongoose.Schema({
 
 const propertyListingSchema = new mongoose.Schema({
   partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
+  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   title: { type: String, required: true },
   description: { type: String },
   property_type: {
@@ -53,6 +55,12 @@ const propertyListingSchema = new mongoose.Schema({
     required: true
   },
   location: { type: pointSchema, required: true },
+  address: {
+    state: { type: String },
+    district: { type: String },
+    full_address: { type: String },
+    pincode: { type: String }
+  },
   pricing: {
     amount: { type: Number, required: true }, // Whole rupees
     currency: { type: String, default: 'INR' },
@@ -63,10 +71,13 @@ const propertyListingSchema = new mongoose.Schema({
   details: {
     area: { 
       value: { type: Number },
-      unit: { type: String, enum: ['sqft', 'sqyrd', 'sqmt', 'acre'], default: 'sqft' }
+      unit: { type: String, enum: ['sqft', 'sqyrd', 'sqmt', 'acre'], default: 'sqft' },
+      super_built_up_area: { type: Number },
+      carpet_area: { type: Number }
     },
     bhk: { type: Number },
     bathrooms: { type: Number },
+    washrooms: { type: Number },
     furnishing: { type: String, enum: ['unfurnished', 'semi-furnished', 'fully-furnished'], default: 'unfurnished' },
     floor_number: { type: Number },
     total_floors: { type: Number },
@@ -77,9 +88,11 @@ const propertyListingSchema = new mongoose.Schema({
   images: [{ type: String }],
   status: {
     type: String,
-    enum: ['draft', 'pending_approval', 'active', 'sold_rented', 'inactive', 'suspended', 'deleted'],
+    enum: ['draft', 'pending_approval', 'active', 'sold_rented', 'inactive', 'suspended', 'rejected', 'deleted'],
     default: 'draft'
   },
+  status_reason: { type: String },
+  is_featured: { type: Boolean, default: false },
   deleted_at: { type: Date, default: null }
 }, baseListingSchemaConfig);
 

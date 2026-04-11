@@ -77,6 +77,7 @@ const QuickActionCard = ({ title, desc, icon: Icon, color, path }) => {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFetchingChart, setIsFetchingChart] = useState(false);
   const [error, setError] = useState(null);
@@ -88,18 +89,43 @@ export default function AdminDashboard() {
     
     setError(null);
     try {
-      const response = await api.get(`/admin/dashboard/stats?range=${range.toLowerCase()}`);
-      if (response.data.success) {
-        setData(response.data.data);
-      } else {
-        setError('Failed to fetch platform metrics.');
-      }
+      const [statsRes, activitiesRes] = await Promise.all([
+        api.get(`/admin/dashboard/stats?range=${range.toLowerCase()}`),
+        api.get('/admin/dashboard/activities?limit=8')
+      ]);
+      if (statsRes.data.success) setData(statsRes.data.data);
+      else setError('Failed to fetch platform metrics.');
+      if (activitiesRes.data.success) setActivities(activitiesRes.data.data || []);
     } catch (error) {
       console.error("Dashboard error:", error);
       setError('Connection to infrastructure interrupted.');
     } finally {
       setLoading(false);
       setIsFetchingChart(false);
+    }
+  };
+
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleStatusUpdate = async (id, status) => {
+    setIsProcessing(true);
+    try {
+      const res = await api.patch(`/admin/listings/${id}/status`, { status });
+      if (res.data.success) {
+        // Success feedback and update local state
+        setData(prev => ({
+          ...prev,
+          pending: {
+            ...prev.pending,
+            properties: prev.pending.properties.filter(p => p._id !== id)
+          }
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Status update failed.");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -217,13 +243,17 @@ export default function AdminDashboard() {
     fetchDashboardData(range, true); // Silent update for the chart
   };
    
-  // Match API activity field names
-  const recentActivities = data.recentActivities || [
-    { activity: 'New property submitted: Something by Ujjawal', type: 'PROPERTY_LISTING', createdAt: '2026-04-08T16:54:00Z', status: 'COMPLETED', icon: Home },
-    { activity: 'New ServiceProvider registered: Ujjawal', type: 'USER_REGISTRATION', createdAt: '2026-04-08T14:04:00Z', status: 'COMPLETED', icon: Users },
-    { activity: 'Ujjawal purchased a subscription', type: 'SUBSCRIPTION_PURCHASE', createdAt: '2026-04-08T14:04:00Z', status: 'COMPLETED', icon: CreditCard },
-    { activity: 'New Agent registered: Ujjawal', type: 'USER_REGISTRATION', createdAt: '2026-04-08T13:56:00Z', status: 'COMPLETED', icon: Users },
-  ];
+  // Map entity_type → icon for the activity table
+  const ACTIVITY_ICON_MAP = {
+    user: Users, partner: Users, property: Building2,
+    service: Briefcase, supplier: ShoppingBag, product: ShoppingBag,
+    category: MessageSquare, subcategory: MessageSquare,
+    banner: Activity, subscription: CreditCard, system: Activity
+  };
+  const recentActivities = activities.map(act => ({
+    ...act,
+    icon: ACTIVITY_ICON_MAP[act.entity_type] || Activity
+  }));
 
   return (
     <div className="space-y-10 pb-20 animate-in fade-in duration-700 font-Inter">
@@ -403,7 +433,15 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {recentActivities.map((act, i) => (
+              {recentActivities.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-16 text-center">
+                    <Activity size={32} className="text-slate-200 mx-auto mb-3" />
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">No activities yet — start adding data</p>
+                  </td>
+                </tr>
+              ) : (
+              recentActivities.map((act, i) => (
                 <tr key={i} className="hover:bg-slate-50/30 transition-colors group">
                   <td className="px-10 py-5">
                     <div className="flex items-center gap-4">
@@ -411,7 +449,7 @@ export default function AdminDashboard() {
                         <act.icon size={18} />
                       </div>
                       <div>
-                        <p className="text-sm font-black text-slate-700 tracking-tight">{act.activity}</p>
+                        <p className="text-sm font-black text-slate-700 tracking-tight">{act.description || act.activity}</p>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                           {new Date(act.createdAt).toLocaleDateString()}
                         </p>
@@ -420,7 +458,7 @@ export default function AdminDashboard() {
                   </td>
                   <td className="px-10 py-5">
                     <span className="px-3 py-1 rounded-md bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest">
-                      {act.type}
+                      {act.entity_type || act.type}
                     </span>
                   </td>
                   <td className="px-10 py-5">
@@ -429,12 +467,15 @@ export default function AdminDashboard() {
                     </span>
                   </td>
                   <td className="px-10 py-5 text-right">
-                    <span className="px-3 py-1 rounded-md bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest">
-                      {act.status}
+                    <span className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${
+                      act.status === 'COMPLETED' ? 'bg-emerald-500 text-white' : 'bg-amber-400 text-white'
+                    }`}>
+                      {act.status || 'COMPLETED'}
                     </span>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
@@ -461,41 +502,58 @@ export default function AdminDashboard() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-slate-50/50">
-                    <th className="px-10 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Property</th>
-                    <th className="px-10 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Agent</th>
-                    <th className="px-10 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Submitted On</th>
-                    <th className="px-10 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Property</th>
+                    <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Agent</th>
+                    <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Submitted</th>
+                    <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {data.pending.properties.map((prop, i) => (
-                    <tr key={i} className="hover:bg-slate-50/30 transition-colors group">
-                      <td className="px-10 py-4">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden">
-                            {prop.images?.[0] ? <img src={prop.images[0]} className="w-full h-full object-cover" /> : <Building2 size={20} className="text-slate-300" />}
+                  <tbody className="divide-y divide-slate-50">
+                    {data.pending.properties.map((prop, i) => (
+                      <tr key={i} className="hover:bg-slate-50/30 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                              {prop.images?.[0] ? <img src={prop.images[0]} className="w-full h-full object-cover" /> : <Building2 size={18} className="text-slate-300" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-black text-slate-700 tracking-tight truncate">{prop.title}</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{prop.property_type}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-black text-slate-700 tracking-tight">{prop.title}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{prop.property_type}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-[11px] font-bold text-slate-500 truncate">{prop.partner_id?.name || 'N/A'}</p>
+                        </td>
+                        <td className="px-6 py-4 text-[11px] font-bold text-slate-500 whitespace-nowrap">
+                          {new Date(prop.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                             <button 
+                               onClick={() => navigate(`/admin/properties/view/${prop._id}`)} 
+                               className="p-2 rounded-full border border-orange-100 text-orange-500 hover:bg-orange-50 transition-colors"
+                             >
+                               <Eye size={15} />
+                             </button>
+                             <button 
+                               onClick={() => handleStatusUpdate(prop._id, 'active')}
+                               disabled={isProcessing}
+                               className="p-2 rounded-full border border-emerald-100 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-50"
+                             >
+                               <CheckCircle2 size={15} />
+                             </button>
+                             <button 
+                               onClick={() => handleStatusUpdate(prop._id, 'rejected')}
+                               disabled={isProcessing}
+                               className="p-2 rounded-full border border-rose-100 text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50"
+                             >
+                               <XCircle size={15} />
+                             </button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-10 py-4">
-                        <p className="text-xs font-bold text-slate-500">{prop.partner_id?.name || 'N/A'}</p>
-                      </td>
-                      <td className="px-10 py-4 text-xs font-bold text-slate-500">
-                        {new Date(prop.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-10 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                           <button className="p-2 rounded-full border border-orange-100 text-orange-500 hover:bg-orange-50 transition-colors"><Eye size={16} /></button>
-                           <button className="p-2 rounded-full border border-emerald-100 text-emerald-500 hover:bg-emerald-50 transition-colors"><CheckCircle2 size={16} /></button>
-                           <button className="p-2 rounded-full border border-rose-100 text-rose-500 hover:bg-rose-50 transition-colors"><XCircle size={16} /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             ) : (

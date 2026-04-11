@@ -79,6 +79,14 @@ const navItems = [
       { label: 'User Report', path: '/admin/reports/users' },
     ]
   },
+  { 
+    id: 'system', 
+    label: 'System Maintenance', 
+    icon: Settings,
+    children: [
+      { label: 'Clear Cache', path: '/admin/system/cache' },
+    ]
+  },
 ];
 
 const CollapsibleItem = ({ item, location, setSidebarOpen }) => {
@@ -95,9 +103,7 @@ const CollapsibleItem = ({ item, location, setSidebarOpen }) => {
         onClick={() => setIsOpen(!isOpen)}
         className={`
           w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group
-          ${isActive 
-            ? 'bg-indigo-50 text-indigo-600' 
-            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
+          text-slate-500 hover:bg-slate-50 hover:text-slate-900
         `}
       >
         <div className="flex items-center gap-4">
@@ -133,8 +139,8 @@ const CollapsibleItem = ({ item, location, setSidebarOpen }) => {
                   className={({ isActive: childActive }) => `
                     flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-[14px]
                     ${childActive 
-                      ? 'text-indigo-600 font-black' 
-                      : 'text-slate-400 font-bold hover:text-slate-900'}
+                      ? 'bg-indigo-50 text-indigo-600 font-black shadow-sm' 
+                      : 'text-slate-400 font-bold hover:bg-slate-50 hover:text-slate-900'}
                   `}
                   onClick={() => setSidebarOpen(false)}
                 >

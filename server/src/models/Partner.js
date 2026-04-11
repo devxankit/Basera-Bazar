@@ -96,6 +96,10 @@ const partnerSchema = new mongoose.Schema({
     ref: 'Subscription',
     default: null
   },
+  is_active: {
+    type: Boolean,
+    default: true
+  },
   free_credits: {
     total: { type: Number, default: 0 },
     used: { type: Number, default: 0 },

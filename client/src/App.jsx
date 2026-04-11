@@ -39,6 +39,8 @@ import AdminUserSubscriptions from './pages/admin/AdminUserSubscriptions';
 import AdminUserForm from './pages/admin/AdminUserForm';
 import AdminMandiBazar from './pages/admin/AdminMandiBazar';
 import AdminProperties from './pages/admin/AdminProperties';
+import AdminPropertyForm from './pages/admin/AdminPropertyForm';
+import AdminPropertyDetails from './pages/admin/AdminPropertyDetails';
 import AdminServices from './pages/admin/AdminServices';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminLeads from './pages/admin/AdminLeads';
@@ -49,6 +51,22 @@ import AdminLayout from './components/layout/AdminLayout';
 import AdminAllActivities from './pages/admin/AdminAllActivities';
 import AdminPendingProperties from './pages/admin/AdminPendingProperties';
 import AdminPendingOthers from './pages/admin/AdminPendingOthers';
+import AdminPropertyCategories from './pages/admin/AdminPropertyCategories';
+import AdminPropertySubcategories from './pages/admin/AdminPropertySubcategories';
+import AdminServiceCategories from './pages/admin/AdminServiceCategories';
+import AdminServiceSubcategories from './pages/admin/AdminServiceSubcategories';
+import AdminSupplierCategories from './pages/admin/AdminSupplierCategories';
+import AdminProductCategories from './pages/admin/AdminProductCategories';
+import AdminProductSubcategories from './pages/admin/AdminProductSubcategories';
+import AdminProductUnits from './pages/admin/AdminProductUnits';
+import AdminBrands from './pages/admin/AdminBrands';
+import AdminProductNames from './pages/admin/AdminProductNames';
+import AdminBanners from './pages/admin/AdminBanners';
+import AdminSubscriptionReport from './pages/admin/AdminSubscriptionReport';
+import AdminUserReport from './pages/admin/AdminUserReport';
+import AdminCategoryForm from './pages/admin/AdminCategoryForm';
+import AdminCategoryDetails from './pages/admin/AdminCategoryDetails';
+import AdminClearCache from './pages/admin/AdminClearCache';
 
 // Route guard — redirects unauthenticated users to /login
 const ProtectedRoute = ({ children }) => {
@@ -298,6 +316,30 @@ function App() {
           </AdminRoute>
         } />
 
+        <Route path="/admin/properties/add" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminPropertyForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/properties/edit/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminPropertyForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/properties/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminPropertyDetails />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
         <Route path="/admin/services" element={
           <AdminRoute>
             <AdminLayout>
@@ -322,6 +364,107 @@ function App() {
           </AdminRoute>
         } />
 
+        {/* Property System */}
+        <Route path="/admin/properties/categories" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminPropertyCategories />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/properties/categories/add" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/properties/categories/edit/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/properties/categories/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryDetails />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/properties/subcategories" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminPropertySubcategories />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        {/* Service System */}
+        <Route path="/admin/services/categories" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminServiceCategories />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/services/subcategories" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminServiceSubcategories />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        {/* Product & Supplier System */}
+        <Route path="/admin/suppliers/categories" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminSupplierCategories />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/categories" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminProductCategories />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/subcategories" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminProductSubcategories />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/units" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminProductUnits />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/brands" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminBrands />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/names" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminProductNames />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        {/* Subscriptions & Reports */}
         <Route path="/admin/subscriptions/plans" element={
           <AdminRoute>
             <AdminLayout>
@@ -329,7 +472,6 @@ function App() {
             </AdminLayout>
           </AdminRoute>
         } />
-
         <Route path="/admin/reports/payments" element={
           <AdminRoute>
             <AdminLayout>
@@ -337,7 +479,37 @@ function App() {
             </AdminLayout>
           </AdminRoute>
         } />
-        
+        <Route path="/admin/reports/subscriptions" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminSubscriptionReport />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/reports/users" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminUserReport />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        {/* Marketing & System */}
+        <Route path="/admin/banners" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminBanners />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/system/cache" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminClearCache />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
         {/* New Dashboard Oversight Routes */}
         <Route path="/admin/dashboard/activities" element={
           <AdminRoute>
@@ -362,19 +534,6 @@ function App() {
             </AdminLayout>
           </AdminRoute>
         } />
-
-        {/* Placeholder Admin Routes */}
-        {['subscriptions', 'banners', 'reports'].map(path => (
-          <Route key={path} path={`/admin/${path}`} element={
-            <AdminRoute>
-              <AdminLayout>
-                <div className="p-8 text-center text-slate-400 font-semibold uppercase tracking-widest pt-20">
-                  {path.replace('-', ' ')} coming soon
-                </div>
-              </AdminLayout>
-            </AdminRoute>
-          } />
-        ))}
       </Routes>
     </Router>
     </AuthProvider>

@@ -5,7 +5,8 @@ const { AuditLog, AdminUser } = require('../models/Admin');
 const { User } = require('../models/User');
 const { PropertyListing, ServiceListing, SupplierListing, MandiListing } = require('../models/Listing');
 const { Transaction, SubscriptionPlan } = require('../models/Finance');
-const { Category } = require('../models/System');
+const { Category, Brand, Unit, ProductName, Banner } = require('../models/System');
+const { ActivityLog, logActivity } = require('../utils/activityLogger');
 
 // Helper to get ISO Week number
 function getISOWeek(date) {
@@ -294,54 +295,28 @@ const getAdminActivities = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
+    const { type, search } = req.query;
 
-    // We fetch recent users, partners, and listings to create a combined activity feed
-    const [users, partners, properties, audiLogs] = await Promise.all([
-      User.find().sort({ createdAt: -1 }).limit(10),
-      Partner.find().sort({ createdAt: -1 }).limit(10),
-      PropertyListing.find().sort({ createdAt: -1 }).limit(10),
-      AuditLog.find().populate('performed_by', 'name').sort({ created_at: -1 }).limit(20)
+    const query = {};
+    if (type) query.entity_type = type;
+    if (search) query.description = { $regex: search, $options: 'i' };
+
+    const [activities, total] = await Promise.all([
+      ActivityLog.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      ActivityLog.countDocuments(query)
     ]);
-
-    const activities = [
-      ...users.map(u => ({ 
-        activity: `New Customer registered: ${u.name}`, 
-        type: 'USER_REGISTRATION', 
-        createdAt: u.createdAt,
-        status: 'COMPLETED',
-        entityId: u._id
-      })),
-      ...partners.map(p => ({ 
-        activity: `New ${p.partner_type.replace('_', ' ')} registered: ${p.name}`, 
-        type: 'PARTNER_ONBOARDING', 
-        createdAt: p.createdAt,
-        status: p.onboarding_status.toUpperCase(),
-        entityId: p._id
-      })),
-      ...properties.map(l => ({ 
-        activity: `New property submitted: ${l.title}`, 
-        type: 'PROPERTY_LISTING', 
-        createdAt: l.createdAt,
-        status: l.status.toUpperCase(),
-        entityId: l._id
-      })),
-      ...audiLogs.map(log => ({
-        activity: `${log.performed_by?.name || 'Admin'} performed ${log.action.replace(/_/g, ' ')}`,
-        type: 'ADMIN_ACTION',
-        createdAt: log.created_at,
-        status: 'AUDITED',
-        entityId: log.entity_id
-      }))
-    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 50);
 
     res.status(200).json({
       success: true,
       count: activities.length,
+      total,
+      pages: Math.ceil(total / limit),
+      currentPage: page,
       data: activities
     });
   } catch (error) {
     console.error("Activities error:", error);
-    res.status(500).json({ success: false, message: 'Error fetching combined activities.' });
+    res.status(500).json({ success: false, message: 'Error fetching activities.' });
   }
 };
 
@@ -475,6 +450,18 @@ const createUser = async (req, res) => {
 
     res.status(201).json({ success: true, message: 'User created successfully.', data: newAccount });
 
+    // Log the activity
+    const actorName = req.user?.name || 'Admin';
+    await logActivity({
+      actor_name: actorName,
+      actor_id: req.user?._id,
+      action: 'created',
+      entity_type: (role === 'Customer' || role === 'user') ? 'user' : 'partner',
+      entity_name: name,
+      entity_id: newAccount._id,
+      description: `${actorName} created ${role} account: ${name} (${email || phone})`
+    });
+
   } catch (error) {
     console.error("Error creating user:", error);
     res.status(500).json({ success: false, message: error.message || 'Error creating user.' });
@@ -532,6 +519,18 @@ const updateUser = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Profile updated successfully.', data: updated });
 
+    // Log the activity
+    const actorName = req.user?.name || 'Admin';
+    await logActivity({
+      actor_name: actorName,
+      actor_id: req.user?._id,
+      action: 'updated',
+      entity_type: account.role === 'Customer' || account.role === 'user' ? 'user' : 'partner',
+      entity_name: account.name,
+      entity_id: id,
+      description: `${actorName} updated profile of ${account.name}`
+    });
+
   } catch (error) {
     console.error("Error updating user:", error);
     res.status(500).json({ success: false, message: 'Error updating information.' });
@@ -557,7 +556,22 @@ const deleteUser = async (req, res) => {
 
     // 2. Cleanup (Optional but recommended: delete their listings)
     // For now, we'll just return success as requested
+    const deletedName = userResult?.name || partnerResult?.name || 'Unknown';
+    const deletedType = userResult ? 'user' : 'partner';
+
     res.status(200).json({ success: true, message: 'User account permanently deleted from database.' });
+
+    // Log the activity
+    const actorName = req.user?.name || 'Admin';
+    await logActivity({
+      actor_name: actorName,
+      actor_id: req.user?._id,
+      action: 'deleted',
+      entity_type: deletedType,
+      entity_name: deletedName,
+      entity_id: id,
+      description: `${actorName} permanently deleted ${deletedType}: ${deletedName}`
+    });
 
   } catch (error) {
     console.error("Error deleting user:", error);
@@ -668,17 +682,177 @@ const getUsers = async (req, res) => {
 const getListings = async (req, res) => {
   try {
     const { type } = req.params;
+    const { category, subcategory, listing_intent, status, state, district, price_range, search } = req.query;
+
+    let query = {};
+    if (category) query.category_id = category;
+    if (subcategory) query.subcategory_id = subcategory;
+    if (status) query.status = status;
+    
+    if (type === 'property') {
+      if (listing_intent) query.listing_intent = listing_intent;
+      if (state) query['address.state'] = state;
+      if (district) query['address.district'] = district;
+
+      if (price_range === '0-50L') query['pricing.amount'] = { $lt: 5000000 };
+      else if (price_range === '50L-1C') query['pricing.amount'] = { $gte: 5000000, $lte: 10000000 };
+      else if (price_range === '1C+') query['pricing.amount'] = { $gt: 10000000 };
+
+      if (search) {
+         query.$or = [
+           { title: { $regex: search, $options: 'i' } },
+           { 'address.district': { $regex: search, $options: 'i' } },
+           { description: { $regex: search, $options: 'i' } }
+         ];
+      }
+    } else {
+       if (search) {
+         query.$or = [
+           { title: { $regex: search, $options: 'i' } },
+           { description: { $regex: search, $options: 'i' } }
+         ];
+       }
+    }
+
     let listings;
     
-    if (type === 'property') listings = await PropertyListing.find().populate('partner_id', 'name phone').sort({ createdAt: -1 });
-    else if (type === 'service') listings = await ServiceListing.find().populate('partner_id', 'name phone').sort({ createdAt: -1 });
-    else if (type === 'product') listings = await SupplierListing.find().populate('partner_id', 'name phone').sort({ createdAt: -1 });
+    if (type === 'property') listings = await PropertyListing.find(query).populate('partner_id', 'name phone').sort({ createdAt: -1 });
+    else if (type === 'service') listings = await ServiceListing.find(query).populate('partner_id', 'name phone').sort({ createdAt: -1 });
+    else if (type === 'product') listings = await SupplierListing.find(query).populate('partner_id', 'name phone').sort({ createdAt: -1 });
     else return res.status(400).json({ success: false, message: 'Invalid listing type.' });
 
     res.status(200).json({ success: true, count: listings.length, data: listings });
   } catch (error) {
     console.error("Error fetching listings:", error);
     res.status(500).json({ success: false, message: 'Error fetching listings.' });
+  }
+};
+
+/**
+ * @desc    Get single listing detail
+ * @route   GET /api/admin/listings/detail/:id
+ * @access  Private (Super Admin Only)
+ */
+const getListingDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check across all listing types
+    let listing = await PropertyListing.findById(id).populate('partner_id', 'name phone email').populate('category_id subcategory_id');
+    if (!listing) listing = await ServiceListing.findById(id).populate('partner_id', 'name phone email').populate('category_id');
+    if (!listing) listing = await SupplierListing.findById(id).populate('partner_id', 'name phone email');
+    
+    if (!listing) {
+      return res.status(404).json({ success: false, message: 'Listing not found.' });
+    }
+
+    res.status(200).json({ success: true, data: listing });
+  } catch (error) {
+    console.error("Error fetching listing detail:", error);
+    res.status(500).json({ success: false, message: 'Error fetching listing detail.' });
+  }
+};
+
+/**
+ * @desc    Update listing status with optional reason
+ * @route   PATCH /api/admin/listings/:id/status
+ * @access  Private (Super Admin Only)
+ */
+const updateListingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, status_reason } = req.body;
+
+    if (!['pending_approval', 'active', 'sold_rented', 'inactive', 'suspended', 'rejected', 'deleted'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status transition.' });
+    }
+
+    // Identify and update
+    let listing = await PropertyListing.findById(id) || await ServiceListing.findById(id) || await SupplierListing.findById(id);
+    
+    if (!listing) return res.status(404).json({ success: false, message: 'Listing not found.' });
+
+    listing.status = status;
+    if (status_reason !== undefined) listing.status_reason = status_reason;
+    if (status === 'deleted') listing.deleted_at = new Date();
+
+    await listing.save();
+
+    res.status(200).json({ success: true, message: `Listing marked as ${status}`, data: listing });
+  } catch (error) {
+    console.error("Error updating status:", error);
+    res.status(500).json({ success: false, message: 'Error updating listing status.' });
+  }
+};
+
+/**
+ * @desc    Update listing details
+ * @route   PUT /api/admin/listings/:id
+ * @access  Private (Super Admin Only)
+ */
+const updateListing = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Detect Model and update
+    let listing = await PropertyListing.findById(id);
+    let Model = PropertyListing;
+
+    if (!listing) {
+      listing = await ServiceListing.findById(id);
+      Model = ServiceListing;
+    }
+    if (!listing) {
+      listing = await SupplierListing.findById(id);
+      Model = SupplierListing;
+    }
+
+    if (!listing) return res.status(404).json({ success: false, message: 'Listing not found.' });
+
+    // Sanitize empty string IDs to prevent Mongoose CastErrors
+    if (updateData.category_id === '') updateData.category_id = null;
+    if (updateData.subcategory_id === '') updateData.subcategory_id = null;
+    if (updateData.partner_id === '') updateData.partner_id = null;
+
+    const updated = await Model.findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: true });
+
+    res.status(200).json({ success: true, message: 'Listing updated successfully.', data: updated });
+
+    // Log the activity
+    await logActivity({
+      actor_name: req.user?.name || 'Admin',
+      actor_id: req.user?._id,
+      action: 'updated',
+      entity_type: 'property',
+      entity_name: listing.title,
+      entity_id: id,
+      description: `${req.user?.name || 'Admin'} updated property: ${listing.title}`
+    });
+  } catch (error) {
+    console.error("Error updating listing:", error); console.log("PAYLOAD RECEIVED:", JSON.stringify(req.body, null, 2));
+    res.status(500).json({ success: false, message: error.message || 'Error updating listing.' });
+  }
+};
+
+/**
+ * @desc    Permanently delete a listing
+ * @route   DELETE /api/admin/listings/:id
+ * @access  Private (Super Admin Only)
+ */
+const deleteListing = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await PropertyListing.findByIdAndDelete(id) || 
+                   await ServiceListing.findByIdAndDelete(id) || 
+                   await SupplierListing.findByIdAndDelete(id);
+
+    if (!result) return res.status(404).json({ success: false, message: 'Listing not found.' });
+
+    res.status(200).json({ success: true, message: 'Listing permanently removed from database.' });
+  } catch (error) {
+    console.error("Error deleting listing:", error);
+    res.status(500).json({ success: false, message: 'Error during listing deletion.' });
   }
 };
 
@@ -826,21 +1000,236 @@ const getSubscriptionPlans = async (req, res) => {
 };
 
 /**
- * @desc    Get system categories (Service or Material)
+ * @desc    Get system categories (Service, Material, Property, Supplier, Product)
  * @route   GET /api/admin/system/categories
  * @access  Private (Super Admin Only)
  */
 const getSystemCategories = async (req, res) => {
   try {
-    const { type } = req.query; // 'service' or 'material'
+    const { type, parent_id } = req.query;
     const query = { is_active: true };
     if (type) query.type = type;
+    if (parent_id !== undefined) query.parent_id = parent_id === 'null' ? null : parent_id;
 
     const categories = await Category.find(query).sort({ name: 1 });
     res.status(200).json({ success: true, count: categories.length, data: categories });
   } catch (error) {
     console.error("Error fetching categories:", error);
     res.status(500).json({ success: false, message: 'Error fetching categories.' });
+  }
+};
+
+const createCategory = async (req, res) => {
+  try {
+    const { name, type, parent_id, icon } = req.body;
+    const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+    
+    const category = await Category.create({ name, slug, type, parent_id: parent_id || null, icon });
+    res.status(201).json({ success: true, data: category });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const updateCategory = async (req, res) => {
+  try {
+    const category = await Category.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.status(200).json({ success: true, data: category });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const deleteCategory = async (req, res) => {
+  try {
+    await Category.findByIdAndUpdate(req.params.id, { is_active: false });
+    res.status(200).json({ success: true, message: 'Category deactivated successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getCategoryDetail = async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id).populate('parent_id');
+    const subcategories = await Category.find({ parent_id: req.params.id, is_active: true });
+    
+    // Count listings in this category
+    const propertyCount = await PropertyListing.countDocuments({ category_id: req.params.id });
+    
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        ...category.toObject(),
+        subcategories,
+        stats: {
+          properties: propertyCount
+        }
+      } 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// BRANDS
+const getBrands = async (req, res) => {
+  try {
+    const brands = await Brand.find({ is_active: true }).sort({ name: 1 });
+    res.status(200).json({ success: true, data: brands });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const createBrand = async (req, res) => {
+  try {
+    const brand = await Brand.create(req.body);
+    res.status(201).json({ success: true, data: brand });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// UNITS
+const getUnits = async (req, res) => {
+  try {
+    const units = await Unit.find({ is_active: true }).sort({ name: 1 });
+    res.status(200).json({ success: true, data: units });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const createUnit = async (req, res) => {
+  try {
+    const unit = await Unit.create(req.body);
+    res.status(201).json({ success: true, data: unit });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// PRODUCT NAMES (Exact Hierarchy: Product Name > Brand > Category)
+const getProductNames = async (req, res) => {
+  try {
+    const names = await ProductName.find({ is_active: true })
+      .populate('category_id', 'name')
+      .populate('brand_id', 'name')
+      .sort({ name: 1 });
+    res.status(200).json({ success: true, data: names });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const createProductName = async (req, res) => {
+  try {
+    const name = await ProductName.create(req.body);
+    res.status(201).json({ success: true, data: name });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// BANNERS
+const getBanners = async (req, res) => {
+  try {
+    const banners = await Banner.find({ is_active: true }).sort({ priority: -1 });
+    res.status(200).json({ success: true, data: banners });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const createBanner = async (req, res) => {
+  try {
+    const banner = await Banner.create(req.body);
+    res.status(201).json({ success: true, data: banner });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// REPORTS
+const getSubscriptionReport = async (req, res) => {
+  try {
+    // Basic aggregation for report
+    const report = await Transaction.aggregate([
+      { $match: { status: 'success' } },
+      { $group: { 
+        _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+        revenue: { $sum: "$amount" },
+        count: { $sum: 1 }
+      }},
+      { $sort: { _id: -1 } }
+    ]);
+    res.status(200).json({ success: true, data: report });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getUserReport = async (req, res) => {
+  try {
+    const report = await User.aggregate([
+      { $group: { 
+        _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+        count: { $sum: 1 }
+      }},
+      { $sort: { _id: -1 } }
+    ]);
+    res.status(200).json({ success: true, data: report });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc    ADMIN ONLY: Create specialized property listing
+ * @route   POST /api/admin/listings/property
+ */
+const createPropertyListing = async (req, res) => {
+  try {
+    const { 
+      title, description, property_type, listing_intent, partner_id,
+      category_id, subcategory_id, images, thumbnail, is_featured,
+      status, location, address, pricing, details
+    } = req.body;
+
+    const newProperty = await PropertyListing.create({
+      partner_id: partner_id || null,
+      title,
+      description: description || '',
+      property_type: property_type || 'apartment',
+      listing_intent: listing_intent || 'sell',
+      category_id: category_id || null,
+      subcategory_id: subcategory_id || null,
+      images: images || [],
+      thumbnail: thumbnail || (images && images.length > 0 ? images[0] : ''),
+      is_featured: is_featured || false,
+      status: status || 'active',
+      location: location || { type: 'Point', coordinates: [77.1025, 28.7041] },
+      address: address || {},
+      pricing: pricing || {},
+      details: details || {}
+    });
+
+    res.status(201).json({ success: true, message: 'Property entry finalized in marketplace registry.', data: newProperty });
+
+    // Log the activity
+    await logActivity({
+      actor_name: req.user?.name || 'Admin',
+      actor_id: req.user?._id,
+      action: 'created',
+      entity_type: 'property',
+      entity_name: newProperty.title,
+      entity_id: newProperty._id,
+      description: `${req.user?.name || 'Admin'} listed new property: ${newProperty.title}`
+    });
+  } catch (error) {
+    console.error("Admin Property Creation Error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -862,5 +1251,25 @@ module.exports = {
   getAdminActivities,
   getPendingApprovals,
   getSubscriptionPlans,
-  getSystemCategories
+  getSystemCategories,
+  getSystemCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getCategoryDetail,
+  getListingDetail,
+  updateListingStatus,
+  updateListing,
+  deleteListing,
+  getBrands,
+  createBrand,
+  getUnits,
+  createUnit,
+  getProductNames,
+  createProductName,
+  getBanners,
+  createBanner,
+  getSubscriptionReport,
+  getUserReport,
+  createPropertyListing
 };

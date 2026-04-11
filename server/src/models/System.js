@@ -18,11 +18,42 @@ const categorySchema = new mongoose.Schema({
   slug: { type: String, required: true, unique: true },
   type: {
     type: String,
-    enum: ['service', 'material'],
+    enum: ['service', 'material', 'property', 'supplier', 'product'],
     required: true
   },
   parent_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null }, // Hierarchy support
+  description: { type: String }, // For marketplace SEO and internal notes
+  icon: { type: String }, // For frontend display
   is_active: { type: Boolean, default: true }
+}, { timestamps: true });
+
+const brandSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  logo: { type: String },
+  is_active: { type: Boolean, default: true }
+}, { timestamps: true });
+
+const unitSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true }, // e.g., 'Kilogram', 'Piece', 'Square Feet'
+  abbreviation: { type: String, required: true }, // e.g., 'kg', 'pc', 'sqft'
+  is_active: { type: Boolean, default: true }
+}, { timestamps: true });
+
+const productNameSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  brand_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' },
+  is_active: { type: Boolean, default: true }
+}, { timestamps: true });
+
+const bannerSchema = new mongoose.Schema({
+  title: { type: String },
+  image_url: { type: String, required: true },
+  link_url: { type: String },
+  position: { type: String, enum: ['home_top', 'home_middle', 'category_sidebar', 'popup'], default: 'home_top' },
+  is_active: { type: Boolean, default: true },
+  priority: { type: Number, default: 0 }
 }, { timestamps: true });
 
 const locationSchema = new mongoose.Schema({
@@ -57,6 +88,10 @@ const appConfigSchema = new mongoose.Schema({
 
 module.exports = {
   Category: mongoose.model('Category', categorySchema),
+  Brand: mongoose.model('Brand', brandSchema),
+  Unit: mongoose.model('Unit', unitSchema),
+  ProductName: mongoose.model('ProductName', productNameSchema),
+  Banner: mongoose.model('Banner', bannerSchema),
   Location: mongoose.model('Location', locationSchema),
   Notification: mongoose.model('Notification', notificationSchema),
   AppConfig: mongoose.model('AppConfig', appConfigSchema)

@@ -17,9 +17,28 @@ const {
   deleteUser,
   getUserSubscriptionHistory,
   getAdminActivities,
+  getListingDetail,
+  updateListingStatus,
+  updateListing,
+  deleteListing,
   getPendingApprovals,
   getSubscriptionPlans,
-  getSystemCategories
+  getSystemCategories,
+  getCategoryDetail,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getBrands,
+  createBrand,
+  getUnits,
+  createUnit,
+  getProductNames,
+  createProductName,
+  getBanners,
+  createBanner,
+  getSubscriptionReport,
+  getUserReport,
+  createPropertyListing
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -47,9 +66,43 @@ router.get('/users/:id/subscriptions', getUserSubscriptionHistory);
 
 // Listing Management
 router.get('/listings/:type', getListings);
+router.post('/listings/property', createPropertyListing);
+router.get('/listings/detail/:id', getListingDetail);
+router.patch('/listings/:id/status', updateListingStatus);
+router.put('/listings/:id', updateListing);
+router.delete('/listings/:id', deleteListing);
 
 // Lead Management
 router.get('/leads', getLeads);
+
+// System Management (Categories, Brands, Units, etc.)
+router.get('/system/categories', getSystemCategories);
+router.get('/system/categories/:id', getCategoryDetail);
+router.post('/system/categories', createCategory);
+router.put('/system/categories/:id', updateCategory);
+router.delete('/system/categories/:id', deleteCategory);
+
+router.get('/system/brands', getBrands);
+router.post('/system/brands', createBrand);
+
+router.get('/system/units', getUnits);
+router.post('/system/units', createUnit);
+
+router.get('/system/product-names', getProductNames);
+router.post('/system/product-names', createProductName);
+
+router.get('/system/banners', getBanners);
+router.post('/system/banners', createBanner);
+
+// Reports
+router.get('/reports/payments', getSubscriptionReport); // Overriding current implementation with consistent report
+router.get('/reports/subscriptions', getSubscriptionReport);
+router.get('/reports/users', getUserReport);
+
+// System Maintenance
+router.post('/maintenance/clear-cache', (req, res) => {
+  res.status(200).json({ success: true, message: 'System cache cleared successfully (Mock)' });
+});
 
 // The geo-search route requested by the user
 router.get('/partners/mandi-search', findNearestMandiSellers);
@@ -59,6 +112,5 @@ router.put('/enquiries/mandi/:id/assign', assignMandiEnquiry);
 
 // Dynamic Form Data Endpoints
 router.get('/subscriptions/plans', getSubscriptionPlans);
-router.get('/system/categories', getSystemCategories);
 
 module.exports = router;

@@ -10,6 +10,7 @@ export default function AdminTable({
   searchPlaceholder = "Search...",
   pagination = true,
   hideFilter = false,
+  hideSearch = false,
   actions
 }) {
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -28,19 +29,21 @@ export default function AdminTable({
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 transition-all overflow-hidden">
       {/* Table Header */}
-      <div className="px-10 py-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="px-6 py-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {title && <h2 className="text-xl font-black text-slate-900 tracking-tight">{title}</h2>}
         
-        <div className="flex items-center gap-3">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
-            <input 
-              type="text" 
-              placeholder={searchPlaceholder}
-              onChange={(e) => onSearch?.(e.target.value)}
-              className="bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-11 pr-4 text-xs font-black uppercase tracking-wider w-full md:w-72 outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-700"
-            />
-          </div>
+        <div className="flex items-center gap-3 ml-auto">
+          {!hideSearch && (
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
+              <input 
+                type="text" 
+                placeholder={searchPlaceholder}
+                onChange={(e) => onSearch?.(e.target.value)}
+                className="bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-11 pr-4 text-xs font-black uppercase tracking-wider w-full md:w-64 outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-700"
+              />
+            </div>
+          )}
           {!hideFilter && (
             <button className="p-3 text-slate-400 bg-slate-50 border-2 border-slate-100 rounded-2xl hover:bg-slate-100 transition-all">
               <Filter size={18} />
@@ -52,11 +55,11 @@ export default function AdminTable({
 
       {/* Table Content */}
       <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full text-left border-collapse min-w-[800px]">
+        <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50/30">
               {columns.map((col, idx) => (
-                <th key={idx} className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50">
+                <th key={idx} className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50">
                   {col.header}
                 </th>
               ))}
@@ -67,7 +70,7 @@ export default function AdminTable({
               [1, 2, 3, 4, 5].map((_, i) => (
                 <tr key={i}>
                   {columns.map((_, j) => (
-                    <td key={j} className="px-8 py-5 border-b border-slate-50">
+                    <td key={j} className="px-6 py-5 border-b border-slate-50">
                       <div className="h-4 bg-slate-100 animate-pulse rounded-md w-full"></div>
                     </td>
                   ))}
@@ -75,7 +78,7 @@ export default function AdminTable({
               ))
             ) : paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-8 py-20 text-center">
+                <td colSpan={columns.length} className="px-6 py-20 text-center">
                   <p className="text-slate-400 font-bold uppercase tracking-widest">No data available</p>
                 </td>
               </tr>
@@ -83,7 +86,7 @@ export default function AdminTable({
               paginatedData.map((row, i) => (
                 <tr key={i} className="group hover:bg-slate-50/30 transition-colors">
                   {columns.map((col, j) => (
-                    <td key={j} className="px-8 py-4 border-b border-slate-50 text-sm font-medium text-slate-600">
+                    <td key={j} className="px-6 py-4 border-b border-slate-50 text-sm font-medium text-slate-600">
                       {col.render ? col.render(row) : row[col.key]}
                     </td>
                   ))}

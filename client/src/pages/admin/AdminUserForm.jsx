@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Phone, Shield, Briefcase, MapPin, 
-  UserPlus, Key, Activity, LayoutGrid, Zap
+  UserPlus, Key, Activity, LayoutGrid, Zap, Package, 
+  CheckCircle2, Globe, Save, X, Loader2, AlertCircle 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
@@ -264,29 +265,19 @@ export default function AdminUserForm() {
               </div>
               
               <div className="p-10 space-y-10">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                 <div className="grid grid-cols-1 gap-10">
                     <div className="space-y-3">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Master Role</label>
                       <select name="role" value={formData.role} onChange={handleChange} className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-50 rounded-[24px] focus:border-indigo-600 outline-none font-black text-slate-700 transition-all appearance-none cursor-pointer">
                         <option value="Customer">Regular Customer</option>
                         <option value="Agent">Property Expert</option>
                         <option value="Supplier">Material Supplier</option>
-                        <option value="Service Provider">Technical Professional</option>
+                        <option value="Service Provider">Service Provider</option>
                         <option value="Admin">Platform Admin</option>
                       </select>
                     </div>
-
-                    {!isCustomer && (
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Internal Category</label>
-                        <select name="partner_type" value={formData.partner_type} onChange={handleChange} className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-50 rounded-[24px] focus:border-indigo-600 outline-none font-black text-slate-700 transition-all appearance-none cursor-pointer">
-                          <option value="property_agent">Property Expert</option>
-                          <option value="supplier">Material Supplier</option>
-                          <option value="service_provider">Technical Pro</option>
-                        </select>
-                      </div>
-                    )}
                  </div>
+              </div>
 
                  <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-100 flex items-center justify-between shadow-inner">
                     <div className="flex items-center gap-5">
@@ -304,7 +295,6 @@ export default function AdminUserForm() {
                     </label>
                  </div>
               </div>
-           </div>
 
            {/* Section 3: Professional/Partner Details */}
            {!isCustomer && (
@@ -415,25 +405,39 @@ export default function AdminUserForm() {
 
         {/* Action Sidebar */}
         <div className="space-y-8">
-           <div className="bg-slate-900 rounded-[44px] p-12 text-white space-y-10 shadow-3xl sticky top-10 border border-white/5">
-              <div className="space-y-6">
-                <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center">
-                  <Globe className="text-orange-500 animate-pulse" size={32} />
+           <div className="bg-white rounded-[44px] p-10 border border-slate-100 shadow-[0_24px_70px_rgba(0,0,0,0.07)] sticky top-10 overflow-hidden relative group">
+              {/* Subtle top accent */}
+              <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-indigo-500 to-purple-500" />
+              
+              <div className="space-y-6 relative z-10">
+                <div className="w-16 h-16 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100/50 transition-transform group-hover:scale-110">
+                  <Globe size={32} />
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter leading-none italic">Database Registry</h3>
-                <p className="text-slate-400 text-sm font-bold leading-relaxed tracking-tight">
-                  Database commit will be performed under SuperAdmin authority. All modifications are logged to the audit system.
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-black text-slate-900 tracking-tighter leading-none italic">Account Control</h3>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Administrative Override</p>
+                </div>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed tracking-tight border-l-4 border-indigo-100 pl-4 py-1">
+                  You are making system-wide changes to this identity. Verified data is synced instantly across our blockchain-secured registry.
                 </p>
               </div>
 
-              <div className="space-y-4 pt-10">
-                 <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-5 py-8 bg-indigo-600 text-white rounded-[32px] font-black text-2xl shadow-2xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50">
-                   {loading ? <Loader2 className="animate-spin" size={28} /> : <Save size={28} strokeWidth={3} />}
-                   {isEdit ? 'Sync Changes' : 'Push to DB'}
+              <div className="space-y-4 pt-10 relative z-10">
+                 <button 
+                  type="submit" 
+                  disabled={loading} 
+                  className="w-full flex items-center justify-center gap-4 py-7 bg-indigo-600 text-white rounded-[28px] font-black text-xl shadow-2xl shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-300 transition-all active:scale-95 disabled:opacity-50"
+                 >
+                   {loading ? <Loader2 className="animate-spin" size={24} /> : <Save size={24} strokeWidth={3} />}
+                   {isEdit ? 'Save Account' : 'Register Identity'}
                  </button>
-                 <button type="button" onClick={() => navigate(-1)} className="w-full flex items-center justify-center gap-5 py-8 bg-white/5 text-white rounded-[32px] font-black text-2xl hover:bg-white/10 transition-all border border-white/10">
-                   <X size={28} strokeWidth={3} />
-                   Discard
+                 <button 
+                  type="button" 
+                  onClick={() => navigate(-1)} 
+                  className="w-full flex items-center justify-center gap-4 py-7 bg-slate-50 text-slate-400 rounded-[28px] font-black text-xl hover:bg-slate-100 hover:text-slate-600 transition-all border border-slate-100"
+                 >
+                   <X size={24} strokeWidth={3} />
+                   Cancel Changes
                  </button>
               </div>
 

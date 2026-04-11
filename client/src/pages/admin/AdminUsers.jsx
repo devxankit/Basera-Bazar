@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminTable from '../../components/common/AdminTable';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
@@ -15,6 +16,14 @@ export default function AdminUsers() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMenu, setActiveMenu] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'danger'
+  });
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -134,10 +143,10 @@ export default function AdminUsers() {
           {/* View Icon (Eye) */}
           <button 
             onClick={() => navigate(`/admin/users/view/${row._id}`)}
-            className="w-10 h-10 flex items-center justify-center bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-all shadow-md active:scale-95 group relative"
+            className="w-10 h-10 flex items-center justify-center bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-all shadow-md active:scale-95 group/view relative"
           >
             <Eye size={18} />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/view:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
               View Details
             </span>
           </button>
@@ -145,10 +154,10 @@ export default function AdminUsers() {
           {/* Edit Icon (Pencil) */}
           <button 
             onClick={() => navigate(`/admin/users/edit/${row._id}`)}
-            className="w-10 h-10 flex items-center justify-center bg-white border-2 border-amber-400 text-amber-500 rounded-full hover:bg-amber-50 transition-all shadow-sm active:scale-95 group relative"
+            className="w-10 h-10 flex items-center justify-center bg-white border-2 border-amber-400 text-amber-500 rounded-full hover:bg-amber-50 transition-all shadow-sm active:scale-95 group/edit relative"
           >
             <Edit2 size={18} />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/edit:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
               Edit User
             </span>
           </button>
@@ -182,11 +191,27 @@ export default function AdminUsers() {
                       Subscriptions
                     </button>
                     <button 
-                      onClick={async () => {
-                        if (window.confirm(`Are you sure you want to ${row.is_active ? 'deactivate' : 'activate'} ${row.name}? All active sessions will be closed.`)) {
-                          await api.put(`/admin/users/${row._id}`, { is_active: !row.is_active });
-                          window.location.reload();
-                        }
+                      onClick={() => {
+                        setActiveMenu(null);
+                        setModalConfig({
+                          title: row.is_active ? 'Deactivate User' : 'Activate User',
+                          message: `Are you sure you want to ${row.is_active ? 'deactivate' : 'activate'} ${row.name}? All active sessions will be terminated.`,
+                          type: 'warning',
+                          onConfirm: async () => {
+                            setIsActionLoading(true);
+                            try {
+                              await api.put(`/admin/users/${row._id}`, { is_active: !row.is_active });
+                              window.location.reload();
+                            } catch (err) {
+                              console.error(err);
+                              alert(err.response?.data?.message || 'Failed to update user status.');
+                            } finally {
+                              setIsActionLoading(false);
+                              setIsModalOpen(false);
+                            }
+                          }
+                        });
+                        setIsModalOpen(true);
                       }}
                       className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
                     >
@@ -195,11 +220,26 @@ export default function AdminUsers() {
                     </button>
                     <div className="h-[1px] bg-slate-50 my-2 mx-5" />
                     <button 
-                      onClick={async () => {
-                        if (window.confirm(`PERMANENT DELETE: Are you sure you want to erase ${row.name} from the database? This cannot be undone.`)) {
-                          await api.delete(`/admin/users/${row._id}`);
-                          window.location.reload();
-                        }
+                      onClick={() => {
+                        setActiveMenu(null);
+                        setModalConfig({
+                          title: 'Permanent Deletion',
+                          message: `CRITICAL: Are you sure you want to erase ${row.name} from the database? This action is irreversible and will remove all associated data.`,
+                          type: 'danger',
+                          onConfirm: async () => {
+                            setIsActionLoading(true);
+                            try {
+                              await api.delete(`/admin/users/${row._id}`);
+                              window.location.reload();
+                            } catch (err) {
+                              console.error(err);
+                            } finally {
+                              setIsActionLoading(false);
+                              setIsModalOpen(false);
+                            }
+                          }
+                        });
+                        setIsModalOpen(true);
                       }}
                       className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-rose-600 hover:bg-rose-50 transition-colors"
                     >
@@ -259,6 +299,13 @@ export default function AdminUsers() {
             </div>
           </div>
         }
+      />
+
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        loading={isActionLoading}
+        {...modalConfig}
       />
     </div>
   );
