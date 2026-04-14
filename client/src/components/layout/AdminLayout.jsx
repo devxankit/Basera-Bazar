@@ -89,18 +89,13 @@ const navItems = [
   },
 ];
 
-const CollapsibleItem = ({ item, location, setSidebarOpen }) => {
-  const [isOpen, setIsOpen] = useState(() => {
-    // Auto-open if a child is active
-    return item.children?.some(child => location.pathname === child.path);
-  });
-
+const CollapsibleItem = ({ item, isOpen, onToggle, location, setSidebarOpen }) => {
   const isActive = item.children?.some(child => location.pathname === child.path);
 
   return (
     <div className="space-y-1">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={onToggle}
         className={`
           w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group
           text-slate-500 hover:bg-slate-50 hover:text-slate-900
@@ -136,6 +131,7 @@ const CollapsibleItem = ({ item, location, setSidebarOpen }) => {
                 <NavLink
                   key={idx}
                   to={child.path}
+                  end
                   className={({ isActive: childActive }) => `
                     flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-[14px]
                     ${childActive 
@@ -156,12 +152,41 @@ const CollapsibleItem = ({ item, location, setSidebarOpen }) => {
 };
 
 export default function AdminLayout({ children }) {
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openSectionId, setOpenSectionId] = useState(() => {
+    const activeSection = navItems.find(item => 
+      item.children?.some(child => location.pathname === child.path)
+    );
+    return activeSection ? activeSection.id : null;
+  });
+
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+
+  React.useEffect(() => {
+    const activeSection = navItems.find(item => 
+      item.children?.some(child => location.pathname === child.path)
+    );
+    if (activeSection && openSectionId !== activeSection.id) {
+      setOpenSectionId(activeSection.id);
+    }
+  }, [location.pathname]); // Removed openSectionId from deps to avoid loop
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleToggleSection = (id) => {
+    if (openSectionId && openSectionId !== id) {
+      // 1. Close the current section first
+      setOpenSectionId(null);
+      // 2. Wait for the exit animation (300ms) before opening the new one
+      setTimeout(() => {
+        setOpenSectionId(id);
+      }, 300);
+    } else {
+      setOpenSectionId(openSectionId === id ? null : id);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -211,7 +236,9 @@ export default function AdminLayout({ children }) {
                     key={item.id} 
                     item={item} 
                     location={location} 
-                    setSidebarOpen={setSidebarOpen} 
+                    setSidebarOpen={setSidebarOpen}
+                    isOpen={openSectionId === item.id}
+                    onToggle={() => handleToggleSection(item.id)}
                   />
                 );
               }

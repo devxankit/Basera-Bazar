@@ -145,14 +145,14 @@ const Home = () => {
                   <h3 className="font-semibold text-[#1f2355] text-[17px] tracking-tight line-clamp-1">{item.title}</h3>
                   <p className="text-[14px] font-medium text-[#4a5578] flex items-center gap-1.5 line-clamp-1">
                     <MapPin size={14} className="text-[#159f42]" />
-                    {item.location_text || item.district || 'Bihar'}
+                    {item.location_text || item.address?.district || item.district || 'Bihar'}
                   </p>
                   <div className="flex items-center justify-between pt-2">
                     <span className="text-[#124db5] text-lg font-semibold tracking-tight">
-                      ₹{item.price?.value?.toLocaleString()} {item.price?.unit || ''}
+                      ₹{item.pricing?.amount?.toLocaleString() || item.price?.value?.toLocaleString() || '0'}
                     </span>
                     <span className="text-[12px] font-semibold text-[#64719b] bg-[#f4f6fc] px-4 py-1.5 rounded-xl border border-[#eef2fc]">
-                      {item.details?.area || 'Plot'}
+                      {item.details?.area?.value ? `${item.details.area.value} ${item.details.area.unit}` : 'Property'}
                     </span>
                   </div>
                 </div>
@@ -188,7 +188,7 @@ const Home = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 truncate max-w-[150px]">
                       <MapPin size={12} className="text-emerald-500" />
-                      {item.location_text || item.district || 'Bihar'}
+                      {item.location_text || item.address?.district || item.district || 'Bihar'}
                     </div>
                     <button className="bg-emerald-50 text-emerald-600 text-[11px] font-semibold px-5 py-2 rounded-xl border border-emerald-100 uppercase tracking-widest">BOOK</button>
                   </div>

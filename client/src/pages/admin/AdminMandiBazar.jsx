@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Gavel, ArrowRight, Store, Loader2, MessageSquare, CheckCircle2, User, Clock, AlertCircle } from 'lucide-react';
+import { Search, MapPin, Gavel, ArrowRight, Store, Loader2, MessageSquare, CheckCircle2, User, Clock, AlertCircle, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
+
+const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
+const labelClass = "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block";
 
 export default function AdminMandiBazar() {
   const [view, setView] = useState('leads'); // 'leads' or 'search'
@@ -25,7 +28,6 @@ export default function AdminMandiBazar() {
       setLoading(true);
       const response = await api.get('/admin/leads');
       if (response.data.success) {
-        // Filter for unassigned Mandi leads
         const mandiLeads = response.data.data.filter(l => 
           l.enquiry_type === 'mandi' && 
           l.mandi_assignment?.fulfillment_status === 'pending_assignment'
@@ -41,8 +43,6 @@ export default function AdminMandiBazar() {
 
   const handleStartAssignment = (lead) => {
     setSelectedLead(lead);
-    // In a real app, we'd take coords from the lead's location. 
-    // For now, we use Delhi center as seeded.
     setView('search');
   };
 
@@ -90,7 +90,7 @@ export default function AdminMandiBazar() {
             <User size={18} />
           </div>
           <div>
-            <p className="font-black text-slate-800 tracking-tight">{row.user_id?.name || 'Customer'}</p>
+            <p className="font-bold text-slate-800 tracking-tight">{row.user_id?.name || 'Customer'}</p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.user_id?.phone || 'No Phone'}</p>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function AdminMandiBazar() {
       render: (row) => (
         <div className="flex items-center gap-1.5 text-slate-500 font-bold">
           <Clock size={14} />
-          <span className="text-xs uppercase tracking-widest tabular-nums">
+          <span className="text-xs uppercase tracking-widest tabular-nums font-black">
             {new Date(row.createdAt).toLocaleDateString()}
           </span>
         </div>
@@ -121,7 +121,7 @@ export default function AdminMandiBazar() {
       render: (row) => (
         <button 
           onClick={() => handleStartAssignment(row)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] uppercase tracking-wider px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-100 active:scale-95"
+          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-black text-[11px] uppercase tracking-wider px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-orange-100 active:scale-95"
         >
           Assign Now <ArrowRight size={14} />
         </button>
@@ -131,17 +131,17 @@ export default function AdminMandiBazar() {
 
   const sellerColumns = [
     { 
-      header: 'SELLER', 
+      header: 'SELLER ENTITY', 
       render: (row) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 font-bold border border-orange-100">
+          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 font-black border border-slate-100">
             <Store size={20} />
           </div>
           <div>
-            <p className="font-bold text-slate-800">{row.name}</p>
+            <p className="font-bold text-slate-900">{row.name}</p>
             <div className="flex items-center gap-2 mt-0.5">
-              {row.profile?.mandi_profile?.material_types?.map((type, i) => (
-                <span key={i} className="text-[9px] font-black uppercase text-slate-400 px-1.5 py-0.5 bg-slate-50 rounded border border-slate-100">
+              {row.profile?.mandi_profile?.material_types?.slice(0, 2).map((type, i) => (
+                <span key={i} className="text-[9px] font-black uppercase text-indigo-500 px-1.5 py-0.5 bg-indigo-50 rounded border border-indigo-100">
                   {type}
                 </span>
               ))}
@@ -151,10 +151,10 @@ export default function AdminMandiBazar() {
       )
     },
     { 
-      header: 'COMMISSION', 
+      header: 'COMMISSION RATE', 
       render: (row) => (
-        <span className="font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 text-sm">
-          {row.profile?.mandi_profile?.commission_rate || 0}%
+        <span className="font-black text-slate-700 tabular-nums text-sm">
+          {row.profile?.mandi_profile?.commission_rate || 0}% Value
         </span>
       )
     },
@@ -164,46 +164,43 @@ export default function AdminMandiBazar() {
         <button 
           onClick={() => handleAssignLead(row._id)}
           disabled={loading}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[11px] uppercase tracking-widest px-4 py-2 rounded-xl transition-all shadow-md shadow-emerald-100"
+          className="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[11px] uppercase tracking-widest px-4 py-2.5 rounded-xl transition-all shadow-md shadow-emerald-50 active:scale-95"
         >
-          Assign To Them
+          Finalize Assignment
         </button>
       )
     }
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       {/* Header Area */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-4">
-            <div className="p-3 bg-orange-500 text-white rounded-3xl shadow-xl shadow-orange-100">
-              <Gavel size={32} />
-            </div>
-            Mandi Bazar
+          <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Marketplace Operations</span>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+             <Gavel className="text-orange-500" size={28} />
+             Mandi Bazar Fulfillment
           </h1>
-          <p className="text-slate-500 font-bold uppercase tracking-[0.15em] text-[11px] mt-2 ml-1">
-            Dynamic Lead Fulfillment & Assignment
-          </p>
+          <p className="text-slate-400 font-medium text-sm mt-0.5">Assigned pending leads to verified logistics and sales partners.</p>
         </div>
 
-        <div className="bg-white p-1.5 rounded-[1.5rem] border border-slate-100 shadow-sm flex">
+        <div className="bg-white p-1 rounded-2xl border border-slate-100 shadow-sm flex inline-flex">
           <button 
             onClick={() => setView('leads')}
-            className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
-              view === 'leads' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:text-slate-900'
+            className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+              view === 'leads' ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 'text-slate-400 hover:text-slate-700'
             }`}
           >
-            Pending Leads
+            Pending Workload
           </button>
           <button 
             onClick={() => setView('search')}
-            className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
-              view === 'search' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:text-slate-900'
+            className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+              view === 'search' ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 'text-slate-400 hover:text-slate-700'
             }`}
           >
-            Seller Search
+            Network Discovery
           </button>
         </div>
       </div>
@@ -212,12 +209,13 @@ export default function AdminMandiBazar() {
         {view === 'leads' ? (
           <motion.div
             key="leads"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 10 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"
           >
             <AdminTable 
-              title="Active Unassigned Enquiries"
+              title="Active Unassigned Pipeline"
               columns={leadColumns}
               data={leads}
               loading={loading}
@@ -227,83 +225,72 @@ export default function AdminMandiBazar() {
         ) : (
           <motion.div
             key="search"
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            className="space-y-8"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
           >
             {/* Lead Context Sticky Banner */}
             {selectedLead && (
-              <div className="bg-white border-2 border-indigo-100 p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/20 flex items-center justify-between relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full blur-2xl -mr-16 -mt-16"></div>
-                <div className="flex items-center gap-6 relative z-10">
-                  <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 border border-indigo-100">
-                    <MessageSquare size={28} />
+              <div className="bg-indigo-50 border border-indigo-100 p-8 rounded-3xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group">
+                 <div className="absolute inset-0 bg-white opacity-40 group-hover:opacity-20 transition-opacity" />
+                 <div className="flex items-center gap-6 relative z-10">
+                  <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-indigo-600 border border-indigo-100 shadow-sm">
+                    <MessageSquare size={24} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase opacity-50 tracking-[0.2em]">Now Assigning Lead</p>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">{selectedLead.listing_snapshot?.material} — {selectedLead.listing_snapshot?.qty} {selectedLead.listing_snapshot?.unit}</h3>
-                    <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest mt-1">Requested by {selectedLead.user_id?.name}</p>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none uppercase italic underline decoration-indigo-200 underline-offset-4">{selectedLead.listing_snapshot?.material}</h3>
+                    <p className="text-sm font-bold text-slate-500 mt-2">Requested by {selectedLead.user_id?.name} &bull; {selectedLead.listing_snapshot?.qty} {selectedLead.listing_snapshot?.unit}</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setSelectedLead(null)}
-                  className="bg-slate-50 hover:bg-slate-100 text-slate-400 border border-slate-100 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all relative z-10 active:scale-95"
+                  className="bg-white hover:bg-slate-50 text-rose-500 border border-slate-100 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative z-10 active:scale-95"
                 >
-                  Cancel Selection
+                  Discard Selection
                 </button>
               </div>
             )}
 
             {/* Search Controls */}
-            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-8 border border-slate-50 relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 rounded-full blur-3xl -mr-32 -mt-32"></div>
-               <form onSubmit={handleSearchPartners} className="relative z-10 grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Latitude</label>
-                    <input 
-                      type="text" 
-                      value={lat} 
-                      onChange={e => setLat(e.target.value)}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3.5 px-4 outline-none focus:border-indigo-600 focus:bg-white transition-all font-black text-slate-700" 
-                    />
+            <div className="bg-white rounded-[2.5rem] shadow-sm p-10 border border-slate-100">
+               <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-6 bg-indigo-600 rounded-full" />
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight italic">System Search Parameters</h2>
+               </div>
+               <form onSubmit={handleSearchPartners} className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                  <div>
+                    <label className={labelClass}>Lattitude Map</label>
+                    <input type="text" value={lat} onChange={e => setLat(e.target.value)} className={inputClass} placeholder="28.61..." />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Longitude</label>
-                    <input 
-                      type="text" 
-                      value={lng} 
-                      onChange={e => setLng(e.target.value)}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3.5 px-4 outline-none focus:border-indigo-600 focus:bg-white transition-all font-black text-slate-700" 
-                    />
+                  <div>
+                    <label className={labelClass}>Longitude Map</label>
+                    <input type="text" value={lng} onChange={e => setLng(e.target.value)} className={inputClass} placeholder="77.2..." />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Radius (KM)</label>
-                    <input 
-                      type="number" 
-                      value={radius} 
-                      onChange={e => setRadius(e.target.value)}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3.5 px-4 outline-none focus:border-indigo-600 focus:bg-white transition-all font-black text-slate-700 text-center" 
-                    />
+                  <div>
+                    <label className={labelClass}>Radius (Kilometers)</label>
+                    <input type="number" value={radius} onChange={e => setRadius(e.target.value)} className={inputClass} placeholder="50" />
                   </div>
                   <button 
                     type="submit"
                     disabled={loading}
-                    className="bg-slate-900 hover:bg-black text-white font-black py-4 rounded-2xl shadow-xl shadow-slate-200 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                    className="bg-indigo-600 hover:bg-slate-900 text-white font-black py-3.5 rounded-xl shadow-xl shadow-indigo-100 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 uppercase text-xs tracking-wider"
                   >
-                    {loading ? <Loader2 className="animate-spin" size={20} /> : <Search size={22} />}
-                    Find Sellers
+                    {loading ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
+                    {loading ? 'Scanning...' : 'Seek Partners'}
                   </button>
                </form>
             </div>
 
-            <AdminTable 
-              title="Verified Partners in Range"
-              columns={sellerColumns}
-              data={partners}
-              loading={loading}
-              searchPlaceholder="Filter result by name..."
-            />
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <AdminTable 
+                title="Verified Fulfillment Network"
+                columns={sellerColumns}
+                data={partners}
+                loading={loading}
+                searchPlaceholder="Analyze network by name..."
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

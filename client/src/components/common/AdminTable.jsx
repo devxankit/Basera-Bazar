@@ -32,15 +32,15 @@ export default function AdminTable({
       <div className="px-6 py-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {title && <h2 className="text-xl font-black text-slate-900 tracking-tight">{title}</h2>}
         
-        <div className="flex items-center gap-3 ml-auto">
+        <div className="flex-1 flex items-center gap-3">
           {!hideSearch && (
-            <div className="relative group">
+            <div className="relative group flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
               <input 
                 type="text" 
                 placeholder={searchPlaceholder}
                 onChange={(e) => onSearch?.(e.target.value)}
-                className="bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-11 pr-4 text-xs font-black uppercase tracking-wider w-full md:w-64 outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-700"
+                className="bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-11 pr-4 text-xs font-black uppercase tracking-wider w-full outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-700"
               />
             </div>
           )}

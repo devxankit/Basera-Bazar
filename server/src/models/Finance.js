@@ -1,13 +1,24 @@
 const mongoose = require('mongoose');
 
 const subscriptionPlanSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  description: { type: String },
   applicable_to: {
     type: [String],
-    enum: ['service_provider', 'property_agent', 'supplier', 'mandi_seller']
+    enum: ['service_provider', 'property_agent', 'supplier', 'mandi_seller'],
+    required: true
   },
   duration_days: { type: Number, required: true },
   price: { type: Number, required: true }, // Whole rupees
-  features: { type: mongoose.Schema.Types.Mixed },
+  
+  // Limits
+  listings_limit: { type: Number, default: 0 }, // -1 for unlimited
+  featured_listings_limit: { type: Number, default: 0 },
+  leads_limit: { type: Number, default: 0 },
+  
+  features: { type: [String], default: [] }, // Additional bullet points
+  
+  is_active: { type: Boolean, default: true },
   razorpay_plan_id: { type: String }, // Optional, for recurring
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser' }
 }, { timestamps: true });

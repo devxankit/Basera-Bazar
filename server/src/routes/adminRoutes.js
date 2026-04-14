@@ -16,6 +16,8 @@ const {
   updateUser,
   deleteUser,
   getUserSubscriptionHistory,
+  getAllSubscriptions,
+  createManualSubscription,
   getAdminActivities,
   getListingDetail,
   updateListingStatus,
@@ -23,6 +25,9 @@ const {
   deleteListing,
   getPendingApprovals,
   getSubscriptionPlans,
+  createSubscriptionPlan,
+  updateSubscriptionPlan,
+  deleteSubscriptionPlan,
   getSystemCategories,
   getCategoryDetail,
   createCategory,
@@ -38,7 +43,8 @@ const {
   createBanner,
   getSubscriptionReport,
   getUserReport,
-  createPropertyListing
+  createPropertyListing,
+  createServiceListing
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -63,10 +69,13 @@ router.post('/users', createUser);
 router.put('/users/:id', updateUser);
 router.delete('/users/:id', deleteUser);
 router.get('/users/:id/subscriptions', getUserSubscriptionHistory);
+router.get('/subscriptions', getAllSubscriptions);
+router.post('/subscriptions', createManualSubscription);
 
 // Listing Management
 router.get('/listings/:type', getListings);
 router.post('/listings/property', createPropertyListing);
+router.post('/listings/service', createServiceListing);
 router.get('/listings/detail/:id', getListingDetail);
 router.patch('/listings/:id/status', updateListingStatus);
 router.put('/listings/:id', updateListing);
@@ -111,6 +120,10 @@ router.get('/partners/mandi-search', findNearestMandiSellers);
 router.put('/enquiries/mandi/:id/assign', assignMandiEnquiry);
 
 // Dynamic Form Data Endpoints
+// Subscription Plan Management
 router.get('/subscriptions/plans', getSubscriptionPlans);
+router.post('/subscriptions/plans', createSubscriptionPlan);
+router.put('/subscriptions/plans/:id', updateSubscriptionPlan);
+router.delete('/subscriptions/plans/:id', deleteSubscriptionPlan);
 
 module.exports = router;

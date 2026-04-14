@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Plus, Eye, MoreVertical, Package, Truck, Store } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
 
 export default function AdminProducts() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -94,7 +96,10 @@ export default function AdminProducts() {
       header: 'OPTIONS', 
       render: (row) => (
         <div className="flex items-center gap-2">
-          <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition-all">
+          <button 
+            onClick={() => navigate(`/admin/products/view/${row._id}`)}
+            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition-all"
+          >
             <Eye size={18} />
           </button>
           <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition-all">

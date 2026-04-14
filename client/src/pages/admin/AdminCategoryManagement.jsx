@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, CheckCircle2, XCircle, Loader2, Eye } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Plus, Edit2, Trash2, Eye, ArrowLeft, Layers, CornerDownRight, Hash, Tag, Filter as FilterIcon, X } from 'lucide-react';
 import AdminTable from '../../components/common/AdminTable';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -13,11 +13,11 @@ export default function AdminCategoryManagement({
 }) {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
-  const [parents, setParents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ name: '', parent_id: '', type: type });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Search and Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [parentFilter, setParentFilter] = useState('all');
 
   const fetchItems = async () => {
     setLoading(true);
@@ -25,10 +25,6 @@ export default function AdminCategoryManagement({
       const res = await api.get(`/admin/system/${endpoint}?type=${type}`);
       if (res.data.success) {
         setItems(res.data.data);
-        if (showParent) {
-          // If this is for subcategories, we only want top-level parents of the same type
-          setParents(res.data.data.filter(i => !i.parent_id));
-        }
       }
     } catch (err) {
       console.error(err);
@@ -39,24 +35,7 @@ export default function AdminCategoryManagement({
 
   useEffect(() => {
     fetchItems();
-  }, [type]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const res = await api.post(`/admin/system/${endpoint}`, { ...formData, type });
-      if (res.data.success) {
-        setShowModal(false);
-        setFormData({ name: '', parent_id: '', type: type });
-        fetchItems();
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || 'Error creating item');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  }, [type, endpoint]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to deactivate this item?')) return;
@@ -70,138 +49,190 @@ export default function AdminCategoryManagement({
     }
   };
 
+  // Pre-process categories for the filter dropdown
+  const parentCategories = useMemo(() => {
+    return items.filter(i => !i.parent_id);
+  }, [items]);
+
+  // Combined Searching and Filtering Logic
+  const processedItems = useMemo(() => {
+    // 1. Initial filter based on whether we view Categories or Subcategories
+    let filtered = showParent 
+      ? items.filter(i => i.parent_id) 
+      : items.filter(i => !i.parent_id);
+
+    // 2. Application of parent filter (only for subcategories)
+    if (showParent && parentFilter !== 'all') {
+      filtered = filtered.filter(i => (i.parent_id?._id || i.parent_id) === parentFilter);
+    }
+
+    // 3. Application of Search
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      filtered = filtered.filter(i => 
+        i.name.toLowerCase().includes(lowerSearch) || 
+        (i.parent_id?.name && i.parent_id.name.toLowerCase().includes(lowerSearch))
+      );
+    }
+
+    return filtered;
+  }, [items, showParent, parentFilter, searchTerm]);
+
+  // Helper to find subcategories for a given parent ID
+  const findChildren = (parentId) => {
+    return items.filter(item => (item.parent_id?._id || item.parent_id) === parentId);
+  };
+
   const columns = [
     { 
-      header: 'NAME', 
+      header: 'CLASSIFICATION NAME', 
       render: (row) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all font-black">
-            {row.name[0]}
+        <div className="flex items-center gap-4 text-left">
+          <div className="w-10 h-10 border border-slate-200 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 font-bold group-hover:border-indigo-200 transition-all uppercase overflow-hidden flex-shrink-0">
+            {row.icon ? (
+              <img src={row.icon} className="w-full h-full object-cover" alt="" />
+            ) : (
+              row.name[0]
+            )}
           </div>
-          <span className="font-bold text-slate-900">{row.name}</span>
+          <div className="min-w-0">
+            <p className="font-bold text-slate-900 text-sm italic tracking-tight truncate">{row.name}</p>
+          </div>
         </div>
       )
     },
     ...(showParent ? [{
       header: 'PARENT CATEGORY',
-      render: (row) => row.parent_id?.name || <span className="text-slate-300 italic text-xs">Top Level</span>
-    }] : []),
-    {
-      header: 'STATUS',
       render: (row) => (
-        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-          row.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
-        }`}>
-          {row.is_active ? 'Active' : 'Inactive'}
-        </span>
+        <div className="flex items-center gap-2">
+           <Layers size={14} className="text-slate-300" />
+           <span className="font-bold text-slate-900 text-xs uppercase tracking-tight italic">{row.parent_id?.name || 'Top Level'}</span>
+        </div>
+      )
+    }] : [
+      {
+        header: 'SUB CATEGORIES',
+        render: (row) => {
+          const children = findChildren(row._id);
+          return (
+            <div className="flex flex-wrap gap-1">
+               {children.map((child, i) => (
+                 <span key={i} className="px-1.5 py-0.5 bg-slate-50 border border-slate-100 rounded text-[9px] font-bold text-slate-500 uppercase tracking-tighter">
+                   {child.name}
+                 </span>
+               ))}
+               {children.length === 0 && <span className="text-slate-300 italic text-[10px]">None Linked</span>}
+            </div>
+          );
+        }
+      },
+      {
+        header: 'STATUS',
+        render: (row) => (
+          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border ${
+            row.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-200'
+          }`}>
+            {row.is_active ? 'Active' : 'Offline'}
+          </span>
+        )
+      }
+    ]),
+    {
+      header: 'TOTAL ENTRIES',
+      render: (row) => (
+        <div className="flex items-center gap-2 tabular-nums">
+           <Hash size={11} className="text-slate-300" />
+           <span className="font-bold text-slate-900">{row.listingCount || 0}</span>
+        </div>
       )
     },
     {
       header: 'ACTIONS',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => navigate(`/admin/properties/categories/view/${row._id}`)}
-            className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
-            title="View Details"
-          >
-            <Eye size={18} />
+          <button onClick={() => navigate(`/admin/properties/categories/view/${row._id}`)} className="flex items-center gap-2 px-3 py-2 text-slate-500 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all font-bold text-[10px] uppercase tracking-widest">
+            <Eye size={14} /> View
           </button>
-          <button 
-            onClick={() => navigate(`/admin/properties/categories/edit/${row._id}${showParent ? '?parent=' + (row.parent_id?._id || '') : ''}`)}
-            className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
-            title="Edit"
-          >
-            <Edit2 size={16} />
+          <button onClick={() => navigate(`/admin/properties/categories/edit/${row._id}${showParent ? '?parent=' + (row.parent_id?._id || '') : ''}`)} className="flex items-center gap-2 px-3 py-2 text-indigo-600 hover:text-white border border-indigo-100 hover:bg-indigo-600 rounded-lg transition-all font-bold text-[10px] uppercase tracking-widest">
+            <Edit2 size={14} /> Edit
           </button>
-          <button 
-            onClick={() => handleDelete(row._id)}
-            className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
-            title="Deactivate"
-          >
-            <Trash2 size={16} />
+          <button onClick={() => handleDelete(row._id)} className="flex items-center gap-2 px-3 py-2 text-rose-500 hover:text-white border border-rose-100 hover:bg-rose-600 rounded-lg transition-all font-bold text-[10px] uppercase tracking-widest">
+            <Trash2 size={14} /> Purge
           </button>
         </div>
       )
     }
   ];
 
+  const CustomHeaderActions = (
+    showParent && parentCategories.length > 0 && (
+      <div className="flex items-center gap-3">
+         <div className="relative group">
+           <FilterIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+           <select 
+             value={parentFilter} 
+             onChange={(e) => setParentFilter(e.target.value)}
+             className="bg-slate-50 border-2 border-slate-100 rounded-2xl py-2.5 pl-8 pr-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-indigo-600 transition-all appearance-none cursor-pointer pr-10"
+           >
+              <option value="all">ALL PARENTS</option>
+              {parentCategories.map(cat => (
+                <option key={cat._id} value={cat._id}>{cat.name}</option>
+              ))}
+           </select>
+         </div>
+         {parentFilter !== 'all' && (
+           <button onClick={() => setParentFilter('all')} className="p-2 text-rose-500 bg-rose-50 rounded-lg hover:bg-rose-100 transition-all">
+             <X size={16} />
+           </button>
+         )}
+      </div>
+    )
+  );
+
   return (
-    <div className="space-y-8 pb-20 mt-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">{title}</h1>
-          <p className="text-slate-500 font-medium mt-1">{description}</p>
+    <div className="space-y-6 pb-20 mt-4 animate-in fade-in duration-500">
+      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-5">
+           <div className="w-14 h-14 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-900/10 flex-shrink-0">
+             {showParent ? <CornerDownRight size={24} /> : <Tag size={24} />}
+           </div>
+           <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{showParent ? 'Sub-Level Taxonomy' : 'Root Taxonomy System'}</span>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none mt-1">{title}</h1>
+              <p className="text-slate-400 text-xs font-medium mt-1 italic leading-relaxed">{description}</p>
+           </div>
         </div>
         <button 
-          onClick={() => navigate(`/admin/properties/categories/add?type=${type}${showParent ? '&parent=null' : ''}`)}
-          className="bg-slate-900 hover:bg-slate-800 text-white font-black px-6 py-3.5 rounded-2xl shadow-xl shadow-slate-200 transition-all flex items-center gap-2.5 active:scale-95"
+          onClick={() => navigate(`/admin/properties/categories/add?type=${type}${showParent ? '&parent=select' : ''}`)}
+          className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white font-bold text-[10px] rounded-xl hover:bg-slate-800 transition-all active:scale-95 uppercase tracking-widest shadow-2xl shadow-slate-900/20 whitespace-nowrap"
         >
-          <Plus size={20} />
-          Add {title.slice(0, -1)}
+          <Plus size={16} />
+          Register New {showParent ? 'Sub Category' : 'Category'}
         </button>
       </div>
 
-      <AdminTable 
-        columns={columns} 
-        data={items} 
-        loading={loading} 
-        title={`${title} List`}
-      />
-
-      {/* Add Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-          <div className="relative bg-white rounded-[2.5rem] p-8 shadow-2xl max-w-md w-full overflow-hidden">
-            <h2 className="text-2xl font-black text-slate-900 mb-6">Create {title.slice(0, -1)}</h2>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Category Name</label>
-                <input 
-                  type="text" 
-                  required
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-sm font-bold focus:border-indigo-600 outline-none transition-all"
-                  placeholder="e.g. Electrician, Apartments..."
-                />
-              </div>
-
-              {showParent && (
-                <div>
-                  <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Parent Category</label>
-                  <select 
-                    value={formData.parent_id}
-                    onChange={e => setFormData({ ...formData, parent_id: e.target.value })}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-sm font-bold focus:border-indigo-600 outline-none transition-all"
-                  >
-                    <option value="">None (Top Level)</option>
-                    {parents.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                  </select>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 py-4 bg-slate-50 text-slate-400 font-black rounded-2xl hover:bg-slate-100 transition-all"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="flex-1 py-4 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center justify-center disabled:opacity-50"
-                >
-                  {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : 'Save Category'}
-                </button>
-              </div>
-            </form>
-          </div>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/40 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/20 flex items-center justify-between">
+           <div className="flex items-center gap-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Repository Live Index</h3>
+           </div>
+           <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400">
+              <span className="uppercase tracking-widest">Count: {processedItems.length} Nodes</span>
+              <span className="px-2 py-0.5 bg-slate-100 rounded text-[8px] uppercase tracking-tighter">Sync: OK</span>
+           </div>
         </div>
-      )}
+        <AdminTable 
+          columns={columns} 
+          data={processedItems} 
+          loading={loading} 
+          title={null}
+          onSearch={setSearchTerm}
+          searchPlaceholder={`Search within ${showParent ? 'subcategories' : 'categories'}...`}
+          actions={CustomHeaderActions}
+          hideFilter={true}
+        />
+      </div>
     </div>
   );
 }

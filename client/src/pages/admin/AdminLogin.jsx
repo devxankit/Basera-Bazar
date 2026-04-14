@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, ShieldCheck, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import baseraLogo from '../../assets/baseralogo.png';
+
+const inputClass = "w-full pl-12 pr-12 py-4 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all bg-white placeholder-slate-300 shadow-sm shadow-slate-100/50";
+const labelClass = "text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -36,49 +39,60 @@ export default function AdminLogin() {
         navigate('/admin/dashboard');
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Authentication failed. Please check your credentials.');
+      setError(error.response?.data?.message || 'Identity verification failed. Please check credentials.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6 font-Inter">
+    <div className="min-h-screen bg-[#fcfdfe] flex items-center justify-center p-6 selection:bg-indigo-100 selection:text-indigo-900">
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[440px]"
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-[460px]"
       >
-        {/* Logo/Identity Section */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center p-4 bg-white rounded-3xl shadow-xl shadow-slate-200/50 mb-6 border border-slate-50">
-            <img src={baseraLogo} alt="Basera" className="h-16 w-auto object-contain" />
-          </div>
-          <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">Admin Gateway</h1>
-          <p className="text-slate-400 font-bold uppercase tracking-[0.15em] text-[10px]">Secure Control Panel</p>
+        {/* Identity Head */}
+        <div className="text-center mb-12">
+          <motion.div 
+             initial={{ scale: 0.9 }}
+             animate={{ scale: 1 }}
+             className="inline-flex items-center justify-center p-5 bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/40 mb-8 border border-slate-50 relative group"
+          >
+            <div className="absolute inset-0 bg-indigo-50 rounded-[2.5rem] scale-95 opacity-0 group-hover:scale-110 group-hover:opacity-100 transition-all duration-500" />
+            <img src={baseraLogo} alt="Basera" className="h-20 w-auto object-contain relative z-10" />
+          </motion.div>
+          <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">Admin Portal</h1>
+          <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">Secure Central Command</p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 p-10 border border-slate-100">
-          <form onSubmit={handleLogin} className="space-y-6">
+        {/* Access Module */}
+        <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200/50 p-12 border border-slate-100/80 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/30 rounded-full -mr-16 -mt-16 blur-3xl text-indigo-100 pointer-events-none" />
+          
+          <form onSubmit={handleLogin} className="space-y-7 relative z-10">
             {error && (
               <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-semibold border border-red-100"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="bg-rose-50 text-rose-500 p-4 rounded-2xl text-[11px] font-black uppercase tracking-wider border border-rose-100 flex items-center gap-3 shadow-sm shadow-rose-100/20"
               >
-                {error}
+                 <div className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-pulse" />
+                 {error}
               </motion.div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 ml-1">ADMIN IDENTIFIER</label>
+            <div className="group">
+              <label className={labelClass}>Officer Identifier</label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
+                  <Mail size={18} strokeWidth={2.5} />
+                </div>
                 <input
                   type="text"
                   placeholder="Email or Username"
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-indigo-600 transition-colors text-slate-900 font-medium"
+                  className={inputClass}
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   required
@@ -86,14 +100,16 @@ export default function AdminLogin() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 ml-1">SECURE ACCESS KEY</label>
+            <div className="group">
+              <label className={labelClass}>Secure Access Code</label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
+                  <Lock size={18} strokeWidth={2.5} />
+                </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter Password"
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-12 outline-none focus:border-indigo-600 transition-colors text-slate-900 font-medium"
+                  placeholder="••••••••"
+                  className={inputClass}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -101,9 +117,9 @@ export default function AdminLogin() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-indigo-600 transition-colors"
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={18} strokeWidth={2.5} /> : <Eye size={18} strokeWidth={2.5} />}
                 </button>
               </div>
             </div>
@@ -111,20 +127,23 @@ export default function AdminLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-70"
+              className="w-full bg-slate-900 hover:bg-indigo-600 text-white font-black py-5 rounded-[2rem] shadow-xl shadow-slate-200/50 transition-all duration-300 flex items-center justify-center gap-3 active:scale-[0.97] disabled:opacity-70 group"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={20} />
               ) : (
-                'Unlock Dashboard'
+                <>
+                  Establish Connection
+                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                </>
               )}
             </button>
           </form>
         </div>
 
-        {/* Footer */}
-        <p className="text-center mt-8 text-slate-400 text-sm font-medium">
-          &copy; 2026 Appzeto BaseraBazar. All rights reserved.
+        {/* Persistence Check */}
+        <p className="text-center mt-12 text-slate-300 text-[10px] font-black uppercase tracking-widest">
+          Authorized Personnel Only &bull; End-to-End Encrypted
         </p>
       </motion.div>
     </div>

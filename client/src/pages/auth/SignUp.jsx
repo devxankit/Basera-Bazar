@@ -110,11 +110,18 @@ export default function SignUp() {
         });
         // No conflict — fall through to OTP
       } catch (error) {
+        console.error('Signup Verification Error:', error);
         const code = error.response?.data?.code;
+        const serverMsg = error.response?.data?.message;
+
         if (code === 'EMAIL_EXISTS' || code === 'PHONE_EXISTS' || code === 'USER_EXISTS') {
           setPopup(code);
         } else {
-          alert(error.response?.data?.message || 'Failed to verify. Please try again.');
+          // Provide a much more specific error message based on the response
+          const detailedError = serverMsg 
+            ? `Verification Failed: ${serverMsg}` 
+            : 'Connection Error: Unable to reach the server. Please check your internet and try again.';
+          alert(detailedError);
         }
         setVerifying(false);
         return;

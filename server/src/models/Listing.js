@@ -20,15 +20,30 @@ const baseListingSchemaConfig = {
 const serviceListingSchema = new mongoose.Schema({
   partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
   category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   title: { type: String, required: true },
-  description: { type: String },
+  service_type: { type: String }, // e.g., Consultation, Repair, Maintenance
+  years_of_experience: { type: Number },
+  short_description: { type: String },
+  full_description: { type: String },
+  video_link: { type: String },
   location: { type: pointSchema, required: true },
+  address: {
+    state: { type: String },
+    district: { type: String },
+    full_address: { type: String },
+    pincode: { type: String }
+  },
+  thumbnail: { type: String },
+  portfolio_images: [{ type: String }],
   service_radius_km: { type: Number, required: true },
   status: {
     type: String,
-    enum: ['draft', 'active', 'inactive', 'suspended', 'deleted'],
+    enum: ['draft', 'pending_approval', 'active', 'inactive', 'suspended', 'rejected', 'deleted'],
     default: 'draft'
   },
+  status_reason: { type: String },
+  is_featured: { type: Boolean, default: false },
   stats: {
     views: { type: Number, default: 0 },
     enquiries: { type: Number, default: 0 },

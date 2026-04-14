@@ -8,7 +8,7 @@ import {
   Package, Wrench, Settings, ArrowLeft, Building2, MapPin, 
   ExternalLink, Clock, CheckCircle2, ShoppingCart, MessageSquare, Briefcase, Send
 } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 

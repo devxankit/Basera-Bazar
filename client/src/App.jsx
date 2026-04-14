@@ -42,11 +42,16 @@ import AdminProperties from './pages/admin/AdminProperties';
 import AdminPropertyForm from './pages/admin/AdminPropertyForm';
 import AdminPropertyDetails from './pages/admin/AdminPropertyDetails';
 import AdminServices from './pages/admin/AdminServices';
+import AdminServiceForm from './pages/admin/AdminServiceForm';
+import AdminServiceDetails from './pages/admin/AdminServiceDetails';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminLeads from './pages/admin/AdminLeads';
 import AdminEditProfile from './pages/admin/AdminEditProfile';
 import AdminPaymentReport from './pages/admin/AdminPaymentReport';
 import AdminSubscriptionPlans from './pages/admin/AdminSubscriptionPlans';
+import AdminSubscriptionPlanForm from './pages/admin/AdminSubscriptionPlanForm';
+import AdminAllSubscriptions from './pages/admin/AdminAllSubscriptions';
+import AdminCreateManualSubscription from './pages/admin/AdminCreateManualSubscription';
 import AdminLayout from './components/layout/AdminLayout';
 import AdminAllActivities from './pages/admin/AdminAllActivities';
 import AdminPendingProperties from './pages/admin/AdminPendingProperties';
@@ -67,6 +72,9 @@ import AdminUserReport from './pages/admin/AdminUserReport';
 import AdminCategoryForm from './pages/admin/AdminCategoryForm';
 import AdminCategoryDetails from './pages/admin/AdminCategoryDetails';
 import AdminClearCache from './pages/admin/AdminClearCache';
+
+import AdminProductDetails from './pages/admin/AdminProductDetails';
+import AdminSuppliers from './pages/admin/AdminSuppliers';
 
 // Route guard — redirects unauthenticated users to /login
 const ProtectedRoute = ({ children }) => {
@@ -348,10 +356,50 @@ function App() {
           </AdminRoute>
         } />
 
+        <Route path="/admin/services/add" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminServiceForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/services/edit/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminServiceForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/services/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminServiceDetails />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
         <Route path="/admin/products" element={
           <AdminRoute>
             <AdminLayout>
               <AdminProducts />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/products/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminProductDetails />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/suppliers" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminSuppliers />
             </AdminLayout>
           </AdminRoute>
         } />
@@ -465,10 +513,38 @@ function App() {
         } />
 
         {/* Subscriptions & Reports */}
+        <Route path="/admin/subscriptions" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminAllSubscriptions />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/subscriptions/add-manual/:userId" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCreateManualSubscription />
+            </AdminLayout>
+          </AdminRoute>
+        } />
         <Route path="/admin/subscriptions/plans" element={
           <AdminRoute>
             <AdminLayout>
               <AdminSubscriptionPlans />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/subscriptions/plans/add" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminSubscriptionPlanForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/subscriptions/plans/edit/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminSubscriptionPlanForm />
             </AdminLayout>
           </AdminRoute>
         } />

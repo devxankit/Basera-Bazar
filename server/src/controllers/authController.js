@@ -25,12 +25,24 @@ const checkExists = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide phone or email.' });
     }
 
-    const UserModel = role === 'partner' ? Partner : User;
+    console.log(`[Signup Check] Checking existence for Phone: ${phone}, Email: ${email}`);
 
-    const phoneExists = phone ? await UserModel.findOne({ phone }) : null;
-    const emailExists = email ? await UserModel.findOne({ email: email.toLowerCase() }) : null;
+    // Cross-collection check: A user shouldn't be able to register a Customer account 
+    // if their phone/email is already tied to a Partner account, and vice-versa.
+    
+    // 1. Check User Collection
+    const userPhoneExists = phone ? await User.findOne({ phone }) : null;
+    const userEmailExists = email ? await User.findOne({ email: email.toLowerCase() }) : null;
 
-    if (phoneExists && emailExists) {
+    // 2. Check Partner Collection
+    const partnerPhoneExists = phone ? await Partner.findOne({ phone }) : null;
+    const partnerEmailExists = email ? await Partner.findOne({ email: email.toLowerCase() }) : null;
+
+    const phoneConflict = userPhoneExists || partnerPhoneExists;
+    const emailConflict = userEmailExists || partnerEmailExists;
+
+    if (phoneConflict && emailConflict) {
+      console.log(`[Signup Check] Conflict: Both phone and email exist.`);
       return res.status(409).json({
         success: false,
         code: 'USER_EXISTS',
@@ -38,7 +50,8 @@ const checkExists = async (req, res) => {
       });
     }
 
-    if (emailExists) {
+    if (emailConflict) {
+      console.log(`[Signup Check] Conflict: Email already registered.`);
       return res.status(409).json({
         success: false,
         code: 'EMAIL_EXISTS',
@@ -46,7 +59,8 @@ const checkExists = async (req, res) => {
       });
     }
 
-    if (phoneExists) {
+    if (phoneConflict) {
+      console.log(`[Signup Check] Conflict: Phone number already registered.`);
       return res.status(409).json({
         success: false,
         code: 'PHONE_EXISTS',
@@ -54,14 +68,15 @@ const checkExists = async (req, res) => {
       });
     }
 
-    // No conflict — safe to proceed
+    console.log(`[Signup Check] No conflicts found. Proceeding...`);
     return res.status(200).json({ success: true, message: 'No conflict. Safe to proceed.' });
 
   } catch (error) {
     console.error('Error in checkExists:', error);
-    res.status(500).json({ success: false, message: 'Server error.' });
+    res.status(500).json({ success: false, message: `Server error: ${error.message}` });
   }
 };
+
 
 /**
  * @desc    Generate and send OTP to user's phone
@@ -285,7 +300,9 @@ const loginWithPassword = async (req, res) => {
       return res.status(404).json({
         success: false,
         code: 'NOT_REGISTERED',
-        message: 'No account found with this email or phone. Would you like to sign up?',
+        message: role === 'super_admin' 
+          ? 'No administrator account found with these credentials. Please contact support.' 
+          : 'No account found with this email or phone. Would you like to sign up?',
       });
     }
 

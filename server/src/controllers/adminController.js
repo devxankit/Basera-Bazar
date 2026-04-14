@@ -596,6 +596,78 @@ const getUserSubscriptionHistory = async (req, res) => {
 };
 
 /**
+ * @desc    Get all subscriptions across the platform
+ * @route   GET /api/admin/subscriptions
+ * @access  Private (Super Admin Only)
+ */
+const getAllSubscriptions = async (req, res) => {
+  try {
+    const subscriptions = await mongoose.model('Subscription').find()
+      .populate('partner_id', 'name email phone partner_type role profileImage')
+      .populate('plan_id', 'name price duration_days')
+      .sort({ createdAt: -1 });
+    res.status(200).json({ success: true, count: subscriptions.length, data: subscriptions });
+  } catch (error) {
+    console.error("Error fetching all subscriptions:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc    Manually grant a subscription to a partner
+ * @route   POST /api/admin/subscriptions
+ * @access  Private (Super Admin Only)
+ */
+const createManualSubscription = async (req, res) => {
+  try {
+    const { partner_id, plan_id, starts_at, duration_days, amount_paid, listings_limit, featured_listings_limit, leads_limit, notes } = req.body;
+    
+    // 1. Get Plan snapshot or details
+    const plan = await mongoose.model('SubscriptionPlan').findById(plan_id);
+    
+    // 2. Create the subscription doc
+    const subscription = await mongoose.model('Subscription').create({
+      partner_id,
+      plan_id,
+      plan_snapshot: {
+         name: plan?.name || 'Manual Adjustment',
+         price: amount_paid !== undefined ? amount_paid : (plan?.price || 0),
+         duration_days: duration_days || plan?.duration_days || 30,
+         listings_limit: listings_limit !== undefined ? (listings_limit === -1 ? -1 : parseInt(listings_limit)) : (plan?.listings_limit || 0),
+         featured_listings_limit: featured_listings_limit !== undefined ? (featured_listings_limit === -1 ? -1 : parseInt(featured_listings_limit)) : (plan?.featured_listings_limit || 0),
+         leads_limit: leads_limit !== undefined ? (leads_limit === -1 ? -1 : parseInt(leads_limit)) : (plan?.leads_limit || 0),
+      },
+      status: 'active',
+      starts_at: starts_at || new Date(),
+      ends_at: new Date(new Date(starts_at || new Date()).getTime() + (duration_days || 30) * 24 * 60 * 60 * 1000),
+      granted_by_admin: true,
+      notes
+    });
+
+    // 3. Update Partner's active subscription ID shortcut
+    const partner = await Partner.findByIdAndUpdate(partner_id, {
+       active_subscription_id: subscription._id
+    }, { new: true });
+
+    res.status(201).json({ success: true, data: subscription, message: 'Subscription manual override successful.' });
+
+    // 4. Log the activity
+    await logActivity({
+      actor_name: req.user?.name || 'Admin',
+      actor_id: req.user?._id,
+      action: 'created',
+      entity_type: 'subscription',
+      entity_name: partner?.name || 'Partner',
+      entity_id: subscription._id,
+      description: `${req.user?.name || 'Admin'} manually granted "${plan?.name || 'Manual'}" plan to ${partner?.name}`
+    });
+  } catch (error) {
+    console.error("Manual subscription error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
  * @desc    Get specific pending approval queues
  * @route   GET /api/admin/dashboard/pending/:type
  * @access  Private (Super Admin Only)
@@ -1000,7 +1072,61 @@ const getSubscriptionPlans = async (req, res) => {
 };
 
 /**
- * @desc    Get system categories (Service, Material, Property, Supplier, Product)
+ * @desc    Create a new subscription plan
+ * @route   POST /api/admin/subscriptions/plans
+ * @access  Private (Super Admin Only)
+ */
+const createSubscriptionPlan = async (req, res) => {
+  try {
+    const plan = await SubscriptionPlan.create({ 
+      ...req.body, 
+      created_by: req.user?._id 
+    });
+    res.status(201).json({ success: true, data: plan });
+  } catch (error) {
+    console.error("Error creating plan:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc    Update a subscription plan
+ * @route   PUT /api/admin/subscriptions/plans/:id
+ * @access  Private (Super Admin Only)
+ */
+const updateSubscriptionPlan = async (req, res) => {
+  try {
+    const plan = await SubscriptionPlan.findByIdAndUpdate(
+      req.params.id, 
+      req.body, 
+      { new: true, runValidators: true }
+    );
+    if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
+    res.status(200).json({ success: true, data: plan });
+  } catch (error) {
+    console.error("Error updating plan:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc    Delete/Deactivate a subscription plan
+ * @route   DELETE /api/admin/subscriptions/plans/:id
+ * @access  Private (Super Admin Only)
+ */
+const deleteSubscriptionPlan = async (req, res) => {
+  try {
+    const plan = await SubscriptionPlan.findByIdAndDelete(req.params.id);
+    if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
+    res.status(200).json({ success: true, message: 'Subscription plan eliminated.' });
+  } catch (error) {
+    console.error("Error deleting plan:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc    Get system categories with listing counts
  * @route   GET /api/admin/system/categories
  * @access  Private (Super Admin Only)
  */
@@ -1011,8 +1137,66 @@ const getSystemCategories = async (req, res) => {
     if (type) query.type = type;
     if (parent_id !== undefined) query.parent_id = parent_id === 'null' ? null : parent_id;
 
-    const categories = await Category.find(query).sort({ name: 1 });
-    res.status(200).json({ success: true, count: categories.length, data: categories });
+    const categories = await Category.find(query).populate('parent_id').sort({ name: 1 });
+    
+    // Calculate counts based on type
+    let ListingModel;
+    if (type === 'property') ListingModel = PropertyListing;
+    else if (type === 'service') ListingModel = ServiceListing;
+    else if (type === 'product' || type === 'supplier') ListingModel = SupplierListing;
+
+    let countsMap = {};
+    if (ListingModel) {
+      console.log(`[DEBUG] Counting categories for type: ${type} using model: ${ListingModel.modelName}`);
+      if (type === 'property' || type === 'service') {
+        const counts = await ListingModel.aggregate([
+          { 
+            $project: { 
+              all_cats: { 
+                $filter: { 
+                  input: ["$category_id", "$subcategory_id"], 
+                  as: "id", 
+                  cond: { $ne: ["$$id", null] } 
+                } 
+              } 
+            } 
+          },
+          { $unwind: "$all_cats" },
+          { $group: { _id: "$all_cats", count: { $sum: 1 } } }
+        ]);
+        console.log(`[DEBUG] Aggregation result for ${type}:`, JSON.stringify(counts));
+        counts.forEach(c => {
+          const idStr = c._id.toString();
+          console.log(`[DEBUG] Mapping count for ID: ${idStr} (Type: ${typeof c._id})`);
+          countsMap[idStr] = c.count;
+        });
+      } else {
+        const counts = await ListingModel.aggregate([
+          { $group: { _id: "$material_category", count: { $sum: 1 } } }
+        ]);
+        console.log(`[DEBUG] Aggregation result for ${type}:`, JSON.stringify(counts));
+        counts.forEach(c => {
+          if (c._id) countsMap[c._id.toLowerCase()] = c.count;
+        });
+      }
+    }
+
+    const dataWithCounts = categories.map(cat => {
+      let lCount = 0;
+      const catIdStr = cat._id.toString();
+      if (type === 'property' || type === 'service') {
+        lCount = countsMap[catIdStr] || 0;
+        console.log(`[DEBUG] Mapping category ${cat.name}: catIdStr=${catIdStr}, foundCount=${lCount}, availableInMap=[${Object.keys(countsMap).join(',')}]`);
+      } else {
+        lCount = countsMap[cat.name.toLowerCase()] || 0;
+      }
+      return {
+        ...cat.toObject(),
+        listingCount: lCount
+      };
+    });
+
+    res.status(200).json({ success: true, count: dataWithCounts.length, data: dataWithCounts });
   } catch (error) {
     console.error("Error fetching categories:", error);
     res.status(500).json({ success: false, message: 'Error fetching categories.' });
@@ -1216,7 +1400,6 @@ const createPropertyListing = async (req, res) => {
     });
 
     res.status(201).json({ success: true, message: 'Property entry finalized in marketplace registry.', data: newProperty });
-
     // Log the activity
     await logActivity({
       actor_name: req.user?.name || 'Admin',
@@ -1229,6 +1412,56 @@ const createPropertyListing = async (req, res) => {
     });
   } catch (error) {
     console.error("Admin Property Creation Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc    ADMIN ONLY: Create specialized service listing
+ * @route   POST /api/admin/listings/service
+ */
+const createServiceListing = async (req, res) => {
+  try {
+    const { 
+      title, short_description, full_description, partner_id,
+      category_id, subcategory_id, service_type, years_of_experience,
+      thumbnail, portfolio_images, video_link,
+      status, location, address, service_radius_km, is_featured
+    } = req.body;
+
+    const newService = await ServiceListing.create({
+      partner_id: partner_id || null,
+      title,
+      short_description: short_description || '',
+      full_description: full_description || '',
+      service_type: service_type || '',
+      years_of_experience: years_of_experience || 0,
+      category_id: category_id || null,
+      subcategory_id: subcategory_id || null,
+      thumbnail: thumbnail || '',
+      portfolio_images: portfolio_images || [],
+      video_link: video_link || '',
+      is_featured: is_featured || false,
+      status: status || 'active',
+      location: location || { type: 'Point', coordinates: [77.1025, 28.7041] },
+      address: address || {},
+      service_radius_km: service_radius_km || 10
+    });
+
+    res.status(201).json({ success: true, message: 'Service entry finalized in marketplace registry.', data: newService });
+
+    // Log the activity
+    await logActivity({
+      actor_name: req.user?.name || 'Admin',
+      actor_id: req.user?._id,
+      action: 'created',
+      entity_type: 'service',
+      entity_name: newService.title,
+      entity_id: newService._id,
+      description: `${req.user?.name || 'Admin'} listed new service: ${newService.title}`
+    });
+  } catch (error) {
+    console.error("Admin Service Creation Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -1248,9 +1481,14 @@ module.exports = {
   updateUser,
   deleteUser,
   getUserSubscriptionHistory,
+  getAllSubscriptions,
+  createManualSubscription,
   getAdminActivities,
   getPendingApprovals,
   getSubscriptionPlans,
+  createSubscriptionPlan,
+  updateSubscriptionPlan,
+  deleteSubscriptionPlan,
   getSystemCategories,
   getSystemCategories,
   createCategory,
@@ -1271,5 +1509,6 @@ module.exports = {
   createBanner,
   getSubscriptionReport,
   getUserReport,
-  createPropertyListing
+  createPropertyListing,
+  createServiceListing
 };
