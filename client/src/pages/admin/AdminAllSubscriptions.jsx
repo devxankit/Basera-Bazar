@@ -8,6 +8,8 @@ export default function AdminAllSubscriptions() {
   const navigate = useNavigate();
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [stats, setStats] = useState({ total: 0 });
 
   const fetchSubscriptions = async () => {
@@ -38,6 +40,16 @@ export default function AdminAllSubscriptions() {
       year: 'numeric'
     });
   };
+
+  const processedSubscriptions = subscriptions.filter(sub => {
+    const searchStr = searchTerm.toLowerCase();
+    const userName = sub.partner_id?.name || '';
+    const userEmail = sub.partner_id?.email || '';
+    const planName = sub.plan_snapshot?.name || '';
+    return userName.toLowerCase().includes(searchStr) || 
+           userEmail.toLowerCase().includes(searchStr) || 
+           planName.toLowerCase().includes(searchStr);
+  });
 
   const columns = [
     {
@@ -174,13 +186,40 @@ export default function AdminAllSubscriptions() {
 
         {/* Filter Block Mockup */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden group">
-           <div className="px-8 py-4 flex items-center justify-between cursor-pointer border-b border-slate-50">
+           <div 
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className="px-8 py-4 flex items-center justify-between cursor-pointer border-b border-slate-50"
+           >
               <div className="flex items-center gap-3">
                  <Filter size={16} className="text-slate-400" />
                  <span className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] italic">Filter Subscriptions</span>
               </div>
-              <ChevronRight size={18} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+              <ChevronRight size={18} className={`text-slate-300 transition-all ${isFilterOpen ? 'rotate-90' : ''}`} />
            </div>
+           {isFilterOpen && (
+              <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plan Type</label>
+                    <select className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-bold text-slate-700 outline-none">
+                       <option>All Plans</option>
+                       <option>Free Trial</option>
+                       <option>Silver Package</option>
+                       <option>Gold Package</option>
+                    </select>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
+                    <select className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-bold text-slate-700 outline-none">
+                       <option>All Status</option>
+                       <option>Active</option>
+                       <option>Expired</option>
+                    </select>
+                 </div>
+                 <div className="flex items-end">
+                    <button className="w-full py-3 bg-slate-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all">Apply Filters</button>
+                 </div>
+              </div>
+           )}
         </div>
 
         {/* Main Records Table */}
@@ -192,11 +231,12 @@ export default function AdminAllSubscriptions() {
            
            <AdminTable 
               columns={columns} 
-              data={subscriptions} 
+              data={processedSubscriptions} 
               loading={loading}
               pagination={true}
               hideFilter={true}
               searchPlaceholder="Search by user name, email, plan name..."
+              onSearch={setSearchTerm}
            />
         </div>
       </div>

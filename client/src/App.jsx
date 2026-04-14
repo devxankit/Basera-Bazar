@@ -67,6 +67,7 @@ import AdminProductUnits from './pages/admin/AdminProductUnits';
 import AdminBrands from './pages/admin/AdminBrands';
 import AdminProductNames from './pages/admin/AdminProductNames';
 import AdminBanners from './pages/admin/AdminBanners';
+import AdminBannerForm from './pages/admin/AdminBannerForm';
 import AdminSubscriptionReport from './pages/admin/AdminSubscriptionReport';
 import AdminUserReport from './pages/admin/AdminUserReport';
 import AdminCategoryForm from './pages/admin/AdminCategoryForm';
@@ -575,6 +576,20 @@ function App() {
           <AdminRoute>
             <AdminLayout>
               <AdminBanners />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/banners/add" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminBannerForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/banners/edit/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminBannerForm />
             </AdminLayout>
           </AdminRoute>
         } />

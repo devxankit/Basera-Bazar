@@ -36,7 +36,7 @@ const seedData = async () => {
 
     // 1. Create Super Admin
     await AdminUser.create({
-      email: 'ujjawalmahawar2002@gmail.com',
+      email: 'superadmin@gmail.com',
       password: 'password123',
       role: 'super_admin'
     });

@@ -1,192 +1,269 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Image as ImageIcon, ExternalLink, ArrowLeft, Save, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, RefreshCw, GripVertical, PauseCircle, PlayCircle, Layout, ChevronRight, Settings2, ToggleLeft, ExternalLink, ArrowRightLeft } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
 
-const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
-const labelClass = "block text-sm font-bold text-slate-600 mb-1.5";
-
 export default function AdminBanners() {
+  const navigate = useNavigate();
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ title: '', image_url: '', link_url: '', position: 'home_top', priority: 0 });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const res = await api.get('/admin/system/banners');
-      setBanners(res.data.data);
+      if (res.data.success) {
+        setBanners(res.data.data);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching banners:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
-    setSuccess(null);
+  const clearCache = async () => {
     try {
-      const res = await api.post('/admin/system/banners', formData);
-      if (res.data.success) {
-        setSuccess('Banner published successfully!');
-        setTimeout(() => {
-          setShowModal(false);
-          setFormData({ title: '', image_url: '', link_url: '', position: 'home_top', priority: 0 });
-          setSuccess(null);
-          fetchData();
-        }, 1500);
-      }
+      await api.post('/admin/maintenance/clear-cache');
+      alert('System cache cleared. Banners will fresh-load on all devices.');
     } catch (err) {
-      setError(err.response?.data?.message || 'Error saving banner');
-    } finally {
-      setIsSubmitting(false);
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this banner?')) {
+      try {
+        await api.delete(`/admin/system/banners/${id}`);
+        fetchData();
+      } catch (err) {
+        alert('Error deleting banner');
+      }
+    }
+  };
+
+  const toggleStatus = async (id, currentStatus) => {
+    try {
+      await api.put(`/admin/system/banners/${id}`, { is_active: !currentStatus });
+      fetchData();
+    } catch (err) {
+      alert('Error updating status');
     }
   };
 
   const columns = [
-    { 
-      header: 'BANNER', 
-      render: (row) => (
-        <div className="flex items-center gap-4">
-          <div className="w-24 h-12 rounded-xl bg-slate-50 overflow-hidden border border-slate-100 flex-shrink-0">
-            <img src={row.image_url} alt="" className="w-full h-full object-cover" />
-          </div>
-          <div>
-            <p className="font-bold text-slate-900">{row.title || 'Untitled Banner'}</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{row.position}</p>
-          </div>
+    {
+      header: '#',
+      render: (row, idx) => (
+        <div className="flex items-center gap-2">
+          <GripVertical size={14} className="text-slate-300 cursor-grab active:cursor-grabbing" />
+          <span className="text-[11px] font-bold text-slate-400 tabular-nums">{banners.length - idx}</span>
         </div>
       )
     },
-    { 
-      header: 'LINK', 
-      render: (row) => row.link_url ? (
-        <a href={row.link_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-indigo-600 font-bold hover:underline py-1 px-3 bg-indigo-50 rounded-lg text-xs w-fit">
-          View Target <ExternalLink size={12} />
-        </a>
-      ) : <span className="text-slate-300 italic text-xs">No Link</span>
-    },
-    { 
-      header: 'PRIORITY', 
+    {
+      header: 'Preview',
       render: (row) => (
-        <span className="px-3 py-1 bg-slate-100 rounded-lg font-black text-slate-600 text-[10px] uppercase tracking-wider">{row.priority} Rank</span>
+        <div className="w-20 h-11 rounded-lg bg-slate-100 overflow-hidden border border-slate-100 shadow-sm flex items-center justify-center relative group">
+           {row.image_url ? (
+             <img src={row.image_url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+           ) : (
+             <Layout size={16} className="text-slate-300" />
+           )}
+           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <Eye size={12} className="text-white" />
+           </div>
+        </div>
       )
     },
     {
-      header: 'ACTIONS',
+      header: 'Title & Description',
+      render: (row) => (
+        <div className="space-y-0.5 max-w-xs transition-all group-hover:translate-x-1">
+          <p className="font-bold text-slate-800 tracking-tight text-[13px] truncate">{row.title || 'Untitled Banner'}</p>
+          <p className="text-[10px] font-medium text-slate-400 line-clamp-1 italic">{row.description || 'No description provided for this banner'}</p>
+        </div>
+      )
+    },
+    {
+      header: 'Priority',
+      render: (row) => (
+        <div className="flex items-center gap-1.5">
+           <span className="bg-[#5d6778] text-white px-2 py-0.5 rounded text-[10px] font-bold tabular-nums shadow-sm">
+             {row.priority || 50}
+           </span>
+        </div>
+      )
+    },
+    {
+      header: 'Status',
+      render: (row) => (
+        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.1em] ${
+          row.is_active !== false 
+            ? 'bg-[#4ade80] text-white shadow-sm shadow-emerald-100' 
+            : 'bg-rose-500 text-white shadow-sm shadow-rose-100'
+        }`}>
+          {row.is_active !== false ? 'Active' : 'Inactive'}
+        </span>
+      )
+    },
+    {
+      header: 'Schedule',
+      render: (row) => (
+        <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[11px] italic opacity-80 uppercase tracking-tighter">
+           {row.start_date ? 'Custom' : 'Always'}
+        </div>
+      )
+    },
+    {
+      header: 'Created',
+      render: (row) => (
+        <p className="text-[11px] font-bold text-slate-400 tabular-nums uppercase tracking-tighter italic">
+          {new Date(row.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        </p>
+      )
+    },
+    {
+      header: 'Actions',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <button className="p-2 text-slate-400 hover:text-indigo-600 transition-colors bg-slate-50 rounded-lg hover:bg-indigo-50"><Edit2 size={16} /></button>
-          <button className="p-2 text-slate-400 hover:text-rose-600 transition-colors bg-slate-50 rounded-lg hover:bg-rose-50"><Trash2 size={16} /></button>
+          <button 
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-orange-100 text-orange-500 hover:bg-orange-50 active:scale-95 transition-all shadow-xs"
+            title="View Analytics"
+          >
+            <Eye size={14} />
+          </button>
+          <button 
+            onClick={() => navigate(`/admin/banners/edit/${row._id}`)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-orange-100 text-[#fa641e] hover:bg-orange-50 active:scale-95 transition-all shadow-xs"
+            title="Edit Banner"
+          >
+            <Edit2 size={14} />
+          </button>
+          <button 
+            onClick={() => toggleStatus(row._id, row.is_active !== false)}
+            className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all active:scale-95 shadow-xs ${
+              row.is_active !== false 
+                ? 'border-slate-100 text-slate-400 hover:bg-slate-50' 
+                : 'border-emerald-100 text-emerald-500 hover:bg-emerald-50'
+            }`}
+            title={row.is_active !== false ? "Pause Banner" : "Resume Banner"}
+          >
+            {row.is_active !== false ? <PauseCircle size={15} /> : <PlayCircle size={15} />}
+          </button>
+          <button 
+            onClick={() => handleDelete(row._id)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-rose-100 text-rose-400 hover:bg-rose-100 transition-all active:scale-95 shadow-xs"
+            title="Delete Banner"
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       )
     }
   ];
 
   return (
-    <div className="space-y-6 pb-20 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Growth Engine</span>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Banner Management</h1>
-          <p className="text-slate-400 font-medium text-sm mt-0.5">Configure promotional visuals and ad spots.</p>
+    <div className="bg-slate-50 min-h-screen pb-20 mt-4 animate-in fade-in duration-700">
+      {/* Platform Breadcrumb Header */}
+      <div className="px-8 py-4 flex items-center gap-2 text-sm font-semibold text-slate-400 uppercase tracking-tight">
+         <span className="text-slate-800 font-bold">Banner Management</span>
+         <span className="text-slate-300">/</span>
+         <Link to="/admin/dashboard" className="text-xs font-semibold text-slate-400 hover:text-indigo-600 transition-colors lowercase">Home</Link>
+      </div>
+
+      <div className="max-w-[1500px] mx-auto px-8 space-y-8 mt-2">
+        {/* Metric Header Block */}
+        <div className="grid grid-cols-12 gap-6 items-stretch">
+           <div className="col-span-12 lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center gap-6">
+              <div className="w-16 h-16 bg-white border-2 border-slate-50 rounded-2xl flex items-center justify-center text-slate-900 shadow-xl shadow-slate-100/50">
+                 <Layout size={28} />
+              </div>
+              <div>
+                 <h2 className="text-xl font-black text-slate-900 tracking-tight leading-none uppercase tracking-tighter">Banner Management</h2>
+                 <p className="text-slate-400 text-sm font-medium mt-1.5 italic">Manage homepage carousel banners</p>
+              </div>
+           </div>
+
+           <div className="col-span-12 lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center justify-between">
+              <div className="flex gap-8">
+                 <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Banners</p>
+                    <h3 className="text-4xl font-black text-slate-900 mt-2 italic tabular-nums">{banners.length}</h3>
+                 </div>
+                 <div className="border-l border-slate-100 pl-8">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Active</p>
+                    <h3 className="text-4xl font-black text-[#4ade80] mt-2 italic tabular-nums">{banners.filter(b => b.is_active !== false).length}</h3>
+                 </div>
+              </div>
+              
+              <button 
+                onClick={() => navigate('/admin/banners/add')}
+                className="flex items-center gap-2 px-6 py-4 bg-[#fa641e] text-white font-black text-[12px] rounded-xl hover:bg-[#e45b1b] transition-all active:scale-95 uppercase tracking-widest shadow-xl shadow-orange-100 border border-orange-500/20"
+              >
+                <Plus size={20} /> Add Banner
+              </button>
+           </div>
         </div>
-        <button 
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-black text-sm rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-wide"
-        >
-          <Plus size={18} />
-          Add Banner
-        </button>
-      </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <AdminTable 
-          columns={columns} 
-          data={banners} 
-          loading={loading} 
-          title="Active Campaigns"
-        />
-      </div>
-
-      {/* Add Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-md" onClick={() => setShowModal(false)} />
-          <div className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in zoom-in duration-300">
-            <div className="px-8 pt-8 pb-4">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Create Campaign Banner</h2>
-              <p className="text-sm font-bold text-slate-400 mt-1">Add a new visual spot to the global marketplace.</p>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="p-8 pt-4 space-y-5">
-              <div>
-                <label className={labelClass}>Internal Identifier</label>
-                <input required className={inputClass} placeholder="e.g. Summer Festival 2024" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
-              </div>
-
-              <div>
-                <label className={labelClass}>Image Asset URL</label>
-                <input required className={inputClass} placeholder="https://res.cloudinary.com/..." value={formData.image_url} onChange={e => setFormData({ ...formData, image_url: e.target.value })} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Placement</label>
-                  <select className={inputClass} value={formData.position} onChange={e => setFormData({ ...formData, position: e.target.value })}>
-                    <option value="home_top">Home Header</option>
-                    <option value="home_middle">Middle Strip</option>
-                    <option value="category_sidebar">Sidebar</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Display Priority</label>
-                  <input type="number" className={inputClass} value={formData.priority} onChange={e => setFormData({ ...formData, priority: parseInt(e.target.value) })} />
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClass}>Redirect Target (Optional)</label>
-                <input className={inputClass} placeholder="https://baserabazar.com/listings/..." value={formData.link_url} onChange={e => setFormData({ ...formData, link_url: e.target.value })} />
-              </div>
-
-              <div className="pt-4 flex flex-col gap-3">
+        {/* Toolbar Integration */}
+        <div className="bg-white border border-slate-200 rounded-xl px-6 py-4 flex items-center justify-between shadow-xs">
+           <div className="flex items-center gap-3">
+              <button 
+                onClick={clearCache}
+                className="flex items-center gap-2 px-4 py-2 border-2 border-cyan-400 text-cyan-600 font-bold text-[11px] rounded-lg hover:bg-cyan-50 transition-all uppercase tracking-tight"
+              >
+                <RefreshCw size={14} /> Clear Cache
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-500 font-bold text-[11px] rounded-lg hover:bg-slate-50 transition-all uppercase tracking-tight">
+                <ArrowRightLeft size={14} className="rotate-90" /> Reorder Banners
+              </button>
+           </div>
+           <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setShowInactive(!showInactive)}>
                  <button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-2 py-4 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-black text-sm rounded-2xl shadow-lg shadow-orange-100 transition-all active:scale-95 uppercase tracking-wide"
-                >
-                  {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                  {isSubmitting ? 'Processing...' : 'Publish to System'}
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => setShowModal(false)}
-                  className="w-full py-4 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  Discard Changes
-                </button>
+                  className={`relative w-9 h-5 rounded-full transition-all flex items-center px-1 ${showInactive ? 'bg-indigo-500' : 'bg-slate-200'}`}
+                 >
+                    <div className={`w-3 h-3 rounded-full bg-white shadow-sm transition-all transform ${showInactive ? 'translate-x-4' : 'translate-x-0'}`} />
+                 </button>
+                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight group-hover:text-slate-800 transition-colors">Show Inactive Banners</span>
               </div>
-
-              {error && <div className="p-4 bg-rose-50 rounded-xl flex items-center gap-3 text-rose-500 text-xs font-bold border border-rose-100">
-                <AlertCircle size={16} /> {error}
-              </div>}
-              {success && <div className="p-4 bg-emerald-50 rounded-xl flex items-center gap-3 text-emerald-600 text-xs font-bold border border-emerald-100">
-                <CheckCircle2 size={16} /> {success}
-              </div>}
-            </form>
-          </div>
+           </div>
         </div>
-      )}
+
+        {/* Banner Repository Table */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/40 overflow-hidden">
+           <div className="px-8 py-5 border-b border-slate-100 flex items-center gap-3 bg-white">
+              <Layout size={18} className="text-slate-900" />
+              <span className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] italic">Banner List <span className="opacity-40 italic font-medium lowercase tracking-normal">(Drag and drop to reorder)</span></span>
+           </div>
+           
+           <AdminTable 
+              columns={columns} 
+              data={showInactive ? banners : banners.filter(b => b.is_active !== false)} 
+              loading={loading}
+              pagination={true}
+              hideFilter={true}
+              searchPlaceholder="Search banners by title or description..."
+           />
+        </div>
+      </div>
+      
+      {/* Marketplace Footer Branding */}
+      <div className="mt-12 px-8 flex items-center justify-between border-t border-slate-200 pt-8 opacity-60 max-w-[1500px] mx-auto">
+         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">© 2026 BaseraBazar - Real Estate & Construction Marketplace</p>
+         <div className="flex gap-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <span>Home</span>
+            <span>About</span>
+            <span>Contact</span>
+         </div>
+      </div>
     </div>
   );
 }

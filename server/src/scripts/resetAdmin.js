@@ -16,7 +16,7 @@ const resetAdmin = async () => {
     await mongoose.connect(mongoUri);
     console.log('🚀 Connected to MongoDB');
 
-    const email = 'ujjawalmahawar2002@gmail.com';
+    const email = 'superadmin@gmail.com';
     const password = 'password123'; // Default reset password
 
     // Remove existing if any
@@ -25,7 +25,7 @@ const resetAdmin = async () => {
 
     // Create new
     await AdminUser.create({
-      name: 'Ujjawal Mahawar',
+      name: 'Super Admin',
       email,
       password,
       role: 'super_admin',

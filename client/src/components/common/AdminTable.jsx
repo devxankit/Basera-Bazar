@@ -87,7 +87,7 @@ export default function AdminTable({
                 <tr key={i} className="group hover:bg-slate-50/30 transition-colors">
                   {columns.map((col, j) => (
                     <td key={j} className="px-6 py-4 border-b border-slate-50 text-sm font-medium text-slate-600">
-                      {col.render ? col.render(row) : row[col.key]}
+                      {col.render ? col.render(row, i) : row[col.key]}
                     </td>
                   ))}
                 </tr>
