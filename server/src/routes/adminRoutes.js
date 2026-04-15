@@ -8,6 +8,9 @@ const {
   getUsers, 
   getListings, 
   getLeads, 
+  getLeadById,
+  updateLeadStatus,
+  deleteLead,
   getAdminProfile, 
   updateAdminProfile, 
   changeAdminPassword,
@@ -25,6 +28,7 @@ const {
   deleteListing,
   getPendingApprovals,
   getSubscriptionPlans,
+  getSubscriptionById,
   createSubscriptionPlan,
   updateSubscriptionPlan,
   deleteSubscriptionPlan,
@@ -92,6 +96,9 @@ router.delete('/listings/:id', deleteListing);
 
 // Lead Management
 router.get('/leads', getLeads);
+router.get('/leads/:id', getLeadById);
+router.put('/leads/:id/status', updateLeadStatus);
+router.delete('/leads/:id', deleteLead);
 
 // System Management (Categories, Brands, Units, etc.)
 router.get('/system/categories', getSystemCategories);
@@ -137,6 +144,7 @@ router.put('/enquiries/mandi/:id/assign', assignMandiEnquiry);
 // Dynamic Form Data Endpoints
 // Subscription Plan Management
 router.get('/subscriptions/plans', getSubscriptionPlans);
+router.get('/subscriptions/:id', getSubscriptionById);
 router.post('/subscriptions/plans', createSubscriptionPlan);
 router.put('/subscriptions/plans/:id', updateSubscriptionPlan);
 router.delete('/subscriptions/plans/:id', deleteSubscriptionPlan);

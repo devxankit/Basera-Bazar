@@ -69,8 +69,8 @@ export default function AdminBanners() {
            ) : (
              <Layout size={16} className="text-slate-300" />
            )}
-           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-              <Eye size={12} className="text-white" />
+           <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+              <Eye size={12} className="text-white shadow-sm" />
            </div>
         </div>
       )
@@ -88,7 +88,7 @@ export default function AdminBanners() {
       header: 'Priority',
       render: (row) => (
         <div className="flex items-center gap-1.5">
-           <span className="bg-[#5d6778] text-white px-2 py-0.5 rounded text-[10px] font-bold tabular-nums shadow-sm">
+           <span className="bg-[#5d6778] text-white px-2 py-0.5 rounded text-[10px] font-medium tabular-nums shadow-sm">
              {row.priority || 50}
            </span>
         </div>
@@ -97,7 +97,7 @@ export default function AdminBanners() {
     {
       header: 'Status',
       render: (row) => (
-        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.1em] ${
+        <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-[0.1em] ${
           row.is_active !== false 
             ? 'bg-[#4ade80] text-white shadow-sm shadow-emerald-100' 
             : 'bg-rose-500 text-white shadow-sm shadow-rose-100'
@@ -109,7 +109,7 @@ export default function AdminBanners() {
     {
       header: 'Schedule',
       render: (row) => (
-        <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[11px] italic opacity-80 uppercase tracking-tighter">
+        <div className="flex items-center gap-1.5 text-slate-400 font-medium text-[11px] italic opacity-80 uppercase tracking-tighter">
            {row.start_date ? 'Custom' : 'Always'}
         </div>
       )
@@ -117,7 +117,7 @@ export default function AdminBanners() {
     {
       header: 'Created',
       render: (row) => (
-        <p className="text-[11px] font-bold text-slate-400 tabular-nums uppercase tracking-tighter italic">
+        <p className="text-[11px] font-medium text-slate-400 tabular-nums uppercase tracking-tighter italic">
           {new Date(row.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
         </p>
       )

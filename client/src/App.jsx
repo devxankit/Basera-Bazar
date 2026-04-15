@@ -46,6 +46,7 @@ import AdminServiceForm from './pages/admin/AdminServiceForm';
 import AdminServiceDetails from './pages/admin/AdminServiceDetails';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminLeads from './pages/admin/AdminLeads';
+import AdminLeadDetails from './pages/admin/AdminLeadDetails';
 import AdminEditProfile from './pages/admin/AdminEditProfile';
 import AdminPaymentReport from './pages/admin/AdminPaymentReport';
 import AdminSubscriptionPlans from './pages/admin/AdminSubscriptionPlans';
@@ -77,6 +78,7 @@ import AdminSubscriptionReport from './pages/admin/AdminSubscriptionReport';
 import AdminUserReport from './pages/admin/AdminUserReport';
 import AdminCategoryForm from './pages/admin/AdminCategoryForm';
 import AdminCategoryDetails from './pages/admin/AdminCategoryDetails';
+import AdminSubscriptionDetails from './pages/admin/AdminSubscriptionDetails';
 
 
 import AdminProductDetails from './pages/admin/AdminProductDetails';
@@ -418,6 +420,14 @@ function App() {
           </AdminRoute>
         } />
 
+        <Route path="/admin/leads/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminLeadDetails />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
         {/* Property System */}
         <Route path="/admin/properties/categories" element={
           <AdminRoute>
@@ -556,6 +566,13 @@ function App() {
           <AdminRoute>
             <AdminLayout>
               <AdminCreateManualSubscription />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/subscriptions/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminSubscriptionDetails />
             </AdminLayout>
           </AdminRoute>
         } />

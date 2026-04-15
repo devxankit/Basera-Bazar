@@ -643,10 +643,50 @@ const getUserSubscriptionHistory = async (req, res) => {
  */
 const getAllSubscriptions = async (req, res) => {
   try {
-    const subscriptions = await mongoose.model('Subscription').find()
+    const { plan, status, role, search } = req.query;
+    let query = {};
+
+    if (plan && plan !== 'all') {
+      // Check if plan is a valid ObjectId
+      if (mongoose.Types.ObjectId.isValid(plan)) {
+        query.plan_id = plan;
+      }
+    }
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    // Since role is in partner_id, we'll fetch and then filter or use aggregation
+    // For now, let's fetch all and filter in memory if role/search is provided
+    // or use a more complex aggregate if the dataset grows.
+    
+    let subscriptions = await mongoose.model('Subscription').find(query)
       .populate('partner_id', 'name email phone partner_type role profileImage')
       .populate('plan_id', 'name price duration_days')
       .sort({ createdAt: -1 });
+
+    if (role && role !== 'all') {
+      subscriptions = subscriptions.filter(sub => {
+        if (!sub.partner_id) return false;
+        // Handle mapping between frontend Role and backend Role
+        const pRole = sub.partner_id.role;
+        if (role === 'ServiceProvider' && pRole === 'service_provider') return true;
+        return pRole === role;
+      });
+    }
+
+    if (search) {
+      const s = search.toLowerCase();
+      subscriptions = subscriptions.filter(sub => {
+        const name = (sub.partner_id?.name || '').toLowerCase();
+        const email = (sub.partner_id?.email || '').toLowerCase();
+        const planName = (sub.plan_snapshot?.name || '').toLowerCase();
+        const subId = sub._id.toString().toLowerCase();
+        return name.includes(s) || email.includes(s) || planName.includes(s) || subId.includes(s);
+      });
+    }
+
     res.status(200).json({ success: true, count: subscriptions.length, data: subscriptions });
   } catch (error) {
     console.error("Error fetching all subscriptions:", error);
@@ -1022,15 +1062,142 @@ const deleteListing = async (req, res) => {
  */
 const getLeads = async (req, res) => {
   try {
-    const leads = await Enquiry.find()
-      .populate('user_id', 'name phone email')
-      .populate('partner_id', 'name phone')
+    const { 
+      owner, 
+      role, 
+      type, 
+      readStatus, 
+      contactStatus, 
+      search, 
+      dateFrom, 
+      dateTo 
+    } = req.query;
+
+    let query = {};
+
+    // Basic filters
+    if (type && type !== 'all') query.enquiry_type = type;
+    if (readStatus === 'read') query.is_read = true;
+    if (readStatus === 'unread') query.is_read = false;
+    if (contactStatus && contactStatus !== 'all') query.contact_status = contactStatus;
+
+    // Date range
+    if (dateFrom || dateTo) {
+      query.createdAt = {};
+      if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) query.createdAt.$lte = new Date(dateTo);
+    }
+
+    // Fetch leads with population
+    let leads = await Enquiry.find(query)
+      .populate('user_id', 'name phone email createdAt')
+      .populate('partner_id', 'name phone role profileImage')
       .sort({ createdAt: -1 });
+
+    // Client-side filtering for complex search and nested fields
+    if (role || search || owner) {
+      const searchText = (search || '').toLowerCase();
+      leads = leads.filter(lead => {
+        const matchesRole = !role || role === 'all' || (lead.partner_id && (lead.partner_id.role === role || (role === 'ServiceProvider' && lead.partner_id.role === 'service_provider')));
+        const matchesOwner = !owner || owner === 'all' || (lead.partner_id && lead.partner_id._id.toString() === owner);
+        
+        const matchesSearch = !search || 
+          (lead.user_id && (
+            (lead.user_id.name || '').toLowerCase().includes(searchText) ||
+            (lead.user_id.email || '').toLowerCase().includes(searchText) ||
+            (lead.user_id.phone || '').includes(searchText)
+          )) ||
+          (lead.listing_snapshot && lead.listing_snapshot.title && lead.listing_snapshot.title.toLowerCase().includes(searchText)) ||
+          (lead._id.toString().includes(searchText));
+        
+        return matchesRole && matchesSearch && matchesOwner;
+      });
+    }
 
     res.status(200).json({ success: true, count: leads.length, data: leads });
   } catch (error) {
     console.error("Error fetching leads:", error);
     res.status(500).json({ success: false, message: 'Error fetching leads.' });
+  }
+};
+
+const getLeadById = async (req, res) => {
+  try {
+    const lead = await Enquiry.findById(req.params.id)
+      .populate('user_id', 'name phone email createdAt')
+      .populate('partner_id', 'name phone role email profileImage createdAt')
+      .populate('mandi_assignment.assigned_to_partner_id', 'name phone role profileImage');
+
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+
+    // Automatically mark as read when viewing details
+    if (!lead.is_read) {
+        lead.is_read = true;
+        lead.status = 'read';
+        await lead.save();
+    }
+
+    res.status(200).json({ success: true, data: lead });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const updateLeadStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_read, contact_status } = req.body;
+    
+    const update = {};
+    if (is_read !== undefined) {
+        update.is_read = is_read;
+        update.status = is_read ? 'read' : 'new';
+    }
+    if (contact_status !== undefined) {
+        update.contact_status = contact_status;
+        if (contact_status === 'contacted') update.status = 'contacted';
+    }
+
+    const lead = await Enquiry.findByIdAndUpdate(id, update, { new: true });
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+
+    res.status(200).json({ success: true, data: lead });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getSubscriptionById = async (req, res) => {
+  try {
+    const subscription = await mongoose.model('Subscription').findById(req.params.id)
+      .populate('partner_id', 'name email phone partner_type role profileImage address state district createdAt')
+      .populate('plan_id');
+
+    if (!subscription) return res.status(404).json({ success: false, message: 'Subscription not found' });
+
+    // Fetch associated transaction if any
+    const transaction = await mongoose.model('Transaction').findOne({ 
+      reference_id: subscription._id,
+      type: 'subscription_payment'
+    }).populate('razorpay_order_id');
+
+    res.status(200).json({ 
+      success: true, 
+      data: subscription,
+      transaction: transaction || null
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const deleteLead = async (req, res) => {
+  try {
+    const lead = await Enquiry.findByIdAndDelete(req.params.id);
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+    res.status(200).json({ success: true, message: 'Lead removed from database' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -1677,6 +1844,9 @@ module.exports = {
   getUsers,
   getListings,
   getLeads,
+  getLeadById,
+  updateLeadStatus,
+  deleteLead,
   getAdminProfile,
   updateAdminProfile,
   changeAdminPassword,
@@ -1723,5 +1893,6 @@ module.exports = {
   getSubscriptionReport,
   getUserReport,
   createPropertyListing,
-  createServiceListing
+  createServiceListing,
+  getSubscriptionById
 };

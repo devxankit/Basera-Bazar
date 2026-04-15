@@ -179,7 +179,7 @@ export default function AdminCategoryDetails() {
                                   <h5 className="text-sm font-bold text-slate-900">{sub.name}</h5>
                                   <p className="text-[9px] font-bold text-slate-400 uppercase">{sub.slug}</p>
                                </div>
-                               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                               <div className="flex gap-1">
                                   <button onClick={() => navigate(`/admin/properties/categories/edit/${sub._id}`)} className="p-1.5 text-slate-400 hover:text-indigo-600"><Edit2 size={13} /></button>
                                   <button onClick={() => handleDelete(sub._id, true)} className="p-1.5 text-slate-400 hover:text-rose-600"><Trash2 size={13} /></button>
                                </div>

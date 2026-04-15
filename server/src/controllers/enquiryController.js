@@ -9,7 +9,7 @@ const { ServiceListing, PropertyListing, SupplierListing, MandiListing } = requi
 const createEnquiry = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { enquiry_type, listing_id } = req.body;
+    const { enquiry_type, listing_id, content } = req.body;
 
     let targetListing;
     let partnerId = null;
@@ -41,10 +41,8 @@ const createEnquiry = async (req, res) => {
       enquiry_type,
       user_id: userId,
       listing_id,
-      partner_id: partnerId, // Will be null for mandi!
-      
-      // We save a snapshot of the listing as it was at the EXACT time of submission.
-      // This prevents confusion if the partner changes the price 1 hour later.
+      partner_id: partnerId,
+      content,
       listing_snapshot: targetListing 
     });
 

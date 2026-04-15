@@ -75,7 +75,7 @@ export default function AdminBannerDetails() {
                </button>
                <div>
                   <h1 className="text-xl font-black text-slate-800 tracking-tight uppercase">Banner Details</h1>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">ID: <span className="font-mono">{banner._id}</span></p>
+                  <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest mt-1 italic">ID: <span className="font-mono">{banner._id}</span></p>
                </div>
             </div>
             
@@ -112,14 +112,14 @@ export default function AdminBannerDetails() {
                ) : (
                   <div className="flex flex-col items-center gap-4 opacity-50">
                      <ImageIcon size={64} className="text-slate-400" />
-                     <p className="text-slate-400 font-bold uppercase tracking-widest text-[11px]">No Media Attached</p>
+                     <p className="text-slate-400 font-medium uppercase tracking-widest text-[11px]">No Media Attached</p>
                   </div>
                )}
                <div className="absolute top-6 left-6 flex gap-2">
-                  <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg ${banner.is_active !== false ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-rose-500 text-white shadow-rose-500/30'}`}>
+                  <span className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg ${banner.is_active !== false ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-rose-500 text-white shadow-rose-500/30'}`}>
                      {banner.is_active !== false ? 'Live Globally' : 'Currently Hidden'}
                   </span>
-                  <span className="px-4 py-2 bg-slate-900/80 backdrop-blur-md text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-black/20">
+                  <span className="px-4 py-2 bg-slate-900/80 backdrop-blur-md text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-black/20">
                      Priority: {banner.priority || 50}
                   </span>
                </div>
@@ -136,17 +136,17 @@ export default function AdminBannerDetails() {
                
                <div className="space-y-6">
                   <div>
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Banner Title</p>
+                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Banner Title</p>
                      <p className="text-base font-bold text-slate-900 mt-1">{banner.title || 'Untitled Banner'}</p>
                   </div>
                   <div>
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Description Content</p>
+                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Description Content</p>
                      <p className="text-sm font-medium text-slate-600 mt-1 leading-relaxed">{banner.description || 'No description provided.'}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Custom Schedule</p>
-                        <p className="text-sm font-bold text-slate-900 mt-1">
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Custom Schedule</p>
+                        <p className="text-sm font-medium text-slate-900 mt-1">
                            {banner.start_date ? new Date(banner.start_date).toLocaleDateString() : 'Immediate'} 
                            <span className="text-slate-400 mx-1">→</span> 
                            {banner.end_date ? new Date(banner.end_date).toLocaleDateString() : 'Indefinite'}
@@ -165,24 +165,24 @@ export default function AdminBannerDetails() {
                <div className="space-y-6">
                   <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Created On</span>
-                        <span className="text-sm font-bold text-slate-900 mt-1">{new Date(banner.createdAt).toLocaleString()}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Created On</span>
+                        <span className="text-sm font-medium text-slate-900 mt-1">{new Date(banner.createdAt).toLocaleString()}</span>
                      </div>
                      <Clock size={20} className="text-slate-300" />
                   </div>
                   
                   <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Last Updated On</span>
-                        <span className="text-sm font-bold text-slate-900 mt-1">{new Date(banner.updatedAt).toLocaleString()}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Last Updated On</span>
+                        <span className="text-sm font-medium text-slate-900 mt-1">{new Date(banner.updatedAt).toLocaleString()}</span>
                      </div>
                      <Clock size={20} className="text-slate-300" />
                   </div>
 
                   <div className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Total Days Active</span>
-                        <span className="text-lg font-black text-indigo-600 mt-1 italic tabular-nums">{daysActive} Days</span>
+                        <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest">Total Days Active</span>
+                        <span className="text-lg font-bold text-indigo-600 mt-1 italic tabular-nums">{daysActive} Days</span>
                      </div>
                      <Activity size={24} className="text-indigo-300" />
                   </div>

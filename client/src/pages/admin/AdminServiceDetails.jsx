@@ -5,7 +5,7 @@ import {
   User, Phone, Mail, Calendar, Info, AlertCircle,
   Briefcase, Video, Clock, Layout, FileText, Globe, Star,
   TrendingUp, Smartphone, ChevronRight, Hash, Activity, MoreVertical,
-  Layers, Package, LayoutGrid
+  Layers, Package, LayoutGrid, Shield
 } from 'lucide-react';
 import api from '../../services/api';
 import ConfirmationModal from '../../components/common/ConfirmationModal';

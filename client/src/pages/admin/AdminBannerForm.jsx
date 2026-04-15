@@ -115,7 +115,7 @@ export default function AdminBannerForm() {
 
                  <div className="space-y-6">
                     <div className="space-y-2">
-                       <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Banner Title</label>
+                       <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Banner Title</label>
                        <input 
                         required
                         type="text" 
@@ -127,7 +127,7 @@ export default function AdminBannerForm() {
                     </div>
 
                     <div className="space-y-2">
-                       <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Banner Description</label>
+                       <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Banner Description</label>
                        <textarea 
                         rows="3"
                         placeholder="Brief description of the banner content"
@@ -139,7 +139,7 @@ export default function AdminBannerForm() {
 
                     <div className="grid grid-cols-2 gap-8">
                        <div className="space-y-2">
-                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Display Priority</label>
+                          <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Display Priority</label>
                           <input 
                             type="number" 
                             value={formData.priority}
@@ -148,7 +148,7 @@ export default function AdminBannerForm() {
                           />
                        </div>
                        <div className="space-y-2">
-                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Status</label>
+                          <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Status</label>
                           <select 
                             value={formData.is_active}
                             onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })}
@@ -217,7 +217,7 @@ export default function AdminBannerForm() {
 
               <div className="p-8 grid grid-cols-2 gap-8">
                  <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Auto-Publish Date</label>
+                    <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Auto-Publish Date</label>
                     <input 
                       type="date" 
                       value={formData.start_date}
@@ -226,7 +226,7 @@ export default function AdminBannerForm() {
                     />
                  </div>
                  <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Auto-Expire Date</label>
+                    <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Auto-Expire Date</label>
                     <input 
                       type="date" 
                       value={formData.end_date}

@@ -29,14 +29,27 @@ const enquirySchema = new mongoose.Schema({
       enum: ['pending_assignment', 'assigned', 'in_progress', 'fulfilled', 'cancelled']
     }
   },
+  content: {
+    type: String,
+    default: ""
+  },
   status: {
     type: String,
-    enum: ['new', 'viewed', 'contacted', 'closed', 'spam'],
+    enum: ['new', 'read', 'contacted', 'closed', 'spam'],
     default: 'new'
+  },
+  contact_status: {
+    type: String,
+    enum: ['not_contacted', 'contacted'],
+    default: 'not_contacted'
+  },
+  is_read: {
+    type: Boolean,
+    default: false
   },
   listing_snapshot: {
     type: mongoose.Schema.Types.Mixed,
-    default: {} // Denormalized state of listing at submission time
+    default: {} 
   }
 }, { timestamps: true });
 
