@@ -21,9 +21,22 @@ const BannerCarousel = () => {
   const fetchBanners = async () => {
     try {
       const data = await db.getAll('banners');
-      const activeBanners = data.filter(b => b.isActive !== false);
-      if (activeBanners.length > 0) setBanners(activeBanners);
-    } catch (err) { console.error("Banner fetch error:", err); }
+      // Normalize to using imageUrl property if backend returns image_url
+      const normalizedData = data.map(b => ({
+        ...b,
+        imageUrl: b.image_url || b.imageUrl
+      }));
+      
+      const activeBanners = normalizedData.filter(b => b.is_active !== false);
+      if (activeBanners.length > 0) {
+        setBanners(activeBanners);
+      } else {
+        setBanners(defaultBanners);
+      }
+    } catch (err) { 
+      console.error("Banner fetch error:", err);
+      setBanners(defaultBanners);
+    }
   };
 
   useEffect(() => { fetchBanners(); }, []);

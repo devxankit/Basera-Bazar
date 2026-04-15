@@ -10,7 +10,7 @@ import api from '../../services/api';
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "block text-sm font-bold text-slate-600 mb-1.5";
 
-const SUPPLY_CATEGORIES = ['Aggregate', 'Bricks', 'Cement', 'Construction Material', 'Sand', 'TMT'];
+// Category arrays are now fetched from the database - no hardcoded values
 
 const INDIAN_STATES = {
   "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Bikaner", "Ajmer", "Kota", "Bhilwara", "Alwar"],
@@ -39,6 +39,7 @@ export default function AdminUserForm() {
 
   const [subscriptions, setSubscriptions] = useState([]);
   const [serviceCategories, setServiceCategories] = useState([]);
+  const [supplierCategories, setSupplierCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initLoading, setInitLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -47,33 +48,54 @@ export default function AdminUserForm() {
   useEffect(() => {
     const fetchInitData = async () => {
       try {
-        const [subRes, catRes] = await Promise.all([
+        const [subRes, catRes, supCatRes] = await Promise.all([
           api.get('/admin/subscriptions/plans'),
-          api.get('/admin/system/categories?type=service')
+          api.get('/admin/system/categories?type=service'),
+          api.get('/admin/system/categories?type=supplier')
         ]);
 
         if (subRes.data.success) setSubscriptions(subRes.data.data);
         if (catRes.data.success) setServiceCategories(catRes.data.data);
+        if (supCatRes.data.success) setSupplierCategories(supCatRes.data.data);
 
         if (isEdit) {
           const response = await api.get(`/admin/users/${id}`);
           if (response.data.success) {
             const u = response.data.data;
             const profile = u.partner_profile || {};
+
+            // Derive role from partner_type if not explicitly set on the document
+            // (older partner records have partner_type but no role field)
+            const partnerTypeToRole = {
+              'supplier': 'Supplier',
+              'service_provider': 'Service Provider',
+              'property_agent': 'Agent',
+              'mandi_seller': 'Agent',
+            };
+            const derivedRole = u.role || (u.partner_type ? partnerTypeToRole[u.partner_type] : null) || 'Customer';
+
+            // active_subscription_id may be a populated object or a raw ObjectId string
+            const subId = u.active_subscription_id;
+            const resolvedSubId = subId
+              ? (typeof subId === 'object' ? (subId._id || '') : subId)
+              : '';
+
             setFormData({
               name: u.name || '',
               email: u.email || '',
               phone: u.phone || '',
               password: '',
-              role: u.role || 'Customer',
+              role: derivedRole,
               is_active: u.is_active ?? true,
               partner_type: u.partner_type || 'property_agent',
-              active_subscription_id: u.active_subscription_id || '',
-              state: profile.state || '',
-              district: profile.district || '',
-              address: profile.address || '',
+              active_subscription_id: resolvedSubId,
+              state: profile.state || u.state || '',
+              district: profile.district || u.district || '',
+              address: profile.address || u.address || '',
               material_categories: profile.supplier_profile?.material_categories || [],
-              service_category_id: profile.service_profile?.service_category_id || '',
+              service_category_id:
+                profile.service_profile?.service_category_id ||
+                profile.service_profile?.category_id || '',
               delivery_radius_km: profile.supplier_profile?.delivery_radius_km || 10
             });
           }
@@ -104,7 +126,7 @@ export default function AdminUserForm() {
 
       if (response.data.success) {
         setSuccess(`User ${isEdit ? 'updated' : 'created'} successfully!`);
-        setTimeout(() => navigate('/admin/users'), 1500);
+        setTimeout(() => navigate(-1), 1500);
       }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save user.");
@@ -135,15 +157,34 @@ export default function AdminUserForm() {
     });
   };
 
-  const toggleCategory = (cat) => {
+  // Normalize: strip "supplier" suffix so we can fuzzy-match legacy stored values
+  // e.g. "TMT" ↔ "tmt supplier", "BRICKS" ↔ "brick supplier"
+  const normalizeCatKey = (str) =>
+    (str || '').toLowerCase().replace(/\s*supplier[s]?\s*/gi, '').trim();
+
+  const catMatches = (stored, catName) => {
+    const a = normalizeCatKey(stored);
+    const b = normalizeCatKey(catName);
+    return a === b || a.includes(b) || b.includes(a);
+  };
+
+  const toggleCategory = (catName) => {
     setFormData(prev => {
       const current = prev.material_categories || [];
-      const updated = current.includes(cat) 
-        ? current.filter(c => c !== cat)
-        : [...current, cat];
-      return { ...prev, material_categories: updated };
+      const alreadySelected = current.some(m => catMatches(m, catName));
+      if (alreadySelected) {
+        // Remove all stored values that fuzzy-match this category
+        return { ...prev, material_categories: current.filter(m => !catMatches(m, catName)) };
+      } else {
+        // Add the canonical DB name going forward
+        return { ...prev, material_categories: [...current, catName] };
+      }
     });
   };
+
+  const isCatSelected = (catName) =>
+    (formData.material_categories || []).some(m => catMatches(m, catName));
+
 
   const isSupplier = formData.role === 'Supplier';
   const isServiceProvider = formData.role === 'Service Provider';
@@ -305,17 +346,43 @@ export default function AdminUserForm() {
 
                 {isSupplier && (
                   <div className="space-y-3 pt-2">
-                    <label className={labelClass}>Material Portfolio</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {SUPPLY_CATEGORIES.map(cat => (
-                        <button key={cat} type="button" onClick={() => toggleCategory(cat)} className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${formData.material_categories.includes(cat) ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-200'}`}>
-                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${formData.material_categories.includes(cat) ? 'border-orange-500 bg-orange-500 text-white' : 'border-slate-300'}`}>
-                            {formData.material_categories.includes(cat) && <CheckCircle2 size={10} strokeWidth={4} />}
-                          </div>
-                          <span className="text-[11px] font-bold uppercase tracking-wider">{cat}</span>
-                        </button>
-                      ))}
+                    <div className="flex items-center justify-between">
+                      <label className={labelClass}>Material Portfolio</label>
+                      <span className="text-[10px] text-amber-600 font-black uppercase tracking-widest bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100">
+                        Multi-select allowed
+                      </span>
                     </div>
+                    {supplierCategories.length === 0 ? (
+                      <p className="text-sm text-slate-400 italic py-2">
+                        No supplier categories in database yet. Add them from Supplier Categories page.
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {supplierCategories.map(cat => {
+                          const catName = cat.name;
+                          const selected = isCatSelected(catName);
+                          return (
+                            <button key={cat._id} type="button" onClick={() => toggleCategory(catName)}
+                              className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${selected ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-200'}`}
+                            >
+                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${selected ? 'border-orange-500 bg-orange-500 text-white' : 'border-slate-300'}`}>
+                                {selected && <CheckCircle2 size={10} strokeWidth={4} />}
+                              </div>
+                              <span className="text-[11px] font-bold uppercase tracking-wider">{catName}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Agent notice — no category needed at partner level */}
+                {formData.role === 'Agent' && (
+                  <div className="pt-2 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl">
+                    <p className="text-[12px] text-blue-600 font-bold">
+                      ℹ️ Agents do not select a category here. Category is chosen when they add a property listing.
+                    </p>
                   </div>
                 )}
               </div>

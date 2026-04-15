@@ -35,7 +35,13 @@ const brandSchema = new mongoose.Schema({
 
 const unitSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true }, // e.g., 'Kilogram', 'Piece', 'Square Feet'
-  abbreviation: { type: String, required: true }, // e.g., 'kg', 'pc', 'sqft'
+  abbreviation: { type: String, required: true },        // e.g., 'kg', 'pc', 'sqft'
+  unit_type: {
+    type: String,
+    enum: ['Weight', 'Volume', 'Count', 'Length', 'Area', 'Other'],
+    default: 'Other'
+  },
+  description: { type: String, default: '' },
   is_active: { type: Boolean, default: true }
 }, { timestamps: true });
 
@@ -44,6 +50,7 @@ const productNameSchema = new mongoose.Schema({
   category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   brand_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' },
+  unit_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
   is_active: { type: Boolean, default: true }
 }, { timestamps: true });
 

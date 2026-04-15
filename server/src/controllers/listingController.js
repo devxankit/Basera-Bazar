@@ -158,10 +158,27 @@ const getAllListings = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get active banners for homepage
+ * @route   GET /api/listings/banners
+ * @access  Public
+ */
+const getPublicBanners = async (req, res) => {
+  try {
+    const { Banner } = require('../models/System');
+    const banners = await Banner.find({ is_active: true }).sort({ priority: -1 });
+    res.status(200).json({ success: true, count: banners.length, data: banners });
+  } catch (error) {
+    console.error("Error in getPublicBanners:", error);
+    res.status(500).json({ success: false, message: 'Server error fetching banners.' });
+  }
+};
+
 module.exports = {
   getNearbyServices,
   getMandiListings,
   createPropertyListing,
   getListingById,
-  getAllListings
+  getAllListings,
+  getPublicBanners
 };

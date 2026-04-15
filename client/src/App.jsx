@@ -64,15 +64,20 @@ import AdminSupplierCategories from './pages/admin/AdminSupplierCategories';
 import AdminProductCategories from './pages/admin/AdminProductCategories';
 import AdminProductSubcategories from './pages/admin/AdminProductSubcategories';
 import AdminProductUnits from './pages/admin/AdminProductUnits';
+import AdminUnitForm from './pages/admin/AdminUnitForm';
+import AdminUnitDetails from './pages/admin/AdminUnitDetails';
 import AdminBrands from './pages/admin/AdminBrands';
+import AdminBrandForm from './pages/admin/AdminBrandForm';
+import AdminBrandDetails from './pages/admin/AdminBrandDetails';
 import AdminProductNames from './pages/admin/AdminProductNames';
 import AdminBanners from './pages/admin/AdminBanners';
 import AdminBannerForm from './pages/admin/AdminBannerForm';
+import AdminBannerDetails from './pages/admin/AdminBannerDetails';
 import AdminSubscriptionReport from './pages/admin/AdminSubscriptionReport';
 import AdminUserReport from './pages/admin/AdminUserReport';
 import AdminCategoryForm from './pages/admin/AdminCategoryForm';
 import AdminCategoryDetails from './pages/admin/AdminCategoryDetails';
-import AdminClearCache from './pages/admin/AdminClearCache';
+
 
 import AdminProductDetails from './pages/admin/AdminProductDetails';
 import AdminSuppliers from './pages/admin/AdminSuppliers';
@@ -493,16 +498,42 @@ function App() {
         } />
         <Route path="/admin/products/units" element={
           <AdminRoute>
-            <AdminLayout>
-              <AdminProductUnits />
-            </AdminLayout>
+            <AdminLayout><AdminProductUnits /></AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/units/add" element={
+          <AdminRoute>
+            <AdminLayout><AdminUnitForm /></AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/units/edit/:id" element={
+          <AdminRoute>
+            <AdminLayout><AdminUnitForm /></AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/units/view/:id" element={
+          <AdminRoute>
+            <AdminLayout><AdminUnitDetails /></AdminLayout>
           </AdminRoute>
         } />
         <Route path="/admin/products/brands" element={
           <AdminRoute>
-            <AdminLayout>
-              <AdminBrands />
-            </AdminLayout>
+            <AdminLayout><AdminBrands /></AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/brands/add" element={
+          <AdminRoute>
+            <AdminLayout><AdminBrandForm /></AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/brands/edit/:id" element={
+          <AdminRoute>
+            <AdminLayout><AdminBrandForm /></AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/brands/view/:id" element={
+          <AdminRoute>
+            <AdminLayout><AdminBrandDetails /></AdminLayout>
           </AdminRoute>
         } />
         <Route path="/admin/products/names" element={
@@ -593,13 +624,14 @@ function App() {
             </AdminLayout>
           </AdminRoute>
         } />
-        <Route path="/admin/system/cache" element={
+        <Route path="/admin/banners/view/:id" element={
           <AdminRoute>
             <AdminLayout>
-              <AdminClearCache />
+              <AdminBannerDetails />
             </AdminLayout>
           </AdminRoute>
         } />
+
 
         {/* New Dashboard Oversight Routes */}
         <Route path="/admin/dashboard/activities" element={

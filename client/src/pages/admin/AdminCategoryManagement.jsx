@@ -19,12 +19,35 @@ export default function AdminCategoryManagement({
   const [searchTerm, setSearchTerm] = useState('');
   const [parentFilter, setParentFilter] = useState('all');
 
+  // For supplier type: map of category name (lowercase) → count of suppliers
+  const [supplierCountMap, setSupplierCountMap] = useState({});
+
   const fetchItems = async () => {
     setLoading(true);
     try {
       const res = await api.get(`/admin/system/${endpoint}?type=${type}`);
       if (res.data.success) {
         setItems(res.data.data);
+      }
+
+      // For supplier categories: compute how many suppliers supply each material
+      if (type === 'supplier') {
+        const supRes = await api.get('/admin/users');
+        if (supRes.data.success) {
+          const suppliers = supRes.data.data.filter(u =>
+            (u.role || '').toLowerCase() === 'supplier' ||
+            (u.displayRole || '').toLowerCase() === 'supplier'
+          );
+          const countMap = {};
+          suppliers.forEach(s => {
+            const cats = s.profile?.supplier_profile?.material_categories || [];
+            cats.forEach(cat => {
+              const key = cat.toLowerCase();
+              countMap[key] = (countMap[key] || 0) + 1;
+            });
+          });
+          setSupplierCountMap(countMap);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -138,13 +161,38 @@ export default function AdminCategoryManagement({
       }
     ]),
     {
-      header: 'TOTAL ENTRIES',
-      render: (row) => (
-        <div className="flex items-center gap-2 tabular-nums">
-           <Hash size={11} className="text-slate-300" />
-           <span className="font-bold text-slate-900">{row.listingCount || 0}</span>
-        </div>
-      )
+      header: type === 'supplier' ? 'SUPPLIERS' : 'TOTAL ENTRIES',
+      render: (row) => {
+        let count = 0;
+        if (type === 'supplier') {
+          // Strip common suffixes like " supplier" from the category display name
+          // then do a partial match against the stored material category keys
+          const catBase = (row.name || '')
+            .toLowerCase()
+            .replace(/\s*supplier[s]?\s*/gi, '')
+            .trim();
+          count = Object.entries(supplierCountMap).reduce((sum, [key, val]) => {
+            // Match if catBase contains key OR key contains catBase (handles "brick"↔"bricks")
+            if (catBase && (catBase.includes(key) || key.includes(catBase))) {
+              return sum + val;
+            }
+            return sum;
+          }, 0);
+        } else {
+          count = row.listingCount || 0;
+        }
+        return (
+          <div className="flex items-center gap-2 tabular-nums">
+            <Hash size={11} className="text-slate-300" />
+            <span className={`font-black ${count > 0 ? 'text-indigo-600' : 'text-slate-400'}`}>{count}</span>
+            {type === 'supplier' && count > 0 && (
+              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                {count === 1 ? 'supplier' : 'suppliers'}
+              </span>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: 'ACTIONS',

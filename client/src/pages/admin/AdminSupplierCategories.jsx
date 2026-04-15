@@ -1,12 +1,6 @@
 import React from 'react';
-import AdminCategoryManagement from './AdminCategoryManagement';
+import AdminDynamicCategoryManager from '../../components/common/AdminDynamicCategoryManager';
 
 export default function AdminSupplierCategories() {
-  return (
-    <AdminCategoryManagement 
-      type="supplier" 
-      title="Supplier Categories" 
-      description="Manage supplier types like Manufacturers, Wholesalers, Retailers."
-    />
-  );
+  return <AdminDynamicCategoryManager type="supplier" />;
 }

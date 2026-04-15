@@ -23,18 +23,20 @@ export default function MediaDropZone({
     const files = Array.from(e.dataTransfer?.files || e.target.files);
     if (files.length === 0) return;
 
+    // Reset error at start of new attempt
+    setError(null);
+
     if (!multiple && files.length > 1) {
       setError("Only one file allowed");
       return;
     }
 
-    if (value.length + files.length > maxFiles) {
+    if (multiple && (value.length + files.length > maxFiles)) {
       setError(`Max ${maxFiles} files allowed`);
       return;
     }
 
     setUploading(true);
-    setError(null);
 
     try {
       const uploadedUrls = [];
@@ -47,7 +49,6 @@ export default function MediaDropZone({
         const formData = new FormData();
         formData.append('image', file);
         
-        // Ensure we hit the correct endpoint based on index.js mount points
         const response = await api.post('/upload', formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
@@ -59,6 +60,7 @@ export default function MediaDropZone({
         }
       }
 
+      // If multiple is false, we replace the entire value array with the new single result
       const newValue = multiple ? [...value, ...uploadedUrls] : [uploadedUrls[0]];
       onChange(newValue);
     } catch (err) {
@@ -101,7 +103,9 @@ export default function MediaDropZone({
               <Upload className={`text-${accentColor}-600`} size={24} />
             </div>
             <div className="text-center">
-              <p className="text-sm font-black text-slate-900 tracking-tight">{description}</p>
+              <p className="text-sm font-black text-slate-900 tracking-tight">
+                {value.length > 0 && !multiple ? 'Click or drag to replace image' : description}
+              </p>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Supports: JPG, PNG, WEBP (Max 5MB)</p>
             </div>
             <input 

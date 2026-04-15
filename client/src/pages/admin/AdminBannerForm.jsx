@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, ArrowLeft, Plus, Image as ImageIcon, Info, CheckCircle2, Calendar, X, Layout, ShieldCheck, Zap, Smartphone, Monitor, AlertCircle, Loader2 } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../../services/api';
+import MediaDropZone from '../../components/common/MediaDropZone';
 
 export default function AdminBannerForm() {
   const { id } = useParams();
@@ -191,21 +192,16 @@ export default function AdminBannerForm() {
                     </div>
                  </div>
 
-                 <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Image Asset URL</label>
-                    <input 
-                      required
-                      type="url" 
-                      placeholder="https://example.com/image.jpg"
-                      value={formData.image_url}
-                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-3.5 text-sm font-medium text-slate-900 focus:border-orange-500 outline-none transition-all"
+                 <div className="space-y-4">
+                    <MediaDropZone 
+                      label="Banner Image"
+                      description="Click or drag high-quality banner image here"
+                      value={formData.image_url ? [formData.image_url] : []}
+                      onChange={(urls) => setFormData({ ...formData, image_url: urls[0] || '' })}
+                      multiple={false}
+                      maxFiles={1}
+                      accentColor="indigo"
                     />
-                    {formData.image_url && (
-                      <div className="mt-4 w-full h-40 rounded-xl border border-slate-100 bg-slate-50 overflow-hidden flex items-center justify-center">
-                         <img src={formData.image_url} alt="Preview" className="w-full h-full object-contain" onError={(e) => e.target.style.display = 'none'} />
-                      </div>
-                    )}
                  </div>
               </div>
            </div>

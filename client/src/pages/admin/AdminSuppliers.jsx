@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  UserPlus, Eye, Edit2, Search, Filter, Truck, Package 
+  Eye, Edit2, Truck, Package, Tag, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminTable from '../../components/common/AdminTable';
@@ -32,6 +32,17 @@ export default function AdminSuppliers() {
     };
     fetchSuppliers();
   }, []);
+
+  const toggleActive = async (supplier) => {
+    try {
+      await api.put(`/admin/users/${supplier._id}`, { is_active: !supplier.is_active });
+      setSuppliers(prev =>
+        prev.map(s => s._id === supplier._id ? { ...s, is_active: !s.is_active } : s)
+      );
+    } catch (err) {
+      alert('Failed to update supplier status.');
+    }
+  };
 
   const filteredData = suppliers.filter(user => {
     if (searchTerm) {
@@ -74,20 +85,34 @@ export default function AdminSuppliers() {
       header: 'LOCATION', 
       render: (row) => (
         <div className="space-y-0.5">
-          <p className="text-slate-700 font-bold text-sm">{row.partner_profile?.district || 'Central Hub'}</p>
-          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none">{row.partner_profile?.state || 'Verified'}</p>
+          <p className="text-slate-700 font-bold text-sm">{row.district || 'N/A'}</p>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none">{row.state || '—'}</p>
         </div>
       )
     },
     { 
-      header: 'PORTFOLIO', 
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-indigo-100">
-            {row.partner_profile?.supplier_profile?.material_categories?.length || 0} Categories
-          </span>
-        </div>
-      )
+      header: 'MATERIALS', 
+      render: (row) => {
+        const cats = row.profile?.supplier_profile?.material_categories || [];
+        if (cats.length === 0) {
+          return (
+            <span className="text-[11px] text-slate-400 font-bold italic">No categories</span>
+          );
+        }
+        return (
+          <div className="flex flex-wrap gap-1.5 max-w-[220px]">
+            {cats.map((cat) => (
+              <span
+                key={cat}
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[10px] font-black uppercase tracking-wide"
+              >
+                <Tag size={9} strokeWidth={3} />
+                {cat}
+              </span>
+            ))}
+          </div>
+        );
+      }
     },
     { 
       header: 'STATUS', 
@@ -119,6 +144,18 @@ export default function AdminSuppliers() {
           >
             <Edit2 size={16} />
           </button>
+          <button
+            onClick={() => toggleActive(row)}
+            title={row.is_active ? 'Deactivate supplier' : 'Activate supplier'}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
+              row.is_active
+                ? 'bg-rose-50 text-rose-500 border-rose-100 hover:bg-rose-600 hover:text-white'
+                : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white'
+            }`}
+          >
+            {row.is_active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+            {row.is_active ? 'Deactivate' : 'Activate'}
+          </button>
         </div>
       )
     }
@@ -131,20 +168,12 @@ export default function AdminSuppliers() {
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">Material Suppliers</h1>
           <p className="text-slate-500 font-medium mt-1 text-lg">Manage verified vendors and material procurement partners.</p>
         </div>
-        
-        <button 
-          onClick={() => navigate('/admin/users/add')}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-indigo-100 transition-all flex items-center gap-3 active:scale-95 text-[15px] w-fit"
-        >
-          <UserPlus size={22} strokeWidth={2.5} />
-          Register Supplier
-        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           { label: 'Total Suppliers', value: suppliers.length, icon: Truck, color: 'text-indigo-600 bg-indigo-50' },
-          { label: 'Active Vendors', value: suppliers.filter(s => s.is_active).length, icon: UserPlus, color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'Active Vendors', value: suppliers.filter(s => s.is_active).length, icon: ToggleRight, color: 'text-emerald-600 bg-emerald-50' },
           { label: 'Pending Portfolio', value: 0, icon: Package, color: 'text-amber-600 bg-amber-50' }
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">

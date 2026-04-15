@@ -48,9 +48,7 @@ const navItems = [
     children: [
       { label: 'All Suppliers', path: '/admin/suppliers' },
       { label: 'All Products', path: '/admin/products' },
-      { label: 'Supplier Categories', path: '/admin/suppliers/categories' },
-      { type: 'heading', label: 'Product System' },
-      { label: 'Product Categories', path: '/admin/products/categories' },
+      { label: 'Product Category', path: '/admin/suppliers/categories' },
       { label: 'Product Sub-Categories', path: '/admin/products/subcategories' },
       { label: 'Product Units', path: '/admin/products/units' },
       { label: 'Brands', path: '/admin/products/brands' },
@@ -79,14 +77,7 @@ const navItems = [
       { label: 'User Report', path: '/admin/reports/users' },
     ]
   },
-  { 
-    id: 'system', 
-    label: 'System Maintenance', 
-    icon: Settings,
-    children: [
-      { label: 'Clear Cache', path: '/admin/system/cache' },
-    ]
-  },
+
 ];
 
 const CollapsibleItem = ({ item, isOpen, onToggle, location, setSidebarOpen }) => {

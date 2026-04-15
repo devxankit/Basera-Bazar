@@ -34,13 +34,22 @@ const {
   updateCategory,
   deleteCategory,
   getBrands,
+  getBrandById,
   createBrand,
+  updateBrand,
+  deleteBrand,
   getUnits,
+  getUnitById,
   createUnit,
+  updateUnit,
+  deleteUnit,
   getProductNames,
   createProductName,
   getBanners,
+  getBannerById,
   createBanner,
+  updateBanner,
+  deleteBanner,
   getSubscriptionReport,
   getUserReport,
   createPropertyListing,
@@ -92,26 +101,32 @@ router.put('/system/categories/:id', updateCategory);
 router.delete('/system/categories/:id', deleteCategory);
 
 router.get('/system/brands', getBrands);
+router.get('/system/brands/:id', getBrandById);
 router.post('/system/brands', createBrand);
+router.put('/system/brands/:id', updateBrand);
+router.delete('/system/brands/:id', deleteBrand);
 
 router.get('/system/units', getUnits);
+router.get('/system/units/:id', getUnitById);
 router.post('/system/units', createUnit);
+router.put('/system/units/:id', updateUnit);
+router.delete('/system/units/:id', deleteUnit);
 
 router.get('/system/product-names', getProductNames);
 router.post('/system/product-names', createProductName);
 
 router.get('/system/banners', getBanners);
+router.get('/system/banners/:id', getBannerById);
 router.post('/system/banners', createBanner);
+router.put('/system/banners/:id', updateBanner);
+router.delete('/system/banners/:id', deleteBanner);
 
 // Reports
 router.get('/reports/payments', getSubscriptionReport); // Overriding current implementation with consistent report
 router.get('/reports/subscriptions', getSubscriptionReport);
 router.get('/reports/users', getUserReport);
 
-// System Maintenance
-router.post('/maintenance/clear-cache', (req, res) => {
-  res.status(200).json({ success: true, message: 'System cache cleared successfully (Mock)' });
-});
+
 
 // The geo-search route requested by the user
 router.get('/partners/mandi-search', findNearestMandiSellers);

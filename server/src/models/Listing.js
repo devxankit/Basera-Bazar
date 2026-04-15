@@ -115,9 +115,11 @@ const supplierListingSchema = new mongoose.Schema({
   partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
   title: { type: String, required: true },
   description: { type: String },
-  material_category: { type: String, required: true },
+  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  brand_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' },
   pricing: {
-    unit: { type: String, required: true },
+    unit_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
     price_per_unit: { type: Number, required: true }, // Whole rupees
     min_order_qty: { type: Number, required: true },
     bulk_discount_available: { type: Boolean, default: false }

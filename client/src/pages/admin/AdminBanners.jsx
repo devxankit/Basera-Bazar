@@ -28,14 +28,7 @@ export default function AdminBanners() {
     fetchData();
   }, []);
 
-  const clearCache = async () => {
-    try {
-      await api.post('/admin/maintenance/clear-cache');
-      alert('System cache cleared. Banners will fresh-load on all devices.');
-    } catch (err) {
-      console.error(err);
-    }
-  };
+
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this banner?')) {
@@ -134,8 +127,9 @@ export default function AdminBanners() {
       render: (row) => (
         <div className="flex items-center gap-2">
           <button 
+            onClick={() => navigate(`/admin/banners/view/${row._id}`)}
             className="w-8 h-8 flex items-center justify-center rounded-lg border border-orange-100 text-orange-500 hover:bg-orange-50 active:scale-95 transition-all shadow-xs"
-            title="View Analytics"
+            title="View Details"
           >
             <Eye size={14} />
           </button>
@@ -153,7 +147,7 @@ export default function AdminBanners() {
                 ? 'border-slate-100 text-slate-400 hover:bg-slate-50' 
                 : 'border-emerald-100 text-emerald-500 hover:bg-emerald-50'
             }`}
-            title={row.is_active !== false ? "Pause Banner" : "Resume Banner"}
+            title={row.is_active !== false ? "Deactivate Banner" : "Activate Banner"}
           >
             {row.is_active !== false ? <PauseCircle size={15} /> : <PlayCircle size={15} />}
           </button>
@@ -215,12 +209,6 @@ export default function AdminBanners() {
         {/* Toolbar Integration */}
         <div className="bg-white border border-slate-200 rounded-xl px-6 py-4 flex items-center justify-between shadow-xs">
            <div className="flex items-center gap-3">
-              <button 
-                onClick={clearCache}
-                className="flex items-center gap-2 px-4 py-2 border-2 border-cyan-400 text-cyan-600 font-bold text-[11px] rounded-lg hover:bg-cyan-50 transition-all uppercase tracking-tight"
-              >
-                <RefreshCw size={14} /> Clear Cache
-              </button>
               <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-500 font-bold text-[11px] rounded-lg hover:bg-slate-50 transition-all uppercase tracking-tight">
                 <ArrowRightLeft size={14} className="rotate-90" /> Reorder Banners
               </button>

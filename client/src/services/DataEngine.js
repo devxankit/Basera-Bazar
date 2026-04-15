@@ -37,8 +37,8 @@ class DataEngine {
       }
       
       if (table === 'banners') {
-        // Return empty so the UI component uses its bundled defaults
-        return [];
+        const response = await api.get('/listings/banners');
+        return (response.data.data || []).map(this._normalize);
       }
 
       return [];
