@@ -17,7 +17,54 @@ const MAJOR_CITIES = [
 export default function LocationPicker({ onSelect, onClose, initialLocation = null }) {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState(null);
+
+  // Search Logic with Debounce
+  useEffect(() => {
+    if (searchQuery.length < 3) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      setError(null);
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${searchQuery}&addressdetails=1&countrycodes=in&limit=8`);
+        const data = await response.json();
+        
+        const cleanName = (name) => {
+          if (!name) return '';
+          return name.replace(/\s(Tahsil|District|Zila|Subdivision|Township|Taluk|Mandal)$/i, '').trim();
+        };
+
+        const mapped = data.map(item => {
+          const adr = item.address;
+          const cityName = cleanName(adr.city || adr.town || adr.village || adr.suburb || item.display_name.split(',')[0]);
+          const stateName = adr.state || '';
+          const districtName = cleanName(adr.county || adr.state_district || adr.city_district || cityName);
+          
+          return {
+            name: cityName,
+            state: stateName,
+            district: districtName,
+            coordinates: [parseFloat(item.lon), parseFloat(item.lat)],
+            display: item.display_name
+          };
+        });
+        setSearchResults(mapped);
+      } catch (err) {
+        console.error("Search error:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
@@ -88,11 +135,12 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
       name: city.name,
       district: city.district,
       state: city.state,
+      coordinates: city.coordinates || null,
       isManual: true
     });
   };
 
-  const filteredCities = MAJOR_CITIES.filter(city => 
+  const popularCities = MAJOR_CITIES.filter(city => 
     city.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     city.state.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -144,22 +192,31 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
           </div>
         )}
 
-        {/* Popular Cities */}
+        {/* Popular Cities / Search Results */}
         <div>
-          <h3 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Popular Cities</h3>
-          <div className="grid grid-cols-1 gap-3">
-            {filteredCities.map(city => (
+          <h3 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">
+            {searchQuery.length >= 3 ? 'Search Results' : 'Popular Cities'}
+          </h3>
+          <div className="grid grid-cols-1 gap-3 pb-8">
+            {isSearching ? (
+              <div className="flex flex-col items-center py-12 text-slate-400">
+                <Loader2 size={32} className="animate-spin mb-3 text-[#001b4e]" />
+                <p className="text-[13px] font-bold tracking-wide uppercase">Searching across India...</p>
+              </div>
+            ) : (searchQuery.length >= 3 ? searchResults : popularCities).map((city, idx) => (
               <button 
-                key={city.name}
+                key={city.name + idx}
                 onClick={() => handleCitySelect(city)}
                 className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 hover:border-[#001b4e]/20 hover:bg-slate-50/50 transition-all active:scale-[0.98]"
               >
                 <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400">
                   <MapPin size={20} />
                 </div>
-                <div className="text-left">
-                  <div className="text-[15px] font-bold text-[#001b4e]">{city.name}</div>
-                  <div className="text-[12px] text-slate-400">{city.district}, {city.state}</div>
+                <div className="text-left flex-1 min-w-0">
+                  <div className="text-[15px] font-bold text-[#001b4e] truncate">{city.name}</div>
+                  <div className="text-[12px] text-slate-400 truncate">
+                    {city.district ? `${city.district}, ` : ''}{city.state}
+                  </div>
                 </div>
                 {initialLocation?.city === city.name && (
                   <div className="ml-auto bg-emerald-100 text-emerald-600 p-1.5 rounded-full">
@@ -168,6 +225,16 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
                 )}
               </button>
             ))}
+
+            {!isSearching && searchQuery.length >= 3 && searchResults.length === 0 && (
+              <div className="text-center py-12 px-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <div className="text-slate-400 mb-2">
+                  <Search size={32} className="mx-auto opacity-20" />
+                </div>
+                <p className="text-[14px] font-bold text-[#001b4e]">No cities found</p>
+                <p className="text-[12px] text-slate-400 mt-1">Try a more general search term</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
