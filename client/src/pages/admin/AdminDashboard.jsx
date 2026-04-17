@@ -22,8 +22,8 @@ const StatCard = ({ title, value, icon: Icon, color, trend, badge }) => (
   >
     <div className="flex flex-col gap-3 min-w-0 flex-grow">
       <div>
-        <p className="text-[11px] font-bold text-slate-400 tracking-tight leading-none mb-2 lg:mb-3 uppercase">{title}</p>
-        <h3 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight truncate">{value}</h3>
+        <p className="text-[11px] font-semibold text-slate-400 tracking-tight leading-none mb-2 lg:mb-3 uppercase">{title}</p>
+        <h3 className="text-3xl lg:text-4xl font-semibold text-slate-900 tracking-tight truncate">{value}</h3>
       </div>
       
       {/* Dynamic Badge */}
@@ -67,7 +67,7 @@ const QuickActionCard = ({ title, desc, icon: Icon, color, path }) => {
         <Icon size={28} />
       </div>
       <div>
-        <h3 className="text-xl font-black text-slate-900 tracking-tight">{title}</h3>
+        <h3 className="text-xl font-semibold text-slate-900 tracking-tight">{title}</h3>
         <p className="text-[13px] font-medium text-slate-400 mt-2 leading-relaxed max-w-[200px]">{desc}</p>
       </div>
     </motion.button>
@@ -107,20 +107,23 @@ export default function AdminDashboard() {
 
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleStatusUpdate = async (id, status) => {
+  const handleStatusUpdate = async (id, status, type = 'Property') => {
     setIsProcessing(true);
     try {
-      const res = await api.patch(`/admin/listings/${id}/status`, { status });
-      if (res.data.success) {
-        // Success feedback and update local state
-        setData(prev => ({
+      await api.patch(`/admin/listings/${id}/status`, { status });
+      // Update local state instead of refetching for better UX
+      setData(prev => {
+        const newProperties = prev.pending.properties.filter(p => p._id !== id);
+        const newOthers = prev.pending.others.filter(o => o._id !== id);
+        return {
           ...prev,
           pending: {
             ...prev.pending,
-            properties: prev.pending.properties.filter(p => p._id !== id)
+            properties: newProperties,
+            others: newOthers
           }
-        }));
-      }
+        };
+      });
     } catch (err) {
       console.error(err);
       alert("Status update failed.");
@@ -137,7 +140,7 @@ export default function AdminDashboard() {
     return (
       <div className="h-[80vh] flex flex-col items-center justify-center gap-4">
         <Loader2 className="animate-spin text-indigo-600" size={48} />
-        <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-xs">Synchronizing Analytics...</p>
+        <p className="text-slate-400 font-semibold uppercase tracking-[0.2em] text-xs">Synchronizing Analytics...</p>
       </div>
     );
   }
@@ -146,8 +149,8 @@ export default function AdminDashboard() {
     return (
       <div className="h-[80vh] flex flex-col items-center justify-center gap-4">
         <AlertCircle className="text-rose-500" size={48} />
-        <h2 className="text-xl font-black text-slate-900 tracking-tight">System Desync</h2>
-        <p className="text-slate-400 font-bold uppercase tracking-[0.15em] text-[10px] max-w-[250px] text-center">
+        <h2 className="text-xl font-semibold text-slate-900 tracking-tight">System Desync</h2>
+        <p className="text-slate-400 font-semibold uppercase tracking-[0.15em] text-[10px] max-w-[250px] text-center">
           {error || 'Unable to establish secure tunnel to statistics engine.'}
         </p>
         <button onClick={fetchDashboardData} className="mt-6 px-10 py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-200">
@@ -195,10 +198,10 @@ export default function AdminDashboard() {
     },
     { 
       title: 'Pending Requests', 
-      value: data.pending?.properties?.length || '0', 
+      value: (data.pending?.properties?.length || 0) + (data.pending?.others?.length || 0), 
       icon: Clock, 
       color: 'bg-rose-100 text-rose-600', 
-      trend: { value: '100', up: true } 
+      badge: { text: 'Attention', color: 'bg-rose-500 text-white', icon: AlertCircle, subtext: 'Require Review' } 
     },
     { 
       title: 'Recent Activities', 
@@ -259,8 +262,8 @@ export default function AdminDashboard() {
     <div className="space-y-10 pb-20 animate-in fade-in duration-700 font-Inter">
       {/* Page Header */}
       <div className="flex items-center gap-3">
-        <h1 className="text-[28px] font-black text-slate-900 tracking-tight">SuperAdmin Dashboard</h1>
-        <div className="flex items-center gap-2 text-slate-400 font-bold text-sm mt-1">
+        <h1 className="text-[28px] font-semibold text-slate-900 tracking-tight">SuperAdmin Dashboard</h1>
+        <div className="flex items-center gap-2 text-slate-400 font-semibold text-sm mt-1">
           <span className="cursor-pointer hover:text-indigo-600">Home</span>
         </div>
       </div>
@@ -584,7 +587,62 @@ export default function AdminDashboard() {
           <div className="flex-grow flex flex-col items-center justify-center py-20 px-10 text-center">
              {data.pending?.others?.length > 0 ? (
                 <table className="w-full text-left">
-                  {/* ... similar table structure if data exists ... */}
+                  <thead>
+                    <tr className="bg-slate-50/50">
+                      <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-left">Listing</th>
+                      <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-left">Partner</th>
+                      <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-left">Type</th>
+                      <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {data.pending.others.map((item, i) => (
+                      <tr key={i} className="hover:bg-slate-50/30 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                               <img src={item.thumbnail || item.images?.[0] || 'https://via.placeholder.com/40'} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-black text-slate-700 tracking-tight truncate">{item.title}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-[11px] font-bold text-slate-500 truncate">{item.partner_id?.name || 'N/A'}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${item.type === 'Service' ? 'bg-indigo-50 text-indigo-600' : 'bg-cyan-50 text-cyan-600'}`}>
+                            {item.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                             <button 
+                               onClick={() => navigate(`/admin/${item.type.toLowerCase()}s/view/${item._id}`)} 
+                               className="p-2 rounded-full border border-orange-100 text-orange-500 hover:bg-orange-50 transition-colors"
+                             >
+                               <Eye size={15} />
+                             </button>
+                             <button 
+                               onClick={() => handleStatusUpdate(item._id, 'active', item.type)}
+                               disabled={isProcessing}
+                               className="p-2 rounded-full border border-emerald-100 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-50"
+                             >
+                               <CheckCircle2 size={15} />
+                             </button>
+                             <button 
+                               onClick={() => handleStatusUpdate(item._id, 'rejected', item.type)}
+                               disabled={isProcessing}
+                               className="p-2 rounded-full border border-rose-100 text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50"
+                             >
+                               <XCircle size={15} />
+                             </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
              ) : (
                <div className="flex flex-col items-center">

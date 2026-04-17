@@ -31,6 +31,10 @@ const enquiryRoutes = require('./routes/enquiryRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const financeRoutes = require('./routes/financeRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const mandiRoutes = require('./routes/mandiRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const walletRoutes = require('./routes/walletRoutes');
+const adminMarketplaceRoutes = require('./routes/adminMarketplaceRoutes');
 
 // -----------------------------------------------------
 // MOUNT ROUTES
@@ -43,6 +47,12 @@ app.use('/api', enquiryRoutes); // Because enquiryRoutes handles both /api/enqui
 app.use('/api/admin', adminRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/upload', uploadRoutes);
+
+// Marketplace/Mandi Bazar Routes
+app.use('/api/mandi', mandiRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/admin/marketplace', adminMarketplaceRoutes);
 
 // Health check endpoint
 app.get('/api/status', (req, res) => {

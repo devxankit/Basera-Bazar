@@ -34,7 +34,8 @@ export default function AdminUserForm() {
     name: '', email: '', phone: '', password: '', role: 'Customer',
     is_active: true, partner_type: 'property_agent', active_subscription_id: '',
     state: '', district: '', address: '', material_categories: [],
-    service_category_id: '', delivery_radius_km: 10
+    service_category_id: '', delivery_radius_km: 10,
+    business_name: '', business_description: ''
   });
 
   const [subscriptions, setSubscriptions] = useState([]);
@@ -70,7 +71,7 @@ export default function AdminUserForm() {
               'supplier': 'Supplier',
               'service_provider': 'Service Provider',
               'property_agent': 'Agent',
-              'mandi_seller': 'Agent',
+              'mandi_seller': 'Mandi Seller',
             };
             const derivedRole = u.role || (u.partner_type ? partnerTypeToRole[u.partner_type] : null) || 'Customer';
 
@@ -96,7 +97,9 @@ export default function AdminUserForm() {
               service_category_id:
                 profile.service_profile?.service_category_id ||
                 profile.service_profile?.category_id || '',
-              delivery_radius_km: profile.supplier_profile?.delivery_radius_km || 10
+              delivery_radius_km: profile.supplier_profile?.delivery_radius_km || 10,
+              business_name: profile.mandi_profile?.business_name || '',
+              business_description: profile.mandi_profile?.business_description || ''
             });
           }
         }
@@ -143,6 +146,7 @@ export default function AdminUserForm() {
       if (name === 'role') {
         if (value === 'Supplier') newData.partner_type = 'supplier';
         else if (value === 'Service Provider') newData.partner_type = 'service_provider';
+        else if (value === 'Mandi Seller') newData.partner_type = 'mandi_seller';
         else newData.partner_type = 'property_agent';
         
         if (value === 'Customer' || value === 'Admin') {
@@ -188,6 +192,7 @@ export default function AdminUserForm() {
 
   const isSupplier = formData.role === 'Supplier';
   const isServiceProvider = formData.role === 'Service Provider';
+  const isMandiSeller = formData.role === 'Mandi Seller';
   const isPartner = formData.role !== 'Customer' && formData.role !== 'Admin';
 
   if (initLoading) return (
@@ -265,6 +270,7 @@ export default function AdminUserForm() {
                   <select name="role" value={formData.role} onChange={handleChange} className={inputClass}>
                     <option value="Customer">Regular Customer</option>
                     <option value="Agent">Property Expert</option>
+                    <option value="Mandi Seller">Mandi Seller</option>
                     <option value="Supplier">Material Supplier</option>
                     <option value="Service Provider">Service Provider</option>
                     <option value="Admin">Platform Admin</option>
@@ -343,6 +349,19 @@ export default function AdminUserForm() {
                   <label className={labelClass}>Business Address</label>
                   <textarea name="address" rows={2} value={formData.address} onChange={handleChange} className={`${inputClass} resize-none`} placeholder="Full legal location..." />
                 </div>
+
+                {isMandiSeller && (
+                  <div className="space-y-5 pt-2 animate-in slide-in-from-top-2 duration-300">
+                    <div>
+                      <label className={labelClass}>Business/Store Name</label>
+                      <input name="business_name" value={formData.business_name} onChange={handleChange} className={inputClass} placeholder="e.g. Sharma Bricks & Cement" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Business Description</label>
+                      <textarea name="business_description" rows={3} value={formData.business_description} onChange={handleChange} className={`${inputClass} resize-none`} placeholder="Briefly describe the business offerings..." />
+                    </div>
+                  </div>
+                )}
 
                 {isSupplier && (
                   <div className="space-y-3 pt-2">

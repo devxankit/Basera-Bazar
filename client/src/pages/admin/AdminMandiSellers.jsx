@@ -1,54 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Eye, Edit2, Truck, Package, Tag, ToggleLeft, ToggleRight
+  Eye, Edit2, Store, Package, ToggleLeft, ToggleRight,
+  TrendingDown, Plus, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
 
-export default function AdminSuppliers() {
+export default function AdminMandiSellers() {
   const navigate = useNavigate();
-  const [suppliers, setSuppliers] = useState([]);
+  const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    const fetchSuppliers = async () => {
+    const fetchSellers = async () => {
       try {
         const response = await api.get('/admin/users');
         if (response.data.success) {
-          // Filter to only show suppliers
-          const allSuppliers = response.data.data.filter(u => 
-            (u.role || '').toLowerCase() === 'supplier' || 
-            (u.displayRole || '').toLowerCase() === 'supplier'
+          // Filter to only show approved mandi sellers
+          const allSellers = response.data.data.filter(u => 
+            (u.partner_type || '').toLowerCase() === 'mandi_seller' &&
+            u.onboarding_status === 'approved'
           );
-          setSuppliers(allSuppliers);
+          setSellers(allSellers);
         }
       } catch (error) {
-        console.error("Failed to fetch suppliers:", error);
+        console.error("Failed to fetch mandi sellers:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchSuppliers();
+    fetchSellers();
   }, []);
 
-  const toggleActive = async (supplier) => {
+  const toggleActive = async (seller) => {
     try {
-      await api.put(`/admin/users/${supplier._id}`, { is_active: !supplier.is_active });
-      setSuppliers(prev =>
-        prev.map(s => s._id === supplier._id ? { ...s, is_active: !s.is_active } : s)
+      await api.put(`/admin/users/${seller._id}`, { is_active: !seller.is_active });
+      setSellers(prev =>
+        prev.map(s => s._id === seller._id ? { ...s, is_active: !s.is_active } : s)
       );
     } catch (err) {
-      alert('Failed to update supplier status.');
+      alert('Failed to update seller status.');
     }
   };
 
-  const filteredData = suppliers.filter(user => {
+  const filteredData = sellers.filter(user => {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
+      const bizName = user.profile?.mandi_profile?.business_name || '';
       return (
         user.name?.toLowerCase().includes(searchLower) ||
+        bizName.toLowerCase().includes(searchLower) ||
         user.email?.toLowerCase().includes(searchLower) ||
         user.phone?.includes(searchTerm) ||
         user._id?.toLowerCase().includes(searchLower)
@@ -59,11 +62,11 @@ export default function AdminSuppliers() {
 
   const columns = [
     { 
-      header: 'SUPPLIER', 
+      header: 'SELLER', 
       render: (row) => (
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100 shadow-sm overflow-hidden">
-             <img src={row.profileImage || `https://ui-avatars.com/api/?name=${row.name}&background=fef3c7&color=d97706`} alt="" className="w-full h-full object-cover" />
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100 shadow-sm overflow-hidden">
+             <img src={row.profileImage || `https://ui-avatars.com/api/?name=${row.name}&background=e0e7ff&color=4338ca`} alt="" className="w-full h-full object-cover" />
           </div>
           <div>
             <p className="font-black text-slate-900 tracking-tight text-[15px]">{row.name}</p>
@@ -82,34 +85,36 @@ export default function AdminSuppliers() {
       )
     },
     { 
-      header: 'LOCATION', 
+      header: 'BUSINESS NAME', 
       render: (row) => (
-        <div className="space-y-0.5">
-          <p className="text-slate-700 font-bold text-sm">{row.district || 'N/A'}</p>
-          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none">{row.state || '—'}</p>
+        <p className="text-slate-700 font-black text-sm uppercase tracking-tight">
+          {row.profile?.mandi_profile?.business_name || 'N/A'}
+        </p>
+      )
+    },
+    { 
+      header: 'VERIFICATION', 
+      render: (row) => (
+        <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${
+          row.onboarding_status === 'approved' 
+            ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+            : row.onboarding_status === 'rejected'
+            ? 'bg-rose-50 text-rose-600 border-rose-100'
+            : 'bg-amber-50 text-amber-600 border-amber-100'
+        }`}>
+          {row.onboarding_status === 'approved' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+          {row.onboarding_status === 'approved' ? 'Verified' : row.onboarding_status === 'rejected' ? 'Not Approved' : 'Pending'}
         </div>
       )
     },
     { 
-      header: 'MATERIALS', 
+      header: 'PENALTY DUE', 
       render: (row) => {
-        const cats = row.profile?.supplier_profile?.material_categories || [];
-        if (cats.length === 0) {
-          return (
-            <span className="text-[11px] text-slate-400 font-bold italic">No categories</span>
-          );
-        }
+        const penalty = row.profile?.mandi_profile?.penalty_due || 0;
         return (
-          <div className="flex flex-wrap gap-1.5 max-w-[220px]">
-            {cats.map((cat) => (
-              <span
-                key={cat}
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[10px] font-black uppercase tracking-wide"
-              >
-                <Tag size={9} strokeWidth={3} />
-                {cat}
-              </span>
-            ))}
+          <div className={`flex items-center gap-1.5 font-bold tabular-nums ${penalty > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+            <TrendingDown size={14} className={penalty > 0 ? 'opacity-100' : 'opacity-30'} />
+            <span className="text-[14px]">₹{penalty}</span>
           </div>
         );
       }
@@ -139,7 +144,7 @@ export default function AdminSuppliers() {
           >
             <Eye size={18} />
             <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Review Profile
+              View Profile
             </span>
           </button>
           <button 
@@ -170,16 +175,22 @@ export default function AdminSuppliers() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Material Suppliers</h1>
-          <p className="text-slate-500 font-medium mt-1 text-lg">Manage verified vendors and material procurement partners.</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Mandi Sellers</h1>
+          <p className="text-slate-500 font-medium mt-1 text-lg">Manage verified mandi bazaar vendors and their penalty records.</p>
         </div>
+        <button 
+          onClick={() => navigate('/admin/users/add?role=Mandi%20Seller')}
+          className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95 text-sm uppercase tracking-wider"
+        >
+          <Plus size={18} strokeWidth={3} /> Add New Seller
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Total Suppliers', value: suppliers.length, icon: Truck, color: 'text-indigo-600 bg-indigo-50' },
-          { label: 'Active Vendors', value: suppliers.filter(s => s.is_active).length, icon: ToggleRight, color: 'text-emerald-600 bg-emerald-50' },
-          { label: 'Pending Portfolio', value: 0, icon: Package, color: 'text-amber-600 bg-amber-50' }
+          { label: 'Total Sellers', value: sellers.length, icon: Store, color: 'text-indigo-600 bg-indigo-50' },
+          { label: 'Active Sellers', value: sellers.filter(s => s.is_active).length, icon: ToggleRight, color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'Flagged Penalties', value: sellers.filter(s => (s.profile?.mandi_profile?.penalty_due || 0) > 0).length, icon: TrendingDown, color: 'text-rose-600 bg-rose-50' }
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
             <div className={`p-4 rounded-2xl ${stat.color}`}>
@@ -199,7 +210,7 @@ export default function AdminSuppliers() {
         loading={loading} 
         onSearch={setSearchTerm}
         hideFilter={true}
-        searchPlaceholder="Find supplier by name or phone..."
+        searchPlaceholder="Find seller by name, business or phone..."
       />
     </div>
   );

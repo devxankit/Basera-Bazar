@@ -20,6 +20,7 @@ export default function Login() {
   const [otpSent, setOtpSent] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showOtpOnlyModal, setShowOtpOnlyModal] = useState(false);
+  const [showInactiveModal, setShowInactiveModal] = useState(false);
   const [timer, setTimer] = useState(0);
 
   // Timer Countdown Logic
@@ -48,6 +49,8 @@ export default function Login() {
     } catch (error) {
       if (error.response?.status === 404 && error.response?.data?.notExists) {
         setShowSignupModal(true);
+      } else if (error.response?.status === 403 && error.response?.data?.code === 'ACCOUNT_INACTIVE') {
+        setShowInactiveModal(true);
       } else {
         alert(error.response?.data?.message || 'Failed to send OTP. Please try again.');
       }
@@ -74,7 +77,11 @@ export default function Login() {
         navigate('/');
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Invalid OTP. Please try again.');
+      if (error.response?.status === 403 && error.response?.data?.code === 'ACCOUNT_INACTIVE') {
+        setShowInactiveModal(true);
+      } else {
+        alert(error.response?.data?.message || 'Invalid OTP. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -104,6 +111,8 @@ export default function Login() {
           setShowSignupModal(true);
         } else if (code === 'NO_PASSWORD') {
           setShowOtpOnlyModal(true);
+        } else if (error.response?.status === 403 && code === 'ACCOUNT_INACTIVE') {
+          setShowInactiveModal(true);
         } else {
           alert(error.response?.data?.message || 'Login failed. Please check your credentials.');
         }
@@ -554,6 +563,39 @@ export default function Login() {
                 Cancel
               </button>
             </div>
+          </motion.div>
+        </div>
+      )}
+      {/* ── ACCOUNT INACTIVE MODAL ── */}
+      {showInactiveModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(27, 44, 122, 0.4)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '20px'
+        }}>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            style={{
+              backgroundColor: '#ffffff', borderRadius: '24px', padding: '32px',
+              width: '100%', maxWidth: '360px', textAlign: 'center',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+            }}
+          >
+            <div style={{ backgroundColor: '#fff1f2', width: '64px', height: '64px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#e11d48' }}>
+              <Lock size={32} />
+            </div>
+            <div style={{ fontSize: '20px', fontWeight: '700', color: '#1b2c7a', marginBottom: '12px' }}>Account Inactive</div>
+            <div style={{ fontSize: '15px', color: '#5468b8', lineHeight: 1.5, marginBottom: '28px' }}>
+              Your account has been deactivated by the administrator. Please contact support for more information.
+            </div>
+            <button
+              onClick={() => { setShowInactiveModal(false); setIdentifier(''); setOtpSent(false); }}
+              style={{ padding: '16px', backgroundColor: '#e11d48', color: '#ffffff', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 0 #be123c', width: '100%' }}
+            >
+              Okay
+            </button>
           </motion.div>
         </div>
       )}

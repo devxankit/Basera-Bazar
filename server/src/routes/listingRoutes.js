@@ -1,6 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { getNearbyServices, getMandiListings, createPropertyListing, getListingById, getAllListings, getPublicBanners } = require('../controllers/listingController');
+const { 
+  getNearbyServices, 
+  getMandiListings, 
+  createPropertyListing, 
+  createServiceListing,
+  createSupplierListing,
+  getListingById, 
+  getAllListings, 
+  getPublicBanners 
+} = require('../controllers/listingController');
 
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -13,5 +22,7 @@ router.get('/:id', getListingById);
 
 // private routes (Partner specific)
 router.post('/properties', protect, authorizeRoles('partner'), createPropertyListing);
+router.post('/services', protect, authorizeRoles('partner'), createServiceListing);
+router.post('/suppliers', protect, authorizeRoles('partner'), createSupplierListing);
 
 module.exports = router;

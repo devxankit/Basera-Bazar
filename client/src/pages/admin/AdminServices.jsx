@@ -121,21 +121,57 @@ export default function AdminServices() {
         <div className="flex items-center gap-1">
           <button 
             onClick={() => navigate(`/admin/services/view/${row._id}`)}
-            className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all group"
+            className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all group relative"
           >
             <Eye size={18} className="transition-transform group-hover:scale-110" />
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">View</span>
           </button>
+
+          {/* Status Toggle */}
+          {row.status === 'pending_approval' ? (
+            <button 
+              onClick={async () => {
+                try {
+                  await api.patch(`/admin/listings/${row._id}/status`, { status: 'active' });
+                  fetchData();
+                } catch (err) { alert("Failed to approve."); }
+              }}
+              className="p-2.5 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all group relative"
+            >
+              <CheckCircle2 size={18} className="transition-transform group-hover:scale-110" />
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Approve</span>
+            </button>
+          ) : (
+            <button 
+              onClick={async () => {
+                try {
+                  const nextStatus = row.status === 'active' ? 'inactive' : 'active';
+                  await api.patch(`/admin/listings/${row._id}/status`, { status: nextStatus });
+                  fetchData();
+                } catch (err) { alert("Failed to toggle status."); }
+              }}
+              className={`p-2.5 rounded-xl transition-all group relative ${row.status === 'active' ? 'text-amber-500 hover:bg-amber-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
+            >
+              {row.status === 'active' ? <XCircle size={18} className="transition-transform group-hover:scale-110" /> : <CheckCircle2 size={18} className="transition-transform group-hover:scale-110" />}
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                {row.status === 'active' ? 'Deactivate' : 'Activate'}
+              </span>
+            </button>
+          )}
+
           <button 
             onClick={() => navigate(`/admin/services/edit/${row._id}`)}
-            className="p-2.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all group"
+            className="p-2.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all group relative"
           >
             <Edit2 size={18} className="transition-transform group-hover:scale-110" />
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit</span>
           </button>
           <button 
             onClick={() => setDeleteId(row._id)}
-            className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all group"
+            className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all group relative"
           >
             <Trash2 size={18} className="transition-transform group-hover:scale-110" />
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px) font-black rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Delete</span>
           </button>
         </div>
       )

@@ -23,6 +23,13 @@ const roles = [
     description: 'Supply construction materials, furniture, and fittings.',
     icon: <Box className="text-orange-500" size={24} />,
     bgColor: 'bg-orange-50'
+  },
+  {
+    id: 'mandi',
+    title: 'Mandi Seller',
+    description: 'Sell construction materials (Bricks, Sand, etc.) with daily pricing.',
+    icon: <Briefcase className="text-cyan-600" size={24} />,
+    bgColor: 'bg-cyan-50'
   }
 ];
 

@@ -5,8 +5,9 @@ const { AuditLog, AdminUser } = require('../models/Admin');
 const { User } = require('../models/User');
 const { PropertyListing, ServiceListing, SupplierListing, MandiListing } = require('../models/Listing');
 const { Transaction, SubscriptionPlan } = require('../models/Finance');
-const { Category, Brand, Unit, ProductName, Banner } = require('../models/System');
+const { Category, Brand, Unit, ProductName, Banner, AppConfig } = require('../models/System');
 const { ActivityLog, logActivity } = require('../utils/activityLogger');
+const { createNotification } = require('../utils/notificationHelper');
 
 // Helper to get ISO Week number
 function getISOWeek(date) {
@@ -343,17 +344,83 @@ const getUserDetail = async (req, res) => {
     }
 
     // 2. Fetch Aggregated Activity Stats
-    const [propertyCount, serviceCount, leadCount, subscriptions] = await Promise.all([
+    const [propertyCount, serviceCount, leadCount, activeSub] = await Promise.all([
       PropertyListing.countDocuments({ partner_id: id }),
       ServiceListing.countDocuments({ partner_id: id }),
       Enquiry.countDocuments({ $or: [{ user_id: id }, { partner_id: id }] }),
-      mongoose.model('Subscription').find({ partner_id: id }).sort({ createdAt: -1 }).limit(1)
+      mongoose.model('Subscription').findOne({ partner_id: id, status: { $in: ['active', 'trial'] } })
+        .populate('plan_id')
+        .sort({ createdAt: -1 })
     ]);
+
+    let calculatedSubscription = null;
+    let effectiveSub = activeSub;
+
+    // Default Plan Fallback Logic for Partners
+    if (!effectiveSub && !['Customer', 'Admin', 'super_admin'].includes(account.role)) {
+      const defaultFreePlan = await mongoose.model('SubscriptionPlan').findOne({ 
+        $or: [{ name: /Free/i }, { price: 0 }] 
+      }).lean();
+
+      effectiveSub = {
+        plan_snapshot: defaultFreePlan ? {
+           name: defaultFreePlan.name,
+           price: defaultFreePlan.price,
+           duration_days: defaultFreePlan.duration_days,
+           listings_limit: defaultFreePlan.listings_limit,
+           featured_listings_limit: defaultFreePlan.featured_listings_limit,
+           leads_limit: defaultFreePlan.leads_limit
+        } : { name: 'Free Trail', price: 0, duration_days: 30, listings_limit: 1, featured_listings_limit: 1, leads_limit: 50 },
+        status: 'active',
+        starts_at: account.createdAt,
+        ends_at: null,
+        is_virtual: true
+      };
+    }
+
+    if (effectiveSub) {
+       // Check for Expiry
+       const now = new Date();
+       if (effectiveSub.status === 'active' && effectiveSub.ends_at && new Date(effectiveSub.ends_at) < now) {
+         effectiveSub.status = 'expired';
+         if (effectiveSub._id && !effectiveSub.is_virtual) {
+           await mongoose.model('Subscription').findByIdAndUpdate(effectiveSub._id, { status: 'expired' });
+         }
+       }
+
+       if (effectiveSub.status !== 'expired') {
+          const startDate = effectiveSub.starts_at;
+          const endDate = effectiveSub.ends_at || now;
+
+          const [pUsed, sUsed, supUsed, fpUsed, fsUsed, eUsed] = await Promise.all([
+            PropertyListing.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } }),
+            ServiceListing.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } }),
+            SupplierListing.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } }),
+            PropertyListing.countDocuments({ partner_id: id, is_featured: true, createdAt: { $gte: startDate, $lte: endDate } }),
+            ServiceListing.countDocuments({ partner_id: id, is_featured: true, createdAt: { $gte: startDate, $lte: endDate } }),
+            Enquiry.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } })
+          ]);
+
+          const totalListingsUsed = pUsed + sUsed + supUsed;
+          const totalFeaturedUsed = fpUsed + fsUsed;
+
+          calculatedSubscription = { ...effectiveSub };
+          if (!effectiveSub.is_virtual && typeof effectiveSub.toObject === 'function') {
+             calculatedSubscription = effectiveSub.toObject();
+          }
+          
+          calculatedSubscription.usage = {
+            listings_created: totalListingsUsed,
+            featured_listings_used: totalFeaturedUsed,
+            enquiries_received_this_month: eUsed
+          };
+       } else {
+          calculatedSubscription = effectiveSub.is_virtual ? { ...effectiveSub } : effectiveSub.toObject();
+       }
+    }
 
     // 3. Construct the response matching the UI needs
     const accountObj = account.toObject();
-    // Shape partner_profile alias so the frontend edit form can read
-    // state/district/address and nested supplier/service profiles
     const partnerProfileAlias = accountObj.partner_type ? {
       state: accountObj.state || '',
       district: accountObj.district || '',
@@ -366,15 +433,13 @@ const getUserDetail = async (req, res) => {
 
     const fullData = {
       ...accountObj,
-      // Expose as partner_profile so AdminUserForm can read it
       partner_profile: partnerProfileAlias,
       stats: {
         properties: propertyCount,
         services: serviceCount,
-        leads: leadCount,
-        subscriptions: subscriptions.length
+        leads: leadCount
       },
-      active_subscription: subscriptions[0] || null
+      active_subscription: calculatedSubscription
     };
 
     res.status(200).json({ success: true, data: fullData });
@@ -427,12 +492,13 @@ const createUser = async (req, res) => {
       newAccount = await User.create({ name, phone, email: email?.toLowerCase(), password, role: 'Customer' });
     } else if (role === 'Admin') {
       newAccount = await AdminUser.create({ name, phone, email: email?.toLowerCase(), password, role: 'Admin' });
-    } else if (['Agent', 'Supplier', 'Service Provider'].includes(role)) {
+    } else if (['Agent', 'Supplier', 'Service Provider', 'Mandi Seller'].includes(role)) {
       // Map frontend roles to backend partner types
       let pType = partner_type || 'service_provider';
       if (role === 'Agent') pType = 'property_agent';
       else if (role === 'Supplier') pType = 'supplier';
       else if (role === 'Service Provider') pType = 'service_provider';
+      else if (role === 'Mandi Seller') pType = 'mandi_seller';
 
       // Build nested profiles
       const profile = {};
@@ -444,6 +510,11 @@ const createUser = async (req, res) => {
       } else if (role === 'Service Provider') {
         profile.service_profile = {
           category_id: req.body.service_category_id || null
+        };
+      } else if (role === 'Mandi Seller') {
+        profile.mandi_profile = {
+          business_name: req.body.business_name || '',
+          business_description: req.body.business_description || ''
         };
       }
 
@@ -502,10 +573,11 @@ const updateUser = async (req, res) => {
       state,
       district,
       address,
-      password,
       name,
       email,
-      phone
+      phone,
+      business_name,
+      business_description
     } = req.body;
 
     // Detect Model
@@ -550,6 +622,14 @@ const updateUser = async (req, res) => {
       if (service_category_id && service_category_id !== '') {
         updateData['profile.service_profile.category_id'] = service_category_id;
       }
+
+      // Mandi Seller specific fields
+      if (business_name !== undefined) {
+        updateData['profile.mandi_profile.business_name'] = business_name;
+      }
+      if (business_description !== undefined) {
+        updateData['profile.mandi_profile.business_description'] = business_description;
+      }
     }
 
     const updated = await Model.findByIdAndUpdate(
@@ -557,6 +637,19 @@ const updateUser = async (req, res) => {
       { $set: updateData },
       { new: true, runValidators: false }
     );
+
+    // NEW: Notify if account status changed
+    if (is_active !== undefined && account.is_active !== is_active) {
+      await createNotification(
+        isPartnerModel ? 'partner' : 'user',
+        id,
+        is_active ? 'Account Activated! 🔓' : 'Account Deactivated 🔒',
+        is_active 
+          ? 'Welcome back! Your account has been activated by the administrator. You can now access all platform features.'
+          : 'Your account has been deactivated by the administrator. Please contact support for more information.',
+        { type: 'account_status_change', is_active }
+      );
+    }
 
     res.status(200).json({ success: true, message: 'Profile updated successfully.', data: updated });
 
@@ -644,50 +737,126 @@ const getUserSubscriptionHistory = async (req, res) => {
 const getAllSubscriptions = async (req, res) => {
   try {
     const { plan, status, role, search } = req.query;
-    let query = {};
 
-    if (plan && plan !== 'all') {
-      // Check if plan is a valid ObjectId
-      if (mongoose.Types.ObjectId.isValid(plan)) {
-        query.plan_id = plan;
-      }
-    }
+    const partnerRoles = ['Agent', 'Supplier', 'Service Provider', 'service_provider', 'property_agent', 'supplier', 'mandi_seller'];
 
-    if (status && status !== 'all') {
-      query.status = status;
-    }
+    // Define search object for common fields
+    let s = search ? new RegExp(search, 'i') : null;
 
-    // Since role is in partner_id, we'll fetch and then filter or use aggregation
-    // For now, let's fetch all and filter in memory if role/search is provided
-    // or use a more complex aggregate if the dataset grows.
-    
-    let subscriptions = await mongoose.model('Subscription').find(query)
-      .populate('partner_id', 'name email phone partner_type role profileImage')
-      .populate('plan_id', 'name price duration_days')
-      .sort({ createdAt: -1 });
-
+    // 1. Fetch from Users collection
+    let uQuery = { 
+      role: { $in: ['Agent', 'Supplier', 'Service Provider'] } 
+    };
     if (role && role !== 'all') {
-      subscriptions = subscriptions.filter(sub => {
-        if (!sub.partner_id) return false;
-        // Handle mapping between frontend Role and backend Role
-        const pRole = sub.partner_id.role;
-        if (role === 'ServiceProvider' && pRole === 'service_provider') return true;
-        return pRole === role;
+      uQuery.role = role.replace(/([A-Z])/g, ' $1').trim();
+    }
+    if (s) {
+       uQuery.$or = [{ name: s }, { email: s }, { phone: s }];
+    }
+    const users = await mongoose.model('User').find(uQuery).lean();
+
+    // 2. Fetch from Partners collection
+    let pQuery = {};
+    if (role && role !== 'all') {
+       const mappedRole = role === 'ServiceProvider' ? 'service_provider' : 
+                          role === 'Agent' ? 'property_agent' : 
+                          role === 'Supplier' ? 'supplier' : role.toLowerCase();
+       pQuery.partner_type = mappedRole;
+    }
+    if (s) {
+       pQuery.$or = [{ name: s }, { email: s }, { phone: s }];
+    }
+    const legacyPartners = await mongoose.model('Partner').find(pQuery).lean();
+
+    // 3. Unify and deduplicate
+    const partnerMap = new Map();
+
+    users.forEach(u => {
+      partnerMap.set(u._id.toString(), {
+        ...u,
+        role: u.role,
+        source: 'User'
+      });
+    });
+
+    legacyPartners.forEach(p => {
+      if (!partnerMap.has(p._id.toString())) {
+        partnerMap.set(p._id.toString(), {
+          ...p,
+          role: p.role || p.partner_type,
+          source: 'Partner'
+        });
+      }
+    });
+
+    const allPartners = Array.from(partnerMap.values());
+
+    // 4. Enrich with Subscription data
+    const now = new Date();
+    const finalData = [];
+
+    // Fetch the default Free Plan once to use as fallback
+    const defaultFreePlan = await mongoose.model('SubscriptionPlan').findOne({ 
+      $or: [{ name: /Free/i }, { price: 0 }] 
+    }).lean();
+
+    for (let partner of allPartners) {
+      let activeSub = null;
+      
+      if (partner.active_subscription_id) {
+        activeSub = await mongoose.model('Subscription').findById(partner.active_subscription_id).lean();
+      }
+
+      if (!activeSub) {
+        activeSub = await mongoose.model('Subscription').findOne({ 
+          partner_id: partner._id,
+          status: { $in: ['active', 'trial', 'expired'] }
+        }).sort({ createdAt: -1 }).lean();
+      }
+
+      if (activeSub) {
+        if (activeSub.status === 'active' && activeSub.ends_at && new Date(activeSub.ends_at) < now) {
+          activeSub.status = 'expired';
+          await mongoose.model('Subscription').findByIdAndUpdate(activeSub._id, { status: 'expired' });
+        }
+      }
+
+      // If STILL no activeSub, create a VIRTUAL default one per user's logic
+      if (!activeSub) {
+         activeSub = {
+           _id: `VIRTUAL-FREE-${partner._id}`,
+           partner_id: partner._id,
+           plan_snapshot: defaultFreePlan ? {
+              name: defaultFreePlan.name,
+              price: defaultFreePlan.price,
+              duration_days: defaultFreePlan.duration_days,
+              listings_limit: defaultFreePlan.listings_limit,
+              featured_listings_limit: defaultFreePlan.featured_listings_limit,
+              leads_limit: defaultFreePlan.leads_limit
+           } : { name: 'Free Tier', price: 0, duration_days: 30, listings_limit: 1, featured_listings_limit: 1, leads_limit: 50 },
+           status: 'active', 
+           starts_at: partner.createdAt,
+           ends_at: null,
+           is_virtual: true
+         };
+      }
+
+      if (plan && plan !== 'all') {
+         if (!activeSub || (activeSub.plan_id && activeSub.plan_id.toString() !== plan)) continue;
+      }
+
+      if (status && status !== 'all') {
+         if (activeSub.status !== status) continue;
+      }
+
+      finalData.push({
+        ...activeSub,
+        partner_id: partner,
+        _id: activeSub._id
       });
     }
 
-    if (search) {
-      const s = search.toLowerCase();
-      subscriptions = subscriptions.filter(sub => {
-        const name = (sub.partner_id?.name || '').toLowerCase();
-        const email = (sub.partner_id?.email || '').toLowerCase();
-        const planName = (sub.plan_snapshot?.name || '').toLowerCase();
-        const subId = sub._id.toString().toLowerCase();
-        return name.includes(s) || email.includes(s) || planName.includes(s) || subId.includes(s);
-      });
-    }
-
-    res.status(200).json({ success: true, count: subscriptions.length, data: subscriptions });
+    res.status(200).json({ success: true, count: finalData.length, data: finalData });
   } catch (error) {
     console.error("Error fetching all subscriptions:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -977,6 +1146,25 @@ const updateListingStatus = async (req, res) => {
 
     await listing.save();
 
+    // NEW: Notify partner if approved
+    if (status === 'active' && listing.partner_id) {
+       await createNotification(
+         'partner',
+         listing.partner_id,
+         'Listing Approved! 🎉',
+         `Congratulations! Your listing "${listing.title}" has been approved and is now live on BaseraBazar.`,
+         { listing_id: listing._id, type: 'listing_approval' }
+       );
+    } else if (status === 'rejected' && listing.partner_id) {
+       await createNotification(
+         'partner',
+         listing.partner_id,
+         'Listing Update',
+         `Your listing "${listing.title}" requires changes. Reason: ${status_reason || 'Not specified'}.`,
+         { listing_id: listing._id, type: 'listing_rejection' }
+       );
+    }
+
     res.status(200).json({ success: true, message: `Listing marked as ${status}`, data: listing });
   } catch (error) {
     console.error("Error updating status:", error);
@@ -1169,17 +1357,96 @@ const updateLeadStatus = async (req, res) => {
 
 const getSubscriptionById = async (req, res) => {
   try {
-    const subscription = await mongoose.model('Subscription').findById(req.params.id)
-      .populate('partner_id', 'name email phone partner_type role profileImage address state district createdAt')
-      .populate('plan_id');
+    const { id } = req.params;
+    let subscription;
+
+    if (id.startsWith('VIRTUAL-FREE-')) {
+      const partnerId = id.replace('VIRTUAL-FREE-', '');
+      const partner = await mongoose.model('User').findById(partnerId).lean();
+      
+      if (!partner) return res.status(404).json({ success: false, message: 'Partner not found for virtual subscription' });
+
+      // Fetch default free plan
+      const defaultFreePlan = await mongoose.model('SubscriptionPlan').findOne({ 
+        $or: [{ name: /Free/i }, { price: 0 }] 
+      }).lean();
+
+      subscription = {
+        _id: id,
+        partner_id: partner,
+        plan_snapshot: defaultFreePlan ? {
+           name: defaultFreePlan.name,
+           price: defaultFreePlan.price,
+           duration_days: defaultFreePlan.duration_days,
+           listings_limit: defaultFreePlan.listings_limit,
+           featured_listings_limit: defaultFreePlan.featured_listings_limit,
+           leads_limit: defaultFreePlan.leads_limit
+        } : { name: 'Free Tier', price: 0, duration_days: 30, listings_limit: 1, featured_listings_limit: 1, leads_limit: 50 },
+        status: 'active',
+        starts_at: partner.createdAt,
+        ends_at: new Date(new Date(partner.createdAt).getTime() + (30 * 24 * 60 * 60 * 1000)), // Default 30 days window for stats
+        is_virtual: true
+      };
+    } else {
+      subscription = await mongoose.model('Subscription').findById(id)
+        .populate('partner_id', 'name email phone partner_type role profileImage address state district createdAt')
+        .populate('plan_id');
+      
+      if (subscription) {
+        subscription = subscription.toObject();
+      }
+    }
 
     if (!subscription) return res.status(404).json({ success: false, message: 'Subscription not found' });
 
-    // Fetch associated transaction if any
-    const transaction = await mongoose.model('Transaction').findOne({ 
-      reference_id: subscription._id,
-      type: 'subscription_payment'
-    }).populate('razorpay_order_id');
+    // 1. Check for Expiry and update status dynamically (for real records)
+    const now = new Date();
+    if (!subscription.is_virtual && subscription.status === 'active' && subscription.ends_at && new Date(subscription.ends_at) < now) {
+      subscription.status = 'expired';
+      await mongoose.model('Subscription').findByIdAndUpdate(subscription._id, { status: 'expired' });
+    }
+
+    // 2. Fetch REAL-TIME Usage Statistics
+    const partnerId = subscription.partner_id?._id || subscription.partner_id;
+    const startDate = subscription.starts_at;
+    const endDate = subscription.ends_at || now;
+
+    const [propertyCount, serviceCount, supplierCount, featuredPropertyCount, featuredServiceCount, enquiryCount] = await Promise.all([
+      PropertyListing.countDocuments({ partner_id: partnerId, createdAt: { $gte: startDate, $lte: endDate } }),
+      ServiceListing.countDocuments({ partner_id: partnerId, createdAt: { $gte: startDate, $lte: endDate } }),
+      SupplierListing.countDocuments({ partner_id: partnerId, createdAt: { $gte: startDate, $lte: endDate } }),
+      PropertyListing.countDocuments({ partner_id: partnerId, is_featured: true, createdAt: { $gte: startDate, $lte: endDate } }),
+      ServiceListing.countDocuments({ partner_id: partnerId, is_featured: true, createdAt: { $gte: startDate, $lte: endDate } }),
+      Enquiry.countDocuments({ partner_id: partnerId, createdAt: { $gte: startDate, $lte: endDate } })
+    ]);
+
+    const totalListingsUsed = propertyCount + serviceCount + supplierCount;
+    const totalFeaturedUsed = featuredPropertyCount + featuredServiceCount;
+
+    const usageData = {
+      listings_created: totalListingsUsed,
+      featured_listings_used: totalFeaturedUsed,
+      enquiries_received_this_month: enquiryCount,
+      usage_reset_at: subscription.usage?.usage_reset_at || new Date(new Date(startDate).getTime() + (30 * 24 * 60 * 60 * 1000))
+    };
+
+    // Update the subscription document's usage field to stay in sync (only for real records)
+    if (!subscription.is_virtual) {
+      await mongoose.model('Subscription').findByIdAndUpdate(subscription._id, {
+        $set: { usage: usageData, status: subscription.status }
+      });
+    }
+
+    subscription.usage = usageData;
+
+    // 3. Fetch associated transaction if any (only for real records)
+    let transaction = null;
+    if (!subscription.is_virtual) {
+      transaction = await mongoose.model('Transaction').findOne({ 
+        reference_id: subscription._id,
+        type: 'subscription_payment'
+      }).populate('razorpay_order_id');
+    }
 
     res.status(200).json({ 
       success: true, 
@@ -1187,6 +1454,7 @@ const getSubscriptionById = async (req, res) => {
       transaction: transaction || null
     });
   } catch (error) {
+    console.error("getSubscriptionById error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -1386,8 +1654,11 @@ const deleteSubscriptionPlan = async (req, res) => {
  */
 const getSystemCategories = async (req, res) => {
   try {
-    const { type, parent_id } = req.query;
-    const query = { is_active: true };
+    const { type, parent_id, include_inactive } = req.query;
+    
+    // Only filter for active if not explicitly requested by admin (admins should see inactive ones to manage/reactivate)
+    const query = include_inactive === 'true' ? {} : { is_active: true };
+    
     if (type) query.type = type;
     if (parent_id !== undefined) query.parent_id = parent_id === 'null' ? null : parent_id;
 
@@ -1480,8 +1751,29 @@ const updateCategory = async (req, res) => {
 
 const deleteCategory = async (req, res) => {
   try {
-    await Category.findByIdAndUpdate(req.params.id, { is_active: false });
-    res.status(200).json({ success: true, message: 'Category deactivated successfully' });
+    const { id } = req.params;
+
+    // 1. Safety Check: Check for active listings in this category or subcategory
+    const [propertyCount, serviceCount, supplierCount] = await Promise.all([
+      PropertyListing.countDocuments({ $or: [{ category_id: id }, { subcategory_id: id }] }),
+      ServiceListing.countDocuments({ $or: [{ category_id: id }, { subcategory_id: id }] }),
+      SupplierListing.countDocuments({ $or: [{ category_id: id }, { subcategory_id: id }] })
+    ]);
+
+    const totalListings = propertyCount + serviceCount + supplierCount;
+
+    if (totalListings > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Cannot delete category. It contains ${totalListings} active listings. Please delete or move those listings first.` 
+      });
+    }
+
+    // 2. Perform deletion
+    const deleted = await Category.findByIdAndDelete(id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'Category not found.' });
+
+    res.status(200).json({ success: true, message: 'Category permanently removed from database' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -1513,8 +1805,10 @@ const getCategoryDetail = async (req, res) => {
 // BRANDS
 const getBrands = async (req, res) => {
   try {
-    const brands = await Brand.find().sort({ name: 1 }); // return all for admin
-    res.status(200).json({ success: true, data: brands });
+    const { include_inactive } = req.query;
+    const query = include_inactive === 'true' ? {} : { is_active: true };
+    const brands = await Brand.find(query).sort({ name: 1 });
+    res.status(200).json({ success: true, count: brands.length, data: brands });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -1575,8 +1869,10 @@ const deleteBrand = async (req, res) => {
 // UNITS
 const getUnits = async (req, res) => {
   try {
-    const units = await Unit.find().sort({ name: 1 }); // return all (active + inactive) for admin
-    res.status(200).json({ success: true, data: units });
+    const { include_inactive } = req.query;
+    const query = include_inactive === 'true' ? {} : { is_active: true };
+    const units = await Unit.find(query).sort({ name: 1 });
+    res.status(200).json({ success: true, count: units.length, data: units });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -1837,6 +2133,77 @@ const createServiceListing = async (req, res) => {
   }
 };
 
+const updateSubscriptionStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['active', 'expired', 'cancelled', 'trial'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    const subscription = await mongoose.model('Subscription').findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, message: 'Subscription not found' });
+    }
+
+    res.status(200).json({ success: true, data: subscription, message: `Subscription ${status} successfully` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Mandi Marketplace Global Settings
+ */
+const getMandiSettings = async (req, res) => {
+  try {
+    const tokenAmount = await AppConfig.findOne({ key: 'mandi_token_amount' });
+    const commissionRate = await AppConfig.findOne({ key: 'mandi_commission_rate' });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        token_amount: tokenAmount ? tokenAmount.value : 500, // Default 500
+        commission_rate: commissionRate ? commissionRate.value : 10 // Default 10%
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching Mandi settings.' });
+  }
+};
+
+const updateMandiSettings = async (req, res) => {
+  try {
+    const { token_amount, commission_rate } = req.body;
+
+    if (token_amount !== undefined) {
+      await AppConfig.findOneAndUpdate(
+        { key: 'mandi_token_amount' },
+        { value: Number(token_amount), description: 'Non-refundable booking fee for Mandi items' },
+        { upsert: true, new: true }
+      );
+    }
+
+    if (commission_rate !== undefined) {
+      await AppConfig.findOneAndUpdate(
+        { key: 'mandi_commission_rate' },
+        { value: Number(commission_rate), description: 'Global commission rate for Mandi Marketplace' },
+        { upsert: true, new: true }
+      );
+    }
+
+    res.status(200).json({ success: true, message: 'Mandi settings updated successfully.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error updating Mandi settings.' });
+  }
+};
+
 module.exports = {
   findNearestMandiSellers,
   assignMandiEnquiry,
@@ -1863,7 +2230,6 @@ module.exports = {
   createSubscriptionPlan,
   updateSubscriptionPlan,
   deleteSubscriptionPlan,
-  getSystemCategories,
   getSystemCategories,
   createCategory,
   updateCategory,
@@ -1894,5 +2260,8 @@ module.exports = {
   getUserReport,
   createPropertyListing,
   createServiceListing,
-  getSubscriptionById
+  getSubscriptionById,
+  updateSubscriptionStatus,
+  getMandiSettings,
+  updateMandiSettings
 };

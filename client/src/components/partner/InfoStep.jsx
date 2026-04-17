@@ -47,6 +47,10 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
   
   const profileInputRef = useRef(null);
   const businessLogoRef = useRef(null);
+  const panInputRef = useRef(null);
+  const aadharFrontRef = useRef(null);
+  const aadharBackRef = useRef(null);
+  const gstInputRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -460,33 +464,71 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
                     ></textarea>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <InputField 
-                      icon={<CreditCard size={18} />} 
-                      label="PAN Number" 
-                      name="pan"
-                      value={formData.pan}
-                      onChange={handleChange}
-                      placeholder="ABCDE1234F" 
-                    />
-                    <InputField 
-                      icon={<Hash size={18} />} 
-                      label="GST Number" 
-                      name="gst"
-                      value={formData.gst}
-                      onChange={handleChange}
-                      placeholder="Optional" 
-                    />
-                  </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <InputField 
+                          icon={<CreditCard size={18} />} 
+                          label="PAN Number *" 
+                          name="pan"
+                          value={formData.pan}
+                          onChange={handleChange}
+                          placeholder="ABCDE1234F" 
+                        />
+                        {role === 'mandi' && (
+                          <div className="mt-2">
+                             <input type="file" ref={panInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'panImage')} />
+                             <button type="button" onClick={() => panInputRef.current.click()} className="w-full h-20 bg-white border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 overflow-hidden">
+                                {formData.panImage ? <img src={formData.panImage} className="w-full h-full object-cover" /> : <span className="text-[10px] text-slate-400">PAN Image *</span>}
+                             </button>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <InputField 
+                          icon={<Hash size={18} />} 
+                          label="GST Number" 
+                          name="gst"
+                          value={formData.gst}
+                          onChange={handleChange}
+                          placeholder="Optional" 
+                        />
+                        {role === 'mandi' && (
+                          <div className="mt-2">
+                             <input type="file" ref={gstInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'gstImage')} />
+                             <button type="button" onClick={() => gstInputRef.current.click()} className="w-full h-20 bg-white border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 overflow-hidden">
+                                {formData.gstImage ? <img src={formData.gstImage} className="w-full h-full object-cover" /> : <span className="text-[10px] text-slate-400">GST Certificate *</span>}
+                             </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                  <InputField 
-                    icon={<User size={18} />} 
-                    label="Aadhar Number" 
-                    name="aadhar"
-                    value={formData.aadhar}
-                    onChange={handleChange}
-                    placeholder="12 digit number" 
-                  />
+                    <div className="space-y-4">
+                      <InputField 
+                        icon={<User size={18} />} 
+                        label="Aadhar Number *" 
+                        name="aadhar"
+                        value={formData.aadhar}
+                        onChange={handleChange}
+                        placeholder="12 digit number" 
+                      />
+                      {role === 'mandi' && (
+                        <div className="grid grid-cols-2 gap-4">
+                           <div>
+                              <input type="file" ref={aadharFrontRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharFront')} />
+                              <button type="button" onClick={() => aadharFrontRef.current.click()} className="w-full h-24 bg-white border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 overflow-hidden">
+                                 {formData.aadharFront ? <img src={formData.aadharFront} className="w-full h-full object-cover" /> : <span className="text-[10px] text-slate-400">Aadhar Front *</span>}
+                              </button>
+                           </div>
+                           <div>
+                              <input type="file" ref={aadharBackRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharBack')} />
+                              <button type="button" onClick={() => aadharBackRef.current.click()} className="w-full h-24 bg-white border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 overflow-hidden">
+                                 {formData.aadharBack ? <img src={formData.aadharBack} className="w-full h-full object-cover" /> : <span className="text-[10px] text-slate-400">Aadhar Back *</span>}
+                              </button>
+                           </div>
+                        </div>
+                      )}
+                    </div>
 
                   <div className="relative">
                     <div className="absolute left-4 top-4 text-slate-400">

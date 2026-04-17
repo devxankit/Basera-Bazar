@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Building2, Wrench, Store } from 'lucide-react';
+import { Home, Building2, Wrench, Store, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -12,9 +12,10 @@ function cn(...inputs) {
 const BottomNav = () => {
   const navItems = [
     { icon: Home, label: 'Home', path: '/' },
-    { icon: Building2, label: 'Properties', path: '/browse/property' },
-    { icon: Wrench, label: 'Services', path: '/browse/service' },
-    { icon: Store, label: 'Suppliers', path: '/browse/supplier' }
+    { icon: Building2, label: 'Property', path: '/browse/property' },
+    { icon: Wrench, label: 'Service', path: '/browse/service' },
+    { icon: ShoppingBag, label: 'Mandi', path: '/mandi-bazar' },
+    { icon: Store, label: 'Supply', path: '/browse/supplier' }
   ];
 
   return (

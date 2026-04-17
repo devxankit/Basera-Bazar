@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BannerCarousel from '../../components/common/BannerCarousel';
-import { Search, Building2, Wrench, Store, ArrowRight, MapPin, Heart, Plus, Briefcase, Loader2 } from 'lucide-react';
+import { Search, Building2, Wrench, Store, ArrowRight, MapPin, Heart, Plus, Briefcase, Loader2, ShoppingBag } from 'lucide-react';
 import { useLocationContext } from '../../context/LocationContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -60,12 +60,22 @@ const Home = () => {
     { 
       id: 'supplier', 
       title: 'SUPPLIERS', 
-      count: '450+ listings', 
+      count: 'Enquiry System', 
       icon: Store, 
       bgColor: 'bg-emerald-50',
       iconColor: 'text-emerald-500',
       borderColor: 'border-emerald-100',
       path: '/category/supplier'
+    },
+    { 
+      id: 'mandi', 
+      title: 'MANDI BAZAR', 
+      count: 'Direct Order', 
+      icon: ShoppingBag, 
+      bgColor: 'bg-indigo-50',
+      iconColor: 'text-[#1f2355]',
+      borderColor: 'border-indigo-100',
+      path: '/mandi-bazar'
     }
   ];
 
@@ -91,12 +101,39 @@ const Home = () => {
         <BannerCarousel />
       </div>
 
+      {/* Flagship Mandi Bazar Banner */}
+      <div className="px-5">
+        <div 
+          onClick={() => navigate('/mandi-bazar')}
+          className="bg-gradient-to-br from-[#1f2355] to-[#2a307d] rounded-[32px] p-6 text-white relative overflow-hidden shadow-xl shadow-indigo-900/20 active:scale-[0.98] transition-all cursor-pointer group"
+        >
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-110 transition-transform" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#fa8639]/10 rounded-full -ml-16 -mb-16 blur-xl" />
+          
+          <div className="relative z-10 flex flex-col gap-4">
+            <div className="flex items-center gap-2 px-3 py-1 bg-white/10 w-fit rounded-full border border-white/10 backdrop-blur-sm">
+              <ShoppingBag size={12} className="text-[#fa8639]" />
+              <span className="text-[10px] font-black uppercase tracking-widest">New: Direct Ordering</span>
+            </div>
+            
+            <div className="space-y-1">
+              <h2 className="text-[24px] font-black leading-tight italic">Mandi <span className="text-[#fa8639]">Bazar</span></h2>
+              <p className="text-[13px] text-white/60 font-medium max-w-[70%]">Get building materials delivered directly to your site at best market prices.</p>
+            </div>
+            
+            <button className="flex items-center gap-2 text-[12px] font-bold text-[#fa8639] group-hover:translate-x-1 transition-transform">
+              ORDER NOW <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Vertical Selection Section (Ref #3) */}
       <div className="px-5 space-y-4">
         <h2 className="text-lg font-semibold text-primary-900 tracking-tight uppercase">
           Browse Categories
         </h2>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {categories.map((cat) => (
             <button 
               key={cat.id}

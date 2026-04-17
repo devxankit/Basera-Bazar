@@ -24,7 +24,7 @@ const subscriptionPlanSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const subscriptionSchema = new mongoose.Schema({
-  partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
+  partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   plan_id: { type: mongoose.Schema.Types.ObjectId, ref: 'SubscriptionPlan' },
   plan_snapshot: { type: mongoose.Schema.Types.Mixed, required: true },
   status: {
@@ -36,6 +36,7 @@ const subscriptionSchema = new mongoose.Schema({
   ends_at: { type: Date },
   usage: {
     listings_created: { type: Number, default: 0 },
+    featured_listings_used: { type: Number, default: 0 },
     enquiries_received_this_month: { type: Number, default: 0 },
     usage_reset_at: { type: Date }
   },

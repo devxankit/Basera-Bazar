@@ -91,6 +91,30 @@ export default function PartnerRegistration() {
          logoUrl = res.url;
       }
 
+      let panUrl = formData.panImage;
+      if (formData.panImage && formData.panImage.startsWith('data:')) {
+         const res = await db.uploadFile(await fetch(formData.panImage).then(r => r.blob()));
+         panUrl = res.url;
+      }
+
+      let aadharFrontUrl = formData.aadharFront;
+      if (formData.aadharFront && formData.aadharFront.startsWith('data:')) {
+         const res = await db.uploadFile(await fetch(formData.aadharFront).then(r => r.blob()));
+         aadharFrontUrl = res.url;
+      }
+
+      let aadharBackUrl = formData.aadharBack;
+      if (formData.aadharBack && formData.aadharBack.startsWith('data:')) {
+         const res = await db.uploadFile(await fetch(formData.aadharBack).then(r => r.blob()));
+         aadharBackUrl = res.url;
+      }
+
+      let gstUrl = formData.gstImage;
+      if (formData.gstImage && formData.gstImage.startsWith('data:')) {
+         const res = await db.uploadFile(await fetch(formData.gstImage).then(r => r.blob()));
+         gstUrl = res.url;
+      }
+
       // 4. Temporarily save token to api instance for the profile update
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
@@ -98,7 +122,8 @@ export default function PartnerRegistration() {
       const roleMapping = {
         'agent': 'property_agent',
         'service': 'service_provider',
-        'supplier': 'supplier'
+        'supplier': 'supplier',
+        'mandi': 'mandi_seller'
       };
       const backendRole = roleMapping[selectedRole] || 'service_provider';
 
@@ -107,18 +132,20 @@ export default function PartnerRegistration() {
         email: formData.email,
         partner_type: backendRole,
         image: profileUrl,
-        business_details: {
-          name: formData.businessName,
-          category: formData.category, // From supplier selection or general
-          address: formData.address || `${formData.district}, ${formData.state}`,
-          logo: logoUrl,
-          description: formData.businessDescription
+        kyc: {
+          pan_number: formData.pan,
+          pan_image: panUrl,
+          aadhar_number: formData.aadhar,
+          aadhar_front_image: aadharFrontUrl,
+          aadhar_back_image: aadharBackUrl,
+          gst_number: formData.gst,
+          gst_image: gstUrl
         },
-        kyc_details: {
-          pan_card: formData.pan,
-          adhaar_card: formData.aadhar,
-          gst_number: formData.gst
-        }
+        mandi_profile: backendRole === 'mandi_seller' ? {
+          business_name: formData.businessName,
+          business_logo: logoUrl,
+          business_description: formData.businessDescription
+        } : undefined
       };
 
       await api.put('/auth/profile', updatePayload);

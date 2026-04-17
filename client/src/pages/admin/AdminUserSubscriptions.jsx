@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   CreditCard, Plus, Eye, Ban, Calendar, Clock, 
-  ChevronRight, ArrowLeft, Layers, Star, Users, Briefcase, Mail, Phone
+  ChevronRight, ArrowLeft, Layers, Star, Users, Briefcase, Mail, Phone,
+  CheckCircle2
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -54,15 +55,15 @@ export default function AdminUserSubscriptions() {
       {/* User Summary Card */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
          <div className="xl:col-span-2 bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-8">
-            <div className="w-24 h-24 rounded-full bg-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-xl">
-              {user?.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+            <div className="w-24 h-24 rounded-full bg-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-xl uppercase">
+              {user?.name ? user.name.split(' ').map(n => n[0]).join('') : 'U'}
             </div>
             <div className="flex-grow space-y-4 text-center md:text-left">
                <div>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight flex flex-wrap items-center gap-3 justify-center md:justify-start">
-                    {user?.name}'s Subscriptions
+                    {user?.name || 'User'}'s Subscriptions
                     <span className="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200">
-                      {user?.role}
+                      {user?.role || 'Partner'}
                     </span>
                   </h2>
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2 justify-center md:justify-start">
@@ -127,58 +128,65 @@ export default function AdminUserSubscriptions() {
                </tr>
              </thead>
              <tbody className="divide-y divide-slate-50">
-               {subscriptions.length > 0 ? subscriptions.map((sub, idx) => (
-                 <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                   <td className="px-8 py-6">
-                     <p className="font-black text-slate-900 tracking-tight">Free Trail</p>
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: BSP-{sub._id?.substring(0, 4) || 'TRIAL'}</p>
-                   </td>
-                   <td className="px-8 py-6">
-                     <p className="text-sm font-bold text-slate-700">30 Days</p>
-                     <p className="text-[11px] font-bold text-slate-400">1 Month(s)</p>
-                   </td>
-                   <td className="px-8 py-6">
-                     <span className="text-[15px] font-black text-slate-900 tracking-tight">₹0</span>
-                   </td>
-                   <td className="px-8 py-6">
-                     <div className="space-y-1.5">
-                        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
-                          <Layers size={14} className="text-slate-400" />
-                          Listings: 1
-                        </div>
-                        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
-                          <Star size={14} className="text-slate-400" />
-                          Featured: 1
-                        </div>
-                        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
-                          <Users size={14} className="text-slate-400" />
-                          Leads: 50
-                        </div>
-                     </div>
-                   </td>
-                   <td className="px-8 py-6 text-center">
-                     <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm">
-                       Active
-                     </span>
-                   </td>
-                   <td className="px-8 py-6">
-                     <p className="text-[13px] font-black text-slate-800 tracking-tight">08 Apr 2026</p>
-                   </td>
-                   <td className="px-8 py-6">
-                     <p className="text-[13px] font-black text-slate-800 tracking-tight">08 May 2026</p>
-                   </td>
-                   <td className="px-8 py-6">
-                      <div className="flex items-center justify-center gap-3">
-                         <button className="w-9 h-9 flex items-center justify-center border-2 border-orange-500 text-orange-500 rounded-full hover:bg-orange-50 active:scale-90 transition-all">
-                           <Eye size={16} />
-                         </button>
-                         <button className="w-9 h-9 flex items-center justify-center border-2 border-rose-500 text-rose-500 rounded-full hover:bg-rose-50 active:scale-90 transition-all">
-                           <Ban size={16} />
-                         </button>
+                {subscriptions.length > 0 ? subscriptions.map((sub, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-8 py-6">
+                      <p className="font-black text-slate-900 tracking-tight">{sub.plan_snapshot?.name || 'Manual Plan'}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {sub._id?.toString().slice(-6).toUpperCase()}</p>
+                    </td>
+                    <td className="px-8 py-6">
+                      <p className="text-sm font-bold text-slate-700">{sub.plan_snapshot?.duration_days || 30} Days</p>
+                      <p className="text-[11px] font-bold text-slate-400">Validity Period</p>
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className="text-[15px] font-black text-slate-900 tracking-tight">₹{sub.plan_snapshot?.price || 0}</span>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="space-y-1.5">
+                         <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+                           <Layers size={14} className="text-slate-400" />
+                           Listings: {sub.plan_snapshot?.listings_limit === -1 ? '∞' : sub.plan_snapshot?.listings_limit || 0}
+                         </div>
+                         <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+                           <Star size={14} className="text-slate-400" />
+                           Featured: {sub.plan_snapshot?.featured_listings_limit === -1 ? '∞' : sub.plan_snapshot?.featured_listings_limit || 0}
+                         </div>
+                         <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+                           <Users size={14} className="text-slate-400" />
+                           Leads: {sub.plan_snapshot?.leads_limit === -1 ? '∞' : sub.plan_snapshot?.leads_limit || 0}
+                         </div>
                       </div>
-                   </td>
-                 </tr>
-               )) : (
+                    </td>
+                    <td className="px-8 py-6 text-center">
+                      <span className={`px-3 py-1 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm ${
+                        sub.status === 'active' ? 'bg-emerald-500' : 
+                        sub.status === 'expired' ? 'bg-rose-500' : 'bg-slate-400'
+                      }`}>
+                        {sub.status || 'Unknown'}
+                      </span>
+                    </td>
+                    <td className="px-8 py-6">
+                      <p className="text-[13px] font-black text-slate-800 tracking-tight">
+                        {sub.starts_at ? new Date(sub.starts_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                      </p>
+                    </td>
+                    <td className="px-8 py-6">
+                      <p className="text-[13px] font-black text-slate-800 tracking-tight">
+                        {sub.ends_at ? new Date(sub.ends_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                      </p>
+                    </td>
+                    <td className="px-8 py-6">
+                       <div className="flex items-center justify-center gap-3">
+                          <button 
+                            onClick={() => navigate(`/admin/subscriptions/view/${sub._id}`)}
+                            className="w-9 h-9 flex items-center justify-center border-2 border-orange-500 text-orange-500 rounded-full hover:bg-orange-50 active:scale-90 transition-all"
+                          >
+                            <Eye size={16} />
+                          </button>
+                       </div>
+                    </td>
+                  </tr>
+                )) : (
                  <tr>
                    <td colSpan="8" className="px-8 py-20 text-center">
                      <div className="flex flex-col items-center">

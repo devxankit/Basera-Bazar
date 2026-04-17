@@ -93,14 +93,24 @@ const requestOtp = async (req, res) => {
 
     // If called from Login, check if the user exists in the database
     if (shouldCheckExists) {
-      const userExists = await User.findOne({ phone });
-      const partnerExists = await Partner.findOne({ phone });
+      const user = await User.findOne({ phone });
+      const partner = await Partner.findOne({ phone });
 
-      if (!userExists && !partnerExists) {
+      if (!user && !partner) {
         return res.status(404).json({
           success: false,
           message: 'Account not found with this number.',
           notExists: true,
+        });
+      }
+
+      // NEW: Block inactive users from OTP
+      const account = user || partner;
+      if (account && account.is_active === false) {
+        return res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_INACTIVE',
+          message: 'Account is inactive. Please contact the administrator.'
         });
       }
     }
@@ -207,6 +217,15 @@ const verifyOtp = async (req, res) => {
           success: false,
           message: 'No account found with this phone number.',
           notExists: true,
+        });
+      }
+
+      // NEW: Block inactive users from Login via OTP
+      if (account.is_active === false) {
+        return res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_INACTIVE',
+          message: 'Account is inactive. Please contact the administrator.'
         });
       }
     }
@@ -323,6 +342,15 @@ const loginWithPassword = async (req, res) => {
     if (!isMatch) {
       console.log(`[Login Failed] Incorrect password for identifier: ${identifier}`);
       return res.status(401).json({ success: false, message: `Incorrect password. Please try again.` });
+    }
+
+    // NEW: Block inactive users from Login via Password
+    if (account.is_active === false) {
+      return res.status(403).json({
+        success: false,
+        code: 'ACCOUNT_INACTIVE',
+        message: 'Account is inactive. Please contact the administrator.'
+      });
     }
 
     const token = generateToken(account._id, role, account.email, account.token_version);

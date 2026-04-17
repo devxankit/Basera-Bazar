@@ -52,10 +52,20 @@ const navItems = [
       { label: 'Product Sub-Categories', path: '/admin/products/subcategories' },
       { label: 'Product Units', path: '/admin/products/units' },
       { label: 'Brands', path: '/admin/products/brands' },
-      { label: 'Product Names', path: '/admin/products/names' },
     ]
   },
-  { id: 'mandi-bazar', label: 'Mandi Bazar', path: '/admin/mandi-bazar', icon: Store },
+  { 
+    id: 'mandi-bazar', 
+    label: 'Mandi Bazar', 
+    icon: Store,
+    children: [
+      { label: 'KYC Queue', path: '/admin/mandi-bazar/kyc' },
+      { label: 'Payouts', path: '/admin/mandi-bazar/withdrawals' },
+      { label: 'Sellers', path: '/admin/mandi-bazar/sellers' },
+      { label: 'Economics', path: '/admin/mandi-bazar/economics' },
+      { label: 'Market Orders', path: '/admin/mandi-bazar/orders' },
+    ]
+  },
   { 
     id: 'subscriptions', 
     label: 'Subscriptions', 
@@ -94,7 +104,7 @@ const CollapsibleItem = ({ item, isOpen, onToggle, location, setSidebarOpen }) =
       >
         <div className="flex items-center gap-4">
           <item.icon size={20} className={isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500 transition-colors'} />
-          <span className={`text-[15px] ${isActive ? 'font-black' : 'font-bold'}`}>{item.label}</span>
+          <span className={`text-[15px] text-left ${isActive ? 'font-black' : 'font-bold'}`}>{item.label}</span>
         </div>
         <motion.div
           animate={{ rotate: isOpen ? 90 : 0 }}
@@ -249,7 +259,7 @@ export default function AdminLayout({ children }) {
                 >
                   <div className="flex items-center gap-4">
                     <item.icon size={20} className={isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500 transition-colors'} />
-                    <span className={`text-[15px] ${isActive ? 'font-black' : 'font-bold'}`}>{item.label}</span>
+                    <span className={`text-[15px] text-left ${isActive ? 'font-black' : 'font-bold'}`}>{item.label}</span>
                   </div>
                   {isActive && (
                     <motion.div layoutId="activeInd" className="w-1.5 h-1.5 rounded-full bg-indigo-600" />

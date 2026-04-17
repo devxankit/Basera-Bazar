@@ -64,6 +64,19 @@ const AdminAllSubscriptions = () => {
     });
   };
 
+  const handleCancelSubscription = async (id) => {
+    if (!window.confirm("Are you sure you want to cancel/revoke this subscription?")) return;
+    try {
+      const res = await api.patch(`/admin/subscriptions/${id}/status`, { status: 'cancelled' });
+      if (res.data.success) {
+        alert("Subscription cancelled successfully");
+        fetchData();
+      }
+    } catch (err) {
+      alert("Failed to cancel subscription: " + (err.response?.data?.message || err.message));
+    }
+  };
+
   const totalPages = Math.ceil(subscriptions.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedSubscriptions = subscriptions.slice(startIndex, startIndex + itemsPerPage);
@@ -239,21 +252,21 @@ const AdminAllSubscriptions = () => {
                        </tr>
                     ) : (
                        paginatedSubscriptions.map((sub) => (
-                          <tr key={sub._id} className="group hover:bg-slate-50/50 transition-all">
-                             <td className="px-8 py-5">
-                                <div className="flex items-center gap-4">
-                                   <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-indigo-100 uppercase">
-                                      {sub.partner_id?.name?.slice(0, 2) || 'UM'}
-                                   </div>
-                                   <div className="flex flex-col">
-                                      <span className="text-sm font-black text-slate-800 tracking-tight leading-none mb-1">{sub.partner_id?.name}</span>
-                                      <span className="text-[10px] font-bold text-slate-400 leading-none mb-1.5">{sub.partner_id?.email}</span>
-                                      <div className="bg-slate-900 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded tracking-tighter self-start italic">
-                                         {sub.partner_id?.role || 'Partner'}
-                                      </div>
-                                   </div>
-                                </div>
-                             </td>
+                           <tr key={sub._id} className="group hover:bg-slate-50/50 transition-all">
+                              <td className="px-8 py-5">
+                                 <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-indigo-100 uppercase">
+                                       {sub.partner_id?.name ? sub.partner_id.name.split(' ').map(n => n[0]).join('') : 'BA'}
+                                    </div>
+                                    <div className="flex flex-col">
+                                       <span className="text-sm font-black text-slate-800 tracking-tight leading-none mb-1">{sub.partner_id?.name || 'Unknown User'}</span>
+                                       <span className="text-[10px] font-bold text-slate-400 leading-none mb-1.5">{sub.partner_id?.email || sub.partner_id?.phone || 'No contact info'}</span>
+                                       <div className="bg-slate-900 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded tracking-tighter self-start italic">
+                                          {sub.partner_id?.role || 'Partner'}
+                                       </div>
+                                    </div>
+                                 </div>
+                              </td>
                              <td className="px-8 py-5">
                                 <div className="flex flex-col">
                                    <span className="text-sm font-black text-slate-800 tracking-tight italic">{sub.plan_snapshot?.name || 'Manual Plan'}</span>
@@ -272,15 +285,16 @@ const AdminAllSubscriptions = () => {
                                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-tighter italic mt-0.5">inc. GST: ₹{Math.round((sub.plan_snapshot?.price || 0) * 0.18)}</span>
                                 </div>
                              </td>
-                             <td className="px-8 py-5 text-center">
-                                <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm ${
-                                   sub.status === 'active' ? 'bg-emerald-500 text-white border-emerald-400' :
-                                   sub.status === 'expired' ? 'bg-rose-500 text-white border-rose-400' : 
-                                   'bg-slate-400 text-white border-slate-300'
-                                }`}>
-                                   {sub.status || 'Active'}
-                                </span>
-                             </td>
+                    <td className="px-8 py-5 text-center">
+                       <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm ${
+                          sub.status === 'active' ? 'bg-emerald-500 text-white border-emerald-400' :
+                          sub.status === 'expired' ? 'bg-rose-500 text-white border-rose-400' : 
+                          sub.status === 'no_plan' ? 'bg-slate-100 text-slate-400 border-slate-200' :
+                          'bg-slate-400 text-white border-slate-300'
+                       }`}>
+                          {sub.status === 'no_plan' ? 'No Active' : (sub.status || 'Active')}
+                       </span>
+                    </td>
                              <td className="px-8 py-5">
                                 <span className="text-[12px] font-black text-slate-600 tracking-tight italic">{formatDate(sub.starts_at)}</span>
                              </td>
@@ -297,14 +311,16 @@ const AdminAllSubscriptions = () => {
                                       <Eye size={14} />
                                    </button>
                                    <button 
+                                     onClick={() => navigate(`/admin/subscriptions/add-manual/${sub.partner_id?._id || sub.partner_id}`)}
                                      className="w-8 h-8 rounded-full border border-orange-200 text-orange-500 flex items-center justify-center hover:bg-orange-50 transition-all shadow-sm"
-                                     title="Legacy Update"
+                                     title="Add Manual Subscription"
                                    >
                                       <Plus size={14} />
                                    </button>
                                    <button 
+                                     onClick={() => handleCancelSubscription(sub._id)}
                                      className="w-8 h-8 rounded-full border border-rose-100 text-rose-500 flex items-center justify-center hover:bg-rose-50 transition-all shadow-sm"
-                                     title="Revoke Node"
+                                     title="Revoke/Cancel"
                                    >
                                       <Ban size={14} />
                                    </button>

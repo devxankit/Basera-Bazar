@@ -77,6 +77,11 @@ const userSchema = new mongoose.Schema({
   token_version: {
     type: Number,
     default: 0
+  },
+  active_subscription_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Subscription',
+    default: null
   }
 }, { timestamps: true });
 

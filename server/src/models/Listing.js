@@ -128,28 +128,31 @@ const supplierListingSchema = new mongoose.Schema({
   delivery_radius_km: { type: Number, required: true },
   status: {
     type: String,
-    enum: ['draft', 'active', 'out_of_stock', 'inactive', 'suspended', 'deleted'],
+    enum: ['draft', 'pending_approval', 'active', 'out_of_stock', 'inactive', 'suspended', 'rejected', 'deleted'],
     default: 'draft'
   },
   deleted_at: { type: Date, default: null }
 }, baseListingSchemaConfig);
 
 const mandiListingSchema = new mongoose.Schema({
-  partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true }, // Backend only
-  title: { type: String, required: true },
-  material_name: { type: String, required: true },
+  partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
+  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  title: { type: String, required: true }, // e.g., "Premium Red Bricks"
+  material_name: { type: String, required: true }, // e.g., "Bricks"
   description: { type: String },
+  thumbnail: { type: String },
   pricing: {
     unit: { type: String, required: true },
-    price_per_unit: { type: Number, required: true }, // Whole rupees
-    effective_date: { type: Date, required: true }
+    price_per_unit: { type: Number, required: true },
+    effective_date: { type: Date, required: true, default: Date.now }
   },
+  stock_quantity: { type: Number, default: 0, min: 0 },
   availability_status: { type: Boolean, default: true },
-  assigned_by: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser' },
   status: {
     type: String,
-    enum: ['active', 'inactive', 'suspended', 'deleted'],
-    default: 'active'
+    enum: ['pending_approval', 'active', 'inactive', 'suspended', 'rejected', 'deleted'],
+    default: 'pending_approval'
   },
   deleted_at: { type: Date, default: null }
 }, baseListingSchemaConfig);

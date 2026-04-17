@@ -93,6 +93,67 @@ const createPropertyListing = async (req, res) => {
 };
 
 /**
+ * @desc    Partner creates a Draft Service Listing
+ * @route   POST /api/listings/services
+ * @access  Private (Partner Token Required)
+ */
+const createServiceListing = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    const { title, description, category, shortDescription, experience, details, image, images, location_text, location } = req.body;
+
+    const newService = await ServiceListing.create({
+      partner_id: partnerId,
+      title,
+      description: description || shortDescription,
+      category,
+      experience,
+      details,
+      image,
+      images,
+      location_text,
+      location: location || { type: 'Point', coordinates: [0, 0] },
+      status: 'pending_approval'
+    });
+
+    res.status(201).json({ success: true, message: 'Service submitted for Admin review.', data: newService });
+  } catch (error) {
+    console.error("Error creating service:", error);
+    res.status(500).json({ success: false, message: 'Server error creating service listing.' });
+  }
+};
+
+/**
+ * @desc    Partner creates a Draft Supplier Listing
+ * @route   POST /api/listings/suppliers
+ * @access  Private (Partner Token Required)
+ */
+const createSupplierListing = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    const { title, description, category, details, image, images, location_text, location } = req.body;
+
+    const newSupplier = await SupplierListing.create({
+      partner_id: partnerId,
+      title,
+      description,
+      category,
+      details,
+      image,
+      images,
+      location_text,
+      location: location || { type: 'Point', coordinates: [0, 0] },
+      status: 'pending_approval'
+    });
+
+    res.status(201).json({ success: true, message: 'Supplier/Product submitted for Admin review.', data: newSupplier });
+  } catch (error) {
+    console.error("Error creating supplier listing:", error);
+    res.status(500).json({ success: false, message: 'Server error creating supplier listing.' });
+  }
+};
+
+/**
  * @desc    Get Single Listing by ID (Any category)
  * @route   GET /api/listings/:id
  * @access  Public
@@ -111,6 +172,13 @@ const getListingById = async (req, res) => {
 
     if (!listing) {
       return res.status(404).json({ success: false, message: 'Listing not found.' });
+    }
+
+    // NEW: If listing is NOT active, it should only be viewable by owner or admin
+    if (listing.status !== 'active') {
+       // We can check if there's a user in req from 'protect' (if we make this route optionally protected)
+       // For now, let's keep it simple: Public can ONLY see 'active'
+       return res.status(403).json({ success: false, message: 'This listing is under review or inactive.' });
     }
 
     res.status(200).json({ success: true, data: listing });
@@ -178,6 +246,8 @@ module.exports = {
   getNearbyServices,
   getMandiListings,
   createPropertyListing,
+  createServiceListing,
+  createSupplierListing,
   getListingById,
   getAllListings,
   getPublicBanners

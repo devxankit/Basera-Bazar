@@ -42,6 +42,7 @@ export default function PartnerHome() {
       case 'agent': return 'Agent';
       case 'service': return 'Service Provider';
       case 'supplier': return 'Supplier';
+      case 'mandi_seller': return 'Mandi Seller';
       default: return 'Partner';
     }
   };
@@ -51,6 +52,7 @@ export default function PartnerHome() {
       case 'agent': return 'Properties';
       case 'service': return 'Services';
       case 'supplier': return 'Products';
+      case 'mandi_seller': return 'Mandi Marketplace';
       default: return 'Items';
     }
   };
@@ -126,26 +128,30 @@ export default function PartnerHome() {
         </motion.div>
 
         {/* Overview Section */}
-        <div className="space-y-5">
-          <h2 className="text-[20px] font-medium text-[#001b4e] px-1">{getCategoryTheme()} Overview</h2>
-          <div className="grid grid-cols-3 gap-5">
-            {overviewStats.map((stat, idx) => (
-              <motion.div 
-                key={stat.label}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.05 }}
-                className="bg-white p-5 rounded-[28px] shadow-sm border border-slate-50 flex flex-col items-center text-center group active:scale-95 transition-all"
-              >
-                <div className={`w-12 h-12 ${stat.bgColor} ${stat.color} rounded-full flex items-center justify-center mb-3 shadow-inner`}>
-                  {stat.icon}
-                </div>
-                <div className="text-[20px] font-medium text-[#001b4e] mb-0.5">{stat.value}</div>
-                <div className="text-[12px] font-medium text-slate-400 uppercase tracking-tight">{stat.label}</div>
-              </motion.div>
-            ))}
+        {partner.role === 'mandi_seller' ? (
+           <MandiOverview stats={overviewStats} partner={partner} />
+        ) : (
+          <div className="space-y-5">
+            <h2 className="text-[20px] font-medium text-[#001b4e] px-1">{getCategoryTheme()} Overview</h2>
+            <div className="grid grid-cols-3 gap-5">
+              {overviewStats.map((stat, idx) => (
+                <motion.div 
+                  key={stat.label}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="bg-white p-5 rounded-[28px] shadow-sm border border-slate-50 flex flex-col items-center text-center group active:scale-95 transition-all"
+                >
+                  <div className={`w-12 h-12 ${stat.bgColor} ${stat.color} rounded-full flex items-center justify-center mb-3 shadow-inner`}>
+                    {stat.icon}
+                  </div>
+                  <div className="text-[20px] font-medium text-[#001b4e] mb-0.5">{stat.value}</div>
+                  <div className="text-[12px] font-medium text-slate-400 uppercase tracking-tight">{stat.label}</div>
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Quick Actions */}
         <div className="space-y-5">
@@ -205,3 +211,83 @@ export default function PartnerHome() {
     </div>
   );
 }
+function MandiOverview({ partner }) {
+  const navigate = useNavigate();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/mandi/dashboard');
+        setStats(res.data.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const mandiStats = [
+    { label: 'Active Products', value: stats?.active_products || '0', icon: <BoxIcon size={20} />, color: 'text-blue-600', bgColor: 'bg-blue-50', path: '/partner/mandi/inventory' },
+    { label: 'Total Orders', value: stats?.total_orders || '0', icon: <TrendingUp size={20} />, color: 'text-purple-600', bgColor: 'bg-purple-50', path: '/partner/mandi/orders' },
+    { label: 'Penalty Due', value: `₹${stats?.penalty_due || 0}`, icon: <AlertCircle size={20} />, color: 'text-rose-600', bgColor: 'bg-rose-50', path: '/partner/mandi/penalties' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4">
+        <div className="bg-gradient-to-br from-indigo-900 to-[#001b4e] p-6 rounded-[32px] text-white shadow-xl shadow-indigo-900/10">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-white/60 text-[13px] font-medium uppercase tracking-wider">Mandi Seller Account</p>
+              <h2 className="text-[28px] font-bold">Penalty Score: ₹{stats?.penalty_due || 0}</h2>
+            </div>
+            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm">
+              <AlertCircle className={stats?.penalty_due > 0 ? "text-rose-400" : "text-green-400"} size={24} />
+            </div>
+          </div>
+          <p className="text-white/40 text-[11px] leading-tight">
+            Penalties are applied if you cancel an active lead. High penalty scores may lead to account suspension.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        {mandiStats.map((stat) => (
+          <button 
+            key={stat.label}
+            onClick={() => navigate(stat.path)}
+            className="bg-white p-4 rounded-[24px] border border-slate-100 flex flex-col items-center text-center active:scale-95 transition-all"
+          >
+            <div className={`w-10 h-10 ${stat.bgColor} ${stat.color} rounded-full flex items-center justify-center mb-2`}>
+              {stat.icon}
+            </div>
+            <div className="text-[16px] font-bold text-[#001b4e]">{stat.value}</div>
+            <div className="text-[10px] font-medium text-slate-400 uppercase leading-tight">{stat.label}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Mandi Quick Actions */}
+      <div className="space-y-4">
+         <h3 className="text-[18px] font-bold text-[#001b4e] px-1">Marketplace Controls</h3>
+         <div className="grid grid-cols-2 gap-4">
+            <button onClick={() => navigate('/partner/mandi/add-product')} className="bg-[#001b4e] p-5 rounded-3xl text-white flex flex-col items-center gap-2 shadow-lg shadow-indigo-900/10 active:scale-95 transition-all">
+               <PlusCircle size={24} />
+               <span className="text-[14px] font-bold">List Material</span>
+            </button>
+            <button onClick={() => navigate('/partner/mandi/inventory')} className="bg-white p-5 rounded-3xl border border-slate-100 text-[#001b4e] flex flex-col items-center gap-2 shadow-sm active:scale-95 transition-all">
+               <Box size={24} />
+               <span className="text-[14px] font-bold">Manage Stock</span>
+            </button>
+         </div>
+      </div>
+    </div>
+  );
+}
+
+import api from '../../services/api';
+import { PlusCircle as PlusIcon, Box as BoxIcon } from 'lucide-react';

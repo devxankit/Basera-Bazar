@@ -222,18 +222,33 @@ export default function AdminProperties() {
     },
     { 
       header: 'STATE', 
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${
-            row.status === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-400'
-          }`}></div>
-          <span className={`text-[11px] font-black uppercase tracking-widest ${
-            row.status === 'active' ? 'text-emerald-600' : 'text-amber-600'
-          }`}>
-            {row.status}
-          </span>
-        </div>
-      )
+      render: (row) => {
+        const statusColors = {
+          active: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+          pending_approval: 'bg-amber-50 text-amber-600 border-amber-100',
+          inactive: 'bg-slate-50 text-slate-400 border-slate-100',
+          rejected: 'bg-rose-50 text-rose-600 border-rose-100',
+          sold_rented: 'bg-indigo-50 text-indigo-600 border-indigo-100'
+        };
+        const dotColors = {
+          active: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]',
+          pending_approval: 'bg-amber-500 animate-pulse',
+          inactive: 'bg-slate-400',
+          rejected: 'bg-rose-500',
+          sold_rented: 'bg-indigo-500'
+        };
+
+        return (
+          <div className="flex flex-col gap-1">
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border ${statusColors[row.status] || 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+              <div className={`w-2 h-2 rounded-full ${dotColors[row.status] || 'bg-slate-400'}`}></div>
+              <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                {row.status?.replace('_', ' ')}
+              </span>
+            </div>
+          </div>
+        );
+      }
     },
     { 
       header: 'ACTIONS', 
@@ -246,9 +261,45 @@ export default function AdminProperties() {
           >
             <Eye size={18} />
             <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              View Details
+              View
             </span>
           </button>
+
+          {/* Status Toggle (Approve/Deactivate) */}
+          {row.status === 'pending_approval' ? (
+            <button 
+              onClick={async () => {
+                try {
+                  await api.patch(`/admin/listings/${row._id}/status`, { status: 'active' });
+                  fetchProperties();
+                } catch (err) { alert("Failed to approve."); }
+              }}
+              className="w-10 h-10 flex items-center justify-center bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all shadow-md active:scale-95 group/btn relative"
+            >
+              <CheckCircle2 size={18} />
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                Approve
+              </span>
+            </button>
+          ) : (
+            <button 
+              onClick={async () => {
+                try {
+                  const nextStatus = row.status === 'active' ? 'inactive' : 'active';
+                  await api.patch(`/admin/listings/${row._id}/status`, { status: nextStatus });
+                  fetchProperties();
+                } catch (err) { alert("Failed to toggle status."); }
+              }}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all shadow-sm active:scale-95 group/btn relative border ${
+                row.status === 'active' ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'
+              }`}
+            >
+              {row.status === 'active' ? <X size={18} /> : <CheckCircle2 size={18} />}
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                {row.status === 'active' ? 'Deactivate' : 'Activate'}
+              </span>
+            </button>
+          )}
           
           {/* Edit Icon */}
           <button 

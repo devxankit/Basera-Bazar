@@ -57,7 +57,10 @@ const {
   getSubscriptionReport,
   getUserReport,
   createPropertyListing,
-  createServiceListing
+  createServiceListing,
+  updateSubscriptionStatus,
+  getMandiSettings,
+  updateMandiSettings
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -141,6 +144,10 @@ router.get('/partners/mandi-search', findNearestMandiSellers);
 // The actual assignment logic route
 router.put('/enquiries/mandi/:id/assign', assignMandiEnquiry);
 
+// Mandi Marketplace Global Settings
+router.get('/mandi/settings', getMandiSettings);
+router.put('/mandi/settings', updateMandiSettings);
+
 // Dynamic Form Data Endpoints
 // Subscription Plan Management
 router.get('/subscriptions/plans', getSubscriptionPlans);
@@ -148,5 +155,6 @@ router.get('/subscriptions/:id', getSubscriptionById);
 router.post('/subscriptions/plans', createSubscriptionPlan);
 router.put('/subscriptions/plans/:id', updateSubscriptionPlan);
 router.delete('/subscriptions/plans/:id', deleteSubscriptionPlan);
+router.patch('/subscriptions/:id/status', updateSubscriptionStatus);
 
 module.exports = router;

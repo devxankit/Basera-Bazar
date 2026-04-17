@@ -12,6 +12,9 @@ import PropertyCategories from './pages/user/PropertyCategories';
 import ServiceCategories from './pages/user/ServiceCategories';
 import SupplierCategories from './pages/user/SupplierCategories';
 import Login from './pages/auth/Login';
+import MandiMarketplace from './pages/user/MandiMarketplace';
+import MandiCategoryView from './pages/user/MandiCategoryView';
+import MandiCheckout from './pages/user/MandiCheckout';
 import SignUp from './pages/auth/SignUp';
 import ServiceProfile from './pages/user/ServiceProfile';
 import UserProfile from './pages/user/UserProfile';
@@ -83,6 +86,11 @@ import AdminSubscriptionDetails from './pages/admin/AdminSubscriptionDetails';
 
 import AdminProductDetails from './pages/admin/AdminProductDetails';
 import AdminSuppliers from './pages/admin/AdminSuppliers';
+import AdminMandiSellers from './pages/admin/AdminMandiSellers';
+import MandiInventory from './pages/partner/MandiInventory';
+import AddMandiProduct from './pages/partner/AddMandiProduct';
+import MandiOrders from './pages/partner/MandiOrders';
+import MandiPenalties from './pages/partner/MandiPenalties';
 
 // Route guard — redirects unauthenticated users to /login
 const ProtectedRoute = ({ children }) => {
@@ -190,6 +198,23 @@ function App() {
             <BrowseCategory />
           </UserLayout>
         } />
+
+        {/* Mandi Bazar Customer Routes */}
+        <Route path="/mandi-bazar" element={
+          <UserLayout>
+            <MandiMarketplace />
+          </UserLayout>
+        } />
+        <Route path="/mandi-bazar/category/:id" element={
+          <UserLayout>
+            <MandiCategoryView />
+          </UserLayout>
+        } />
+        <Route path="/mandi-checkout" element={
+          <ProtectedRoute>
+             <UserLayout><MandiCheckout /></UserLayout>
+          </ProtectedRoute>
+        } />
         
         {/* Placeholder Routes for NavLinks */}
         <Route path="/categories" element={
@@ -255,6 +280,13 @@ function App() {
         <Route path="/partner/help" element={<PartnerHelp />} />
         <Route path="/partner/about" element={<PartnerAbout />} />
         <Route path="/partner/edit-profile" element={<PartnerEditProfile />} />
+        
+        {/* Mandi Seller Specific Routes */}
+        <Route path="/partner/mandi/dashboard" element={<PartnerLayout><PartnerHome /></PartnerLayout>} />
+        <Route path="/partner/mandi/inventory" element={<PartnerLayout><MandiInventory /></PartnerLayout>} />
+        <Route path="/partner/mandi/add-product" element={<AddMandiProduct />} />
+        <Route path="/partner/mandi/orders" element={<PartnerLayout><MandiOrders /></PartnerLayout>} />
+        <Route path="/partner/mandi/penalties" element={<PartnerLayout><MandiPenalties /></PartnerLayout>} />
 
         {/* Admin Module Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -316,7 +348,15 @@ function App() {
           </AdminRoute>
         } />
 
-        <Route path="/admin/mandi-bazar" element={
+        <Route path="/admin/mandi-bazar/sellers" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminMandiSellers />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/mandi-bazar/:tab?" element={
           <AdminRoute>
             <AdminLayout>
               <AdminMandiBazar />

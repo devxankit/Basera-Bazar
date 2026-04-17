@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Eye, ArrowLeft, Layers, CornerDownRight, Hash, Tag, Filter as FilterIcon, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, ArrowLeft, Layers, CornerDownRight, Hash, Tag, Filter as FilterIcon, X, CheckCircle2 } from 'lucide-react';
 import AdminTable from '../../components/common/AdminTable';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -25,7 +25,7 @@ export default function AdminCategoryManagement({
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/admin/system/${endpoint}?type=${type}`);
+      const res = await api.get(`/admin/system/${endpoint}?type=${type}&include_inactive=true`);
       if (res.data.success) {
         setItems(res.data.data);
       }
@@ -53,6 +53,15 @@ export default function AdminCategoryManagement({
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleActive = async (item) => {
+    try {
+      await api.put(`/admin/system/${endpoint}/${item._id}`, { is_active: !item.is_active });
+      fetchItems();
+    } catch (err) {
+      alert('Failed to update status.');
     }
   };
 
@@ -198,14 +207,25 @@ export default function AdminCategoryManagement({
       header: 'ACTIONS',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate(`/admin/properties/categories/view/${row._id}`)} className="flex items-center gap-2 px-3 py-2 text-slate-500 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all font-bold text-[10px] uppercase tracking-widest">
-            <Eye size={14} /> View
+          {/* Status Toggle */}
+          <button 
+            onClick={() => toggleActive(row)}
+            className={`p-2 rounded-lg transition-all border ${
+              row.is_active ? 'bg-amber-50 border-amber-100 text-amber-600 hover:bg-amber-600 hover:text-white' : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white'
+            }`}
+            title={row.is_active ? 'Deactivate' : 'Activate'}
+          >
+            {row.is_active ? <X size={14} /> : <CheckCircle2 size={14} />}
           </button>
-          <button onClick={() => navigate(`/admin/properties/categories/edit/${row._id}${showParent ? '?parent=' + (row.parent_id?._id || '') : ''}`)} className="flex items-center gap-2 px-3 py-2 text-indigo-600 hover:text-white border border-indigo-100 hover:bg-indigo-600 rounded-lg transition-all font-bold text-[10px] uppercase tracking-widest">
-            <Edit2 size={14} /> Edit
+
+          <button onClick={() => navigate(`/admin/properties/categories/view/${row._id}`)} className="p-2 text-slate-400 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all">
+            <Eye size={14} />
           </button>
-          <button onClick={() => handleDelete(row._id)} className="flex items-center gap-2 px-3 py-2 text-rose-500 hover:text-white border border-rose-100 hover:bg-rose-600 rounded-lg transition-all font-bold text-[10px] uppercase tracking-widest">
-            <Trash2 size={14} /> Purge
+          <button onClick={() => navigate(`/admin/properties/categories/edit/${row._id}${showParent ? '?parent=' + (row.parent_id?._id || '') : ''}`)} className="p-2 text-indigo-400 hover:text-white border border-indigo-100 hover:bg-indigo-600 rounded-lg transition-all">
+            <Edit2 size={14} />
+          </button>
+          <button onClick={() => handleDelete(row._id)} className="p-2 text-rose-400 hover:text-white border border-rose-100 hover:bg-rose-600 rounded-lg transition-all">
+            <Trash2 size={14} />
           </button>
         </div>
       )

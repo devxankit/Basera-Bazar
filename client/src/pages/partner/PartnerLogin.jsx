@@ -12,6 +12,7 @@ export default function PartnerLogin() {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showInactiveModal, setShowInactiveModal] = useState(false);
   const { login } = useAuth();
 
   const handleSendOtp = async () => {
@@ -23,7 +24,11 @@ export default function PartnerLogin() {
         setOtpSent(true);
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to send OTP.');
+      if (error.response?.status === 403 && error.response?.data?.code === 'ACCOUNT_INACTIVE') {
+        setShowInactiveModal(true);
+      } else {
+        alert(error.response?.data?.message || 'Failed to send OTP.');
+      }
     } finally {
       setLoading(false);
     }
@@ -46,7 +51,11 @@ export default function PartnerLogin() {
         navigate('/partner/home');
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Invalid OTP.');
+      if (error.response?.status === 403 && error.response?.data?.code === 'ACCOUNT_INACTIVE') {
+        setShowInactiveModal(true);
+      } else {
+        alert(error.response?.data?.message || 'Invalid OTP.');
+      }
     } finally {
       setLoading(false);
     }
@@ -172,6 +181,39 @@ export default function PartnerLogin() {
           </p>
         </motion.div>
       </motion.div>
+      {/* ── ACCOUNT INACTIVE MODAL ── */}
+      {showInactiveModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 27, 78, 0.4)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyCenter: 'center',
+          zIndex: 1000, padding: '20px'
+        }} className="flex items-center justify-center">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            style={{
+              backgroundColor: '#ffffff', borderRadius: '24px', padding: '32px',
+              width: '100%', maxWidth: '360px', textAlign: 'center',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+            }}
+          >
+            <div style={{ backgroundColor: '#fff1f2', width: '64px', height: '64px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#e11d48' }}>
+              <Lock size={32} />
+            </div>
+            <div style={{ fontSize: '20px', fontWeight: '700', color: '#001b4e', marginBottom: '12px' }}>Account Inactive</div>
+            <div style={{ fontSize: '15px', color: '#64748b', lineHeight: 1.5, marginBottom: '28px' }}>
+              Your partner account has been deactivated by the administrator. Please contact support to resolve this.
+            </div>
+            <button
+              onClick={() => { setShowInactiveModal(false); setPhone(''); setOtpSent(false); }}
+              className="w-full py-4 bg-[#e11d48] text-white rounded-2xl font-bold text-[16px] shadow-lg shadow-rose-900/20 active:scale-95 transition-all"
+            >
+              Okay
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
