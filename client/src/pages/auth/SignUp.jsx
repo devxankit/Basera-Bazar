@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle, MapPin, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import LocationPicker from '../../components/common/LocationPicker';
 
 // ─── Small reusable popup modal ───────────────────────────────────────────────
 function AlertModal({ icon: Icon, iconBg, iconColor, title, message, primaryText, primaryAction, secondaryText, secondaryAction }) {
@@ -56,8 +57,15 @@ export default function SignUp() {
     fullName: '',
     email: '',
     phone: location.state?.phone || '',
-    password: ''
+    password: '',
+    address: '',
+    city: '',
+    state: '',
+    district: '',
+    pincode: '',
+    coords: null
   });
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   // OTP / verification states
   const [isVerified, setIsVerified] = useState(false);
@@ -133,6 +141,14 @@ export default function SignUp() {
     // ── Send OTP ──
     try {
       setVerifying(true);
+      
+      // Basic validation for location fields before OTP
+      if (!form.city || !form.state || !form.district) {
+        alert('Please select your location first.');
+        setVerifying(false);
+        return;
+      }
+
       const response = await api.post('/auth/send-otp', { phone: form.phone });
       if (response.data.success) {
         setShowOtpInput(true);
@@ -158,6 +174,12 @@ export default function SignUp() {
         name: form.fullName.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        district: form.district,
+        pincode: form.pincode,
+        coords: form.coords
       });
 
       if (response.data.success) {
@@ -333,6 +355,55 @@ export default function SignUp() {
               </motion.div>
             )}
 
+            {/* Location Section */}
+            <motion.div variants={fadeInUp} style={{ marginBottom: '18px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#4a567a', marginBottom: '8px', paddingLeft: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Your Location (Mandatory)
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLocationModalOpen(true)}
+                style={{
+                  width: '100%', padding: '16px 18px', backgroundColor: '#ffffff',
+                  border: '1.5px solid #dde1f0', borderRadius: '14px',
+                  display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left'
+                }}
+              >
+                <div style={{ backgroundColor: '#f0f3ff', padding: '10px', borderRadius: '12px', color: '#2334b2' }}>
+                  <MapPin size={20} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1b2c7a' }}>
+                    {form.city ? `${form.city}, ${form.state}` : 'Select City'}
+                  </div>
+                  {form.district && <div style={{ fontSize: '12px', color: '#5468b8' }}>{form.district} District</div>}
+                </div>
+                <ChevronDown size={18} style={{ color: '#8898cc' }} />
+              </button>
+            </motion.div>
+
+            {form.city && (
+              <motion.div variants={fadeInUp} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} style={{ marginBottom: '18px' }}>
+                <div style={{ position: 'relative' }}>
+                  <span style={iconStyle}><AlertCircle size={20} strokeWidth={1.8} /></span>
+                  <input
+                    type="text" placeholder="Full Address / Landmark" required
+                    value={form.address}
+                    onChange={e => setForm({ ...form, address: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                   <input
+                    type="text" placeholder="Pincode" required maxLength={6}
+                    value={form.pincode}
+                    onChange={e => setForm({ ...form, pincode: e.target.value.replace(/\D/g, '') })}
+                    style={{ ...inputStyle, paddingLeft: '18px' }}
+                   />
+                </div>
+              </motion.div>
+            )}
+
             {/* Password */}
             <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '10px' }}>
               <span style={iconStyle}><Lock size={22} strokeWidth={1.8} /></span>
@@ -395,6 +466,54 @@ export default function SignUp() {
             secondaryText={currentPopup.secondaryText}
             secondaryAction={currentPopup.secondaryAction}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Location Bottom Sheet */}
+      <AnimatePresence>
+        {isLocationModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setIsLocationModalOpen(false)}
+            />
+            <motion.div 
+              initial={{ translateY: "100%" }}
+              animate={{ translateY: 0 }}
+              exit={{ translateY: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="relative w-full max-w-md bg-white rounded-t-[40px] shadow-2xl overflow-hidden" 
+              style={{ height: '70vh' }}
+            >
+              <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 opacity-50" />
+              <LocationPicker 
+                onClose={() => setIsLocationModalOpen(false)} 
+                onSelect={(loc) => {
+                  if (loc.isGPS) {
+                    setForm(f => ({ 
+                      ...f, 
+                      coords: loc.coordinates,
+                      city: loc.name || f.city,
+                      state: loc.state || f.state,
+                      district: loc.district || f.district
+                    }));
+                  } else {
+                    setForm(f => ({ 
+                      ...f, 
+                      city: loc.name, 
+                      district: loc.district, 
+                      state: loc.state,
+                      coords: null
+                    }));
+                  }
+                  setIsLocationModalOpen(false);
+                }}
+              />
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>

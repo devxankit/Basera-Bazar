@@ -2,21 +2,46 @@ import React, { useState, useEffect } from 'react';
 import logo from '../../assets/baseralogo.png';
 import { ChevronDown, MapPin, User, Bell, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import LocationModal from '../common/LocationModal';
 import { useAuth } from '../../context/AuthContext';
 import { useLocationContext } from '../../context/LocationContext';
+import LocationPicker from '../common/LocationPicker';
 
 const Header = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { currentLocation, setCurrentLocation } = useLocationContext();
+  const { location, setLocation } = useLocationContext();
 
   useEffect(() => {
     const handleOpenSelector = () => setIsModalOpen(true);
     window.addEventListener('open-location-selector', handleOpenSelector);
     return () => window.removeEventListener('open-location-selector', handleOpenSelector);
   }, []);
+
+  const handleLocationSelect = (loc) => {
+    // loc can be { coordinates: [lng, lat], isGPS: true } 
+    // or { name, district, state, isManual: true }
+    
+    if (loc.isGPS) {
+      setLocation(prev => ({
+        ...prev,
+        city: loc.name || prev.city,
+        state: loc.state || prev.state,
+        district: loc.district || prev.district,
+        coords: loc.coordinates,
+        formattedAddress: loc.name ? `${loc.name}, ${loc.state}` : 'Current GPS Location'
+      }));
+    } else {
+      setLocation({
+        city: loc.name,
+        district: loc.district,
+        state: loc.state,
+        coords: null, // Will be geocoded by backend or utility
+        formattedAddress: `${loc.name}, ${loc.state}`
+      });
+    }
+    setIsModalOpen(false);
+  };
 
   return (
     <>
@@ -40,7 +65,9 @@ const Header = () => {
               className="bg-emerald-50/50 border border-emerald-100/50 rounded-full px-3 py-1.5 flex items-center gap-1.5 active:scale-95 transition-all w-fit max-w-full"
             >
               <MapPin size={12} className="text-[#34a853] shrink-0" strokeWidth={2.5} />
-              <span className="text-[11px] font-bold text-[#181d5f] truncate whitespace-nowrap">{currentLocation}</span>
+              <span className="text-[11px] font-bold text-[#181d5f] truncate whitespace-nowrap">
+                {location.city || location.formattedAddress}
+              </span>
               <ChevronDown size={12} className="text-slate-400 shrink-0" />
             </button>
           </div>
@@ -55,12 +82,18 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Location Modal (Full Indian States) */}
-      <LocationModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSelect={(loc) => setCurrentLocation(loc)}
-      />
+      {/* Location Bottom Sheet */}
+      <div className={`fixed inset-0 z-[100] flex items-end justify-center transition-opacity duration-300 ${isModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
+        <div className={`relative w-full max-w-md bg-white rounded-t-[40px] shadow-2xl transition-transform duration-500 transform ${isModalOpen ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '75vh' }}>
+          <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 opacity-50" />
+          <LocationPicker 
+            onClose={() => setIsModalOpen(false)} 
+            onSelect={handleLocationSelect}
+            initialLocation={location}
+          />
+        </div>
+      </div>
     </>
   );
 };

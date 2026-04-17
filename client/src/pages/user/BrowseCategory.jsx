@@ -37,7 +37,7 @@ const BrowseCategory = () => {
   const [searchParams] = useSearchParams();
   const subCategory = searchParams.get('sub');
   const navigate = useNavigate();
-  const { currentLocation } = useLocationContext();
+  const { location } = useLocationContext();
   
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -117,39 +117,24 @@ const BrowseCategory = () => {
 
   useEffect(() => {
     const fetchItems = async () => {
-      let data = await db.getAll('listings');
+      setLoading(true);
       
-      // Filter by vertical (property/service/supplier), allow 'all' to pass through
-      if (category && category.toLowerCase() !== 'all') {
-        data = data.filter(item => item.category === category);
-      }
-      
-      // Filter by sub-category if provided
-      if (subCategory) {
-        data = data.filter(item => 
-          item.details?.propertyType?.toLowerCase() === subCategory.toLowerCase() ||
-          item.title.toLowerCase().includes(subCategory.toLowerCase())
-        );
-      }
-      // Filter by location
-      const homeState = currentLocation?.split(',')[1]?.trim() || '';
-      const homeCity = currentLocation?.split(',')[0]?.trim() || '';
+      const locationParams = {
+        lat: location.coords?.[1],
+        lng: location.coords?.[0],
+        district: location.district,
+        state: location.state
+      };
 
-      if (selectedDistricts.length > 0) {
-        // Manual multi-district filter overrides homepage
-        data = data.filter(item =>
-          selectedDistricts.some(d =>
-            item.location?.toLowerCase().includes(d.toLowerCase()) ||
-            item.owner?.district?.toLowerCase().includes(d.toLowerCase())
-          )
-        );
-      } else if (homeCity && homeCity !== 'All Locations') {
-        // Default: filter by homepage city
-        data = data.filter(item =>
-          item.location?.toLowerCase().includes(homeCity.toLowerCase()) ||
-          (homeState && item.location?.toLowerCase().includes(homeState.toLowerCase()))
-        );
-      }
+      const params = {
+        category: category !== 'all' ? category : undefined,
+        subCategory: subCategory || undefined,
+        search: searchQuery || undefined,
+        ...locationParams,
+        ...activeFilters // Price ranges etc
+      };
+
+      let data = await db.getAll('listings', params);
       
       // Filter by search query
       if (searchQuery.trim() !== '') {
@@ -215,7 +200,7 @@ const BrowseCategory = () => {
       setLoading(false);
     };
     fetchItems();
-  }, [category, subCategory, currentLocation, searchQuery, activeFilters, sortBy, selectedDistricts]);
+  }, [category, subCategory, location, searchQuery, activeFilters, sortBy, selectedDistricts]);
 
   const isSupplier = category === 'supplier';
 
@@ -276,7 +261,7 @@ const BrowseCategory = () => {
                   <span className="text-[13px] font-bold text-orange-700 truncate max-w-[180px]">
                     {selectedDistricts.length > 0
                       ? selectedDistricts.slice(0, 2).join(', ') + (selectedDistricts.length > 2 ? ` +${selectedDistricts.length - 2}` : '')
-                      : currentLocation.split(',')[0]}
+                      : location.city || location.district || 'Bihar'}
                   </span>
                 </div>
               </div>

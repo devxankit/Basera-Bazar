@@ -13,7 +13,7 @@ function cn(...inputs) {
 
 const Home = () => {
   const navigate = useNavigate();
-  const { currentLocation } = useLocationContext();
+  const { location } = useLocationContext();
 
   const [properties, setProperties] = useState([]);
   const [services, setServices] = useState([]);
@@ -23,8 +23,23 @@ const Home = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const props = await db.getAll('listings', { category: 'property', limit: 6 });
-        const srvs = await db.getAll('listings', { category: 'service', limit: 6 });
+        const locationParams = {
+          lat: location.coords?.[1] || 26.1209,
+          lng: location.coords?.[0] || 85.3647,
+          district: location.district,
+          state: location.state
+        };
+
+        const props = await db.getAll('listings', { 
+          category: 'property', 
+          limit: 6,
+          ...locationParams
+        });
+        const srvs = await db.getAll('listings', { 
+          category: 'service', 
+          limit: 6,
+          ...locationParams
+        });
         setProperties(props);
         setServices(srvs);
       } catch (error) {
@@ -34,7 +49,7 @@ const Home = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [location]); // Refresh when location changes
 
   const categories = [
     { 
@@ -91,7 +106,7 @@ const Home = () => {
             <Building2 size={14} className="text-white" />
           </div>
           <p className="text-[clamp(12px,3.5vw,16px)] font-semibold text-[#181d5f] whitespace-nowrap min-w-0">
-            Showing content in <span className="text-[#fa8639] font-extrabold">{currentLocation}</span>
+            Showing content in <span className="text-[#fa8639] font-extrabold">{location.city || location.district || 'Bihar'}</span>
           </p>
         </button>
       </div>

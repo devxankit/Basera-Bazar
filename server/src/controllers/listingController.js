@@ -1,4 +1,47 @@
 const { ServiceListing, PropertyListing, SupplierListing, MandiListing } = require('../models/Listing');
+const mongoose = require('mongoose');
+
+/**
+ * Helper to build proximity aggregation pipeline
+ * @param {Number} lat 
+ * @param {Number} lng 
+ * @param {String} userDistrict 
+ * @param {String} userState 
+ * @param {Number} radiusKm 
+ */
+const buildProximityPipeline = (lat, lng, userDistrict, userState, radiusKm = 300) => {
+  return [
+    {
+      $geoNear: {
+        near: { type: "Point", coordinates: [parseFloat(lng), parseFloat(lat)] },
+        distanceField: "distance",
+        maxDistance: parseFloat(radiusKm) * 1000,
+        query: { status: 'active' },
+        spherical: true
+      }
+    },
+    {
+      $addFields: {
+        priorityScore: {
+          $cond: {
+            if: { $eq: ["$address.district", userDistrict] },
+            then: 2,
+            else: {
+              $cond: {
+                if: { $eq: ["$address.state", userState] },
+                then: 1,
+                else: 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      $sort: { priorityScore: -1, distance: 1 }
+    }
+  ];
+};
 
 /**
  * @desc    Get nearby public Services
@@ -7,29 +50,34 @@ const { ServiceListing, PropertyListing, SupplierListing, MandiListing } = requi
  */
 const getNearbyServices = async (req, res) => {
   try {
-    // 1. Grab parameters from the URL query string
-    // e.g., /api/listings/services?lat=26.123&lng=85.39&radius=50
-    const { lat, lng, radius = 50 } = req.query; // default radius 50km
+    const { lat, lng, district, state, radius = 300 } = req.query;
 
     if (!lat || !lng) {
-      return res.status(400).json({ success: false, message: 'Please provide valid latitude and longitude.' });
+      // Fallback to basic find if no location provided
+      const services = await ServiceListing.find({ status: 'active' }).limit(20);
+      return res.status(200).json({ success: true, count: services.length, data: services });
     }
 
-    // 2. Perform a native MongoDB Geospatial Query!
-    // This looks for all active service listings where the 2D sphere location is near the coordinates
-    // $maxDistance takes meters, so we multiply radius (km) by 1000.
-    const services = await ServiceListing.find({
-      status: 'active',
-      location: {
-        $near: {
-          $geometry: {
-            type: "Point",
-            coordinates: [parseFloat(lng), parseFloat(lat)] // MongoDB needs Longitude first!
-          },
-          $maxDistance: parseFloat(radius) * 1000 
-        }
+    const pipeline = buildProximityPipeline(lat, lng, district, state, radius);
+    
+    // Add population for partner data in aggregation
+    pipeline.push({
+      $lookup: {
+        from: 'partners',
+        localField: 'partner_id',
+        foreignField: '_id',
+        as: 'partner_id'
       }
-    }).populate('partner_id', 'name phone profile.service_profile.avg_rating'); // Only populate public partner stats
+    });
+    pipeline.push({ $unwind: '$partner_id' });
+    pipeline.push({
+      $project: {
+        'partner_id.password': 0,
+        'partner_id.kyc': 0
+      }
+    });
+
+    const services = await ServiceListing.aggregate(pipeline);
 
     res.status(200).json({ success: true, count: services.length, data: services });
 
@@ -46,9 +94,17 @@ const getNearbyServices = async (req, res) => {
  */
 const getMandiListings = async (req, res) => {
   try {
-    // Fetch active Mandi listings, but project OUT the partner_id by placing a minus sign.
-    // This ensures end-users cannot bypass the platform and contact sellers directly!
-    const mandiItems = await MandiListing.find({ status: 'active' }).select('-partner_id');
+    const { lat, lng, district, state, radius = 300 } = req.query;
+
+    if (!lat || !lng) {
+      const mandiItems = await MandiListing.find({ status: 'active' }).select('-partner_id');
+      return res.status(200).json({ success: true, count: mandiItems.length, data: mandiItems });
+    }
+
+    const pipeline = buildProximityPipeline(lat, lng, district, state, radius);
+    pipeline.push({ $project: { partner_id: 0 } }); // Hide seller identity
+
+    const mandiItems = await MandiListing.aggregate(pipeline);
 
     res.status(200).json({ success: true, count: mandiItems.length, data: mandiItems });
 
@@ -195,24 +251,40 @@ const getListingById = async (req, res) => {
  */
 const getAllListings = async (req, res) => {
   try {
-    const { category, limit = 10 } = req.query;
+    const { category, limit = 10, lat, lng, district, state } = req.query;
     let results = [];
 
-    const query = { status: 'active' };
+    const hasLocation = lat && lng;
+    const proximityRadius = 300;
+
+    const fetchCategory = async (Model, modelName) => {
+      if (hasLocation) {
+        const pipeline = buildProximityPipeline(lat, lng, district, state, proximityRadius);
+        pipeline.push({ $limit: parseInt(limit) });
+        return await Model.aggregate(pipeline);
+      } else {
+        return await Model.find({ status: 'active' }).limit(parseInt(limit));
+      }
+    };
 
     if (!category || category === 'property') {
-      const properties = await PropertyListing.find(query).limit(parseInt(limit));
+      const properties = await fetchCategory(PropertyListing, 'PropertyListing');
       results = [...results, ...properties];
     }
 
     if (!category || category === 'service') {
-      const services = await ServiceListing.find(query).limit(parseInt(limit));
+      const services = await fetchCategory(ServiceListing, 'ServiceListing');
       results = [...results, ...services];
     }
 
     if (!category || category === 'supplier') {
-      const suppliers = await SupplierListing.find(query).limit(parseInt(limit));
+      const suppliers = await fetchCategory(SupplierListing, 'SupplierListing');
       results = [...results, ...suppliers];
+    }
+
+    // Sort combined results by distance if location was provided
+    if (hasLocation) {
+      results.sort((a, b) => (a.priorityScore === b.priorityScore) ? (a.distance - b.distance) : (b.priorityScore - a.priorityScore));
     }
 
     res.status(200).json({

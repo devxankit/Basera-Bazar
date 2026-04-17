@@ -423,6 +423,7 @@ const getUserDetail = async (req, res) => {
     const accountObj = account.toObject();
     const partnerProfileAlias = accountObj.partner_type ? {
       state: accountObj.state || '',
+      city: accountObj.city || '',
       district: accountObj.district || '',
       address: accountObj.address || '',
       supplier_profile: accountObj.profile?.supplier_profile || {},
@@ -433,6 +434,12 @@ const getUserDetail = async (req, res) => {
 
     const fullData = {
       ...accountObj,
+      // NEW: Flattened location fields for direct UI access
+      city: accountObj.city || accountObj.default_location?.city || 'N/A',
+      state: accountObj.state || accountObj.default_location?.state || 'Bihar',
+      district: accountObj.district || accountObj.default_location?.district || 'Muzaffarpur',
+      address: accountObj.address || accountObj.default_location?.address || 'Muzaffarpur, Bihar',
+      
       partner_profile: partnerProfileAlias,
       stats: {
         properties: propertyCount,

@@ -71,8 +71,10 @@ const partnerSchema = new mongoose.Schema({
     required: false
   },
   state: { type: String, trim: true },
+  city: { type: String, trim: true },
   district: { type: String, trim: true },
   address: { type: String, trim: true },
+  pincode: { type: String, trim: true },
   unique_seller_id: {
     type: String,
     sparse: true,
@@ -102,7 +104,12 @@ const partnerSchema = new mongoose.Schema({
   },
   location: {
     type: pointSchema,
-    required: false
+    required: true
+  },
+  service_radius_km: {
+    type: Number,
+    required: true,
+    default: 100
   },
   active_subscription_id: {
     type: mongoose.Schema.Types.ObjectId,

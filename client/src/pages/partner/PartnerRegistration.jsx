@@ -42,7 +42,10 @@ export default function PartnerRegistration() {
     gst: '',
     address: '',
     pincode: '',
-    profileImage: null
+    profileImage: null,
+    service_radius_km: 100,
+    city: '',
+    coords: null
   });
   
   const [authState, setAuthState] = useState(null); // { token, user }
@@ -132,6 +135,20 @@ export default function PartnerRegistration() {
         email: formData.email,
         partner_type: backendRole,
         image: profileUrl,
+        service_radius_km: formData.service_radius_km,
+        location: {
+           type: 'Point',
+           coordinates: formData.coords || [85.3647, 26.1209]
+        },
+        state: formData.state,
+        district: formData.district,
+        address: formData.address,
+        pincode: formData.pincode,
+        mandi_profile: backendRole === 'mandi_seller' ? {
+          business_name: formData.businessName,
+          business_logo: logoUrl,
+          business_description: formData.businessDescription
+        } : undefined,
         kyc: {
           pan_number: formData.pan,
           pan_image: panUrl,
@@ -140,12 +157,7 @@ export default function PartnerRegistration() {
           aadhar_back_image: aadharBackUrl,
           gst_number: formData.gst,
           gst_image: gstUrl
-        },
-        mandi_profile: backendRole === 'mandi_seller' ? {
-          business_name: formData.businessName,
-          business_logo: logoUrl,
-          business_description: formData.businessDescription
-        } : undefined
+        }
       };
 
       await api.put('/auth/profile', updatePayload);

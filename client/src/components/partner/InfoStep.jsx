@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import LocationPicker from '../common/LocationPicker';
 
 const INDIA_DISTRICTS = {
   'Bihar': ['Muzaffarpur', 'Patna', 'Gaya', 'Darbhanga', 'Bhagalpur', 'Hajipur', 'Purnia', 'Arrah', 'Begusarai', 'Munger', 'Bihar Sharif', 'Katihar', 'Sitamarhi', 'Siwan', 'Bhojpur', 'Saran'],
@@ -38,6 +39,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isOptionalOpen, setIsOptionalOpen] = useState(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   
   // Verification States
   const [isVerified, setIsVerified] = useState(false);
@@ -295,37 +297,61 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
         <div className="pt-2">
           <h3 className="text-[14px] font-bold text-[#001b4e] uppercase tracking-wider mb-4 px-1">Location Information</h3>
           
-          <button className="w-full bg-gradient-to-br from-[#001b4e] to-[#2334b2] p-6 rounded-2xl flex flex-col items-center gap-3 text-white mb-6 shadow-xl shadow-indigo-900/10 active:scale-[0.98] transition-all">
+          <button 
+            type="button"
+            onClick={() => setIsLocationModalOpen(true)}
+            className="w-full bg-gradient-to-br from-[#001b4e] to-[#2334b2] p-6 rounded-2xl flex flex-col items-center gap-3 text-white mb-6 shadow-xl shadow-indigo-900/20 active:scale-[0.98] transition-all"
+          >
             <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md">
               <Navigation size={22} className="rotate-45" />
             </div>
             <div className="text-center">
-              <div className="text-[16px] font-bold">Auto-Detect Location</div>
-              <div className="text-[11px] text-white/70">Use GPS to automatically fill location details</div>
+              <div className="text-[16px] font-bold">
+                {formData.city ? `${formData.city}, ${formData.state}` : 'Set Service Location'}
+              </div>
+              <div className="text-[11px] text-white/70">
+                {formData.district ? `${formData.district} District` : 'Using GPS or Manual Selection'}
+              </div>
             </div>
             <div className="bg-white text-[#001b4e] px-6 py-2 rounded-xl text-[13px] font-bold mt-2 shadow-inner">
-              Detect My Location
+              {formData.city ? 'Change Location' : 'Detect My Location'}
             </div>
           </button>
 
           <div className="grid grid-cols-1 gap-4">
-            <SelectField 
-              label="State *" 
-              name="state"
-              value={formData.state}
+            <InputField 
+              icon={<Box size={18} />} 
+              label="Serviceable Radius (in KM) *" 
+              name="service_radius_km"
+              type="number"
+              value={formData.service_radius_km || 100}
               onChange={handleChange}
-              icon={<MapPin size={18} />} 
-              options={states} 
+              placeholder="e.g. 50" 
             />
-            <SelectField 
-              label="District *" 
-              name="district"
-              value={formData.district}
-              onChange={handleChange}
-              icon={<Map size={18} />} 
-              options={districts} 
-              disabled={!formData.state}
-            />
+            <div className="text-[11px] text-slate-400 px-1 -mt-2 mb-2">
+              Distance from your center you can provide service to.
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <InputField 
+                label="District *" 
+                name="district"
+                value={formData.district}
+                onChange={handleChange}
+                icon={<MapPin size={18} />} 
+                placeholder="District Name"
+                disabled
+              />
+              <InputField 
+                label="State *" 
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                icon={<Map size={18} />} 
+                placeholder="State Name"
+                disabled
+              />
+            </div>
           </div>
         </div>
 
@@ -585,6 +611,54 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
           {isPremium ? 'Proceed to Payment' : 'Create Account'}
         </button>
       </div>
+
+      {/* Location Bottom Sheet */}
+      <AnimatePresence>
+        {isLocationModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setIsLocationModalOpen(false)}
+            />
+            <motion.div 
+              initial={{ translateY: "100%" }}
+              animate={{ translateY: 0 }}
+              exit={{ translateY: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="relative w-full max-w-md bg-white rounded-t-[40px] shadow-2xl overflow-hidden" 
+              style={{ height: '70vh' }}
+            >
+              <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 opacity-50" />
+              <LocationPicker 
+                onClose={() => setIsLocationModalOpen(false)} 
+                onSelect={(loc) => {
+                  if (loc.isGPS) {
+                    setFormData(f => ({ 
+                      ...f, 
+                      coords: loc.coordinates,
+                      city: loc.name || f.city,
+                      state: loc.state || f.state,
+                      district: loc.district || f.district
+                    }));
+                  } else {
+                    setFormData(f => ({ 
+                      ...f, 
+                      city: loc.name, 
+                      district: loc.district, 
+                      state: loc.state,
+                      coords: null
+                    }));
+                  }
+                  setIsLocationModalOpen(false);
+                }}
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema({
   },
   default_location: {
     type: pointSchema,
-    default: null
+    required: true
   },
   saved_locations: [pointSchema],
   is_active: {

@@ -4,6 +4,7 @@ const { AdminUser } = require('../models/Admin');
 const { sendOTP } = require('../utils/sms');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { getCityCoords } = require('../utils/locationUtils');
 
 // Helper function to generate a secure JWT Token
 const generateToken = (id, role, email, version = 0) => {
@@ -158,7 +159,12 @@ const requestOtp = async (req, res) => {
  */
 const verifyOtp = async (req, res) => {
   try {
-    const { phone, otp, role = 'user', flow = 'login', name, email, password } = req.body;
+    const { 
+      phone, otp, role = 'user', flow = 'login', 
+      name, email, password,
+      address, city, state, district, pincode, coords,
+      service_radius_km
+    } = req.body;
 
     // 1. Find the OTP record for this phone
     const otpRecord = await Otp.findOne({ phone }).sort({ createdAt: -1 });
@@ -199,12 +205,45 @@ const verifyOtp = async (req, res) => {
         return res.status(409).json({ success: false, code: 'EMAIL_EXISTS', message: 'This email is already registered.' });
       }
 
+      // Handle Location Geocoding fallback
+      let finalCoords = coords;
+      if (!finalCoords && city) {
+        finalCoords = getCityCoords(city);
+      }
+      
+      // Default to Muzaffarpur if still missing (safety fallback)
+      if (!finalCoords) {
+        finalCoords = [85.3647, 26.1209];
+      }
+
       account = await Model.create({
         phone,
         name,
         email: email.toLowerCase(),
         password,
-        ...(role === 'partner' && { partner_type: 'service_provider' }),
+        ...(role === 'partner' && { 
+          partner_type: role === 'partner' ? 'service_provider' : undefined,
+          service_radius_km: service_radius_km || 100 
+        }),
+        default_location: role === 'user' ? {
+          type: 'Point',
+          coordinates: finalCoords,
+          city,
+          state,
+          district,
+          pincode
+        } : undefined,
+        location: role !== 'user' ? {
+          type: 'Point',
+          coordinates: finalCoords
+        } : undefined,
+        address: role !== 'user' ? {
+          full_address: address,
+          city,
+          state,
+          district,
+          pincode
+        } : undefined
       });
 
     } else {
@@ -271,9 +310,27 @@ const updateProfile = async (req, res) => {
     const isPartner = req.user.role === 'partner';
     const Model = isPartner ? Partner : User;
 
+    const updateData = { ...req.body };
+
+    // Handle Geocoding fallback for profile updates
+    if (updateData.city && !updateData.coords && !updateData.location) {
+      const cityCoords = getCityCoords(updateData.city);
+      if (cityCoords) {
+        if (isPartner) {
+          updateData.location = { type: 'Point', coordinates: cityCoords };
+        } else {
+          updateData.default_location = {
+            ...(updateData.default_location || {}),
+            type: 'Point',
+            coordinates: cityCoords
+          };
+        }
+      }
+    }
+
     const updated = await Model.findByIdAndUpdate(
       req.user._id,
-      { $set: req.body },
+      { $set: updateData },
       { new: true, runValidators: true }
     );
 

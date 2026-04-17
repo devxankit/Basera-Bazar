@@ -125,7 +125,7 @@ const supplierListingSchema = new mongoose.Schema({
     bulk_discount_available: { type: Boolean, default: false }
   },
   location: { type: pointSchema, required: true },
-  delivery_radius_km: { type: Number, required: true },
+  service_radius_km: { type: Number, required: true },
   status: {
     type: String,
     enum: ['draft', 'pending_approval', 'active', 'out_of_stock', 'inactive', 'suspended', 'rejected', 'deleted'],
@@ -147,6 +147,8 @@ const mandiListingSchema = new mongoose.Schema({
     price_per_unit: { type: Number, required: true },
     effective_date: { type: Date, required: true, default: Date.now }
   },
+  location: { type: pointSchema, required: true },
+  service_radius_km: { type: Number, required: true, default: 300 }, // Default 300km for mandi
   stock_quantity: { type: Number, default: 0, min: 0 },
   availability_status: { type: Boolean, default: true },
   status: {
@@ -170,6 +172,7 @@ supplierListingSchema.index({ location: '2dsphere' });
 supplierListingSchema.index({ status: 1, createdAt: -1 });
 supplierListingSchema.index({ partner_id: 1, status: 1 });
 
+mandiListingSchema.index({ location: '2dsphere' });
 mandiListingSchema.index({ 'pricing.effective_date': -1 });
 mandiListingSchema.index({ status: 1, createdAt: -1 });
 
