@@ -9,6 +9,7 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../services/DataEngine';
+import { useAuth } from '../../context/AuthContext';
 
 const SERVICE_CATEGORIES = [
   'AC maintenance', 'CCTV Services', 'Architect', 'Carpenter', 'Civil Engineer', 
@@ -24,6 +25,7 @@ const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
 export default function AddService() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const thumbnailRef = useRef(null);
   const portfolioRef = useRef(null);
 
@@ -50,6 +52,11 @@ export default function AddService() {
   const editId = searchParams.get('edit');
 
   useEffect(() => {
+    if (!user) {
+      navigate('/partner/login');
+      return;
+    }
+
     if (editId) {
       const services = JSON.parse(localStorage.getItem('baserabazar_partner_services') || '[]');
       const found = services.find(s => s.id.toString() === editId);
@@ -61,14 +68,13 @@ export default function AddService() {
       }
     }
 
-    // Pre-populate business name from active partner if not in edit mode
+    // Pre-populate business name from user context if not in edit mode
     if (!editId) {
-      const activePartner = JSON.parse(sessionStorage.getItem('activePartner') || '{}');
-      if (activePartner.businessName) {
-        setFormData(prev => ({ ...prev, businessName: activePartner.businessName }));
+      if (user.businessName) {
+        setFormData(prev => ({ ...prev, businessName: user.businessName }));
       }
     }
-  }, [editId]);
+  }, [editId, user, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

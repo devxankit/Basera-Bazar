@@ -5,8 +5,8 @@ import {
   Package, Star, Users, ChevronRight,
   TrendingUp, Activity, X, Info, Zap
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 
 const PLAN_THEMES = {
   free: {
@@ -40,20 +40,18 @@ const HISTORY_DATA = [
 
 export default function PartnerSubscription() {
   const navigate = useNavigate();
-  const [partner, setPartner] = useState(null);
+  const { user } = useAuth();
   const [showHistory, setShowHistory] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
 
   useEffect(() => {
-    const data = sessionStorage.getItem('activePartner');
-    if (data) {
-      setPartner(JSON.parse(data));
-    } else {
-      setPartner({ plan: 'free', role: 'service' });
+    if (!user) {
+      navigate('/partner/login');
     }
-  }, []);
+  }, [user, navigate]);
 
-  if (!partner) return null;
+  if (!user) return null;
+  const partner = user;
 
   const currentTheme = PLAN_THEMES[partner.plan] || PLAN_THEMES.free;
 

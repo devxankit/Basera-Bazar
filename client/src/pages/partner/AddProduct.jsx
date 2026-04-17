@@ -7,6 +7,7 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../services/DataEngine';
+import { useAuth } from '../../context/AuthContext';
 
 const SUPPLIER_CATEGORIES_ALL = [
   'Aggregate supplier', 
@@ -25,6 +26,7 @@ const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
 export default function AddProduct() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
 
@@ -57,12 +59,16 @@ export default function AddProduct() {
   });
 
   useEffect(() => {
-    const activePartner = JSON.parse(sessionStorage.getItem('activePartner') || '{}');
-    if (activePartner.category) {
-        setPartnerCategories(activePartner.category.split(', '));
+    if (!user) {
+      navigate('/partner/login');
+      return;
+    }
+
+    if (user.category) {
+        setPartnerCategories(user.category.split(', '));
         // Set default category to first available if not editing
         if (!editId && !formData.category) {
-            setFormData(prev => ({...prev, category: activePartner.category.split(', ')[0]}));
+            setFormData(prev => ({...prev, category: user.category.split(', ')[0]}));
         }
     } else {
         setPartnerCategories(SUPPLIER_CATEGORIES_ALL);

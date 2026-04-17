@@ -13,18 +13,37 @@ export default function PartnerLogin() {
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showInactiveModal, setShowInactiveModal] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [timer, setTimer] = useState(0);
   const { login } = useAuth();
+
+  // Timer Countdown Logic
+  React.useEffect(() => {
+    let interval;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
 
   const handleSendOtp = async () => {
     if (phone.length !== 10) return;
     try {
       setLoading(true);
-      const response = await api.post('/auth/send-otp', { phone });
+      const response = await api.post('/auth/send-otp', { 
+        phone,
+        checkExists: true // Ensure partner exists before sending OTP
+      });
       if (response.data.success) {
         setOtpSent(true);
+        setTimer(60);
       }
     } catch (error) {
-      if (error.response?.status === 403 && error.response?.data?.code === 'ACCOUNT_INACTIVE') {
+      if (error.response?.status === 404 && error.response?.data?.notExists) {
+        setShowSignupModal(true);
+      } else if (error.response?.status === 403 && error.response?.data?.code === 'ACCOUNT_INACTIVE') {
         setShowInactiveModal(true);
       } else {
         alert(error.response?.data?.message || 'Failed to send OTP.');
@@ -146,6 +165,25 @@ export default function PartnerLogin() {
             </motion.div>
           )}
 
+          {/* Resend OTP Timer */}
+          {otpSent && (
+            <div className="flex justify-end px-1">
+              {timer > 0 ? (
+                <span className="text-[12px] font-medium text-slate-400">
+                  Resend OTP in <span className="text-[#001b4e] font-bold">00:{timer < 10 ? `0${timer}` : timer}</span>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  className="text-[12px] font-bold text-[#f97316] hover:underline"
+                >
+                  Resend OTP
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Login Button */}
           <motion.button
             variants={fadeInUp}
@@ -211,6 +249,48 @@ export default function PartnerLogin() {
             >
               Okay
             </button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── ACCOUNT NOT FOUND MODAL ── */}
+      {showSignupModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 27, 78, 0.4)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyCenter: 'center',
+          zIndex: 1000, padding: '20px'
+        }} className="flex items-center justify-center">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            style={{
+              backgroundColor: '#ffffff', borderRadius: '24px', padding: '32px',
+              width: '100%', maxWidth: '360px', textAlign: 'center',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+            }}
+          >
+            <div style={{ backgroundColor: '#f0f3ff', width: '64px', height: '64px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#001b4e' }}>
+              <Phone size={32} />
+            </div>
+            <div style={{ fontSize: '20px', fontWeight: '700', color: '#001b4e', marginBottom: '12px' }}>Account Not Found</div>
+            <div style={{ fontSize: '15px', color: '#64748b', lineHeight: 1.5, marginBottom: '28px' }}>
+              We couldn't find a partner account with <strong>{phone}</strong>. Would you like to join as a partner?
+            </div>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => navigate('/partner/register', { state: { phone } })}
+                className="w-full py-4 bg-[#001b4e] text-white rounded-2xl font-bold text-[16px] shadow-lg shadow-indigo-900/20 active:scale-95 transition-all"
+              >
+                Become a Partner
+              </button>
+              <button
+                onClick={() => { setShowSignupModal(false); setPhone(''); }}
+                className="w-full py-4 bg-slate-100 text-[#001b4e] rounded-2xl font-bold text-[16px] active:scale-95 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
           </motion.div>
         </div>
       )}

@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../services/DataEngine';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const TYPES = ['Commercial', 'Residential', 'Agricultural', 'Industrial'];
 const UNITS = ['sq. ft.', 'sq. m.', 'acre', 'dismil', 'gaj'];
@@ -18,6 +19,7 @@ const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
 export default function AddProperty() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
 
@@ -71,19 +73,19 @@ export default function AddProperty() {
   });
 
   useEffect(() => {
+    if (!user) {
+      navigate('/partner/login');
+      return;
+    }
+
     if (editId) {
       const stored = JSON.parse(localStorage.getItem('baserabazar_partner_services') || '[]');
       const found = stored.find(s => s.id.toString() === editId);
       if (found) {
         setFormData(prev => ({ ...prev, ...found, images: found.images || [] }));
       }
-    } else {
-      const activePartner = JSON.parse(sessionStorage.getItem('activePartner') || '{}');
-      if (activePartner.email) {
-        // Just keeping reference that this is loaded by partner
-      }
     }
-  }, [editId]);
+  }, [editId, user, navigate]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

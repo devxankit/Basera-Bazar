@@ -16,45 +16,32 @@ import {
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/baseralogo.png';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 
 export default function PartnerHome() {
   const navigate = useNavigate();
-  const [partner, setPartner] = useState(null);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    const data = sessionStorage.getItem('activePartner');
-    if (data) {
-      setPartner(JSON.parse(data));
-    } else {
-      // Fallback for simulation if navigated directly
-      setPartner({
-        name: 'Ujjawal',
-        role: 'agent',
-        plan: 'free'
-      });
-    }
-  }, []);
-
-  if (!partner) return null;
+  if (!user) return null;
+  const partner = user;
 
   const getRoleLabel = () => {
-    switch (partner.role) {
-      case 'agent': return 'Agent';
-      case 'service': return 'Service Provider';
-      case 'supplier': return 'Supplier';
-      case 'mandi_seller': return 'Mandi Seller';
-      default: return 'Partner';
-    }
+    const roleMatch = partner.role?.toLowerCase() || '';
+    if (roleMatch === 'agent') return 'Agent';
+    if (roleMatch === 'service provider' || roleMatch === 'service') return 'Service Provider';
+    if (roleMatch === 'supplier') return 'Supplier';
+    if (roleMatch === 'mandi_seller') return 'Mandi Seller';
+    return partner.role || 'Partner';
   };
 
   const getCategoryTheme = () => {
-    switch (partner.role) {
-      case 'agent': return 'Properties';
-      case 'service': return 'Services';
-      case 'supplier': return 'Products';
-      case 'mandi_seller': return 'Mandi Marketplace';
-      default: return 'Items';
-    }
+    const roleMatch = partner.role?.toLowerCase() || '';
+    if (roleMatch === 'agent') return 'Properties';
+    if (roleMatch === 'service provider' || roleMatch === 'service') return 'Services';
+    if (roleMatch === 'supplier') return 'Products';
+    if (roleMatch === 'mandi_seller') return 'Mandi Marketplace';
+    return 'Items';
   };
 
   const overviewStats = [
@@ -164,7 +151,7 @@ export default function PartnerHome() {
               <div className="w-12 h-12 bg-indigo-50 text-[#001b4e] rounded-2xl flex items-center justify-center mb-5 shadow-inner">
                 <PlusCircle size={24} />
               </div>
-              <h4 className="text-[17px] font-medium text-[#001b4e] mb-1">Add {partner.role === 'agent' ? 'Property' : partner.role === 'service' ? 'Service' : 'Product'}</h4>
+              <h4 className="text-[17px] font-medium text-[#001b4e] mb-1">Add {partner.role?.toLowerCase().includes('agent') ? 'Property' : partner.role?.toLowerCase().includes('service') ? 'Service' : 'Product'}</h4>
               <p className="text-[13px] font-normal text-slate-400 leading-snug">Create new listing</p>
             </button>
             <button 
@@ -288,6 +275,3 @@ function MandiOverview({ partner }) {
     </div>
   );
 }
-
-import api from '../../services/api';
-import { PlusCircle as PlusIcon, Box as BoxIcon } from 'lucide-react';

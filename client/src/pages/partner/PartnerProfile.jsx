@@ -1,47 +1,43 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  User, Mail, Phone, Building2, 
-  CreditCard, HelpCircle, Info, 
-  LogOut, ChevronRight, Settings,
-  ArrowLeft, Edit2, Box
+  ArrowLeft, Edit2, Box, Building2, ChevronRight, 
+  User, Mail, Phone, CreditCard, HelpCircle, Info, LogOut 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PartnerProfile() {
   const navigate = useNavigate();
-  const [partner, setPartner] = useState(null);
+  const { user, logout } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  // If no user is logged in, we shouldn't even be here
   useEffect(() => {
-    const data = sessionStorage.getItem('activePartner');
-    if (data) {
-      setPartner(JSON.parse(data));
-    } else {
-      setPartner({
-        name: 'Ujjawal',
-        email: 'hdien1@gmail.com',
-        role: 'service',
-        plan: 'free',
-        phone: '9755633147'
-      });
+    if (!user) {
+      navigate('/partner/login');
     }
-  }, []);
+  }, [user, navigate]);
+
+  if (!user) return null;
+
+  // For compatibility with the existing UI code, we map 'user' to 'partner'
+  const partner = user;
 
   const handleLogout = () => {
-    sessionStorage.removeItem('activePartner');
+    logout();
     navigate('/partner/login');
   };
 
   if (!partner) return null;
 
   const getRoleLabel = () => {
-    switch (partner.role) {
-      case 'agent': return 'Agent';
-      case 'service': return 'Service Provider';
-      case 'supplier': return 'Supplier';
-      default: return 'Partner';
-    }
+    const roleMatch = partner.role?.toLowerCase() || '';
+    if (roleMatch === 'agent') return 'Agent';
+    if (roleMatch === 'service provider' || roleMatch === 'service') return 'Service Provider';
+    if (roleMatch === 'supplier') return 'Supplier';
+    if (roleMatch === 'mandi_seller') return 'Mandi Seller';
+    return partner.role || 'Partner';
   };
 
   return (

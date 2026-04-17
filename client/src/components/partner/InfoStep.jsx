@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   User, Mail, Phone, Lock, MapPin, ChevronDown, Camera, 
   ShieldCheck, Eye, EyeOff, Navigation, Info, Building2, 
@@ -33,6 +33,18 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
   const [verifying, setVerifying] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
+  const [timer, setTimer] = useState(0);
+  
+  // Timer Countdown Logic
+  useEffect(() => {
+    let interval;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
   
   const profileInputRef = useRef(null);
   const businessLogoRef = useRef(null);
@@ -108,6 +120,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
       const response = await api.post('/auth/send-otp', { phone: formData.phone });
       if (response.data.success) {
         setShowOtpInput(true);
+        setTimer(60); // Start 60s countdown
       }
     } catch (error) {
       alert(error.response?.data?.message || "Failed to send OTP.");
@@ -123,15 +136,26 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
       const response = await api.post('/auth/verify-otp', {
         phone: formData.phone,
         otp: otp,
-        role: 'partner'
+        role: 'partner',
+        flow: 'signup', // Ensure new accounts are created if not found
+        name: formData.fullName,
+        email: formData.email
       });
       
       if (response.data.success) {
         setIsVerified(true);
         setShowOtpInput(false);
+        // Save auth state (token + user) for finalizing registration later
+        if (onVerified) {
+          onVerified(response.data.user, response.data.token);
+        }
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Invalid OTP.");
+      if (error.response?.status === 409 && error.response?.data?.code === 'PHONE_EXISTS_OTHER') {
+        alert(error.response.data.message);
+      } else {
+        alert(error.response?.data?.message || "Invalid OTP.");
+      }
     } finally {
       setVerifying(false);
     }
@@ -143,7 +167,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
   const isPremium = plan === 'premium';
 
   return (
-    <div className="flex flex-col h-full font-sans pb-10 overflow-x-hidden">
+    <div className="flex flex-col font-sans pb-10 overflow-x-hidden">
       <div className="mb-6">
         <h1 className="text-[28px] font-bold text-[#001b4e] tracking-tight">Your Information</h1>
         <p className="text-slate-500 text-[15px]">Please fill in your details</p>
@@ -251,10 +275,29 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
                   type="button"
                   onClick={handleVerifyOtp}
                   disabled={otp.length !== 6 || verifying}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-[#001b4e] text-white px-4 py-1.5 rounded-lg text-[13px] font-bold disabled:opacity-50"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-[#001b4e] text-white px-4.5 py-2 rounded-xl text-[13px] font-bold disabled:opacity-50 shadow-md active:scale-95 transition-all"
                 >
                   {verifying ? <Loader2 size={16} className="animate-spin" /> : 'Check'}
                 </button>
+
+                {/* Resend OTP Timer UI */}
+                {!isVerified && (
+                  <div className="mt-2 flex justify-end px-1">
+                    {timer > 0 ? (
+                      <span className="text-[12px] font-medium text-slate-400">
+                        Resend OTP in <span className="text-[#001b4e] font-bold">00:{timer < 10 ? `0${timer}` : timer}</span>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        className="text-[12px] font-bold text-[#3b82f6] hover:text-[#2563eb] transition-colors"
+                      >
+                        Resend OTP
+                      </button>
+                    )}
+                  </div>
+                )}
               </motion.div>
             )}
             <InputField 
@@ -650,7 +693,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
   );
 }
 
-function InputField({ label, icon, type = "text", placeholder, toggle, value, onChange, name, disabled }) {
+function InputField({ label, icon, type = "text", placeholder, toggle, value, onChange, name, disabled, style }) {
   return (
     <div className="relative">
       {icon && (
@@ -668,6 +711,7 @@ function InputField({ label, icon, type = "text", placeholder, toggle, value, on
         disabled={disabled}
         onChange={onChange}
         placeholder={placeholder}
+        style={style}
         className={`w-full bg-white border border-slate-200 rounded-2xl py-4.5 ${icon ? 'pl-12' : 'pl-5'} pr-12 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all`}
       />
       {toggle && (

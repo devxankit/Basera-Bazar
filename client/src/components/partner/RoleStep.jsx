@@ -35,13 +35,13 @@ const roles = [
 
 export default function RoleStep({ selectedRole, onSelect, onNext }) {
   return (
-    <div className="flex flex-col h-full uppercase-none">
+    <div className="flex flex-col uppercase-none pb-10">
       <div className="mb-8">
         <h1 className="text-[28px] font-bold text-[#001b4e] mb-3 tracking-tight">Choose Your Role</h1>
         <p className="text-slate-500 text-[15px] leading-relaxed">Select the role that best describes your business</p>
       </div>
 
-      <div className="space-y-4 flex-grow">
+      <div className="space-y-4">
         {roles.map((role) => (
           <motion.button
             key={role.id}

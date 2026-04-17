@@ -180,8 +180,8 @@ const verifyOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Incorrect OTP. Please try again.' });
     }
 
-    // 3. OTP is valid — delete it to prevent reuse
-    await Otp.deleteOne({ _id: otpRecord._id });
+    // 3. OTP is valid — proceed to account logic
+    // (We delete the OTP record at the end of the function upon success)
 
     let account;
     const assignedRole = role;
@@ -234,6 +234,17 @@ const verifyOtp = async (req, res) => {
           finalCoords = [85.3647, 26.1209];
         }
 
+        // NEW: Cross-collection Conflict Check during signup
+        const OtherModel = role === 'partner' ? User : Partner;
+        const crossConflict = await OtherModel.findOne({ phone });
+        if (crossConflict) {
+          return res.status(409).json({ 
+            success: false, 
+            code: 'PHONE_EXISTS_OTHER', 
+            message: `This phone number is already registered as a ${role === 'partner' ? 'Customer' : 'Partner'}. Same number is not allowed for different roles.` 
+          });
+        }
+
         account = await Model.create({
           phone,
           name,
@@ -255,13 +266,14 @@ const verifyOtp = async (req, res) => {
             type: 'Point',
             coordinates: finalCoords
           } : undefined,
-          address: role !== 'user' ? {
-            full_address: address,
+          // Correctly map Partner fields to flat structure to match schema
+          ...(role !== 'user' && {
+            address: typeof address === 'object' ? (address.full_address || '') : address, // address is a string in Partner schema
             city,
             state,
             district,
             pincode
-          } : undefined
+          })
         });
       }
 
@@ -288,8 +300,13 @@ const verifyOtp = async (req, res) => {
       }
     }
 
-    // 4. Generate and return JWT
+    // 4. OTP is valid and process successful — delete it now
+    await Otp.deleteOne({ _id: otpRecord._id });
+
+    // 5. Generate and return JWT
     const token = generateToken(account._id, assignedRole, account.email, account.token_version);
+
+    console.log(`[AUTH] Login successful: ${account.phone} (ID: ${account._id}) as ${assignedRole}`);
 
     res.status(200).json({
       success: true,

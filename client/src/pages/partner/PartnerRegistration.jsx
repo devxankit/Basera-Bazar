@@ -12,6 +12,7 @@ import { db } from '../../services/DataEngine';
 
 export default function PartnerRegistration() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [step, setStep] = useState(1);
   const [selectedRole, setSelectedRole] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -119,6 +120,7 @@ export default function PartnerRegistration() {
       }
 
       // 4. Temporarily save token to api instance for the profile update
+      const { token, user: userData } = authState;
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
       // 5. Update Profile with full details
@@ -224,7 +226,7 @@ export default function PartnerRegistration() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
-            className="h-full"
+            className=""
           >
             {step === 1 && (
               <RoleStep 

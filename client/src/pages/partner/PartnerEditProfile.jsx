@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  ArrowLeft, Edit2, Save, Building2, 
+  Mail, Phone, MapPin, User, Loader2 
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Phone, Building2, Save, X, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 
 const SUPPLIER_CATEGORIES = [
   'Aggregate supplier', 
@@ -14,51 +19,57 @@ const SUPPLIER_CATEGORIES = [
 
 export default function PartnerEditProfile() {
   const navigate = useNavigate();
+  const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     businessName: '',
     email: '',
-    role: 'agent',
+    role: '',
     category: ''
   });
 
   useEffect(() => {
-    const data = sessionStorage.getItem('activePartner');
-    if (data) {
-      const partner = JSON.parse(data);
+    if (user) {
       setFormData({
-        name: partner.name || '',
-        phone: partner.phone || '',
-        businessName: partner.businessName || '',
-        email: partner.email || '',
-        role: partner.role || 'agent',
-        category: partner.category || ''
+        name: user.name || '',
+        phone: user.phone || '',
+        businessName: user.businessName || '',
+        email: user.email || '',
+        role: user.role || '',
+        category: user.category || ''
       });
+    } else {
+      navigate('/partner/login');
     }
-  }, []);
+  }, [user, navigate]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate save delay
-    setTimeout(() => {
-      const currentData = JSON.parse(sessionStorage.getItem('activePartner') || '{}');
-      const updatedData = {
-        ...currentData,
+    try {
+      const response = await api.put('/auth/profile', {
         name: formData.name,
-        phone: formData.phone,
-        businessName: formData.businessName,
         email: formData.email,
-        category: formData.category
-      };
+        phone: formData.phone,
+        // For roles like Supplier, we might need business info
+        ...(formData.businessName && { businessName: formData.businessName }),
+        ...(formData.category && { category: formData.category })
+      });
 
-      sessionStorage.setItem('activePartner', JSON.stringify(updatedData));
+      if (response.data.success) {
+        updateUser(response.data.data);
+        alert('Profile updated successfully!');
+        navigate('/partner/profile');
+      }
+    } catch (error) {
+      console.error('Profile update failed:', error);
+      alert(error.response?.data?.message || 'Failed to update profile.');
+    } finally {
       setLoading(false);
-      navigate('/partner/profile');
-    }, 800);
+    }
   };
 
   return (

@@ -37,7 +37,7 @@ const plans = [
 
 export default function PlanStep({ selectedPlan, onSelect, onNext, onBack }) {
   return (
-    <div className="flex flex-col h-full font-sans">
+    <div className="flex flex-col font-sans pb-10">
       <div className="mb-6 flex items-center gap-4">
         <button onClick={onBack} className="p-2 -ml-2 text-slate-400 hover:text-[#001b4e]">
           <ArrowLeft size={24} />
@@ -48,7 +48,7 @@ export default function PlanStep({ selectedPlan, onSelect, onNext, onBack }) {
         </div>
       </div>
 
-      <div className="space-y-4 flex-grow">
+      <div className="space-y-4">
         {plans.map((plan) => (
           <motion.div
             key={plan.id}

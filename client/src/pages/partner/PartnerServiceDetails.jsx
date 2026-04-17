@@ -6,13 +6,24 @@ import {
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PartnerServiceDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [service, setService] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const partner = JSON.parse(sessionStorage.getItem('activePartner') || '{}');
+
+  // If no user is logged in, we shouldn't even be here
+  useEffect(() => {
+    if (!user) {
+      navigate('/partner/login');
+    }
+  }, [user, navigate]);
+
+  if (!user) return null;
+  const partner = user;
 
   useEffect(() => {
     const services = JSON.parse(localStorage.getItem('baserabazar_partner_services') || '[]');

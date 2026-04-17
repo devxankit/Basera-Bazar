@@ -10,21 +10,20 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PartnerInventory() {
   const navigate = useNavigate();
-  const [partner, setPartner] = useState(null);
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState('All');
 
   useEffect(() => {
-    const data = sessionStorage.getItem('activePartner');
-    if (data) {
-      setPartner(JSON.parse(data));
-    } else {
-      setPartner({ role: 'agent' }); 
+    if (!user) {
+      navigate('/partner/login');
+      return;
     }
 
     // Load Items focused on the specific partner
@@ -33,13 +32,14 @@ export default function PartnerInventory() {
       const allItems = JSON.parse(saved);
       // Filter items to only show those belonging to the logged-in partner
       const filteredItems = allItems.filter(item => 
-        item.partnerId === (data ? JSON.parse(data).email : null)
+        item.partnerId === user.email
       );
       setItems(filteredItems);
     }
-  }, []);
+  }, [user, navigate]);
 
-  if (!partner) return null;
+  if (!user) return null;
+  const partner = user;
 
   const getLabels = () => {
     switch (partner.role) {
