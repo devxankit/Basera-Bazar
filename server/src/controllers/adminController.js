@@ -295,25 +295,46 @@ const getAdminActivities = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const skip = (page - 1) * limit;
     const { type, search } = req.query;
 
     const query = {};
-    if (type) query.entity_type = type;
+    if (type && type !== 'enquiry') query.entity_type = type;
     if (search) query.description = { $regex: search, $options: 'i' };
 
-    const [activities, total] = await Promise.all([
-      ActivityLog.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
-      ActivityLog.countDocuments(query)
+    // Fetch audit log activities + recent enquiries in parallel
+    const [auditActivities, recentEnquiries] = await Promise.all([
+      ActivityLog.find(query).sort({ createdAt: -1 }).limit(limit),
+      // Only include enquiries in the feed if no specific non-enquiry type is filtered
+      (!type || type === 'enquiry')
+        ? Enquiry.find(search ? { 'user_details.name': { $regex: search, $options: 'i' } } : {})
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .lean()
+        : Promise.resolve([])
     ]);
+
+    // Normalize enquiries into the same shape as ActivityLog entries
+    const enquiryActivities = recentEnquiries.map(enq => ({
+      _id: enq._id,
+      entity_type: 'enquiry',
+      description: `New ${enq.enquiry_type} enquiry from ${enq.user_details?.name || 'a customer'}`,
+      status: 'COMPLETED',
+      createdAt: enq.createdAt,
+      meta: { enquiry_type: enq.enquiry_type, user: enq.user_details }
+    }));
+
+    // Merge and sort all activities by date, then paginate
+    const allActivities = [...auditActivities, ...enquiryActivities]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice((page - 1) * limit, page * limit);
 
     res.status(200).json({
       success: true,
-      count: activities.length,
-      total,
-      pages: Math.ceil(total / limit),
+      count: allActivities.length,
+      total: allActivities.length,
+      pages: 1,
       currentPage: page,
-      data: activities
+      data: allActivities
     });
   } catch (error) {
     console.error("Activities error:", error);
@@ -1309,7 +1330,29 @@ const getLeads = async (req, res) => {
       });
     }
 
-    res.status(200).json({ success: true, count: leads.length, data: leads });
+    // IMPORTANT: Capture raw user_ids BEFORE populate overwrites them with null (for deleted users).
+    // We build a map of lead._id -> raw user_id ObjectId from a lean (un-populated) query.
+    const rawLeadData = await Enquiry.find(query).select('user_id').lean();
+    const rawUserIdMap = {};
+    rawLeadData.forEach(r => { rawUserIdMap[r._id.toString()] = r.user_id; });
+
+    // Add historical metrics for each lead using the reliable raw user_id
+    const leadsWithMetrics = await Promise.all(leads.map(async (lead) => {
+        const rawUserId = rawUserIdMap[lead._id.toString()];
+        const total_user_inquiries = rawUserId 
+            ? await Enquiry.countDocuments({ user_id: rawUserId })
+            : 0;
+        return { 
+            ...lead.toObject(), 
+            total_user_inquiries 
+        };
+    }));
+
+    res.status(200).json({ 
+        success: true, 
+        count: leads.length, 
+        data: leadsWithMetrics 
+    });
   } catch (error) {
     console.error("Error fetching leads:", error);
     res.status(500).json({ success: false, message: 'Error fetching leads.' });
@@ -1318,12 +1361,20 @@ const getLeads = async (req, res) => {
 
 const getLeadById = async (req, res) => {
   try {
+    // IMPORTANT: First fetch the raw document to capture the user_id ObjectId
+    // BEFORE populate runs. If the user account was deleted, populate returns null
+    // which breaks countDocuments (it returns 0 instead of the real count).
+    const rawLead = await Enquiry.findById(req.params.id).lean();
+    if (!rawLead) return res.status(404).json({ success: false, message: 'Lead not found' });
+    
+    // Capture the raw user_id ObjectId — this is always reliable
+    const rawUserId = rawLead.user_id;
+
+    // Now fetch the full populated lead for the response
     const lead = await Enquiry.findById(req.params.id)
       .populate('user_id', 'name phone email createdAt')
       .populate('partner_id', 'name phone role email profileImage createdAt')
       .populate('mandi_assignment.assigned_to_partner_id', 'name phone role profileImage');
-
-    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
 
     // Automatically mark as read when viewing details
     if (!lead.is_read) {
@@ -1332,7 +1383,16 @@ const getLeadById = async (req, res) => {
         await lead.save();
     }
 
-    res.status(200).json({ success: true, data: lead });
+    // Use the captured rawUserId (never null) for accurate counting
+    const totalCount = await Enquiry.countDocuments({ user_id: rawUserId });
+
+    res.status(200).json({ 
+        success: true, 
+        data: lead,
+        metrics: {
+            totalInquiries: totalCount
+        }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

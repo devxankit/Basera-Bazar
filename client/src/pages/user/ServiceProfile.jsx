@@ -28,7 +28,8 @@ const ServiceProfile = () => {
     name: user?.name || '', 
     phone: user?.phone || '', 
     email: user?.email || '', 
-    message: '' 
+    message: '',
+    inquiry_type: 'Request Quotation'
   }));
 
 
@@ -173,7 +174,7 @@ const ServiceProfile = () => {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-primary-900 tracking-tight">About This Service</h3>
                   <p className="text-sm font-medium text-slate-600 leading-relaxed italic">
-                    {service.about || service.details?.description}
+                    {service.full_description || service.short_description || "No detailed qualitative description provided for this service."}
                   </p>
                 </div>
                 
@@ -181,9 +182,9 @@ const ServiceProfile = () => {
                   <h3 className="text-lg font-semibold text-primary-900 tracking-tight">Service Details</h3>
                   <div className="bg-slate-50 rounded-[32px] border border-slate-100 overflow-hidden">
                     {[
-                      { label: 'Category', value: service.details?.propertyType?.toUpperCase() || 'GENERAL' },
-                      { label: 'Pricing', value: `${service.price?.value} ${service.price?.unit}` },
-                      { label: 'Service Range', value: 'Local Reach' },
+                      { label: 'Category', value: service.category_id?.name?.toUpperCase() || 'GENERAL' },
+                      { label: 'Pricing', value: service.price?.value ? `${service.price.value} ${service.price.unit}` : service.price?.unit || 'Contact for Price' },
+                      { label: 'Service Range', value: `${service.service_radius_km || 10} KM Radius` },
                       { label: 'Verified', value: 'Yes' }
                     ].map((item, i) => (
                       <div key={i} className="flex items-center justify-between px-6 py-4 border-b border-white/50 last:border-none">
@@ -200,7 +201,7 @@ const ServiceProfile = () => {
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <h3 className="text-lg font-semibold text-primary-900 tracking-tight">Portfolio Gallery</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  {(service.portfolio || [service.image]).map((img, i) => (
+                  {(service.portfolio_images && service.portfolio_images.length > 0 ? service.portfolio_images : [service.image]).map((img, i) => (
                     <div key={i} className="aspect-square rounded-3xl h-36 overflow-hidden border border-slate-100 shadow-sm shadow-slate-100">
                       <img src={img} className="w-full h-full object-cover transition-transform hover:scale-110" alt="Portfolio" />
                     </div>
@@ -216,8 +217,8 @@ const ServiceProfile = () => {
                   {[
                     { label: 'Phone', value: service.owner?.phone, icon: Phone, color: 'bg-emerald-100 text-emerald-600' },
                     { label: 'Email', value: service.owner?.email, icon: Mail, color: 'bg-blue-100 text-blue-600' },
-                    { label: 'Address', value: service.owner?.fullAddress, icon: MapPin, color: 'bg-orange-100 text-orange-600' },
-                    { label: 'Business Address', value: service.owner?.businessAddress || service.owner?.fullAddress, icon: Building2, color: 'bg-indigo-100 text-indigo-600' }
+                    { label: 'Service Area', value: `${service.address?.district}, ${service.address?.state}`, icon: MapPin, color: 'bg-orange-100 text-orange-600' },
+                    { label: 'Operational Hub', value: service.address?.full_address, icon: Building2, color: 'bg-indigo-100 text-indigo-600' }
                   ].map((contact, i) => (
                     <button key={i} className="flex items-center justify-between w-full group">
                       <div className="flex items-center gap-4">
@@ -304,11 +305,15 @@ const ServiceProfile = () => {
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <ListFilter size={18} className="text-[#1f2355]/40" />
                   </div>
-                  <select className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[14px] text-[#1f2355] font-medium appearance-none bg-white">
-                    <option>Request Quotation</option>
-                    <option>Book Consultant</option>
-                    <option>Book Service</option>
-                    <option>General Inquiry</option>
+                  <select 
+                    className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[14px] text-[#1f2355] font-medium appearance-none bg-white"
+                    value={enquiryData.inquiry_type}
+                    onChange={(e) => setEnquiryData({ ...enquiryData, inquiry_type: e.target.value })}
+                  >
+                    <option value="Request Quotation">Request Quotation</option>
+                    <option value="Book Consultant">Book Consultant</option>
+                    <option value="Book Service">Book Service</option>
+                    <option value="General Inquiry">General Inquiry</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none">
                      <ChevronRight size={18} className="text-[#1f2355]/40" />

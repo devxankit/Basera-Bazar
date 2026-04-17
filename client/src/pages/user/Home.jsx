@@ -32,11 +32,13 @@ const Home = () => {
 
         const props = await db.getAll('listings', { 
           category: 'property', 
+          is_featured: true,
           limit: 6,
           ...locationParams
         });
         const srvs = await db.getAll('listings', { 
           category: 'service', 
+          is_featured: true,
           limit: 6,
           ...locationParams
         });
@@ -95,7 +97,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="space-y-6 pb-20 bg-slate-50 min-h-screen">
+    <div className="space-y-6 bg-slate-50 min-h-screen">
       {/* Ultra-Slim Location Info Bar */}
       <div className="pt-2 px-3 xs:px-6"> 
         <button 
@@ -116,29 +118,27 @@ const Home = () => {
         <BannerCarousel />
       </div>
 
-      {/* Flagship Mandi Bazar Banner */}
+      {/* Mandi Bazar Banner */}
       <div className="px-5">
         <div 
           onClick={() => navigate('/mandi-bazar')}
-          className="bg-gradient-to-br from-[#1f2355] to-[#2a307d] rounded-[32px] p-6 text-white relative overflow-hidden shadow-xl shadow-indigo-900/20 active:scale-[0.98] transition-all cursor-pointer group"
+          className="bg-gradient-to-br from-[#1f2355] to-[#2a307d] rounded-[28px] p-4 text-white relative overflow-hidden shadow-xl shadow-indigo-900/10 active:scale-[0.98] transition-all cursor-pointer group"
         >
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-110 transition-transform" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#fa8639]/10 rounded-full -ml-16 -mb-16 blur-xl" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-8 -mt-8 blur-xl transition-transform" />
           
-          <div className="relative z-10 flex flex-col gap-4">
-            <div className="flex items-center gap-2 px-3 py-1 bg-white/10 w-fit rounded-full border border-white/10 backdrop-blur-sm">
-              <ShoppingBag size={12} className="text-[#fa8639]" />
-              <span className="text-[10px] font-black uppercase tracking-widest">New: Direct Ordering</span>
+          <div className="relative z-10 flex flex-col gap-2">
+            <div className="flex items-center gap-2 px-2.5 py-1 bg-white/10 w-fit rounded-full border border-white/5 backdrop-blur-sm">
+              <ShoppingBag size={10} className="text-[#fa8639]" />
+              <span className="text-[9px] font-black uppercase tracking-widest">Mandi Bazar</span>
             </div>
             
-            <div className="space-y-1">
-              <h2 className="text-[24px] font-black leading-tight italic">Mandi <span className="text-[#fa8639]">Bazar</span></h2>
-              <p className="text-[13px] text-white/60 font-medium max-w-[70%]">Get building materials delivered directly to your site at best market prices.</p>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <h2 className="text-[18px] font-black leading-tight italic">Direct <span className="text-[#fa8639]">Ordering</span></h2>
+                <p className="text-[11px] text-white/50 font-medium max-w-[200px]">Get materials delivered directly to your site.</p>
+              </div>
+              <ArrowRight size={20} className="text-[#fa8639] group-hover:translate-x-1 transition-transform" />
             </div>
-            
-            <button className="flex items-center gap-2 text-[12px] font-bold text-[#fa8639] group-hover:translate-x-1 transition-transform">
-              ORDER NOW <ArrowRight size={16} />
-            </button>
           </div>
         </div>
       </div>
@@ -153,19 +153,19 @@ const Home = () => {
             <button 
               key={cat.id}
               onClick={() => navigate(cat.path)}
-              className="bg-white p-4 rounded-[28px] border border-slate-100 shadow-xl shadow-slate-200/40 flex flex-col items-center gap-3 active:scale-95 transition-all text-center group"
+              className="bg-white p-3 rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/40 flex flex-col items-center gap-2 active:scale-95 transition-all text-center group"
             >
               <div className={cn(
-                "p-3 rounded-2xl transition-transform group-hover:scale-110 border",
+                "p-2.5 rounded-xl transition-transform group-hover:scale-110 border",
                 cat.bgColor,
                 cat.iconColor,
                 cat.borderColor
               )}>
-                <cat.icon size={26} strokeWidth={2} />
+                <cat.icon size={22} strokeWidth={2} />
               </div>
               <div className="space-y-0.5">
-                <h3 className="text-[10px] font-semibold text-primary-900 leading-tight tracking-wide">{cat.title}</h3>
-                <p className="text-[8px] font-medium text-slate-400 uppercase tracking-tighter">{cat.count}</p>
+                <h3 className="text-[11px] font-semibold text-primary-900 leading-tight tracking-wide">{cat.title}</h3>
+                <p className="text-[9px] font-medium text-slate-400 uppercase tracking-tighter">{cat.count}</p>
               </div>
             </button>
           ))}

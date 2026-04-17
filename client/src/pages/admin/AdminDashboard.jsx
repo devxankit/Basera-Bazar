@@ -250,6 +250,7 @@ export default function AdminDashboard() {
   const ACTIVITY_ICON_MAP = {
     user: Users, partner: Users, property: Building2,
     service: Briefcase, supplier: ShoppingBag, product: ShoppingBag,
+    enquiry: MessageSquare,
     category: MessageSquare, subcategory: MessageSquare,
     banner: Activity, subscription: CreditCard, system: Activity
   };

@@ -3,17 +3,20 @@ const mongoose = require('mongoose');
 
 /**
  * Helper to build proximity aggregation pipeline
- * @param {Number} lat 
- * @param {Number} lng 
- * @param {String} userDistrict 
- * @param {String} userState 
- * @param {Number} radiusKm 
  */
 const buildProximityPipeline = (lat, lng, userDistrict, userState, radiusKm = 300) => {
+  const latitude = parseFloat(lat);
+  const longitude = parseFloat(lng);
+
+  // Robust check for valid coordinates
+  if (isNaN(latitude) || isNaN(longitude)) {
+     throw new Error("Invalid coordinates provided for proximity search.");
+  }
+
   return [
     {
       $geoNear: {
-        near: { type: "Point", coordinates: [parseFloat(lng), parseFloat(lat)] },
+        near: { type: "Point", coordinates: [longitude, latitude] },
         distanceField: "distance",
         maxDistance: parseFloat(radiusKm) * 1000,
         query: { status: 'active' },
@@ -52,7 +55,10 @@ const getNearbyServices = async (req, res) => {
   try {
     const { lat, lng, district, state, radius = 300 } = req.query;
 
-    if (!lat || !lng) {
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+
+    if (isNaN(latitude) || isNaN(longitude)) {
       // Fallback to basic find if no location provided
       const services = await ServiceListing.find({ status: 'active' }).limit(20);
       return res.status(200).json({ success: true, count: services.length, data: services });
@@ -96,7 +102,10 @@ const getMandiListings = async (req, res) => {
   try {
     const { lat, lng, district, state, radius = 300 } = req.query;
 
-    if (!lat || !lng) {
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+
+    if (isNaN(latitude) || isNaN(longitude)) {
       const mandiItems = await MandiListing.find({ status: 'active' }).select('-partner_id');
       return res.status(200).json({ success: true, count: mandiItems.length, data: mandiItems });
     }
@@ -221,10 +230,12 @@ const getListingById = async (req, res) => {
     // Search all collections for the ID
     // In a real high-traffic app, we might store a 'ListingLookup' index,
     // but for this MVP, we check the main types.
-    const listing = await ServiceListing.findById(id).populate('partner_id', 'name phone') ||
-                    await PropertyListing.findById(id).populate('partner_id', 'name phone') ||
-                    await SupplierListing.findById(id).populate('partner_id', 'name phone') ||
-                    await MandiListing.findById(id);
+    const populateOptions = { path: 'partner_id', select: 'name phone email role default_location profile' };
+    
+    const listing = await ServiceListing.findById(id).populate(populateOptions) ||
+                    await PropertyListing.findById(id).populate(populateOptions) ||
+                    await SupplierListing.findById(id).populate(populateOptions) ||
+                    await MandiListing.findById(id).populate(populateOptions);
 
     if (!listing) {
       return res.status(404).json({ success: false, message: 'Listing not found.' });
@@ -251,19 +262,28 @@ const getListingById = async (req, res) => {
  */
 const getAllListings = async (req, res) => {
   try {
-    const { category, limit = 10, lat, lng, district, state } = req.query;
+    const { category, limit = 10, lat, lng, district, state, is_featured } = req.query;
     let results = [];
 
-    const hasLocation = lat && lng;
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+    const hasLocation = !isNaN(latitude) && !isNaN(longitude);
     const proximityRadius = 300;
 
     const fetchCategory = async (Model, modelName) => {
       if (hasLocation) {
-        const pipeline = buildProximityPipeline(lat, lng, district, state, proximityRadius);
+        const pipeline = buildProximityPipeline(latitude, longitude, district, state, proximityRadius);
+        if (is_featured === 'true') {
+          pipeline.push({ $match: { is_featured: true } });
+        }
         pipeline.push({ $limit: parseInt(limit) });
         return await Model.aggregate(pipeline);
       } else {
-        return await Model.find({ status: 'active' }).limit(parseInt(limit));
+        const query = { status: 'active' };
+        if (is_featured === 'true') {
+          query.is_featured = true;
+        }
+        return await Model.find(query).limit(parseInt(limit));
       }
     };
 
@@ -293,8 +313,9 @@ const getAllListings = async (req, res) => {
       data: results
     });
   } catch (error) {
-    console.error("Error in getAllListings:", error);
-    res.status(500).json({ success: false, message: 'Server error fetching listings.' });
+    console.error("CRITICAL: Error in getAllListings:", error.message);
+    console.error("Stack:", error.stack);
+    res.status(500).json({ success: false, message: `Server error: ${error.message}` });
   }
 };
 
@@ -314,6 +335,50 @@ const getPublicBanners = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get public categories by type (property/service/supplier) with listing counts
+ * @route   GET /api/listings/categories?type=property
+ * @access  Public
+ */
+const getPublicCategories = async (req, res) => {
+  try {
+    const { Category } = require('../models/System');
+    const { type, parent_id } = req.query;
+    
+    const query = { is_active: true };
+    if (type) query.type = type;
+    if (parent_id) {
+      query.parent_id = parent_id;
+    } else {
+      query.parent_id = null; // Default to top-level if no parent_id is specified
+    }
+
+    const categories = await Category.find(query).sort({ name: 1 });
+
+    // Count listings per category
+    let ListingModel;
+    if (type === 'property') ListingModel = PropertyListing;
+    else if (type === 'service') ListingModel = ServiceListing;
+    else if (type === 'supplier') ListingModel = SupplierListing;
+
+    const categoriesWithCounts = await Promise.all(categories.map(async (cat) => {
+      let count = 0;
+      if (ListingModel) {
+        count = await ListingModel.countDocuments({
+          $or: [{ category_id: cat._id }, { subcategory_id: cat._id }],
+          status: 'active'
+        });
+      }
+      return { ...cat.toObject(), listing_count: count };
+    }));
+
+    res.status(200).json({ success: true, count: categoriesWithCounts.length, data: categoriesWithCounts });
+  } catch (error) {
+    console.error("Error in getPublicCategories:", error);
+    res.status(500).json({ success: false, message: 'Server error fetching categories.' });
+  }
+};
+
 module.exports = {
   getNearbyServices,
   getMandiListings,
@@ -322,5 +387,6 @@ module.exports = {
   createSupplierListing,
   getListingById,
   getAllListings,
-  getPublicBanners
+  getPublicBanners,
+  getPublicCategories
 };

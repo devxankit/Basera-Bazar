@@ -11,22 +11,9 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Skeleton from '../../components/common/Skeleton';
 
-const INDIA_DISTRICTS = {
-  'Bihar': ['Muzaffarpur', 'Patna', 'Gaya', 'Darbhanga', 'Bhagalpur', 'Hajipur', 'Purnia', 'Arrah', 'Begusarai', 'Munger', 'Bihar Sharif', 'Katihar', 'Sitamarhi', 'Siwan', 'Bhojpur', 'Saran'],
-  'Rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Ajmer', 'Bikaner', 'Alwar', 'Bhilwara', 'Bharatpur', 'Sikar', 'Pali', 'Sri Ganganagar', 'Tonk', 'Chittorgarh', 'Barmer', 'Churu'],
-  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Agra', 'Varanasi', 'Allahabad', 'Meerut', 'Ghaziabad', 'Noida', 'Mathura', 'Bareilly', 'Gorakhpur', 'Moradabad', 'Firozabad', 'Aligarh', 'Jhansi', 'Muzaffarnagar'],
-  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Thane', 'Aurangabad', 'Solapur', 'Kolhapur', 'Satara', 'Jalgaon', 'Raigad', 'Ahmednagar', 'Amravati', 'Chandrapur', 'Latur', 'Nandurbar'],
-  'Delhi': ['New Delhi', 'Central Delhi', 'North Delhi', 'South Delhi', 'East Delhi', 'West Delhi', 'North East Delhi', 'North West Delhi', 'South East Delhi', 'South West Delhi'],
-  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar', 'Junagadh', 'Gandhinagar', 'Anand', 'Mehsana', 'Morbi', 'Kutch', 'Navsari', 'Valsad', 'Bharuch', 'Botad'],
-  'Madhya Pradesh': ['Bhopal', 'Indore', 'Jabalpur', 'Gwalior', 'Ujjain', 'Rewa', 'Satna', 'Sagar', 'Dewas', 'Morena', 'Ratlam', 'Chhindwara', 'Shivpuri', 'Vidisha', 'Mandsaur', 'Balaghat'],
-  'West Bengal': ['Kolkata', 'Howrah', 'North 24 Parganas', 'South 24 Parganas', 'Bardhaman', 'Murshidabad', 'Nadia', 'Jalpaiguri', 'Darjeeling', 'Malda', 'Birbhum', 'Bankura', 'West Midnapore', 'East Midnapore', 'Siliguri', 'Hooghly'],
-  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Tirunelveli', 'Vellore', 'Erode', 'Dindigul', 'Kancheepuram', 'Thanjavur', 'Virudhunagar', 'Krishnagiri', 'Namakkal', 'Ramanathapuram', 'Tiruppur'],
-  'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi', 'Mangaluru', 'Belagavi', 'Davanagere', 'Ballari', 'Vijayapura', 'Shivamogga', 'Tumakuru', 'Kalaburagi', 'Bidar', 'Raichur', 'Dharwar', 'Hassan', 'Udupi'],
-  'Haryana': ['Gurugram', 'Faridabad', 'Ambala', 'Hisar', 'Rohtak', 'Panipat', 'Karnal', 'Sonipat', 'Yamunanagar', 'Panchkula', 'Bhiwani', 'Sirsa', 'Jhajjar', 'Jind', 'Mahendragarh', 'Nuh'],
-  'Punjab': ['Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda', 'Mohali', 'Pathankot', 'Hoshiarpur', 'Gurdaspur', 'Ferozepur', 'Faridkot', 'Moga', 'Muktsar', 'Sangrur', 'Kapurthala', 'Fatehgarh Sahib'],
-  'Jharkhand': ['Ranchi', 'Jamshedpur', 'Dhanbad', 'Bokaro', 'Deoghar', 'Hazaribagh', 'Giridih', 'Ramgarh', 'Chaibasa', 'Dumka', 'Pakur', 'Chatra', 'Koderma', 'Latehar', 'Lohardaga', 'Simdega'],
-  'Odisha': ['Bhubaneswar', 'Cuttack', 'Rourkela', 'Berhampur', 'Puri', 'Sambalpur', 'Balasore', 'Baripada', 'Bhadrak', 'Angul', 'Dhenkanal', 'Kendrapara', 'Jajpur', 'Koraput', 'Rayagada', 'Sundargarh'],
-};
+import { INDIAN_STATES_DISTRICTS, INDIAN_STATES } from '../../constants/indiaGeoData';
+
+const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -48,6 +35,7 @@ const BrowseCategory = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [selectedDistricts, setSelectedDistricts] = useState([]);
+  const [filterState, setFilterState] = useState('Bihar');
   
   const [activeFilters, setActiveFilters] = useState({
     propertyFor: null,
@@ -119,12 +107,11 @@ const BrowseCategory = () => {
     const fetchItems = async () => {
       setLoading(true);
       
-      const locationParams = {
-        lat: location.coords?.[1],
-        lng: location.coords?.[0],
-        district: location.district,
-        state: location.state
-      };
+      const locationParams = {};
+      if (typeof location.coords?.[1] === 'number') locationParams.lat = location.coords[1];
+      if (typeof location.coords?.[0] === 'number') locationParams.lng = location.coords[0];
+      if (location.district) locationParams.district = location.district;
+      if (location.state) locationParams.state = location.state;
 
       const params = {
         category: category !== 'all' ? category : undefined,
@@ -141,7 +128,7 @@ const BrowseCategory = () => {
         const query = searchQuery.toLowerCase();
         data = data.filter(item => 
           item.title?.toLowerCase().includes(query) ||
-          item.location?.toLowerCase().includes(query) ||
+          (item.display_location || "").toLowerCase().includes(query) ||
           item.businessName?.toLowerCase().includes(query) ||
           item.details?.propertyType?.toLowerCase().includes(query)
         );
@@ -178,14 +165,24 @@ const BrowseCategory = () => {
         // Default mock is oldest first
       } else if (sortBy === 'Price: Low to High') {
         data.sort((a,b) => {
-          const vA = parseFloat((a.price?.value || '0').replace(/,/g, ''));
-          const vB = parseFloat((b.price?.value || '0').replace(/,/g, ''));
+          const getVal = (val) => {
+            if (val === undefined || val === null) return 0;
+            if (typeof val === 'number') return val;
+            return parseFloat(String(val).replace(/,/g, '')) || 0;
+          };
+          const vA = getVal(a.price?.value || a.pricing?.amount || a.pricing?.price_per_unit || a.pricing?.amount);
+          const vB = getVal(b.price?.value || b.pricing?.amount || b.pricing?.price_per_unit || b.pricing?.amount);
           return vA - vB;
         });
       } else if (sortBy === 'Price: High to Low') {
         data.sort((a,b) => {
-          const vA = parseFloat((a.price?.value || '0').replace(/,/g, ''));
-          const vB = parseFloat((b.price?.value || '0').replace(/,/g, ''));
+          const getVal = (val) => {
+            if (val === undefined || val === null) return 0;
+            if (typeof val === 'number') return val;
+            return parseFloat(String(val).replace(/,/g, '')) || 0;
+          };
+          const vA = getVal(a.price?.value || a.pricing?.amount || a.pricing?.price_per_unit || a.pricing?.amount);
+          const vB = getVal(b.price?.value || b.pricing?.amount || b.pricing?.price_per_unit || b.pricing?.amount);
           return vB - vA;
         });
       } else if (sortBy === 'Business name (A-Z)') {
@@ -392,11 +389,12 @@ const BrowseCategory = () => {
                     
                     <div className="flex items-center gap-1.5 pt-1">
                       <div className="flex text-[#fa8639]">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} size={14} fill={i < Math.floor(item.rating || 5) ? "currentColor" : "none"} />
-                        ))}
+                        {[...Array(5)].map((_, i) => {
+                          const ratingVal = Number(item.rating) || 5;
+                          return <Star key={i} size={14} fill={i < Math.floor(ratingVal) ? "currentColor" : "none"} />;
+                        })}
                       </div>
-                      <span className="text-[13px] font-bold text-[#1f2355] mt-0.5">{item.rating?.toFixed(1) || '5.0'}</span>
+                      <span className="text-[13px] font-bold text-[#1f2355] mt-0.5">{(Number(item.rating) || 5).toFixed(1)}</span>
                     </div>
                   </div>
                 </div>
@@ -464,7 +462,9 @@ const BrowseCategory = () => {
                       </div>
                     </div>
                     <div className={`${isGridView ? 'text-left w-full mt-1' : 'text-right shrink-0'}`}>
-                      <p className={`${isGridView ? 'text-[15px]' : 'text-lg'} font-bold text-[#124db5] leading-none`}>₹{item.price?.value} {item.price?.unit}</p>
+                      <p className={`${isGridView ? 'text-[15px]' : 'text-lg'} font-bold text-[#124db5] leading-none`}>
+                        ₹{item.pricing?.amount || item.price?.value || item.pricing?.price_per_unit} {item.price?.unit || 'Total'}
+                      </p>
                     </div>
                   </div>
                   <div className={`flex flex-wrap ${isGridView ? 'gap-1.5 pt-2' : 'gap-3 pt-3'} border-t border-slate-50`}>
@@ -547,7 +547,7 @@ const BrowseCategory = () => {
                           <Navigation size={20} className="text-[#1f2355]" />
                           <div className="text-left">
                             <p className="text-[14px] font-medium text-[#1f2355]">Use Current Location</p>
-                            <p className="text-[12px] text-[#124db5] mt-0.5">Muzaffarpur, Bihar</p>
+                            <p className="text-[12px] text-[#124db5] mt-0.5">{location.display_location || 'Fetching location...'}</p>
                           </div>
                         </div>
                         {activeFilters.locationType !== 'manual' ? (
@@ -578,20 +578,20 @@ const BrowseCategory = () => {
                       <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-2 space-y-3 shadow-sm animate-fade-in">
                         <div className="space-y-1.5">
                           <label className="text-[12px] font-semibold text-[#1f2355]">State</label>
-                          <select className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[#124db5] text-[13px] text-[#1f2355] font-medium transition-colors">
-                            <option>Bihar</option>
-                            <option>Delhi</option>
-                            <option>Uttar Pradesh</option>
-                            <option>Maharashtra</option>
+                          <select 
+                            value={filterState}
+                            onChange={(e) => setFilterState(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[#124db5] text-[13px] text-[#1f2355] font-medium transition-colors"
+                          >
+                            {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                           </select>
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-[12px] font-semibold text-[#1f2355]">District / City</label>
-                          <select className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[#124db5] text-[13px] text-[#1f2355] font-medium transition-colors">
-                            <option>Muzaffarpur</option>
-                            <option>Patna</option>
-                            <option>Gaya</option>
-                            <option>Bhagalpur</option>
+                          <select 
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[#124db5] text-[13px] text-[#1f2355] font-medium transition-colors"
+                          >
+                            {(INDIA_DISTRICTS[filterState] || []).map(d => <option key={d} value={d}>{d}</option>)}
                           </select>
                         </div>
                       </div>
@@ -599,7 +599,7 @@ const BrowseCategory = () => {
                     {activeFilters.locationType !== 'manual' && (
                       <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3 flex items-center gap-2">
                         <Navigation size={16} className="text-emerald-600" />
-                        <span className="text-emerald-600 font-medium text-[13px]">Current: Muzaffarpur, Bihar</span>
+                        <span className="text-emerald-600 font-medium text-[13px]">Current: {location.district}, {location.state}</span>
                       </div>
                     )}
                   </div>
@@ -836,7 +836,10 @@ const BrowseCategory = () => {
               {/* Location */}
               <div className="space-y-3">
                 <h3 className="text-[15px] font-semibold text-[#1f2355]">Location</h3>
-                <button className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 flex items-center justify-between group hover:border-[#1f2355] transition-all">
+                <button 
+                  onClick={() => setIsLocationModalOpen(true)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 flex items-center justify-between group hover:border-[#1f2355] transition-all"
+                >
                   <div className="flex items-center gap-3">
                     <MapPin size={18} className="text-[#1f2355]" />
                     <span className="text-[#1f2355] font-medium text-[14px]">Select Location</span>
@@ -1097,9 +1100,9 @@ const BrowseCategory = () => {
 
       {/* Location Selector Modal */}
       {isLocationModalOpen && (() => {
-        const homeState = currentLocation?.split(',')[1]?.trim() || 'Bihar';
-        const homeCity  = currentLocation?.split(',')[0]?.trim() || '';
-        const districtList = INDIA_DISTRICTS[homeState] || Object.values(INDIA_DISTRICTS)[0];
+        const homeState = (location.state || location.formattedAddress?.split(',')[1])?.trim() || 'Bihar';
+        const homeCity  = location.city || location.formattedAddress?.split(',')[0]?.trim() || '';
+        const districtList = INDIA_DISTRICTS[homeState] || INDIA_DISTRICTS['Bihar'] || Object.values(INDIA_DISTRICTS)[0] || [];
 
         const toggleDistrict = (d) => {
           setSelectedDistricts(prev =>

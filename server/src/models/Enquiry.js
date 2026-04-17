@@ -11,6 +11,11 @@ const enquirySchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  user_details: {
+    name: { type: String, default: 'Potential Customer' },
+    phone: { type: String },
+    email: { type: String, lowercase: true }
+  },
   listing_id: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
@@ -50,6 +55,10 @@ const enquirySchema = new mongoose.Schema({
   listing_snapshot: {
     type: mongoose.Schema.Types.Mixed,
     default: {} 
+  },
+  inquiry_type: {
+    type: String,
+    default: 'General Inquiry'
   }
 }, { timestamps: true });
 

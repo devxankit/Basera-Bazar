@@ -10,18 +10,27 @@ const { protect } = require('../middlewares/authMiddleware');
  */
 // We use the `upload.single('image')` middleware from Multer.
 // `image` must match the key name the frontend uses in the FormData object.
-router.post('/', protect, upload.single('image'), (req, res) => {
+router.post('/', protect, (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      console.error("Multer error:", err);
+      return res.status(400).json({ 
+        success: false, 
+        message: err.message || 'Error during file upload. Ensure format is jpg/png/webp.' 
+      });
+    }
+    next();
+  });
+}, (req, res) => {
   try {
-    // If our multer config was successful, Cloudinary will have assigned a URL to req.file
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'Please upload a valid image file.' });
     }
 
-    // The secure_url is the HTTPS link pointing to the image on Cloudinary servers
     res.status(200).json({
       success: true,
       message: 'Image uploaded successfully!',
-      url: req.file.path // Cloudinary places the secure URL in req.file.path
+      url: req.file.path
     });
   } catch (error) {
     console.error("Upload error:", error);

@@ -9,7 +9,7 @@ const { ServiceListing, PropertyListing, SupplierListing, MandiListing } = requi
 const createEnquiry = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { enquiry_type, listing_id, content } = req.body;
+    const { enquiry_type, listing_id, content, inquiry_type } = req.body;
 
     let targetListing;
     let partnerId = null;
@@ -36,13 +36,21 @@ const createEnquiry = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Requested listing does not exist.' });
     }
 
-    // 2. Create the enquiry in the database
+  // 2. Create the enquiry in the database
+    // We save a snapshot of user_details so the Lead remains readable 
+    // even if the user profile is changed or deleted.
     const newEnquiry = await Enquiry.create({
       enquiry_type,
       user_id: userId,
+      user_details: req.body.user_details || {
+        name: req.user.name,
+        phone: req.user.phone,
+        email: req.user.email
+      },
       listing_id,
       partner_id: partnerId,
       content,
+      inquiry_type: inquiry_type || 'General Inquiry',
       listing_snapshot: targetListing 
     });
 

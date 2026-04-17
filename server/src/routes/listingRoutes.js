@@ -8,7 +8,8 @@ const {
   createSupplierListing,
   getListingById, 
   getAllListings, 
-  getPublicBanners 
+  getPublicBanners,
+  getPublicCategories
 } = require('../controllers/listingController');
 
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
@@ -18,6 +19,7 @@ router.get('/', getAllListings);
 router.get('/banners', getPublicBanners);
 router.get('/services', getNearbyServices);
 router.get('/mandi', getMandiListings);
+router.get('/categories', getPublicCategories);
 router.get('/:id', getListingById);
 
 // private routes (Partner specific)

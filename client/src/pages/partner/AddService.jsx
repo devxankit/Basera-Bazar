@@ -18,22 +18,9 @@ const SERVICE_CATEGORIES = [
 
 const SERVICE_TYPES = ['Hourly Rate', 'Fixed Price', 'Project Based', 'Consultation'];
 
-const INDIA_DISTRICTS = {
-  'Bihar': ['Muzaffarpur', 'Patna', 'Gaya', 'Darbhanga', 'Bhagalpur', 'Hajipur', 'Purnia', 'Arrah', 'Begusarai', 'Munger', 'Bihar Sharif', 'Katihar', 'Sitamarhi', 'Siwan', 'Bhojpur', 'Saran'],
-  'Rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Ajmer', 'Bikaner', 'Alwar', 'Bhilwara', 'Bharatpur', 'Sikar', 'Pali', 'Sri Ganganagar', 'Tonk', 'Chittorgarh', 'Barmer', 'Churu'],
-  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Agra', 'Varanasi', 'Allahabad', 'Meerut', 'Ghaziabad', 'Noida', 'Mathura', 'Bareilly', 'Gorakhpur', 'Moradabad', 'Firozabad', 'Aligarh', 'Jhansi', 'Muzaffarnagar'],
-  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Thane', 'Aurangabad', 'Solapur', 'Kolhapur', 'Satara', 'Jalgaon', 'Raigad', 'Ahmednagar', 'Amravati', 'Chandrapur', 'Latur', 'Nandurbar'],
-  'Delhi': ['New Delhi', 'Central Delhi', 'North Delhi', 'South Delhi', 'East Delhi', 'West Delhi', 'North East Delhi', 'North West Delhi', 'South East Delhi', 'South West Delhi'],
-  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar', 'Junagadh', 'Gandhinagar', 'Anand', 'Mehsana', 'Morbi', 'Kutch', 'Navsari', 'Valsad', 'Bharuch', 'Botad'],
-  'Madhya Pradesh': ['Bhopal', 'Indore', 'Jabalpur', 'Gwalior', 'Ujjain', 'Rewa', 'Satna', 'Sagar', 'Dewas', 'Morena', 'Ratlam', 'Chhindwara', 'Shivpuri', 'Vidisha', 'Mandsaur', 'Balaghat'],
-  'West Bengal': ['Kolkata', 'Howrah', 'North 24 Parganas', 'South 24 Parganas', 'Bardhaman', 'Murshidabad', 'Nadia', 'Jalpaiguri', 'Darjeeling', 'Malda', 'Birbhum', 'Bankura', 'West Midnapore', 'East Midnapore', 'Siliguri', 'Hooghly'],
-  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Tirunelveli', 'Vellore', 'Erode', 'Dindigul', 'Kancheepuram', 'Thanjavur', 'Virudhunagar', 'Krishnagiri', 'Namakkal', 'Ramanathapuram', 'Tiruppur'],
-  'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi', 'Mangaluru', 'Belagavi', 'Davanagere', 'Ballari', 'Vijayapura', 'Shivamogga', 'Tumakuru', 'Kalaburagi', 'Bidar', 'Raichur', 'Dharwar', 'Hassan', 'Udupi'],
-  'Haryana': ['Gurugram', 'Faridabad', 'Ambala', 'Hisar', 'Rohtak', 'Panipat', 'Karnal', 'Sonipat', 'Yamunanagar', 'Panchkula', 'Bhiwani', 'Sirsa', 'Jhajjar', 'Jind', 'Mahendragarh', 'Nuh'],
-  'Punjab': ['Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda', 'Mohali', 'Pathankot', 'Hoshiarpur', 'Gurdaspur', 'Ferozepur', 'Faridkot', 'Moga', 'Muktsar', 'Sangrur', 'Kapurthala', 'Fatehgarh Sahib'],
-  'Jharkhand': ['Ranchi', 'Jamshedpur', 'Dhanbad', 'Bokaro', 'Deoghar', 'Hazaribagh', 'Giridih', 'Ramgarh', 'Chaibasa', 'Dumka', 'Pakur', 'Chatra', 'Koderma', 'Latehar', 'Lohardaga', 'Simdega'],
-  'Odisha': ['Bhubaneswar', 'Cuttack', 'Rourkela', 'Berhampur', 'Puri', 'Sambalpur', 'Balasore', 'Baripada', 'Bhadrak', 'Angul', 'Dhenkanal', 'Kendrapara', 'Jajpur', 'Koraput', 'Rayagada', 'Sundargarh'],
-};
+import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
+
+const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
 export default function AddService() {
   const navigate = useNavigate();

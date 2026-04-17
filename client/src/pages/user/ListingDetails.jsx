@@ -6,6 +6,8 @@ import { useAuth } from '../../context/AuthContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Skeleton from '../../components/common/Skeleton';
+import { motion, AnimatePresence } from 'framer-motion';
+import api from '../../services/api';
 
 import heroRealEstate from '../../assets/images/hero_real_estate.png';
 
@@ -20,6 +22,8 @@ const ListingDetails = () => {
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('details');
+  const [activeImg, setActiveImg] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
@@ -30,6 +34,15 @@ const ListingDetails = () => {
   const [selection, setSelection] = useState({ subtype: '', brand: '', quantity: 1 });
   const [enquiryData, setEnquiryData] = useState({ name: '', phone: '', email: '', message: '' });
   const [quotationData, setQuotationData] = useState({ name: '', phone: '', email: '', message: '' });
+  
+  // OTP States for Guest Users
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [isVerified, setIsVerified] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
 
   const isSupplier = listing?.category === 'supplier';
   const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -101,6 +114,110 @@ const ListingDetails = () => {
   };
 
   useEffect(() => {
+    let interval;
+    if (otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpTimer]);
+
+  const handleSendOtp = async () => {
+    if (enquiryData.phone.length < 10) {
+      alert("Please enter a valid 10-digit phone number");
+      return;
+    }
+
+    try {
+      setIsSendingOtp(true);
+      const response = await api.post('/auth/send-otp', { 
+        phone: enquiryData.phone,
+        checkExists: false // We allow new users here
+      });
+      
+      if (response.data.success) {
+        setOtpSent(true);
+        setOtpTimer(60);
+      }
+    } catch (error) {
+      console.error("Error sending OTP:", error);
+      alert(error.response?.data?.message || "Failed to send OTP. Please try again.");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleEnquirySubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      let currentUserId = user?.id;
+
+      // 1. If guest, verify OTP and create account first
+      if (!user) {
+        if (!otpSent || !otpCode) {
+          alert("Please verify your phone number via OTP first.");
+          setLoading(false);
+          return;
+        }
+
+        setIsVerifying(true);
+        try {
+          const authResponse = await api.post('/auth/verify-otp', {
+            phone: enquiryData.phone,
+            otp: otpCode,
+            name: enquiryData.name,
+            email: enquiryData.email,
+            role: 'user',
+            flow: 'signup'
+          });
+
+          if (authResponse.data.success) {
+            const { token, user: newUser } = authResponse.data;
+            localStorage.setItem('baserabazar_token', token);
+            currentUserId = newUser.id;
+            setIsVerified(true);
+            setVerificationSuccess(true);
+            
+            // Wait a tiny bit for localStorage/Auth context to stabilize
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        } catch (authError) {
+          console.error("Verification failed:", authError);
+          alert(authError.response?.data?.message || "Verification failed. Incorrect OTP.");
+          setIsVerifying(false);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Submit the Lead/Enquiry
+      await db.create('leads', {
+        ...enquiryData,
+        userId: currentUserId,
+        listingId: listing.id,
+        category: listing.category || 'property', // Stronger fallback
+      });
+
+      setShowSuccessModal(true);
+      setIsModalOpen(false);
+      
+      // Clean up states
+      if (!user) {
+        setTimeout(() => window.location.reload(), 2000); // Reload to reflect login state after modal
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert("Failed to send enquiry. Please try again.");
+    } finally {
+      setIsVerifying(false);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (user) {
       setEnquiryData(prev => ({ ...prev, name: user.name, phone: user.phone, email: user.email }));
       setQuotationData(prev => ({ ...prev, name: user.name, phone: user.phone, email: user.email }));
@@ -165,6 +282,8 @@ const ListingDetails = () => {
     { id: 'features', label: 'Features' },
     { id: 'owner', label: 'Owner' }
   ];
+  
+  const allImages = listing?.images?.length > 0 ? listing.images : [listing?.image || heroRealEstate];
 
   return (
     <div className="pb-32 bg-slate-50 min-h-screen relative font-sans">
@@ -172,25 +291,69 @@ const ListingDetails = () => {
       {!isSupplier ? (
         <>
           {/* Hero Image Section (Property) */}
-          <div className="relative h-[35vh] w-full bg-slate-100">
+          <div className="relative h-[40vh] w-full bg-slate-900 overflow-hidden">
             <button 
               onClick={() => navigate(-1)}
-              className="absolute top-6 left-6 z-50 bg-black/40 backdrop-blur-md p-2.5 rounded-full text-white hover:bg-black/50 transition-all"
+              className="absolute top-6 left-6 z-[60] bg-black/40 backdrop-blur-md p-2.5 rounded-full text-white hover:bg-black/50 transition-all border border-white/10"
             >
-              <ArrowLeft size={20} />
+              <ArrowLeft size={18} />
             </button>
             
-            <div className="absolute top-6 right-6 z-50 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-white text-[10px] font-semibold tracking-widest">
-              2/6
+            <div className="absolute top-6 right-6 z-[60] bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full text-white text-[11px] font-bold tracking-widest border border-white/10">
+              {activeImg + 1} / {allImages.length}
             </div>
 
-            <img src={listing.image || heroRealEstate} alt={listing.title} className="w-full h-full object-cover" />
-            
-            <div className="absolute bottom-4 left-0 right-0 z-50 flex justify-center gap-2">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className={cn("h-1.5 rounded-full transition-all duration-300", i === 2 ? "bg-white w-6" : "bg-white/50 w-1.5")} />
-              ))}
+            <div className="h-full w-full relative group cursor-pointer" onClick={() => setIsLightboxOpen(true)}>
+              <AnimatePresence mode="wait">
+                <motion.img 
+                  key={activeImg}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  src={allImages[activeImg]} 
+                  alt={listing.title} 
+                  className="w-full h-full object-cover" 
+                />
+              </AnimatePresence>
+
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+              
+              {/* Navigation Arrows (Optional but helpful for desktop/precision) */}
+              {allImages.length > 1 && (
+                <>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setActiveImg(prev => (prev === 0 ? allImages.length - 1 : prev - 1)); }}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ChevronDown className="rotate-90" size={20} />
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setActiveImg(prev => (prev === allImages.length - 1 ? 0 : prev + 1)); }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ChevronDown className="-rotate-90" size={20} />
+                  </button>
+                </>
+              )}
             </div>
+            
+            {/* Pagination Dots */}
+            {allImages.length > 1 && (
+              <div className="absolute bottom-6 left-0 right-0 z-50 flex justify-center gap-2">
+                {allImages.map((_, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => setActiveImg(i)}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all duration-300", 
+                      i === activeImg ? "bg-white w-8 shadow-[0_0_10px_rgba(255,255,255,0.5)]" : "bg-white/40 w-1.5 hover:bg-white/60"
+                    )} 
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="bg-white px-5 pt-6 pb-6 space-y-6">
@@ -314,7 +477,7 @@ const ListingDetails = () => {
         </div>
       </div>
 
-      <div className="px-5 pb-32">
+      <div className="px-5 pb-10">
           {/* Content Sections */}
           {!isSupplier ? (
             <>
@@ -366,13 +529,42 @@ const ListingDetails = () => {
                 <div className="space-y-4 pt-5">
                   <div className="bg-white border border-[#eef2fc] rounded-[16px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
                     <h3 className="text-[15px] font-semibold text-[#1f2355]">Property Features</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      {['24/7 Water', 'Gated Security', 'Prime Location', 'Road Access', 'Clear Title', 'Immediate Possession'].map((feature, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <CheckCircle2 size={16} className="text-[#159f42]" />
-                          <span className="text-[13px] font-medium text-[#4a5578]">{feature}</span>
-                        </div>
-                      ))}
+                    <div className="grid grid-cols-2 gap-y-4 gap-x-2">
+                      {(() => {
+                        const features = [];
+                        if (listing.details?.possession === 'ready') features.push('Immediate Possession');
+                        else if (listing.details?.possession === 'under-construction') features.push('Under Construction');
+                        
+                        if (listing.details?.furnishing && listing.details.furnishing !== 'unfurnished') {
+                          features.push(`${listing.details.furnishing.replace('-', ' ')} Furnished`);
+                        } else if (listing.details?.furnishing === 'unfurnished') {
+                          features.push('Unfurnished');
+                        }
+
+                        if (listing.details?.parking && listing.details.parking !== 'none') {
+                          features.push(`${listing.details.parking} Parking`);
+                        }
+
+                        if (listing.details?.facing && listing.details.facing !== 'no-preference') {
+                          features.push(`${listing.details.facing} Facing`);
+                        }
+
+                        if (listing.details?.bhk) features.push(`${listing.details.bhk} BHK Interior`);
+                        if (listing.details?.bathrooms) features.push(`${listing.details.bathrooms} Bathrooms`);
+                        if (listing.details?.total_floors) features.push(`${listing.details.total_floors} Total Floors`);
+                        if (listing.listing_intent === 'sell') features.push('Freehold Property');
+                        
+                        // Fallback to existing hardcoded ones if no details are found, 
+                        // but prioritize dynamic ones
+                        const displayFeatures = features.length > 0 ? features : ['Prime Location', 'Road Access', 'Clear Title'];
+
+                        return displayFeatures.map((feature, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <CheckCircle2 size={16} className="text-[#159f42]" />
+                            <span className="text-[13px] font-medium text-[#4a5578] capitalize">{feature}</span>
+                          </div>
+                        ));
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -382,12 +574,18 @@ const ListingDetails = () => {
                   <div className="bg-white border border-[#eef2fc] rounded-[16px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
                     <h3 className="text-[15px] font-semibold text-[#1f2355]">Property Owner/Agent</h3>
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-[#eef2fc] rounded-full flex items-center justify-center text-[#1f2355] text-xl font-semibold border border-[#d2dcf3]">
-                        {(listing.owner?.name || 'Basera Properties').charAt(0)}
+                      <div className="w-14 h-14 bg-[#eef2fc] rounded-full flex items-center justify-center text-[#fa8639] text-xl font-bold border border-[#d2dcf3] overflow-hidden">
+                        {listing.owner?.profileImage ? (
+                          <img src={listing.owner.profileImage} alt={listing.owner.name} className="w-full h-full object-cover" />
+                        ) : (
+                          (listing.owner?.name || 'Basera Properties').charAt(0)
+                        )}
                       </div>
                       <div>
-                        <h4 className="text-[15px] font-semibold text-[#1f2355]">{listing.owner?.name || 'Basera Properties'}</h4>
-                        <p className="text-[13px] font-medium text-[#64719b]">Basera Properties</p>
+                        <h4 className="text-[15px] font-bold text-[#1f2355]">{listing.owner?.name || 'Basera Properties'}</h4>
+                        <p className="text-[12px] font-medium text-[#fa8639] -mt-0.5">
+                          {listing.owner?.display_name && listing.owner.display_name !== listing.owner.name ? `Rep: ${listing.owner.display_name}` : (listing.owner?.role || 'Verified Partner')}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -395,21 +593,21 @@ const ListingDetails = () => {
                     <h3 className="text-[15px] font-semibold text-[#1f2355]">Contact Information</h3>
                     <div className="space-y-5">
                       {[
-                        { icon: Phone, label: 'Phone', value: listing.owner?.phone || '9322910004', action: true },
-                        { icon: Mail, label: 'Email', value: listing.owner?.email || 'contact@baserabazar.com', action: true },
-                        { icon: MapPin, label: 'Address', value: listing.location, action: false }
+                        { icon: Phone, label: 'Phone', value: listing.owner?.phone || '9322910004', action: true, href: `tel:${listing.owner?.phone}` },
+                        { icon: Mail, label: 'Email', value: listing.owner?.email || 'contact@baserabazar.com', action: true, href: `mailto:${listing.owner?.email}` },
+                        { icon: MapPin, label: 'Address', value: listing.owner?.location || listing.location, action: false }
                       ].map((contact, idx) => (
-                        <div key={idx} className="flex flex-row items-center justify-between">
+                        <div key={idx} className="flex flex-row items-center justify-between cursor-pointer group" onClick={() => contact.href && (window.location.href = contact.href)}>
                           <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 bg-[#eef2fc] rounded-xl flex items-center justify-center text-[#1f2355]">
+                            <div className="w-11 h-11 bg-[#eef2fc] rounded-xl flex items-center justify-center text-[#1f2355] group-hover:bg-[#fa8639] group-hover:text-white transition-colors">
                               <contact.icon size={18} strokeWidth={2} />
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-[11px] font-medium text-[#64719b] mb-0.5">{contact.label}</span>
-                              <span className="text-[14px] font-medium text-[#1f2355] leading-snug w-[180px] truncate">{contact.value}</span>
+                            <div className="flex flex-col text-left">
+                              <span className="text-[11px] font-semibold text-[#64719b] mb-0.5 uppercase tracking-wider">{contact.label}</span>
+                              <span className="text-[14px] font-bold text-[#1f2355] leading-snug w-[180px] truncate">{contact.value}</span>
                             </div>
                           </div>
-                          {contact.action && <ChevronRight size={18} className="text-[#1f2355]" />}
+                          {contact.action && <ChevronRight size={18} className="text-[#1f2355] group-hover:text-[#fa8639] group-hover:translate-x-1 transition-all" />}
                         </div>
                       ))}
                     </div>
@@ -535,19 +733,36 @@ const ListingDetails = () => {
                   <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-xl shadow-slate-200/20 space-y-5">
                     <h3 className="text-[17px] font-bold text-[#1f2355]">Quick Actions</h3>
                     <div className="grid grid-cols-3 gap-3">
-                      <button className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-[#f0f9f1] border border-[#d2ead6] active:scale-95 transition-all">
+                      <button 
+                        onClick={() => window.open(`tel:${listing.owner?.phone || '9322910004'}`, '_self')}
+                        className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-[#f0f9f1] border border-[#d2ead6] active:scale-95 transition-all"
+                      >
                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#34a853] shadow-sm">
                           <Phone size={20} />
                         </div>
                         <span className="text-[12px] font-bold text-[#34a853]">Call</span>
                       </button>
-                      <button className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-[#ebfaf1] border border-[#d2ead6] active:scale-95 transition-all">
+                      <button 
+                        onClick={() => window.open(`https://wa.me/91${listing.owner?.phone || '9322910004'}`, '_blank')}
+                        className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-[#ebfaf1] border border-[#d2ead6] active:scale-95 transition-all"
+                      >
                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#25d366] shadow-sm">
                           <MessageSquare size={20} />
                         </div>
                         <span className="text-[12px] font-bold text-[#25d366]">WhatsApp</span>
                       </button>
-                      <button className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-[#f0f4ff] border border-[#d1daff] active:scale-95 transition-all">
+                      <button 
+                        onClick={() => {
+                          const lat = listing.lat;
+                          const lng = listing.lng;
+                          if (lat && lng) {
+                            window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+                          } else {
+                            alert('Location details not available for this listing');
+                          }
+                        }}
+                        className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-[#f0f4ff] border border-[#d1daff] active:scale-95 transition-all"
+                      >
                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#3b5998] shadow-sm">
                           <Navigation size={20} />
                         </div>
@@ -608,20 +823,7 @@ const ListingDetails = () => {
             </div>
             <form 
               className="space-y-5 max-h-[60vh] overflow-y-auto px-1 -mx-1" 
-              onSubmit={async (e) => { 
-                e.preventDefault(); 
-                await db.create('leads', {
-                  ...enquiryData,
-                  userId: user?.id || null, // Link to user if logged in
-                  listingId: listing.id,
-                  listingTitle: listing.title,
-                  category: listing.category,
-                  type: 'enquiry',
-                  date: new Date().toISOString()
-                });
-                setIsModalOpen(false); 
-                setTimeout(() => setShowSuccessModal(true), 150); 
-              }}
+              onSubmit={handleEnquirySubmit}
             >
               <div className="space-y-2">
                 <label className="text-[13px] font-medium text-[#1f2355]">Full Name</label>
@@ -640,18 +842,66 @@ const ListingDetails = () => {
               <div className="space-y-2">
                 <label className="text-[13px] font-medium text-[#1f2355]">Phone Number</label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Phone size={18} className="text-[#1f2355]/40" /></div>
-                  <input 
+                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Phone size={18} className="text-[#1f2355]/40" /></div>
+                   <input 
                     type="tel" 
-                    placeholder="Enter 10-digit phone number" 
-                    className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px]" 
+                    placeholder="Enter 10-digit number" 
+                    className={cn(
+                      "w-full pl-10 pr-24 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px]",
+                      isVerified && "bg-green-50 border-green-200 text-green-700"
+                    )}
                     required 
                     maxLength={10}
+                    disabled={isVerified || otpSent}
                     value={enquiryData.phone}
                     onChange={(e) => setEnquiryData({ ...enquiryData, phone: e.target.value.replace(/\D/g, '') })}
                   />
+                  {!user && !isVerified && !otpSent && (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={enquiryData.phone.length < 10 || isSendingOtp}
+                      className="absolute right-2 top-1.5 bottom-1.5 px-3 rounded-lg bg-[#fa8639] text-white text-[12px] font-bold hover:bg-[#e6752d] disabled:bg-slate-300 transition-all"
+                    >
+                      {isSendingOtp ? 'Sending...' : 'Verify'}
+                    </button>
+                  )}
+                  {isVerified && (
+                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600 flex items-center gap-1">
+                        <CheckCircle2 size={18} />
+                        <span className="text-[12px] font-bold">Verified</span>
+                     </div>
+                  )}
                 </div>
               </div>
+
+              {/* OTP Field - Only for Guests after sending OTP */}
+              {!user && otpSent && !isVerified && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-2"
+                >
+                  <div className="flex justify-between items-center">
+                    <label className="text-[13px] font-medium text-[#1f2355]">Enter OTP Sent to {enquiryData.phone}</label>
+                    {otpTimer > 0 ? (
+                      <span className="text-[12px] text-slate-400">Resend in {otpTimer}s</span>
+                    ) : (
+                      <button type="button" onClick={handleSendOtp} className="text-[12px] text-[#fa8639] font-bold">Resend OTP</button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input 
+                      type="text"
+                      maxLength={6}
+                      placeholder="6-digit OTP"
+                      className="w-full px-4 py-3.5 rounded-xl border border-[#fa8639]/30 bg-orange-50/30 focus:outline-none focus:border-[#fa8639] focus:ring-1 focus:ring-[#fa8639] transition-all text-[16px] font-bold tracking-[0.5em] text-center"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    />
+                  </div>
+                </motion.div>
+              )}
               <div className="space-y-2">
                 <label className="text-[13px] font-medium text-[#1f2355]">Email Address</label>
                 <div className="relative">
@@ -679,15 +929,15 @@ const ListingDetails = () => {
               <div className="pb-2">
                 <button 
                   type="submit" 
-                  disabled={!enquiryData.name || enquiryData.phone.length < 10 || !enquiryData.email || !enquiryData.message}
+                  disabled={!enquiryData.name || enquiryData.phone.length < 10 || !enquiryData.email || !enquiryData.message || (!user && !otpCode && !isVerified) || isVerifying}
                   className={cn(
-                    "w-full py-4 rounded-xl font-medium text-[15px] active:scale-[0.98] transition-all shadow-lg",
-                    (!enquiryData.name || enquiryData.phone.length < 10 || !enquiryData.email || !enquiryData.message)
+                    "w-full py-4 rounded-xl font-medium text-[15px] active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2",
+                    (!enquiryData.name || enquiryData.phone.length < 10 || !enquiryData.email || !enquiryData.message || (!user && !otpCode && !isVerified) || isVerifying)
                     ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
                     : "bg-[#1f2355] hover:bg-[#161a42] text-white shadow-[#1f2355]/20"
                   )}
                 >
-                  Send Enquiry
+                  {isVerifying ? 'Verifying...' : (user ? 'Send Enquiry' : 'Verify & Send Enquiry')}
                 </button>
               </div>
             </form>
@@ -703,7 +953,10 @@ const ListingDetails = () => {
               <div className="w-8 h-8 rounded-full bg-[#34a853] text-white flex items-center justify-center shrink-0"><CheckCircle2 size={20} strokeWidth={2.5} /></div>
               <h2 className="text-[22px] font-semibold text-[#1f2355]">Enquiry Sent!</h2>
             </div>
-            <p className="text-[17px] text-[#1f2355] leading-snug">Your enquiry has been sent successfully! {isSupplier ? 'The supplier' : 'The property agent'} will contact you soon.</p>
+            <p className="text-[17px] text-[#1f2355] leading-snug">
+              {verificationSuccess ? "Your account has been created and your enquiry has been sent successfully!" : "Your enquiry has been sent successfully!"}
+              {" "}{isSupplier ? 'The supplier' : 'The property agent'} will contact you soon.
+            </p>
             <div className="bg-[#ffe8d6] border border-[#ffdac1] rounded-2xl p-4 space-y-2.5">
               <div className="flex items-center gap-2">
                 {isSupplier ? <Building2 size={18} strokeWidth={2.5} className="text-[#fa8639]" /> : <Home size={18} strokeWidth={2.5} className="text-[#fa8639]" />}
@@ -1007,6 +1260,78 @@ const ListingDetails = () => {
           </div>
         </div>
       )}
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {isLightboxOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-4 font-sans"
+          >
+            {/* Close button */}
+            <button 
+              onClick={() => setIsLightboxOpen(false)}
+              className="absolute top-8 right-8 z-[210] p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all border border-white/10 active:scale-95"
+            >
+              <X size={28} />
+            </button>
+
+            {/* Counter */}
+            <div className="absolute top-10 left-10 text-white/60 font-bold text-[14px] tracking-widest">
+              IMAGE {activeImg + 1} OF {allImages.length}
+            </div>
+
+            {/* Image Viewer */}
+            <div className="w-full h-full max-h-[80vh] relative flex items-center justify-center">
+              <motion.img 
+                key={activeImg}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                src={allImages[activeImg]} 
+                alt={listing.title} 
+                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+              />
+
+              {/* Navigation Arrows for Lightbox */}
+              {allImages.length > 1 && (
+                <>
+                  <button 
+                    onClick={() => setActiveImg(prev => (prev === 0 ? allImages.length - 1 : prev - 1))}
+                    className="absolute left-4 p-4 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all hidden sm:block"
+                  >
+                    <ChevronDown className="rotate-90" size={32} />
+                  </button>
+                  <button 
+                    onClick={() => setActiveImg(prev => (prev === allImages.length - 1 ? 0 : prev + 1))}
+                    className="absolute right-4 p-4 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all hidden sm:block"
+                  >
+                    <ChevronDown className="-rotate-90" size={32} />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Thumbnails list at bottom */}
+            {allImages.length > 1 && (
+              <div className="absolute bottom-10 left-0 right-0 px-10 flex justify-center gap-3 overflow-x-auto pb-4 scrollbar-hide">
+                {allImages.map((img, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => setActiveImg(i)}
+                    className={cn(
+                      "w-16 h-16 rounded-xl overflow-hidden shrink-0 transition-all border-2",
+                      i === activeImg ? "border-[#fa8639] scale-110 shadow-lg shadow-orange-500/20" : "border-white/10 opacity-40 hover:opacity-100"
+                    )}
+                  >
+                    <img src={img} className="w-full h-full object-cover" alt={`Thumb ${i+1}`} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

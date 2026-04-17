@@ -15,12 +15,98 @@ class DataEngine {
   
   // MongoDB uses _id, but our frontend (framer-motion, etc) often uses id.
   // We normalize this globally here to prevent UI crashes!
-  _normalize(item) {
+  _normalize = (item) => {
     if (!item) return null;
-    return {
+    
+    // Create a copy to avoid mutating cache if any
+    const normalized = {
       ...item,
       id: item._id || item.id
     };
+
+    // Normalize Pricing
+    if (item.pricing && (item.pricing.amount !== undefined || item.pricing.price_per_unit !== undefined)) {
+      normalized.price = {
+        value: item.pricing.amount || item.pricing.price_per_unit || 0,
+        unit: item.pricing.unit || (item.pricing.amount ? 'Total' : 'Unit'),
+        currency: item.pricing.currency || 'INR'
+      };
+    } else {
+      normalized.price = { value: 0, unit: 'Contact for Price', currency: 'INR' };
+    }
+
+    // Normalize Images
+    if (!normalized.image) {
+      normalized.image = item.thumbnail || (item.images && item.images[0]) || (item.portfolio_images && item.portfolio_images[0]);
+    }
+
+    // Normalize Category (CRITICAL FOR ENQUIRIES)
+    // Identify category based on unique structural markers in the document
+    if (item.category) {
+      normalized.category = item.category;
+    } else if (item.listing_type) {
+      normalized.category = 'property';
+    } else if (item.service_type || item.portfolio_images || item.years_of_experience !== undefined) {
+      normalized.category = 'service';
+    } else if (item.material_name || item.quality_grade) {
+      normalized.category = 'mandi';
+    } else if (item.pricing?.min_order_qty || item.brand_id) {
+      normalized.category = 'supplier';
+    } else {
+      normalized.category = 'property'; // default fallback
+    }
+
+    // Normalize Location Display (PREVENTS OBJECT INJECTION CRASH)
+    const district = item.address?.district || item.location_text?.split(',')[0];
+    const state = item.address?.state || item.location_text?.split(',')[1];
+    
+    normalized.display_location = district && state 
+      ? `${district}, ${state}` 
+      : (district || state || item.location_text || 'Muzaffarpur, Bihar');
+    
+    // Normalize Area (PREVENTS OBJECT RENDERING CRASH)
+    if (normalized.details && typeof normalized.details.area === 'object' && normalized.details.area !== null) {
+      normalized.details.areaValue = normalized.details.area.value;
+      normalized.details.areaUnit = normalized.details.area.unit || 'sq.ft';
+      normalized.details.area = normalized.details.area.value || ''; // Overwrite with string/number for UI
+    }
+
+    // Legacy support for components using .location as a string
+    if (item.location && typeof item.location === 'object') {
+       normalized.location_coords = item.location.coordinates;
+       normalized.location = String(normalized.display_location || '');
+    } else {
+        normalized.location = item.location_text || item.location?.address || '';
+     }
+ 
+     // Extract coordinates for mapping
+     if (item.location && item.location.coordinates) {
+       normalized.lng = item.location.coordinates[0];
+       normalized.lat = item.location.coordinates[1];
+     }
+
+    // Normalize Owner/Partner Data
+    const ownerData = item.partner_id || {};
+    const profile = ownerData.profile || {};
+    
+    // Extract Business Name based on partner type
+    const businessName = profile.property_profile?.agency_name || 
+                        profile.mandi_profile?.business_name || 
+                        profile.supplier_profile?.business_name || // fallback if exists
+                        ownerData.name;
+
+    normalized.owner = {
+      id: ownerData._id || ownerData.id,
+      name: businessName || 'Basera Properties',
+      display_name: ownerData.name || 'Admin',
+      phone: ownerData.phone || '9322910004',
+      email: ownerData.email || 'contact@baserabazar.com',
+      role: ownerData.role || (ownerData.partner_type?.replace('_', ' ') || 'Partner'),
+      profileImage: ownerData.profileImage || profile.mandi_profile?.business_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(businessName || ownerData.name || 'Basera')}&background=f1f5f9&color=64748b`,
+      location: ownerData.default_location ? `${ownerData.default_location.city || ''}, ${ownerData.default_location.state || ''}`.trim().replace(/^,/, '').trim() || 'Muzaffarpur, Bihar' : (ownerData.city ? `${ownerData.city}, ${ownerData.state}` : 'Muzaffarpur, Bihar')
+    };
+
+    return normalized;
   }
 
   // -----------------------------------------------------
@@ -33,12 +119,12 @@ class DataEngine {
       if (table === 'listings') {
         const queryParams = new URLSearchParams(params).toString();
         const response = await api.get(`/listings?${queryParams}`);
-        return (response.data.data || []).map(this._normalize);
+        return (response.data.data || []).map(this._normalize).filter(Boolean);
       }
       
       if (table === 'banners') {
         const response = await api.get('/listings/banners');
-        return (response.data.data || []).map(this._normalize);
+        return (response.data.data || []).map(this._normalize).filter(Boolean);
       }
 
       return [];
@@ -86,6 +172,7 @@ class DataEngine {
           enquiry_type: item.category,
           listing_id: item.listingId,
           content: item.message,
+          inquiry_type: item.inquiry_type || 'General Inquiry',
           user_details: {
             name: item.name,
             phone: item.phone,

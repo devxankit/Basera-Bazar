@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Search, Filter, Eye, Trash2, Mail, Phone, Calendar, 
   ChevronDown, RotateCcw, Loader2, CheckCircle2, User,
-  MessageSquare, UserCheck, ShieldCheck, MailSearch
+  MessageSquare, ShieldCheck, MailSearch
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
@@ -137,12 +137,12 @@ const AdminLeads = () => {
         
         {/* Header Section */}
         <div className="flex items-center justify-between mb-8">
-           <div>
-              <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Lead Pipeline</h1>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">
-                Manage and track all customer inquiries across categories
-              </p>
-           </div>
+            <div>
+               <h1 className="text-3xl font-bold text-slate-800 tracking-tight uppercase">Lead Pipeline</h1>
+               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-2 italic">
+                 Manage and track all customer inquiries across categories
+               </p>
+            </div>
            
            <div className="flex items-center gap-3">
               <button 
@@ -151,9 +151,9 @@ const AdminLeads = () => {
               >
                 <RotateCcw size={18} />
               </button>
-              <div className="px-5 py-2.5 bg-indigo-600 text-white font-black text-[11px] rounded-xl shadow-xl shadow-indigo-100 uppercase tracking-widest flex items-center gap-2">
-                 <ShieldCheck size={14} /> Admin access - Unlimited Leads
-              </div>
+               <div className="px-6 py-3 bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-xl shadow-indigo-100 uppercase tracking-widest flex items-center gap-2">
+                  <ShieldCheck size={16} /> Admin access - Unlimited Leads
+               </div>
            </div>
         </div>
 
@@ -164,10 +164,10 @@ const AdminLeads = () => {
             className="w-full px-8 py-5 flex items-center justify-between border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-orange-50 rounded-full flex items-center justify-center text-orange-500">
-                <Filter size={16} />
-              </div>
-              <span className="text-xs font-black text-slate-800 uppercase tracking-widest">Filter Leads</span>
+               <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center text-orange-500">
+                 <Filter size={20} />
+               </div>
+               <span className="text-sm font-bold text-slate-800 uppercase tracking-widest">Filter Leads Pipeline</span>
             </div>
             <motion.div animate={{ rotate: showFilters ? 180 : 0 }}>
               <ChevronDown size={20} className="text-slate-400" />
@@ -187,7 +187,7 @@ const AdminLeads = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {/* Lead Owner */}
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lead Owner</label>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Lead Owner</label>
                       <select 
                         value={filters.owner}
                         onChange={(e) => setFilters({...filters, owner: e.target.value})}
@@ -200,7 +200,7 @@ const AdminLeads = () => {
 
                     {/* Owner Role */}
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Owner Role</label>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Owner Role</label>
                       <select 
                         value={filters.role}
                         onChange={(e) => setFilters({...filters, role: e.target.value})}
@@ -215,7 +215,7 @@ const AdminLeads = () => {
 
                     {/* Lead Type */}
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lead Type</label>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Lead Type</label>
                       <select 
                         value={filters.type}
                         onChange={(e) => setFilters({...filters, type: e.target.value})}
@@ -231,7 +231,7 @@ const AdminLeads = () => {
 
                     {/* Read Status */}
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Read Status</label>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Read Status</label>
                       <select 
                         value={filters.readStatus}
                         onChange={(e) => setFilters({...filters, readStatus: e.target.value})}
@@ -245,7 +245,7 @@ const AdminLeads = () => {
 
                     {/* Contact Status */}
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact Status</label>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Contact Status</label>
                       <select 
                         value={filters.contactStatus}
                         onChange={(e) => setFilters({...filters, contactStatus: e.target.value})}
@@ -259,7 +259,7 @@ const AdminLeads = () => {
 
                     {/* Search */}
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Search Pipeline</label>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Search Pipeline</label>
                       <div className="relative">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                         <input 
@@ -274,7 +274,7 @@ const AdminLeads = () => {
 
                     {/* Date From */}
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date From</label>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Date From</label>
                       <input 
                         type="date"
                         value={filters.dateFrom}
@@ -285,7 +285,7 @@ const AdminLeads = () => {
 
                     {/* Date To */}
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date To</label>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Date To</label>
                       <input 
                         type="date"
                         value={filters.dateTo}
@@ -300,7 +300,7 @@ const AdminLeads = () => {
                       onClick={handleResetFilters}
                       className="flex items-center gap-2 px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-xl transition-all"
                     >
-                      <RotateCcw size={14} /> Reset Pipeline
+                       <RotateCcw size={16} /> Reset Pipeline Filters
                     </button>
                   </div>
                 </div>
@@ -318,28 +318,27 @@ const AdminLeads = () => {
                 </div>
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Leads List</h3>
              </div>
-             <div className="flex items-center gap-3">
-               {loading && <Loader2 className="animate-spin text-indigo-500" size={16} />}
-               <span className="px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100 shadow-sm">
-                  {leads.length} Records Found
-               </span>
-             </div>
+              <div className="flex items-center gap-3">
+                {loading && <Loader2 className="animate-spin text-indigo-500" size={18} />}
+                <span className="px-5 py-2 bg-emerald-50 text-emerald-600 rounded-full text-xs font-bold uppercase tracking-widest border border-emerald-100 shadow-sm">
+                   {leads.length} Records In Pipeline
+                </span>
+              </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50">
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Info</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Lead Owner</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Inquiry About</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Message</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Date</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                </tr>
-              </thead>
+               <thead>
+                 <tr className="bg-slate-50/50">
+                   <th className="px-8 py-6 text-xs font-bold text-slate-400 uppercase tracking-widest">Customer</th>
+                   <th className="px-8 py-6 text-xs font-bold text-slate-400 uppercase tracking-widest">Contact Info</th>
+                   <th className="px-8 py-6 text-xs font-bold text-slate-400 uppercase tracking-widest">Lead Owner</th>
+                   <th className="px-8 py-6 text-xs font-bold text-slate-400 uppercase tracking-widest">Inquiry About</th>
+                   <th className="px-8 py-6 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
+                   <th className="px-8 py-6 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Date</th>
+                   <th className="px-8 py-6 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                 </tr>
+               </thead>
               <tbody className="divide-y divide-slate-50">
                 {loading && leads.length === 0 ? (
                   <tr>
@@ -366,34 +365,33 @@ const AdminLeads = () => {
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-black text-xs shadow-lg shadow-indigo-100 uppercase">
-                             {lead.user_id?.name?.charAt(0) || 'U'}
+                             {(lead.user_details?.name || lead.user_id?.name || 'U').charAt(0)}
                           </div>
-                          <div className="flex flex-col">
-                             <span className="text-sm font-black text-slate-800 tracking-tight leading-none mb-1">{lead.user_id?.name || 'Unknown'}</span>
-                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID: BL-{lead._id.slice(-4).toUpperCase()}</span>
-                             <span className="text-[9px] font-medium text-emerald-500 flex items-center gap-1 mt-0.5 capitalize">
-                                <UserCheck size={10} /> Registered
-                             </span>
-                          </div>
+                           <div className="flex flex-col">
+                              <span className="text-base font-bold text-slate-800 tracking-tight leading-none mb-1.5">
+                                 {lead.user_details?.name || lead.user_id?.name || 'Potential Customer'}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">ID: {lead._id.slice(-4).toUpperCase()}</span>
+                           </div>
                         </div>
                       </td>
 
                       {/* Contact Info */}
                       <td className="px-8 py-5">
-                         <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-2 text-slate-600">
-                               <Mail size={12} className="text-indigo-400" />
-                               <span className="text-[11px] font-bold tracking-tight">{lead.user_id?.email || 'N/A'}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-slate-600">
-                               <Phone size={12} className="text-indigo-400" />
-                               <span className="text-[11px] font-bold tracking-tight">{lead.user_id?.phone || 'N/A'}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-slate-400 italic">
-                               <Calendar size={12} />
-                               <span className="text-[9px] font-bold uppercase tracking-tighter">since {new Date(lead.user_id?.createdAt).getFullYear()}</span>
-                            </div>
-                         </div>
+                          <div className="flex flex-col gap-2">
+                             <div className="flex items-center gap-2 text-slate-600">
+                                <Mail size={14} className="text-indigo-400" />
+                                <span className="text-sm font-semibold tracking-tight">{lead.user_details?.email || lead.user_id?.email || 'N/A'}</span>
+                             </div>
+                             <div className="flex items-center gap-2 text-slate-600">
+                                <Phone size={14} className="text-indigo-400" />
+                                <span className="text-sm font-semibold tracking-tight">{lead.user_details?.phone || lead.user_id?.phone || 'N/A'}</span>
+                             </div>
+                             <div className="flex items-center gap-2 text-slate-400 italic">
+                                <Calendar size={14} />
+                                <span className="text-xs font-bold uppercase tracking-widest">Since {lead.user_id?.createdAt ? new Date(lead.user_id.createdAt).getFullYear() : 'New Registration'}</span>
+                             </div>
+                          </div>
                       </td>
 
                       {/* Lead Owner */}
@@ -406,68 +404,67 @@ const AdminLeads = () => {
                                  <User size={14} className="text-slate-400" />
                                )}
                             </div>
-                            <div className="flex flex-col">
-                               <span className="text-[11px] font-black text-slate-700 tracking-tighter leading-none">{lead.partner_id?.name || 'Platform Admin'}</span>
-                               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{lead.partner_id?.role || 'Admin'}</span>
-                            </div>
+                             <div className="flex flex-col">
+                                <span className="text-sm font-bold text-slate-700 tracking-tighter leading-none">{lead.partner_id?.name || 'Platform Admin'}</span>
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                  {lead.partner_id?.role === 'agent' ? 'Agent' :
+                                   lead.partner_id?.role === 'service_provider' ? 'Service Provider' :
+                                   lead.partner_id?.role === 'supplier' ? 'Supplier' :
+                                   lead.partner_id?.role === 'partner' ? 'Partner' :
+                                   lead.partner_id?.role || 'Admin'}
+                                </span>
+                             </div>
                          </div>
                       </td>
 
                       {/* Inquiry About */}
                       <td className="px-8 py-5">
                          <div className="flex flex-col gap-2">
-                            <div className={cn(
-                               "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest self-start flex items-center gap-1",
-                               lead.enquiry_type === 'service' ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
-                               lead.enquiry_type === 'property' ? "bg-blue-50 text-blue-600 border border-blue-100" :
-                               "bg-orange-50 text-orange-600 border border-orange-100"
-                            )}>
-                               <CheckCircle2 size={10} /> {lead.enquiry_type}
-                            </div>
-                            <button 
-                               onClick={() => navigate(getListingUrl(lead))}
-                               className="text-[11px] font-black text-indigo-600 hover:text-indigo-800 tracking-tight line-clamp-1 text-left decoration-indigo-100 underline-offset-4 hover:underline transition-all"
-                            >
-                               {lead.listing_snapshot?.title || lead.listing_snapshot?.material || 'Unknown Asset'}
-                            </button>
+                             <div className={cn(
+                                "px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest self-start flex items-center gap-1.5",
+                                lead.enquiry_type === 'service' ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
+                                lead.enquiry_type === 'property' ? "bg-blue-50 text-blue-600 border border-blue-100" :
+                                "bg-orange-50 text-orange-600 border border-orange-100"
+                             )}>
+                                <CheckCircle2 size={12} /> {lead.enquiry_type}
+                             </div>
+                             <button 
+                                onClick={() => navigate(getListingUrl(lead))}
+                                className="text-sm font-bold text-indigo-600 hover:text-indigo-800 tracking-tight line-clamp-1 text-left decoration-indigo-100 underline-offset-4 hover:underline transition-all mt-1"
+                             >
+                                {lead.listing_snapshot?.title || lead.listing_snapshot?.material || 'Unknown Asset'}
+                             </button>
                          </div>
-                      </td>
-
-                      {/* Message Snippet */}
-                      <td className="px-8 py-5 max-w-[200px]">
-                         <p className="text-[11px] font-medium text-slate-500 line-clamp-2 leading-relaxed italic">
-                           "{lead.content || 'I am interested in your ser...'}"
-                         </p>
                       </td>
 
                       {/* Multi-Status Badges */}
                       <td className="px-8 py-5">
-                         <div className="flex flex-col items-center gap-1.5">
-                            <span className={cn(
-                               "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-[0.1em] shadow-sm cursor-pointer",
-                               lead.is_read ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500 text-white"
-                            )} onClick={() => toggleReadStatus(lead._id, lead.is_read)}>
-                               {lead.is_read ? 'Read' : 'Unread'}
-                            </span>
-                            <span className={cn(
-                               "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-[0.1em] shadow-sm cursor-pointer",
-                               lead.contact_status === 'contacted' ? "bg-indigo-500/10 text-indigo-600" : "bg-slate-400 text-white"
-                            )} onClick={() => toggleContactStatus(lead._id, lead.contact_status)}>
-                               {lead.contact_status === 'contacted' ? 'Contacted' : 'Not Contacted'}
-                            </span>
-                         </div>
+                          <div className="flex flex-col items-center gap-2">
+                             <span className={cn(
+                                "px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest shadow-sm cursor-pointer",
+                                lead.is_read ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500 text-white"
+                             )} onClick={() => toggleReadStatus(lead._id, lead.is_read)}>
+                                {lead.is_read ? 'Read' : 'Unread'}
+                             </span>
+                             <span className={cn(
+                                "px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest shadow-sm cursor-pointer whitespace-nowrap",
+                                lead.contact_status === 'contacted' ? "bg-indigo-500/10 text-indigo-600" : "bg-slate-400 text-white"
+                             )} onClick={() => toggleContactStatus(lead._id, lead.contact_status)}>
+                                {lead.contact_status === 'contacted' ? 'Contacted' : 'Not Contacted'}
+                             </span>
+                          </div>
                       </td>
 
                       {/* Date */}
                       <td className="px-8 py-5 text-center">
-                         <div className="flex flex-col">
-                            <span className="text-[11px] font-black text-slate-700 tracking-tight whitespace-nowrap">
-                              {new Date(lead.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                            </span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 whitespace-nowrap">
-                               {new Date(lead.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                         </div>
+                          <div className="flex flex-col">
+                             <span className="text-sm font-bold text-slate-700 tracking-tight whitespace-nowrap">
+                               {new Date(lead.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                             </span>
+                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 whitespace-nowrap">
+                                {new Date(lead.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                             </span>
+                          </div>
                       </td>
 
                       {/* Action Circles */}

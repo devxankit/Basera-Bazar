@@ -296,54 +296,49 @@ export default function AdminSubscriptionDetails() {
       {/* Hidden Invoice Template for Capture */}
       <InvoiceTemplate />
 
-      {/* Platform Header */}
-      <div className="px-8 py-6 flex items-center justify-between">
-         <div className="flex flex-col">
-            <h1 className="text-[18px] font-bold text-slate-900 tracking-tight">Subscription Details</h1>
-            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-               <span>Home</span>
-               <ChevronRight size={10} />
-               <span>Subscription Details</span>
-            </div>
-         </div>
-      </div>
-
-      <div className="max-w-[1600px] mx-auto px-8 space-y-6">
+      {/* Platform Header Area (Removed redundant header text, kept modern gradient box) */}
+      <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
         
         {/* Action Header Block */}
-        <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm flex items-center justify-between group">
-           <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-slate-900/10 group-hover:scale-105 transition-transform">
-                 <Shield size={24} />
+        <div className="relative bg-white rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
+           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-100/50 via-purple-50/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
+           
+           <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between p-8 gap-6 z-10">
+              <div className="flex items-start gap-6">
+                 <button 
+                   onClick={() => navigate('/admin/subscriptions')}
+                   className="p-3 bg-slate-50 text-slate-500 rounded-2xl hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm active:scale-95 group shrink-0"
+                 >
+                    <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                 </button>
+                 <div className="space-y-2">
+                    <div className="flex items-center gap-2 mb-1">
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded border border-slate-100">Billing Profile</span>
+                       <ChevronRight size={10} className="text-slate-300" />
+                       <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">Subscription {subscription?._id?.slice(-6).toUpperCase()}</span>
+                    </div>
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">Subscription Profile</h2>
+                    <p className="text-sm font-medium text-slate-400">Detailed diagnostic of active partner entitlement</p>
+                 </div>
               </div>
-              <div>
-                 <h2 className="text-[18px] font-bold text-slate-900 uppercase tracking-widest leading-none">Subscription Information</h2>
-                 <p className="text-[13px] font-medium text-slate-400 uppercase tracking-widest mt-1.5 italic">Detailed diagnostic of active partner entitlement</p>
-              </div>
-           </div>
 
-           <div className="flex items-center gap-3">
-              <button 
-                onClick={() => navigate('/admin/subscriptions')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-slate-200 text-slate-600 font-semibold text-[10px] rounded-xl hover:bg-slate-50 transition-all uppercase tracking-widest shadow-sm"
-              >
-                 <ArrowLeft size={16} /> Back to Subscriptions
-              </button>
-              <button 
-                onClick={() => navigate(`/admin/users/view/${partner_id?._id}`)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-cyan-400 text-cyan-500 font-semibold text-[10px] rounded-xl hover:bg-cyan-50 transition-all uppercase tracking-widest shadow-sm"
-              >
-                 <User size={16} /> View User
-              </button>
-              <button 
-                 onClick={() => navigate(`/admin/subscriptions/add-manual/${partner_id?._id}`)}
-                 className="flex items-center gap-2 px-5 py-2.5 bg-[#4ADE80] text-white font-semibold text-[10px] rounded-xl hover:bg-emerald-500 transition-all uppercase tracking-widest shadow-lg shadow-emerald-100 border border-emerald-400/20"
-              >
-                 <RefreshCcw size={16} /> Renew
-              </button>
-              <button className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-rose-400 text-rose-500 font-semibold text-[10px] rounded-xl hover:bg-rose-50 transition-all uppercase tracking-widest shadow-sm">
-                 <XCircle size={16} /> Cancel
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                 <button 
+                   onClick={() => navigate(`/admin/users/view/${partner_id?._id}`)}
+                   className="px-5 py-3 border border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm flex items-center gap-2"
+                 >
+                    <User size={14} /> View Identity Frame
+                 </button>
+                 <button 
+                    onClick={() => navigate(`/admin/subscriptions/add-manual/${partner_id?._id}`)}
+                    className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-400 text-white font-black text-[11px] uppercase tracking-widest rounded-2xl hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-200 transition-all flex items-center gap-2"
+                 >
+                    <RefreshCcw size={14} /> Direct Renew
+                 </button>
+                 <button className="p-3 border border-rose-100 bg-rose-50 text-rose-600 rounded-2xl hover:bg-rose-500 hover:text-white transition-all shadow-sm group">
+                    <XCircle size={20} className="group-hover:scale-110 transition-transform" />
+                 </button>
+              </div>
            </div>
         </div>
 
@@ -353,60 +348,61 @@ export default function AdminSubscriptionDetails() {
            <div className="col-span-12 lg:col-span-8 space-y-8">
               
               {/* Subscription Overview Card */}
-              <div className="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
-                 <div className="px-8 py-5 border-b border-slate-50 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500">
-                      <BarChart3 size={16} />
-                    </div>
-                    <span className="text-[13px] font-bold text-slate-900 uppercase tracking-widest">Subscription Overview</span>
+              <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+                 <div className="px-8 py-6 border-b border-slate-50 flex items-center gap-3 bg-slate-50/30">
+                    <BarChart3 size={18} className="text-indigo-600 opacity-80" />
+                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mt-0.5">Framework Overview</span>
                  </div>
                  <div className="p-8">
-                    <div className="grid grid-cols-2 gap-y-10 gap-x-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-10 gap-x-12">
                        <div className="space-y-1">
-                          <p className="text-[12px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">Subscription ID</p>
-                          <p className="text-[16px] font-semibold text-slate-900 tracking-tight">#{subscription?._id?.slice(-6).toUpperCase() || 'N/A'}</p>
-                       </div>
-                       <div className="space-y-1 text-right lg:text-left">
-                          <p className="text-[12px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">Start Date</p>
-                          <p className="text-[16px] font-semibold text-slate-900 tracking-tight italic">{formatDate(subscription.starts_at)}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Identifier Map</p>
+                          <p className="text-[18px] font-black text-slate-900 tracking-tight">#{subscription?._id?.slice(-6).toUpperCase() || 'N/A'}</p>
                        </div>
                        <div className="space-y-1">
-                          <p className="text-[12px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">Plan Name</p>
-                          <p className="text-[16px] font-semibold text-slate-900 tracking-tight italic">{plan_snapshot?.name || 'Free Trail'}</p>
-                       </div>
-                       <div className="space-y-1 text-right lg:text-left">
-                          <p className="text-[12px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">End Date</p>
-                          <p className="text-[16px] font-semibold text-slate-900 tracking-tight italic">{formatDate(subscription.ends_at)}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Activation Date</p>
+                          <p className="text-[16px] font-black text-slate-900 tracking-tight">{formatDate(subscription.starts_at)}</p>
                        </div>
                        <div className="space-y-1">
-                          <p className="text-[12px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">User</p>
-                          <div className="flex items-center gap-2 mt-1">
-                             <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[11px] font-semibold">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Tier Classification</p>
+                          <p className="text-[16px] font-black text-orange-500 tracking-tight">{plan_snapshot?.name || 'Free Trail'}</p>
+                       </div>
+                       <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Expiration Limit</p>
+                          <p className="text-[16px] font-black text-slate-900 tracking-tight">{formatDate(subscription.ends_at)}</p>
+                       </div>
+                       <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Partner Identity</p>
+                          <div className="flex items-center gap-3 mt-1">
+                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-50 flex items-center justify-center text-[10px] font-black text-indigo-600 shadow-inner">
                                 {partner_id?.name?.[0] || 'U'}
                              </div>
-                             <span className="text-[15px] font-semibold text-slate-800 tracking-tight">{partner_id?.name || 'Ujjawal'}</span>
-                             <span className="bg-slate-800 text-white text-[9px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded ml-1">
-                                {partner_id?.role === 'service_provider' ? 'ServiceProvider' : partner_id?.role || 'Partner'}
-                             </span>
+                             <div>
+                                <span className="text-[14px] font-black text-slate-800 tracking-tight block">{partner_id?.name || 'Ujjawal'}</span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">
+                                   {partner_id?.role === 'service_provider' ? 'ServiceProvider' : partner_id?.role || 'Partner'}
+                                </span>
+                             </div>
                           </div>
                        </div>
-                       <div className="space-y-1 text-right lg:text-left">
-                          <p className="text-[12px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">Duration</p>
-                          <p className="text-[16px] font-semibold text-slate-900 tracking-tight italic">{plan_snapshot?.duration_days || 30} Days</p>
+                       <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Time Horizon</p>
+                          <p className="text-[16px] font-black text-slate-900 tracking-tight">{plan_snapshot?.duration_days || 30} Days</p>
                        </div>
-                       <div className="space-y-3">
-                          <p className="text-[12px] font-semibold text-slate-400 uppercase tracking-[0.2em]">Status</p>
+                       <div className="space-y-2">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Core Status</p>
                           <span className={cn(
-                             "inline-block px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-[0.15em] shadow-sm",
-                             isActive ? "bg-emerald-500 text-white" : "bg-slate-400 text-white"
+                             "inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border",
+                             isActive ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-500 border-slate-200"
                           )}>
-                             {subscription?.status === 'active' ? 'Active' : (subscription?.status?.toUpperCase() || 'UNKNOWN')}
+                             {isActive && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>}
+                             {subscription?.status === 'active' ? 'Active Core' : (subscription?.status?.toUpperCase() || 'UNKNOWN')}
                           </span>
                        </div>
-                       <div className="space-y-1 text-right lg:text-left">
-                          <p className="text-[12px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">Payment Method</p>
-                          <p className="text-[16px] font-semibold text-slate-900 tracking-tight italic">
-                             {transaction?.razorpay_order_id ? 'Razorpay' : 'Free / Admin'}
+                       <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Transaction Pipeline</p>
+                          <p className="text-[16px] font-black text-slate-900 tracking-tight">
+                             {transaction?.razorpay_order_id ? 'Razorpay Global' : 'Complimentary Route'}
                           </p>
                        </div>
                     </div>
@@ -414,34 +410,42 @@ export default function AdminSubscriptionDetails() {
               </div>
 
               {/* Plan Features Card */}
-              <div className="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
-                 <div className="px-8 py-5 border-b border-slate-50 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500">
-                      <FileText size={16} />
-                    </div>
-                    <span className="text-[13px] font-bold text-slate-900 uppercase tracking-widest">Plan Features</span>
+              <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+                 <div className="px-8 py-6 border-b border-slate-50 flex items-center gap-2 bg-slate-50/30">
+                    <FileText size={16} className="text-indigo-600 opacity-80" />
+                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mt-0.5">Authorized Capabilities</span>
                  </div>
-                 <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3 text-emerald-500">
-                       <CheckCircle2 size={16} />
-                       <span className="text-[15px] font-medium text-slate-600 tracking-tight italic">{plan_snapshot?.duration_days || 30} days Account Validity</span>
+                 <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="flex items-start gap-3">
+                       <div className="bg-indigo-50 text-indigo-500 p-1.5 rounded-lg shrink-0"><CheckCircle2 size={14} /></div>
+                       <div>
+                          <span className="text-[13px] font-bold text-slate-700 tracking-tight block">{plan_snapshot?.duration_days || 30} Days Account Validity</span>
+                       </div>
                     </div>
-                    <div className="flex items-center gap-3 text-emerald-500">
-                       <CheckCircle2 size={16} />
-                       <span className="text-[15px] font-medium text-slate-600 tracking-tight italic">{plan_snapshot?.listings_limit === -1 ? 'Unlimited' : plan_snapshot?.listings_limit || 0} Listings</span>
+                    <div className="flex items-start gap-3">
+                       <div className="bg-orange-50 text-orange-500 p-1.5 rounded-lg shrink-0"><CheckCircle2 size={14} /></div>
+                       <div>
+                          <span className="text-[13px] font-bold text-slate-700 tracking-tight block">{plan_snapshot?.listings_limit === -1 ? 'Unlimited' : plan_snapshot?.listings_limit || 0} Core Listings</span>
+                       </div>
                     </div>
-                    <div className="flex items-center gap-3 text-emerald-500">
-                       <CheckCircle2 size={16} />
-                       <span className="text-[15px] font-medium text-slate-600 tracking-tight italic">{plan_snapshot?.featured_listings_limit === -1 ? 'Unlimited' : plan_snapshot?.featured_listings_limit || 0} Featured Listing</span>
+                    <div className="flex items-start gap-3">
+                       <div className="bg-indigo-50 text-indigo-500 p-1.5 rounded-lg shrink-0"><CheckCircle2 size={14} /></div>
+                       <div>
+                          <span className="text-[13px] font-bold text-slate-700 tracking-tight block">{plan_snapshot?.featured_listings_limit === -1 ? 'Unlimited' : plan_snapshot?.featured_listings_limit || 0} Featured Listing Priority</span>
+                       </div>
                     </div>
-                    <div className="flex items-center gap-3 text-emerald-500">
-                       <CheckCircle2 size={16} />
-                       <span className="text-[15px] font-medium text-slate-600 tracking-tight italic">{plan_snapshot?.leads_limit === -1 ? 'Unlimited' : plan_snapshot?.leads_limit || 0} leads</span>
+                    <div className="flex items-start gap-3">
+                       <div className="bg-orange-50 text-orange-500 p-1.5 rounded-lg shrink-0"><CheckCircle2 size={14} /></div>
+                       <div>
+                          <span className="text-[13px] font-bold text-slate-700 tracking-tight block">{plan_snapshot?.leads_limit === -1 ? 'Unlimited' : plan_snapshot?.leads_limit || 0} Incoming Lead Channels</span>
+                       </div>
                     </div>
                     {plan_snapshot?.features?.map((f, i) => (
-                      <div key={i} className="flex items-center gap-3 text-emerald-500">
-                        <CheckCircle2 size={16} />
-                        <span className="text-[15px] font-medium text-slate-600 tracking-tight italic">{f}</span>
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="bg-indigo-50 text-indigo-500 p-1.5 rounded-lg shrink-0"><CheckCircle2 size={14} /></div>
+                        <div>
+                           <span className="text-[13px] font-bold text-slate-700 tracking-tight block">{f}</span>
+                        </div>
                       </div>
                     ))}
                  </div>
@@ -452,94 +456,92 @@ export default function AdminSubscriptionDetails() {
            <div className="col-span-12 lg:col-span-4 space-y-8">
               
               {/* Payment Information Card */}
-              <div className="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
-                 <div className="px-8 py-5 border-b border-slate-50 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500">
-                      <IndianRupee size={16} />
-                    </div>
-                    <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Payment Information</span>
+              <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+                 <div className="px-8 py-6 border-b border-slate-50 flex items-center gap-2 bg-slate-50/30">
+                    <IndianRupee size={16} className="text-indigo-600 opacity-80" />
+                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mt-0.5">Billing Settlement</span>
                  </div>
                  <div className="p-8 flex flex-col items-center">
-                    <div className="text-center mb-8">
-                       <span className="text-[28px] font-bold text-[#4ADE80] tracking-tight leading-none italic">₹{plan_snapshot?.price || 0}.00</span>
-                       <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mt-1">Amount Paid</p>
+                    <div className="text-center mb-8 relative">
+                       <span className="text-4xl font-black text-emerald-500 tracking-tight tabular-nums relative z-10 block">₹{plan_snapshot?.price || 0}.00</span>
+                       <div className="absolute inset-0 bg-emerald-100 blur-xl opacity-30 pointer-events-none rounded-full"></div>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 relative z-10">Processed Amount</p>
                     </div>
                     
                     <div className="w-full space-y-6">
-                       <div className="space-y-1 text-center">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Payment ID</p>
-                          <p className="text-[11px] font-black text-slate-700 break-all leading-tight italic">
+                       <div className="space-y-1 text-center bg-slate-50 py-3 rounded-2xl border border-slate-100">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Gateway Trans. ID</p>
+                          <p className="text-xs font-black text-slate-700 break-all leading-tight">
                              {transaction?.razorpay_order_id?.razorpay_order_id || 'FREE_1_' + subscription._id.slice(-6).toUpperCase() + '_' + Date.now()}
                           </p>
                        </div>
                        <div className="space-y-1 text-center">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Payment Date</p>
-                          <p className="text-[12px] font-black text-slate-700 tracking-tight italic uppercase">{formatDate(transaction?.createdAt || subscription.starts_at)}</p>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Time Stamp</p>
+                          <p className="text-sm font-black text-slate-700 tracking-tight uppercase">{formatDate(transaction?.createdAt || subscription.starts_at)}</p>
                        </div>
                     </div>
 
                     <button 
                        onClick={handleDownloadInvoice}
-                       className="w-full mt-10 py-3.5 border-2 border-orange-400 text-orange-500 font-black text-[10px] rounded-[18px] flex items-center justify-center gap-2 hover:bg-orange-50 transition-all uppercase tracking-[0.15em] shadow-sm"
+                       className="w-full mt-10 py-3.5 border border-indigo-200 bg-indigo-50 text-indigo-600 font-black text-[10px] rounded-2xl flex items-center justify-center gap-2 hover:bg-indigo-600 hover:text-white transition-all uppercase tracking-widest shadow-sm group"
                     >
-                       <Download size={16} /> Download Invoice
+                       <Download size={16} className="group-hover:-translate-y-0.5 transition-transform" /> Print Ledger Record
                     </button>
                  </div>
               </div>
 
               {/* Usage Statistics Card */}
-              <div className="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
-                 <div className="px-8 py-5 border-b border-slate-50 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500">
-                      <FileText size={16} />
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-900 uppercase tracking-widest">Usage Statistics</span>
+              <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+                 <div className="px-8 py-6 border-b border-slate-50 flex items-center gap-2 bg-slate-50/30">
+                    <Activity size={16} className="text-orange-500 opacity-80" />
+                    <span className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] mt-0.5">Quota Matrix</span>
                  </div>
                  <div className="p-8 space-y-10">
                     <ProgressItem 
-                       label="Listings" 
+                       label="Standard Listings" 
                        current={usage?.listings_created || 0} 
                        total={plan_snapshot?.listings_limit || 0} 
                        colorClass="bg-indigo-500 shadow-sm shadow-indigo-100" 
                     />
                     <div className="w-full h-px bg-slate-50"></div>
                     <ProgressItem 
-                       label="Featured" 
+                       label="Featured Slots" 
                        current={usage?.featured_listings_used || 0} 
                        total={plan_snapshot?.featured_listings_limit || 0} 
                        colorClass="bg-orange-500 shadow-sm shadow-orange-100" 
                     />
                     <div className="w-full h-px bg-slate-50"></div>
                     <ProgressItem 
-                       label="Leads" 
+                       label="Ingested Leads" 
                        current={usage?.enquiries_received_this_month || 0} 
                        total={plan_snapshot?.leads_limit || 0} 
-                       colorClass="bg-cyan-500 shadow-sm shadow-cyan-100" 
+                       colorClass="bg-emerald-500 shadow-sm shadow-emerald-100" 
                     />
                  </div>
               </div>
            </div>
 
            {/* Large Time Progress Card */}
-           <div className="col-span-12 bg-white border border-slate-200 rounded-[28px] p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm overflow-hidden relative">
-              <div className="w-full md:w-[150px]">
-                 <span className="text-[12px] font-bold text-slate-800 uppercase tracking-tight">Time Remaining</span>
-                 <p className="text-[16px] font-bold text-slate-400 mt-1 italic tracking-tighter">{diffDays} days</p>
+           <div className="col-span-12 bg-white border border-slate-100 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative">
+              <div className="absolute top-0 left-0 bg-indigo-50/30 w-full h-full pointer-events-none rounded-3xl"></div>
+              <div className="w-full md:w-[150px] relative z-10 shrink-0">
+                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Time Remaining</span>
+                 <p className="text-2xl font-black text-indigo-600 mt-1 tracking-tight tabular-nums">{diffDays} Days</p>
               </div>
               
-              <div className="flex-grow w-full space-y-2">
-                 <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="flex-grow w-full space-y-3 relative z-10">
+                 <div className="h-2.5 bg-slate-200/50 rounded-full overflow-hidden shadow-inner flex">
                     <motion.div 
                        initial={{ width: 0 }}
                        animate={{ width: `${progressPercent}%` }}
                        transition={{ duration: 1.5, ease: "easeOut" }}
-                       className="h-full bg-[#4ADE80] rounded-full shadow-sm"
+                       className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full shadow-sm"
                     ></motion.div>
                  </div>
-                 <div className="flex justify-between">
-                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{formatDate(subscription.starts_at).split(',')[0]}</span>
-                    <span className="text-[11px] font-black text-emerald-500 uppercase tracking-widest">{diffDays} days left</span>
-                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{formatDate(subscription.ends_at).split(',')[0]}</span>
+                 <div className="flex justify-between items-center px-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{formatDate(subscription.starts_at).split(',')[0]}</span>
+                    <span className="px-3 py-1 bg-white border border-slate-200 rounded-full text-[10px] font-black text-indigo-500 uppercase tracking-widest shadow-sm">{diffDays} days left</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{formatDate(subscription.ends_at).split(',')[0]}</span>
                  </div>
               </div>
            </div>

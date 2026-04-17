@@ -9,7 +9,7 @@ import {
   User, Mail, Phone, Calendar, LogOut, ChevronRight, 
   Package, Wrench, Settings, ArrowLeft, Building2, MapPin, 
   ExternalLink, Clock, CheckCircle2, ShoppingCart, MessageSquare, Briefcase, Send,
-  ShoppingBag, Download, Box
+  ShoppingBag, Download, Box, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -228,6 +228,27 @@ const UserProfile = () => {
                 <LogOut size={16} /> Logout
               </button>
            </div>
+        </div>
+
+        {/* Become Partner Banner */}
+        <div className="mt-8 px-6">
+          <div 
+            onClick={() => navigate('/partner/register')}
+            className="bg-orange-50 border border-orange-100 rounded-2xl p-4 flex items-center justify-between group active:scale-[0.98] transition-all cursor-pointer shadow-sm"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#fa8639] rounded-xl flex items-center justify-center shadow-lg shadow-orange-200">
+                <Briefcase size={22} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-[15px] font-bold text-[#1f2355]">Become a Partner</h3>
+                <p className="text-[12px] text-slate-500 font-medium">List your properties or services</p>
+              </div>
+            </div>
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-[#fa8639] shadow-sm group-hover:translate-x-1 transition-transform">
+              <ArrowRight size={18} />
+            </div>
+          </div>
         </div>
       </div>
 

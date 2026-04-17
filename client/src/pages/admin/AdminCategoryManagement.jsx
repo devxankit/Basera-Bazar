@@ -218,10 +218,22 @@ export default function AdminCategoryManagement({
             {row.is_active ? <X size={14} /> : <CheckCircle2 size={14} />}
           </button>
 
-          <button onClick={() => navigate(`/admin/properties/categories/view/${row._id}`)} className="p-2 text-slate-400 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all">
+          <button 
+            onClick={() => {
+              const pluralType = type === 'property' ? 'properties' : `${type}s`;
+              navigate(`/admin/${pluralType}/${showParent ? 'subcategories' : 'categories'}/view/${row._id}`);
+            }} 
+            className="p-2 text-slate-400 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all font-semibold uppercase text-[10px]"
+          >
             <Eye size={14} />
           </button>
-          <button onClick={() => navigate(`/admin/properties/categories/edit/${row._id}${showParent ? '?parent=' + (row.parent_id?._id || '') : ''}`)} className="p-2 text-indigo-400 hover:text-white border border-indigo-100 hover:bg-indigo-600 rounded-lg transition-all">
+          <button 
+            onClick={() => {
+              const pluralType = type === 'property' ? 'properties' : `${type}s`;
+              navigate(`/admin/${pluralType}/categories/edit/${row._id}${showParent ? '?parent=' + (row.parent_id?._id || '') : ''}`);
+            }} 
+            className="p-2 text-indigo-400 hover:text-white border border-indigo-100 hover:bg-indigo-600 rounded-lg transition-all"
+          >
             <Edit2 size={14} />
           </button>
           <button onClick={() => handleDelete(row._id)} className="p-2 text-rose-400 hover:text-white border border-rose-100 hover:bg-rose-600 rounded-lg transition-all">
@@ -271,7 +283,10 @@ export default function AdminCategoryManagement({
            </div>
         </div>
         <button 
-          onClick={() => navigate(`/admin/properties/categories/add?type=${type}${showParent ? '&parent=select' : ''}`)}
+          onClick={() => {
+            const pluralType = type === 'property' ? 'properties' : `${type}s`;
+            navigate(`/admin/${pluralType}/categories/add?type=${type}${showParent ? '&parent=select' : ''}`);
+          }}
           className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white font-bold text-[10px] rounded-xl hover:bg-slate-800 transition-all active:scale-95 uppercase tracking-widest shadow-2xl shadow-slate-900/20 whitespace-nowrap"
         >
           <Plus size={16} />

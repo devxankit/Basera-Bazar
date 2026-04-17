@@ -188,63 +188,82 @@ const verifyOtp = async (req, res) => {
 
     if (flow === 'signup') {
       // SIGNUP flow: Create the new user with all their details
-      if (!name || !email || !password) {
-        return res.status(400).json({ success: false, message: 'Name, email, and password are required for signup.' });
-      }
-
       const Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
 
-      // Final safety check (uniqueness already validated on frontend, but double-check here)
-      const phoneConflict = await Model.findOne({ phone });
-      if (phoneConflict) {
-        return res.status(409).json({ success: false, code: 'PHONE_EXISTS', message: 'This phone number is already registered.' });
-      }
-
-      const emailConflict = await Model.findOne({ email: email.toLowerCase() });
-      if (emailConflict) {
-        return res.status(409).json({ success: false, code: 'EMAIL_EXISTS', message: 'This email is already registered.' });
-      }
-
-      // Handle Location Geocoding fallback
-      let finalCoords = coords;
-      if (!finalCoords && city) {
-        finalCoords = getCityCoords(city);
-      }
+      // SILENT FALLBACK: If flow is signup but account actually exists, pivot to LOGIN flow automatically
+      const existingAccount = await Model.findOne({ phone });
       
-      // Default to Muzaffarpur if still missing (safety fallback)
-      if (!finalCoords) {
-        finalCoords = [85.3647, 26.1209];
-      }
+      if (existingAccount) {
+        account = existingAccount;
+        
+        // Profile Healing: If the existing account has no name but we just got one, update it!
+        // This ensures inquiries from "partially registered" users get their names saved.
+        let needsUpdate = false;
+        if (!account.name || account.name === 'Unknown' || account.name === 'Potential Customer') {
+          account.name = name;
+          needsUpdate = true;
+        }
+        if (!account.email && email) {
+          account.email = email.toLowerCase();
+          needsUpdate = true;
+        }
+        
+        if (needsUpdate) {
+          await account.save();
+          console.log(`[AUTH] Profile Healed for user ${account.id} - Name: ${account.name}`);
+        }
+      } else {
+        // Real Signup
+        if (!name || !email) {
+          return res.status(400).json({ success: false, message: 'Name and email are required for account creation.' });
+        }
 
-      account = await Model.create({
-        phone,
-        name,
-        email: email.toLowerCase(),
-        password,
-        ...(role === 'partner' && { 
-          partner_type: role === 'partner' ? 'service_provider' : undefined,
-          service_radius_km: service_radius_km || 100 
-        }),
-        default_location: role === 'user' ? {
-          type: 'Point',
-          coordinates: finalCoords,
-          city,
-          state,
-          district,
-          pincode
-        } : undefined,
-        location: role !== 'user' ? {
-          type: 'Point',
-          coordinates: finalCoords
-        } : undefined,
-        address: role !== 'user' ? {
-          full_address: address,
-          city,
-          state,
-          district,
-          pincode
-        } : undefined
-      });
+        const emailConflict = await Model.findOne({ email: email.toLowerCase() });
+        if (emailConflict) {
+          return res.status(409).json({ success: false, code: 'EMAIL_EXISTS', message: 'This email is already registered.' });
+        }
+
+        // Handle Location Geocoding fallback
+        let finalCoords = coords;
+        if (!finalCoords && city) {
+          finalCoords = getCityCoords(city);
+        }
+        
+        // Default to Muzaffarpur if still missing (safety fallback)
+        if (!finalCoords) {
+          finalCoords = [85.3647, 26.1209];
+        }
+
+        account = await Model.create({
+          phone,
+          name,
+          email: email.toLowerCase(),
+          password: password || undefined, // Password optional for OTP auto-signup
+          ...(role === 'partner' && { 
+            partner_type: role === 'partner' ? 'service_provider' : undefined,
+            service_radius_km: service_radius_km || 100 
+          }),
+          default_location: role === 'user' ? {
+            type: 'Point',
+            coordinates: finalCoords,
+            city,
+            state,
+            district,
+            pincode
+          } : undefined,
+          location: role !== 'user' ? {
+            type: 'Point',
+            coordinates: finalCoords
+          } : undefined,
+          address: role !== 'user' ? {
+            full_address: address,
+            city,
+            state,
+            district,
+            pincode
+          } : undefined
+        });
+      }
 
     } else {
       // LOGIN flow: Find existing user

@@ -14,6 +14,11 @@ export default function AdminPendingProperties() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Rejection Modal State
+  const [rejectingId, setRejectingId] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchProperties = async () => {
     setLoading(true);
@@ -26,6 +31,38 @@ export default function AdminPendingProperties() {
       setError('Failed to load pending property queue.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApprove = async (id) => {
+    try {
+      const res = await api.patch(`/admin/listings/${id}/status`, { status: 'active' });
+      if (res.data.success) {
+        setProperties(prev => prev.filter(p => p._id !== id));
+      }
+    } catch (err) {
+      alert("Failed to approve property.");
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectReason.trim()) return alert("Please provide a reason for rejection.");
+    
+    setIsSubmitting(true);
+    try {
+      const res = await api.patch(`/admin/listings/${rejectingId}/status`, { 
+        status: 'rejected',
+        status_reason: rejectReason 
+      });
+      if (res.data.success) {
+        setProperties(prev => prev.filter(p => p._id !== rejectingId));
+        setRejectingId(null);
+        setRejectReason('');
+      }
+    } catch (err) {
+      alert("Failed to reject property.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -129,7 +166,7 @@ export default function AdminPendingProperties() {
                 <div className="flex items-center gap-4 py-3 border-y border-slate-50">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pricing</span>
-                    <span className="text-base font-black text-emerald-600">₹{prop.pricing?.expected_price?.toLocaleString() || 'N/A'}</span>
+                    <span className="text-base font-black text-emerald-600">₹{prop.pricing?.amount?.toLocaleString() || 'N/A'}</span>
                   </div>
                   <div className="w-px h-8 bg-slate-50" />
                    <div className="flex flex-col">
@@ -139,15 +176,24 @@ export default function AdminPendingProperties() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 pt-2">
-                  <button className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-all border border-transparent">
+                  <button 
+                    onClick={() => navigate(`/admin/properties/view/${prop._id}`)}
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-all border border-transparent active:scale-95"
+                  >
                     <Eye size={18} />
                     <span className="text-[9px] font-black uppercase tracking-widest">View</span>
                   </button>
-                  <button className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-emerald-50 text-emerald-500 hover:bg-emerald-100 transition-all border border-emerald-100/50">
+                  <button 
+                    onClick={() => handleApprove(prop._id)}
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-emerald-50 text-emerald-500 hover:bg-emerald-100 transition-all border border-emerald-100/50 active:scale-95"
+                  >
                     <CheckCircle2 size={18} />
                     <span className="text-[9px] font-black uppercase tracking-widest">Approve</span>
                   </button>
-                  <button className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 transition-all border border-rose-100/50">
+                  <button 
+                    onClick={() => setRejectingId(prop._id)}
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 transition-all border border-rose-100/50 active:scale-95"
+                  >
                     <XCircle size={18} />
                     <span className="text-[9px] font-black uppercase tracking-widest">Reject</span>
                   </button>
@@ -163,6 +209,48 @@ export default function AdminPendingProperties() {
               <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1">No properties awaiting approval at this moment.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Rejection Modal */}
+      {rejectingId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-[32px] w-full max-w-md overflow-hidden shadow-2xl"
+          >
+            <div className="p-8 pb-4">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Audit Rejection</h2>
+              <p className="text-slate-500 font-bold text-sm mt-2 leading-relaxed">Please provide a detailed qualitative reason for rejecting this asset profile. The partner will receive this feedback via primary protocol.</p>
+              
+              <div className="mt-6">
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="e.g. Blurry images, invalid documentation, price discrepancy..."
+                  className="w-full h-32 p-4 bg-slate-50 border-2 border-slate-50 rounded-2xl outline-none focus:border-rose-500 font-bold text-sm transition-all resize-none shadow-inner"
+                />
+              </div>
+            </div>
+            
+            <div className="p-8 pt-4 flex gap-3">
+              <button 
+                onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                className="flex-1 py-4 bg-slate-50 text-slate-400 font-black rounded-2xl hover:bg-slate-100 transition-all uppercase tracking-widest text-[11px]"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleReject}
+                className="flex-[2] py-4 bg-rose-500 text-white font-black rounded-2xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-100 flex items-center justify-center gap-2 uppercase tracking-widest text-[11px]"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : 'Execute Rejection'}
+              </button>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>

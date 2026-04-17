@@ -7,27 +7,14 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../services/DataEngine';
+import api from '../../services/api';
 
-const CATEGORIES = ['Office', 'Shop', 'Hostel/PG', 'Apartment/House/Flat', 'Plot/Lands', 'Warehouse/Godown'];
 const TYPES = ['Commercial', 'Residential', 'Agricultural', 'Industrial'];
 const UNITS = ['sq. ft.', 'sq. m.', 'acre', 'dismil', 'gaj'];
 
-const INDIA_DISTRICTS = {
-  'Bihar': ['Muzaffarpur', 'Patna', 'Gaya', 'Darbhanga', 'Bhagalpur', 'Hajipur', 'Purnia', 'Arrah', 'Begusarai', 'Munger', 'Bihar Sharif', 'Katihar', 'Sitamarhi', 'Siwan', 'Bhojpur', 'Saran'],
-  'Rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Ajmer', 'Bikaner', 'Alwar', 'Bhilwara', 'Bharatpur', 'Sikar', 'Pali', 'Sri Ganganagar', 'Tonk', 'Chittorgarh', 'Barmer', 'Churu'],
-  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Agra', 'Varanasi', 'Allahabad', 'Meerut', 'Ghaziabad', 'Noida', 'Mathura', 'Bareilly', 'Gorakhpur', 'Moradabad', 'Firozabad', 'Aligarh', 'Jhansi', 'Muzaffarnagar'],
-  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Thane', 'Aurangabad', 'Solapur', 'Kolhapur', 'Satara', 'Jalgaon', 'Raigad', 'Ahmednagar', 'Amravati', 'Chandrapur', 'Latur', 'Nandurbar'],
-  'Delhi': ['New Delhi', 'Central Delhi', 'North Delhi', 'South Delhi', 'East Delhi', 'West Delhi', 'North East Delhi', 'North West Delhi', 'South East Delhi', 'South West Delhi'],
-  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar', 'Junagadh', 'Gandhinagar', 'Anand', 'Mehsana', 'Morbi', 'Kutch', 'Navsari', 'Valsad', 'Bharuch', 'Botad'],
-  'Madhya Pradesh': ['Bhopal', 'Indore', 'Jabalpur', 'Gwalior', 'Ujjain', 'Rewa', 'Satna', 'Sagar', 'Dewas', 'Morena', 'Ratlam', 'Chhindwara', 'Shivpuri', 'Vidisha', 'Mandsaur', 'Balaghat'],
-  'West Bengal': ['Kolkata', 'Howrah', 'North 24 Parganas', 'South 24 Parganas', 'Bardhaman', 'Murshidabad', 'Nadia', 'Jalpaiguri', 'Darjeeling', 'Malda', 'Birbhum', 'Bankura', 'West Midnapore', 'East Midnapore', 'Siliguri', 'Hooghly'],
-  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Tirunelveli', 'Vellore', 'Erode', 'Dindigul', 'Kancheepuram', 'Thanjavur', 'Virudhunagar', 'Krishnagiri', 'Namakkal', 'Ramanathapuram', 'Tiruppur'],
-  'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi', 'Mangaluru', 'Belagavi', 'Davanagere', 'Ballari', 'Vijayapura', 'Shivamogga', 'Tumakuru', 'Kalaburagi', 'Bidar', 'Raichur', 'Dharwar', 'Hassan', 'Udupi'],
-  'Haryana': ['Gurugram', 'Faridabad', 'Ambala', 'Hisar', 'Rohtak', 'Panipat', 'Karnal', 'Sonipat', 'Yamunanagar', 'Panchkula', 'Bhiwani', 'Sirsa', 'Jhajjar', 'Jind', 'Mahendragarh', 'Nuh'],
-  'Punjab': ['Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda', 'Mohali', 'Pathankot', 'Hoshiarpur', 'Gurdaspur', 'Ferozepur', 'Faridkot', 'Moga', 'Muktsar', 'Sangrur', 'Kapurthala', 'Fatehgarh Sahib'],
-  'Jharkhand': ['Ranchi', 'Jamshedpur', 'Dhanbad', 'Bokaro', 'Deoghar', 'Hazaribagh', 'Giridih', 'Ramgarh', 'Chaibasa', 'Dumka', 'Pakur', 'Chatra', 'Koderma', 'Latehar', 'Lohardaga', 'Simdega'],
-  'Odisha': ['Bhubaneswar', 'Cuttack', 'Rourkela', 'Berhampur', 'Puri', 'Sambalpur', 'Balasore', 'Baripada', 'Bhadrak', 'Angul', 'Dhenkanal', 'Kendrapara', 'Jajpur', 'Koraput', 'Rayagada', 'Sundargarh'],
-};
+import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
+
+const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
 export default function AddProperty() {
   const navigate = useNavigate();
@@ -42,7 +29,10 @@ export default function AddProperty() {
     title: '',
     intention: 'For Sale',
     price: '',
-    category: '',
+    categoryId: '',
+    categoryName: '',
+    subcategoryId: '',
+    subcategoryName: '',
     propertyType: '',
     builtUpArea: '',
     unit: 'sq. ft.',
@@ -113,6 +103,63 @@ export default function AddProperty() {
 
   const handleSelect = (name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const [parentCategories, setParentCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
+
+  useEffect(() => {
+    const fetchParentCategories = async () => {
+      try {
+        const res = await api.get('/listings/categories?type=property');
+        if (res.data.success) {
+          setParentCategories(res.data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch property parent categories", err);
+      }
+    };
+    fetchParentCategories();
+  }, []);
+
+  useEffect(() => {
+    if (formData.categoryId) {
+      const fetchSubCategories = async () => {
+        try {
+          const res = await api.get(`/listings/categories?type=property&parent_id=${formData.categoryId}`);
+          if (res.data.success) {
+            setSubCategories(res.data.data);
+          }
+        } catch (err) {
+          console.error("Failed to fetch property sub categories", err);
+        }
+      };
+      fetchSubCategories();
+    } else {
+      setSubCategories([]);
+    }
+  }, [formData.categoryId]);
+
+  const handleCategorySelect = (e) => {
+    const selectedId = e.target.value;
+    const selectedCat = parentCategories.find(c => c._id === selectedId);
+    setFormData(prev => ({ 
+      ...prev, 
+      categoryId: selectedId,
+      categoryName: selectedCat ? selectedCat.name : '',
+      subcategoryId: '',
+      subcategoryName: ''
+    }));
+  };
+
+  const handleSubCategorySelect = (e) => {
+    const selectedId = e.target.value;
+    const selectedCat = subCategories.find(c => c._id === selectedId);
+    setFormData(prev => ({ 
+      ...prev, 
+      subcategoryId: selectedId,
+      subcategoryName: selectedCat ? selectedCat.name : ''
+    }));
   };
 
   const handleFileChange = async (e, field) => {
@@ -227,9 +274,12 @@ export default function AddProperty() {
       const payload = {
         ...formData,
         images: uploadedImageUrls,
-        category: 'property', // Force category
+        category: 'property', // Structural identifier
+        serviceType: formData.subcategoryName || formData.categoryName, // Used in local list
         details: {
-          propertyType: formData.propertyType || formData.category, // Map based on what UI sends
+          propertyType: formData.subcategoryName || formData.categoryName,
+          categoryId: formData.categoryId,
+          subcategoryId: formData.subcategoryId,
           area: formData.builtUpArea,
           areaUnit: formData.unit,
           description: formData.description,
@@ -317,7 +367,14 @@ export default function AddProperty() {
             transition={{ duration: 0.2 }}
           >
             {activeStep === 1 && (
-              <StepOne formData={formData} handleChange={handleChange} handleSelect={handleSelect} />
+              <StepOne 
+                formData={formData} 
+                handleChange={handleChange} 
+                handleCategorySelect={handleCategorySelect}
+                handleSubCategorySelect={handleSubCategorySelect}
+                parentCategories={parentCategories}
+                subCategories={subCategories}
+              />
             )}
             {activeStep === 2 && (
               <StepTwo formData={formData} handleChange={handleChange} handleSelect={handleSelect} />
@@ -400,7 +457,7 @@ export default function AddProperty() {
 // -------------------------------------------------------------
 // STEP 1 COMPONENTS
 // -------------------------------------------------------------
-function StepOne({ formData, handleChange, handleSelect }) {
+function StepOne({ formData, handleChange, handleCategorySelect, handleSubCategorySelect, parentCategories, subCategories }) {
   return (
     <div className="space-y-6">
       <SectionCard title="Essential Details" icon={<div className="w-3 h-3 bg-blue-500 rounded-full" />}>
@@ -438,8 +495,45 @@ function StepOne({ formData, handleChange, handleSelect }) {
 
       <SectionCard title="Property Classification" icon={<Triangle size={16} className="fill-blue-500 text-blue-500" />}>
         <div className="space-y-4">
-          <SelectField label="Property Category *" name="category" icon={<Building2 size={18} />} value={formData.category} options={CATEGORIES} onChange={handleChange} />
-          <SelectField label="Property Type" name="propertyType" icon={<Home size={18} />} value={formData.propertyType} options={TYPES} onChange={handleChange} />
+          <div className="w-full">
+            <label className="block text-[11px] font-bold text-[#001b4e] uppercase mb-1.5 ml-1">Market Category *</label>
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10"><Building2 size={18} /></div>
+              <select 
+                name="categoryId" 
+                value={formData.categoryId} 
+                onChange={handleCategorySelect} 
+                className="w-full bg-white border border-slate-200 rounded-xl py-3.5 pr-10 text-[14px] font-medium outline-none appearance-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all pl-11"
+              >
+                <option value="" disabled hidden>Select Category</option>
+                {parentCategories.map((cat) => (
+                  <option key={cat._id} value={cat._id}>{cat.name}</option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
+          
+          {subCategories.length > 0 && (
+            <div className="w-full animate-in fade-in slide-in-from-top-2">
+              <label className="block text-[11px] font-bold text-[#001b4e] uppercase mb-1.5 ml-1">Sub Category *</label>
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10"><Home size={18} /></div>
+                <select 
+                  name="subcategoryId" 
+                  value={formData.subcategoryId} 
+                  onChange={handleSubCategorySelect} 
+                  className="w-full bg-white border border-slate-200 rounded-xl py-3.5 pr-10 text-[14px] font-medium outline-none appearance-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all pl-11"
+                >
+                  <option value="" disabled hidden>Select Sub Category</option>
+                  {subCategories.map((cat) => (
+                    <option key={cat._id} value={cat._id}>{cat.name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+          )}
         </div>
       </SectionCard>
 

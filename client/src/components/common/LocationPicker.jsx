@@ -94,16 +94,27 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
                 .trim();
             };
 
-            const cityName = cleanName(adr.city || adr.town || adr.village || adr.suburb || 'Unknown City');
+            const cityName = cleanName(
+              adr.city || 
+              adr.town || 
+              adr.village || 
+              adr.suburb || 
+              adr.neighbourhood || 
+              adr.municipality || 
+              adr.residential ||
+              adr.road || // Fallback to road if it's a very specific coordinate
+              'Unknown'
+            );
             const stateName = adr.state || '';
             const districtName = cleanName(adr.county || adr.state_district || adr.city_district || cityName);
 
             onSelect({
               coordinates: [longitude, latitude],
-              name: cityName,
+              name: cityName === 'Unknown' ? null : cityName,
               state: stateName,
               district: districtName,
-              isGPS: true
+              isGPS: true,
+              rawAddress: adr
             });
           } else {
             // Fallback to coordinates only if geocoding fails

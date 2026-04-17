@@ -23,18 +23,9 @@ const FURNISHING_TYPES = [
   { id: 'fully-furnished', label: 'Fully-Furnished' }
 ];
 
-const INDIAN_STATES = {
-  "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Bikaner", "Ajmer", "Kota", "Bhilwara", "Alwar"],
-  "Uttar Pradesh": ["Lucknow", "Kanpur", "Varanasi", "Agra", "Meerut", "Noida", "Ghaziabad", "Prayagraj"],
-  "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad", "Solapur", "Amravati"],
-  "Delhi": ["New Delhi", "North Delhi", "South Delhi", "West Delhi", "East Delhi"],
-  "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar", "Gandhinagar"],
-  "Karnataka": ["Bengaluru", "Mysuru", "Hubballi", "Dharwad", "Mangaluru", "Belagavi", "Gulbarga"],
-  "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bathinda", "Mohali"],
-  "Haryana": ["Gurugram", "Faridabad", "Panipat", "Ambala", "Yamunanagar", "Rohtak"],
-  "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain", "Sagar"],
-  "West Bengal": ["Kolkata", "Howrah", "Durgapur", "Asansol", "Siliguri", "Darjeeling"]
-};
+import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
+
+const INDIAN_STATES = INDIAN_STATES_DISTRICTS;
 
 export default function AdminPropertyForm() {
   const { id } = useParams();
@@ -46,6 +37,7 @@ export default function AdminPropertyForm() {
   const [success, setSuccess] = useState(null);
 
   const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
   const [partners, setPartners] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -66,7 +58,7 @@ export default function AdminPropertyForm() {
     const fetchInitData = async () => {
       try {
         const [catRes, partnerRes] = await Promise.all([
-          api.get('/admin/system/categories?type=property'),
+          api.get('/admin/system/categories?type=property&parent_id=null'),
           api.get('/admin/users')
         ]);
 
@@ -137,6 +129,24 @@ export default function AdminPropertyForm() {
     };
     fetchInitData();
   }, [id, isEdit]);
+
+  useEffect(() => {
+    if (formData.category_id) {
+      const fetchSubcategories = async () => {
+        try {
+          const res = await api.get(`/admin/system/categories?type=property&parent_id=${formData.category_id}`);
+          if (res.data.success) {
+            setSubcategories(res.data.data);
+          }
+        } catch (err) {
+          console.error("Failed to fetch property subcategories", err);
+        }
+      };
+      fetchSubcategories();
+    } else {
+      setSubcategories([]);
+    }
+  }, [formData.category_id]);
 
   const handleInputChange = (e, fieldPath) => {
     const { name, value, type, checked } = e.target;
@@ -228,19 +238,40 @@ export default function AdminPropertyForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className={labelClass}>Market Category</label>
-                    <select name="category_id" required value={formData.category_id} onChange={handleInputChange} className={inputClass}>
+                    <select name="category_id" required value={formData.category_id} onChange={e => { handleInputChange(e); handleInputChange({ target: { name: 'subcategory_id', value: '', type: 'text' } }); }} className={inputClass}>
                       <option value="">Select Category</option>
                       {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label className={labelClass}>Assigned Agent</label>
-                    <select name="partner_id" required value={formData.partner_id} onChange={handleInputChange} className={inputClass}>
-                      <option value="">Select Account</option>
-                      {partners.map(p => <option key={p._id} value={p._id}>{p.name} ({p.role})</option>)}
-                    </select>
-                  </div>
+                  {subcategories.length > 0 ? (
+                    <div>
+                      <label className={labelClass}>Sub Category</label>
+                      <select name="subcategory_id" required value={formData.subcategory_id} onChange={handleInputChange} className={inputClass}>
+                        <option value="">Select Sub Category</option>
+                        {subcategories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className={labelClass}>Assigned Agent</label>
+                      <select name="partner_id" required value={formData.partner_id} onChange={handleInputChange} className={inputClass}>
+                        <option value="">Select Account</option>
+                        {partners.map(p => <option key={p._id} value={p._id}>{p.name} ({p.role})</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
+                {subcategories.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className={labelClass}>Assigned Agent</label>
+                      <select name="partner_id" required value={formData.partner_id} onChange={handleInputChange} className={inputClass}>
+                        <option value="">Select Account</option>
+                        {partners.map(p => <option key={p._id} value={p._id}>{p.name} ({p.role})</option>)}
+                      </select>
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label className={labelClass}>Listing Intent</label>
                   <div className="flex gap-4">

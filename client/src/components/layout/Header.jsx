@@ -25,7 +25,7 @@ const Header = () => {
     if (loc.isGPS) {
       setLocation(prev => ({
         ...prev,
-        city: loc.name || prev.city,
+        city: loc.name || (loc.isGPS ? 'Current Location' : prev.city),
         state: loc.state || prev.state,
         district: loc.district || prev.district,
         coords: loc.coordinates,

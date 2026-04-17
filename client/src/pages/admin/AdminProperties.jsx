@@ -156,28 +156,21 @@ export default function AdminProperties() {
           <div className="min-w-0">
             <p className="font-black text-slate-800 tracking-tight truncate">{row.title}</p>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">{row.property_type}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">{row.category_id?.name || row.subcategory_id?.name || row.property_type || 'Property'}</span>
               <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${
                 row.listing_intent === 'sell' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
               }`}>{row.listing_intent}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1 text-slate-500 font-bold">
+               <span className="text-[11px]">{row.details?.bhk || '-'} BHK</span>
+               <div className="w-1 h-1 rounded-full bg-slate-300" />
+               <span className="text-[11px]">{row.details?.area?.value || '-'} Sqft</span>
             </div>
           </div>
         </div>
       )
     },
-    {
-      header: 'DETAILS',
-      render: (row) => (
-        <div className="space-y-0.5">
-           <div className="flex items-center gap-2 text-slate-900 font-black">
-              <span className="text-sm">{row.details?.bhk || 'N/A'} BHK</span>
-              <div className="w-1 h-1 rounded-full bg-slate-300" />
-              <span className="text-sm">{row.details?.area?.value || 'N/A'} Sqft</span>
-           </div>
-           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Space Metrics</p>
-        </div>
-      )
-    },
+    // Details column removed to reduce width
     { 
       header: 'PRICE', 
       render: (row) => (
@@ -211,15 +204,7 @@ export default function AdminProperties() {
         </div>
       )
     },
-    {
-       header: 'LISTED ON',
-       render: (row) => (
-         <div className="flex items-center gap-2 text-slate-400 font-bold">
-            <Calendar size={14} />
-            <span className="text-[11px] whitespace-nowrap">{new Date(row.createdAt).toLocaleDateString()}</span>
-         </div>
-       )
-    },
+    // Listed On column removed to reduce width
     { 
       header: 'STATE', 
       render: (row) => {
@@ -457,16 +442,15 @@ export default function AdminProperties() {
       </AnimatePresence>
 
       {/* Stats Overview for Properties */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Active', value: properties.length, color: 'text-emerald-600 bg-emerald-50' },
-          { label: 'Pending Approval', value: 0, color: 'text-amber-600 bg-amber-50' },
-          { label: 'Recently Sold', value: 0, color: 'text-indigo-600 bg-indigo-50' },
-          { label: 'Archived', value: 0, color: 'text-slate-600 bg-slate-50' },
+          { label: 'Active', value: properties.filter(p => p.status === 'active').length, color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'Pending Approval', value: properties.filter(p => p.status === 'pending_approval').length, color: 'text-amber-600 bg-amber-50' },
+          { label: 'Rejected', value: properties.filter(p => p.status === 'rejected').length, color: 'text-rose-600 bg-rose-50' },
         ].map((stat, i) => (
-          <div key={i} className={`p-4 rounded-2xl border border-slate-100 bg-white flex items-center justify-between`}>
+          <div key={i} className={`p-4 rounded-2xl border border-slate-100 bg-white shadow-sm flex items-center justify-between`}>
             <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{stat.label}</span>
-            <span className={`px-3 py-1 rounded-lg font-black text-sm ${stat.color}`}>{stat.value}</span>
+            <span className={`px-4 py-1.5 rounded-xl font-black text-sm ${stat.color}`}>{stat.value}</span>
           </div>
         ))}
       </div>

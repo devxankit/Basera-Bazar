@@ -34,6 +34,7 @@ import PartnerServiceDetails from './pages/partner/PartnerServiceDetails';
 import PartnerHelp from './pages/partner/PartnerHelp';
 import PartnerAbout from './pages/partner/PartnerAbout';
 import PartnerEditProfile from './pages/partner/PartnerEditProfile';
+import PartnerNotifications from './pages/partner/PartnerNotifications';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -116,30 +117,17 @@ const UserLayout = ({ children }) => {
   const isAuth = location.pathname === '/login' || location.pathname === '/signup';
   const isCategory = location.pathname.startsWith('/category/');
   const isBrowse = location.pathname.startsWith('/browse/');
-  const showFloatingButton = isHome;
+  const isDetail = location.pathname.startsWith('/listing/') || location.pathname.startsWith('/service/');
+  const showBottomNav = !isDetail;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
       {isHome && <Header />}
-      <main className={`flex-grow ${(!isHome && !isAuth && !isCategory && !isBrowse) ? 'pt-4' : ''}`}>
+      <main className={`flex-grow ${showBottomNav ? 'pb-32' : 'pb-0'} ${(!isHome && !isAuth && !isCategory && !isBrowse) ? 'pt-4' : ''}`}>
         {children}
       </main>
 
-      {showFloatingButton && (
-        <div className="fixed bottom-32 left-0 right-0 z-[60] flex justify-end px-5 pointer-events-none max-w-md mx-auto">
-          <button 
-            onClick={() => navigate('/partner/register')}
-            className="pointer-events-auto bg-[#fa8639] text-white px-5 py-3.5 rounded-full flex items-center gap-2.5 shadow-[0_15px_30px_-5px_rgba(250,134,57,0.5)] active:scale-95 transition-all outline-none border border-white/20"
-          >
-            <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
-              <Briefcase size={16} className="text-white" />
-            </div>
-            <span className="text-[13px] font-bold tracking-wide uppercase">Become Partner</span>
-          </button>
-        </div>
-      )}
-
-      <BottomNav />
+      {showBottomNav && <BottomNav />}
     </div>
   );
 };
@@ -280,6 +268,11 @@ function App() {
         <Route path="/partner/help" element={<PartnerHelp />} />
         <Route path="/partner/about" element={<PartnerAbout />} />
         <Route path="/partner/edit-profile" element={<PartnerEditProfile />} />
+        <Route path="/partner/notifications" element={
+          <PartnerLayout>
+            <PartnerNotifications />
+          </PartnerLayout>
+        } />
         
         {/* Mandi Seller Specific Routes */}
         <Route path="/partner/mandi/dashboard" element={<PartnerLayout><PartnerHome /></PartnerLayout>} />
@@ -500,6 +493,13 @@ function App() {
             </AdminLayout>
           </AdminRoute>
         } />
+        <Route path="/admin/properties/subcategories/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryDetails />
+            </AdminLayout>
+          </AdminRoute>
+        } />
         <Route path="/admin/properties/subcategories" element={
           <AdminRoute>
             <AdminLayout>
@@ -523,6 +523,34 @@ function App() {
             </AdminLayout>
           </AdminRoute>
         } />
+        <Route path="/admin/services/categories/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryDetails />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/services/subcategories/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryDetails />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/services/categories/add" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/services/categories/edit/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
 
         {/* Product & Supplier System */}
         <Route path="/admin/suppliers/categories" element={
@@ -543,6 +571,55 @@ function App() {
           <AdminRoute>
             <AdminLayout>
               <AdminProductSubcategories />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/categories/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryDetails />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/subcategories/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryDetails />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/categories/add" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/products/categories/edit/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/suppliers/categories/add" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/suppliers/categories/edit/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryForm />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/suppliers/categories/view/:id" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminCategoryDetails />
             </AdminLayout>
           </AdminRoute>
         } />
