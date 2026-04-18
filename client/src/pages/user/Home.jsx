@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BannerCarousel from '../../components/common/BannerCarousel';
-import { Search, Building2, Wrench, Store, ArrowRight, MapPin, Heart, Plus, Briefcase, Loader2, ShoppingBag } from 'lucide-react';
+import { Search, Building2, Wrench, Store, ArrowRight, MapPin, Heart, Plus, Briefcase, Loader2, ShoppingBag, LayoutGrid } from 'lucide-react';
 import { useLocationContext } from '../../context/LocationContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -176,8 +176,8 @@ const Home = () => {
       {properties.length > 0 && (
         <div className="space-y-4">
           <div className="px-5 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-primary-900 tracking-tight uppercase">Featured Properties</h2>
-            <button onClick={() => navigate('/browse/property')} className="text-xs font-semibold text-slate-400 hover:text-primary-600 transition-all uppercase tracking-widest">View All</button>
+            <h2 className="text-lg font-bold text-[#1f2355] tracking-tight uppercase">Featured Properties</h2>
+            <button onClick={() => navigate('/category/property')} className="text-xs font-bold text-slate-400 hover:text-[#124db5] transition-all uppercase tracking-widest">View All</button>
           </div>
           
           <div className="flex gap-4 overflow-x-auto px-5 pb-4 no-scrollbar">
@@ -185,27 +185,30 @@ const Home = () => {
               <div 
                 key={item.id} 
                 onClick={() => navigate(`/listing/${item.id}`)}
-                className="min-w-[280px] bg-white rounded-[32px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden active:scale-[0.98] transition-all group relative cursor-pointer"
+                className="min-w-[260px] max-w-[260px] bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/20 overflow-hidden active:scale-[0.98] transition-all group relative cursor-pointer"
               >
-                <div className="h-44 relative">
-                  <img src={item.image || item.images?.[0]} className="w-full h-full object-cover shadow-inner opacity-90 group-hover:opacity-100 transition-opacity" alt={item.title} />
-                  <button className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2.5 rounded-full shadow-sm text-slate-300">
-                    <Heart size={16} fill="currentColor" className="opacity-20" />
-                  </button>
+                <div className="h-36 relative">
+                  <img src={item.image || item.images?.[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt={item.title} />
+                  <div className="absolute top-3 right-3 flex gap-1.5">
+                    {item.featured && (
+                      <span className="bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-full text-[8px] font-bold text-emerald-600 shadow-sm">★</span>
+                    )}
+                  </div>
                 </div>
-                <div className="p-5 space-y-2">
-                  <h3 className="font-semibold text-[#1f2355] text-[17px] tracking-tight line-clamp-1">{item.title}</h3>
-                  <p className="text-[14px] font-medium text-[#4a5578] flex items-center gap-1.5 line-clamp-1">
-                    <MapPin size={14} className="text-[#159f42]" />
-                    {item.location_text || item.address?.district || item.district || 'Bihar'}
-                  </p>
-                  <div className="flex items-center justify-between pt-2">
-                    <span className="text-[#124db5] text-lg font-semibold tracking-tight">
-                      ₹{item.pricing?.amount?.toLocaleString() || item.price?.value?.toLocaleString() || '0'}
+                <div className="p-4 space-y-1.5">
+                  <h3 className="font-bold text-[#1f2355] text-[15px] truncate">{item.title}</h3>
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
+                    <MapPin size={12} className="text-emerald-500" />
+                    <span className="truncate">{item.location_text || item.address?.district || 'Bihar'}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[#124db5] text-[17px] font-black">
+                      ₹{(item.pricing?.amount || item.price?.value || 0).toLocaleString()}
                     </span>
-                    <span className="text-[12px] font-semibold text-[#64719b] bg-[#f4f6fc] px-4 py-1.5 rounded-xl border border-[#eef2fc]">
-                      {item.details?.area?.value ? `${item.details.area.value} ${item.details.area.unit}` : 'Property'}
-                    </span>
+                    <div className="bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 flex items-center gap-1.5">
+                      <LayoutGrid size={10} className="text-[#124db5]" />
+                      <span className="text-[9px] font-bold text-[#1f2355]/70">{item.details?.area?.value || 'Area'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -218,8 +221,8 @@ const Home = () => {
       {services.length > 0 && (
         <div className="space-y-4">
           <div className="px-5 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-primary-900 tracking-tight uppercase">Featured Services</h2>
-            <button onClick={() => navigate('/browse/service')} className="text-xs font-semibold text-slate-400 hover:text-primary-600 transition-all uppercase tracking-widest">View All</button>
+            <h2 className="text-lg font-bold text-[#1f2355] tracking-tight uppercase">Featured Services</h2>
+            <button onClick={() => navigate('/category/service')} className="text-xs font-bold text-slate-400 hover:text-[#124db5] transition-all uppercase tracking-widest">View All</button>
           </div>
           
           <div className="flex gap-4 overflow-x-auto px-5 pb-4 no-scrollbar">
@@ -227,22 +230,27 @@ const Home = () => {
               <div 
                 key={item.id} 
                 onClick={() => navigate(`/service/${item.id}`)}
-                className="min-w-[280px] bg-white rounded-[32px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden active:scale-[0.98] transition-all cursor-pointer group"
+                className="min-w-[260px] max-w-[260px] bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/20 overflow-hidden active:scale-[0.98] transition-all cursor-pointer group"
               >
-                <div className="h-40 relative">
-                  <img src={item.image || item.images?.[0]} className="w-full h-full object-cover shadow-inner opacity-90 group-hover:opacity-100 transition-opacity" alt={item.title} />
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-widest text-emerald-600 border border-emerald-100 shadow-sm">
-                    {item.status || 'Active'}
-                  </div>
+                <div className="h-32 relative bg-slate-100">
+                  <img src={item.image || item.images?.[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt={item.title} />
                 </div>
-                <div className="p-4 space-y-3">
-                  <h3 className="font-semibold text-primary-900 text-sm tracking-tight line-clamp-1">{item.title}</h3>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 truncate max-w-[150px]">
-                      <MapPin size={12} className="text-emerald-500" />
-                      {item.location_text || item.address?.district || item.district || 'Bihar'}
+                <div className="p-4 space-y-2">
+                  <h3 className="font-bold text-[#1f2355] text-[15px] truncate">{item.title}</h3>
+                  
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-[#f1f3ff] flex items-center justify-center text-[#1f2355] font-black text-[10px] shrink-0">
+                      {String(item.businessName || item.title || 'BB').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                     </div>
-                    <button className="bg-emerald-50 text-emerald-600 text-[11px] font-semibold px-5 py-2 rounded-xl border border-emerald-100 uppercase tracking-widest">BOOK</button>
+                    <span className="text-[11px] font-bold text-[#1f2355]/70 uppercase truncate">{item.businessName || 'Verified Partner'}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400">
+                      <MapPin size={12} className="text-[#124db5]" />
+                      <span className="truncate max-w-[100px]">{item.location || 'Bihar'}</span>
+                    </div>
+                    <button className="bg-[#1f2355] text-white text-[10px] font-bold px-4 py-2 rounded-xl active:scale-95 transition-all">VIEW</button>
                   </div>
                 </div>
               </div>

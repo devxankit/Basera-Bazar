@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Building2, 
-  CheckCircle2, 
-  Clock, 
-  Star, 
-  Users, 
-  Mail, 
-  PlusCircle, 
-  MessageSquare, 
+import {
+  Building2,
+  CheckCircle2,
+  Clock,
+  Star,
+  Users,
+  Mail,
+  PlusCircle,
+  MessageSquare,
   ChevronRight,
   History,
   TrendingUp,
@@ -44,52 +44,13 @@ export default function PartnerHome() {
     return 'Items';
   };
 
-  const [stats, setStats] = useState({
-    listings: { total: 0, active: 0, pending: 0, featured: 0 },
-    leads: { total: 0, unread: 0 }
-  });
-  const [recentActivities, setRecentActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        const [statsRes, leadsRes] = await Promise.all([
-          api.get('/partners/stats'),
-          api.get('/partners/enquiries?limit=4')
-        ]);
-        
-        if (statsRes.data.success) setStats(statsRes.data.data);
-        if (leadsRes.data.success) {
-          // Transform leads into activity format
-          const activities = leadsRes.data.data.map(lead => ({
-            id: lead._id,
-            type: 'inquiry',
-            title: lead.user_details?.name || 'New Lead',
-            message: `Lead for "${lead.listing_snapshot?.title || lead.listing_snapshot?.serviceName || 'Property'}"`,
-            timestamp: lead.createdAt,
-            status: lead.status
-          }));
-          setRecentActivities(activities);
-        }
-      } catch (err) {
-        console.error("Dashboard data fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, [partner.id]);
-
   const overviewStats = [
-    { label: 'Total', value: stats.listings.total, icon: <Building2 size={24} />, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-    { label: 'Active', value: stats.listings.active, icon: <CheckCircle2 size={24} />, color: 'text-green-600', bgColor: 'bg-green-50' },
-    { label: 'Pending', value: stats.listings.pending, icon: <Clock size={24} />, color: 'text-orange-500', bgColor: 'bg-orange-50' },
-    { label: 'Featured', value: stats.listings.featured, icon: <Star size={24} />, color: 'text-yellow-500', bgColor: 'bg-yellow-50' },
-    { label: 'Total Leads', value: stats.leads.total, icon: <Users size={24} />, color: 'text-indigo-500', bgColor: 'bg-indigo-50' },
-    { label: 'Unread', value: stats.leads.unread, icon: <Mail size={24} />, color: 'text-red-500', bgColor: 'bg-red-50' },
+    { label: 'Total', value: '0', icon: <Building2 size={24} />, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+    { label: 'Active', value: '0', icon: <CheckCircle2 size={24} />, color: 'text-green-600', bgColor: 'bg-green-50' },
+    { label: 'Pending', value: '0', icon: <Clock size={24} />, color: 'text-orange-500', bgColor: 'bg-orange-50' },
+    { label: 'Featured', value: '0', icon: <Star size={24} />, color: 'text-yellow-500', bgColor: 'bg-yellow-50' },
+    { label: 'Total Leads', value: '0', icon: <Users size={24} />, color: 'text-indigo-500', bgColor: 'bg-indigo-50' },
+    { label: 'Unread', value: '0', icon: <Mail size={24} />, color: 'text-red-500', bgColor: 'bg-red-50' },
   ];
 
   const getAddActionLabel = () => {
@@ -97,6 +58,27 @@ export default function PartnerHome() {
     if (actualRole.includes('service')) return 'Service';
     return 'Product';
   };
+
+  const [recentActivities, setRecentActivities] = useState([]);
+
+  useEffect(() => {
+    const fetchActivities = () => {
+      const logs = localStorage.getItem(`baserabazar_activity_${partner._id || partner.id}`);
+      if (logs) {
+        try {
+          const parsed = JSON.parse(logs);
+          setRecentActivities(parsed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5));
+        } catch (e) {
+          setRecentActivities([]);
+        }
+      }
+    };
+    fetchActivities();
+
+    // Listen for custom events if we dispatch them
+    window.addEventListener('baserabazar_activity_updated', fetchActivities);
+    return () => window.removeEventListener('baserabazar_activity_updated', fetchActivities);
+  }, [partner]);
 
   const getActivityIcon = (type) => {
     switch (type) {
@@ -113,7 +95,7 @@ export default function PartnerHome() {
       {/* Header */}
       <div className="bg-[#001b4e] pt-12 pb-24 px-6 rounded-b-[40px] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl" />
-        
+
         <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg overflow-hidden p-1">
@@ -134,7 +116,7 @@ export default function PartnerHome() {
 
       <div className="px-6 -mt-16 relative z-20 space-y-8">
         {/* Subscription Card */}
-        <motion.div 
+        <motion.div
           onClick={() => navigate('/partner/subscription')}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -165,13 +147,13 @@ export default function PartnerHome() {
 
         {/* Overview Section */}
         {actualRole.includes('mandi') ? (
-           <MandiOverview stats={overviewStats} partner={partner} />
+          <MandiOverview stats={overviewStats} partner={partner} />
         ) : (
           <div className="space-y-5">
             <h2 className="text-[20px] font-medium text-[#001b4e] px-1">{getCategoryTheme()} Overview</h2>
             <div className="grid grid-cols-3 gap-5">
               {overviewStats.map((stat, idx) => (
-                <motion.div 
+                <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -193,12 +175,12 @@ export default function PartnerHome() {
         <div className="space-y-5">
           <h2 className="text-[20px] font-medium text-[#001b4e] px-1">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-5">
-            <button 
+            <button
               onClick={() => {
-                 if (actualRole.includes('agent')) navigate('/partner/add-property');
-                 else if (actualRole.includes('supplier')) navigate('/partner/add-product');
-                 else if (actualRole.includes('mandi')) navigate('/partner/mandi/add-product');
-                 else navigate('/partner/add-service');
+                if (actualRole.includes('agent')) navigate('/partner/add-property');
+                else if (actualRole.includes('supplier')) navigate('/partner/add-product');
+                else if (actualRole.includes('mandi')) navigate('/partner/mandi/add-product');
+                else navigate('/partner/add-service');
               }}
               className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-50 flex flex-col items-start text-left group active:scale-95 transition-all w-full"
             >
@@ -208,7 +190,7 @@ export default function PartnerHome() {
               <h4 className="text-[17px] font-medium text-[#001b4e] mb-1">Add {getAddActionLabel()}</h4>
               <p className="text-[13px] font-normal text-slate-400 leading-snug">Create new listing</p>
             </button>
-            <button 
+            <button
               onClick={() => navigate('/partner/leads')}
               className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 flex flex-col items-start text-left group active:scale-95 transition-all"
             >
@@ -230,34 +212,15 @@ export default function PartnerHome() {
           <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-50 space-y-6">
             {recentActivities.length > 0 ? (
               recentActivities.map((activity, idx) => (
-                <motion.div 
-                  key={activity.id || idx}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  onClick={() => navigate(activity.type === 'inquiry' ? `/partner/lead-details/${activity.id}` : '#')}
-                  className="flex items-start gap-4 p-4 rounded-3xl hover:bg-slate-50 transition-all group cursor-pointer"
-                >
-                  <div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0 border border-slate-50">
+                <div key={idx} className={`flex items-start gap-4 ${idx !== recentActivities.length - 1 ? 'border-b border-slate-50 pb-5' : ''}`}>
+                  <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center shrink-0">
                     {getActivityIcon(activity.type)}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <h4 className="text-[15px] font-bold text-[#001b4e] truncate pr-2 group-hover:text-blue-600 transition-colors">
-                        {activity.title}
-                      </h4>
-                      <span className="text-[10px] text-slate-400 font-medium shrink-0">
-                        {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <p className="text-[13px] text-slate-500 line-clamp-1">
-                      {activity.message}
-                    </p>
+                  <div className="flex-grow">
+                    <div className="text-[14px] font-medium text-[#001b4e] leading-snug">{activity.title}</div>
+                    <div className="text-[12px] font-normal text-slate-400 mt-1">{activity.time}</div>
                   </div>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-200 group-hover:text-blue-600 group-hover:bg-blue-50 transition-all shrink-0">
-                    <ChevronRight size={18} />
-                  </div>
-                </motion.div>
+                </div>
               ))
             ) : (
               <div className="flex flex-col items-center py-10 text-slate-300">
@@ -317,7 +280,7 @@ function MandiOverview({ partner }) {
 
       <div className="grid grid-cols-3 gap-4">
         {mandiStats.map((stat) => (
-          <button 
+          <button
             key={stat.label}
             onClick={() => navigate(stat.path)}
             className="bg-white p-4 rounded-[24px] border border-slate-100 flex flex-col items-center text-center active:scale-95 transition-all"
@@ -333,17 +296,17 @@ function MandiOverview({ partner }) {
 
       {/* Mandi Quick Actions */}
       <div className="space-y-4">
-         <h3 className="text-[18px] font-bold text-[#001b4e] px-1">Marketplace Controls</h3>
-         <div className="grid grid-cols-2 gap-4">
-            <button onClick={() => navigate('/partner/mandi/add-product')} className="bg-[#001b4e] p-5 rounded-3xl text-white flex flex-col items-center gap-2 shadow-lg shadow-indigo-900/10 active:scale-95 transition-all">
-               <PlusCircle size={24} />
-               <span className="text-[14px] font-bold">List Material</span>
-            </button>
-            <button onClick={() => navigate('/partner/mandi/inventory')} className="bg-white p-5 rounded-3xl border border-slate-100 text-[#001b4e] flex flex-col items-center gap-2 shadow-sm active:scale-95 transition-all">
-               <Package size={24} />
-               <span className="text-[14px] font-bold">Manage Stock</span>
-            </button>
-         </div>
+        <h3 className="text-[18px] font-bold text-[#001b4e] px-1">Marketplace Controls</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <button onClick={() => navigate('/partner/mandi/add-product')} className="bg-[#001b4e] p-5 rounded-3xl text-white flex flex-col items-center gap-2 shadow-lg shadow-indigo-900/10 active:scale-95 transition-all">
+            <PlusCircle size={24} />
+            <span className="text-[14px] font-bold">List Material</span>
+          </button>
+          <button onClick={() => navigate('/partner/mandi/inventory')} className="bg-white p-5 rounded-3xl border border-slate-100 text-[#001b4e] flex flex-col items-center gap-2 shadow-sm active:scale-95 transition-all">
+            <Package size={24} />
+            <span className="text-[14px] font-bold">Manage Stock</span>
+          </button>
+        </div>
       </div>
     </div>
   );

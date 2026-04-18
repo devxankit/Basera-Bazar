@@ -41,9 +41,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Auto-logout if token is invalid or expired
-      localStorage.removeItem('baserabazar_token');
-      // Optional: window.location.href = '/login';
+      // Responsibility of auto-logout is now moved to AuthContext 
+      // to avoid race conditions and protect persistence keys.
+      console.warn('Unauthorized access detected (401)');
     }
     return Promise.reject(error);
   }

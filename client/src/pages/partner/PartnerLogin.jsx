@@ -66,10 +66,10 @@ export default function PartnerLogin() {
       });
       
       if (response.data.success) {
-        // Save to localStorage for 15+ days persistence
+        // Unified storage for cross-platform persistence
         localStorage.setItem('baserabazar_partner_role', response.data.user.role);
-        localStorage.setItem('baserabazar_partner_data', JSON.stringify(response.data.user));
         
+        // login function now handles baserabazar_user and baserabazar_token
         login(response.data.user, response.data.token);
         navigate('/partner/home');
       }

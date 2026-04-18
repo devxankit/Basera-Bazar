@@ -30,15 +30,29 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('baserabazar_token');
-      if (token) {
+      const savedUser = localStorage.getItem('baserabazar_user');
+      
+      // If we have both, we trust the cache for initial UI
+      if (token && savedUser) {
         try {
           const response = await api.get('/auth/me');
-          setUser(response.data.data);
+          if (response.data.success) {
+            const freshUser = response.data.data;
+            setUser(freshUser);
+            localStorage.setItem('baserabazar_user', JSON.stringify(freshUser));
+          }
         } catch (error) {
-          console.error("Session restoration failed:", error);
-          localStorage.removeItem('baserabazar_token');
+          console.error("Session sync failed:", error.response?.status);
+          // Only force logout if the token is explicitly INVALID/EXPIRED (401)
+          if (error.response?.status === 401) {
+            logout();
+          }
         }
+      } else if (!token) {
+        // No token, ensure state is clean
+        setUser(null);
       }
+      
       setLoading(false);
     };
     initAuth();
