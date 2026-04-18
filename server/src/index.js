@@ -36,6 +36,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const walletRoutes = require('./routes/walletRoutes');
 const adminMarketplaceRoutes = require('./routes/adminMarketplaceRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const pushRoutes = require('./routes/pushRoutes');
 
 // -----------------------------------------------------
 // MOUNT ROUTES
@@ -49,6 +50,7 @@ app.use('/api', enquiryRoutes); // Because enquiryRoutes handles both /api/enqui
 app.use('/api/admin', adminRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/push', pushRoutes);
 
 // Marketplace/Mandi Bazar Routes
 app.use('/api/mandi', mandiRoutes);

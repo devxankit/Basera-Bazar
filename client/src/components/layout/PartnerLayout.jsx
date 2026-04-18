@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import PartnerBottomNav from '../../components/partner/PartnerBottomNav';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { subscribeToNotifications } from '../../services/pushService';
 
 import { Bell, ChevronLeft } from 'lucide-react';
 
@@ -35,6 +36,16 @@ export default function PartnerLayout({ children }) {
       } catch (err) {}
     };
     fetchUnread();
+
+    // ── PUSH NOTIFICATION REGISTRATION ──
+    const initPush = async () => {
+       try {
+         await subscribeToNotifications();
+       } catch (err) {
+         console.warn("[Push] Registration failed:", err);
+       }
+    };
+    initPush();
   }, [location]);
 
   return (

@@ -12,7 +12,14 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('baserabazar_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
 
   // -----------------------------------------------------
@@ -40,15 +47,22 @@ export const AuthProvider = ({ children }) => {
   const login = (userData, token) => {
     setUser(userData);
     localStorage.setItem('baserabazar_token', token);
+    localStorage.setItem('baserabazar_user', JSON.stringify(userData));
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('baserabazar_token');
+    localStorage.removeItem('baserabazar_user');
+    localStorage.removeItem('baserabazar_partner_role');
   };
 
   const updateUser = (updates) => {
-    setUser(prev => ({ ...prev, ...updates }));
+    setUser(prev => {
+      const newUser = { ...prev, ...updates };
+      localStorage.setItem('baserabazar_user', JSON.stringify(newUser));
+      return newUser;
+    });
   };
 
   return (

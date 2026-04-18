@@ -140,6 +140,10 @@ const partnerSchema = new mongoose.Schema({
   token_version: {
     type: Number,
     default: 0
+  },
+  push_subscriptions: {
+    type: [Object],
+    default: []
   }
 }, { timestamps: true });
 
