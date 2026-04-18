@@ -13,11 +13,12 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 
 export default function PartnerInventory() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
 
   useEffect(() => {
@@ -26,16 +27,21 @@ export default function PartnerInventory() {
       return;
     }
 
-    // Load Items focused on the specific partner
-    const saved = localStorage.getItem('baserabazar_partner_services');
-    if (saved) {
-      const allItems = JSON.parse(saved);
-      // Filter items to only show those belonging to the logged-in partner
-      const filteredItems = allItems.filter(item => 
-        item.partnerId === user.email
-      );
-      setItems(filteredItems);
-    }
+    const fetchMyListings = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/listings/my');
+        if (response.data.success) {
+          setItems(response.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching partner inventory:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyListings();
   }, [user, navigate]);
 
   if (!user) return null;
@@ -155,7 +161,12 @@ export default function PartnerInventory() {
 
       {/* Main Content */}
       <main className="flex-grow p-6 pb-40">
-        {displayedItems.length === 0 ? (
+        {loading ? (
+           <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-4">
+              <div className="w-12 h-12 border-4 border-[#001b4e] border-t-transparent rounded-full animate-spin" />
+              <p className="text-slate-400 font-medium">Loading your {labels.plural}...</p>
+           </div>
+        ) : displayedItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[50vh] text-center pt-20">
             <div className="mb-8 opacity-30">
               {labels.icon}

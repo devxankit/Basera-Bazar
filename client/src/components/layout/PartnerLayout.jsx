@@ -1,20 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import PartnerBottomNav from '../../components/partner/PartnerBottomNav';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 
 import { Bell, ChevronLeft } from 'lucide-react';
 
 export default function PartnerLayout({ children }) {
+  const { user } = useAuth();
   const [role, setRole] = useState('agent');
   const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const data = sessionStorage.getItem('activePartner');
-    if (data) {
-      const parsed = JSON.parse(data);
-      setRole(parsed.role);
+    // Priority 1: Context User
+    if (user && user.role) {
+      setRole(user.role);
+    } else {
+      // Priority 2: Local storage for persistence across reloads
+      const savedRole = localStorage.getItem('baserabazar_partner_role');
+      if (savedRole) {
+        setRole(savedRole);
+      }
     }
     
     // Fetch unread count
@@ -31,8 +39,8 @@ export default function PartnerLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
-      {/* Top Header */}
-      {!location.pathname.includes('/partner/login') && (
+      {/* Top Header - ONLY visible on Partner Home */}
+      {location.pathname === '/partner/home' && (
         <header className="sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
              {location.pathname !== '/partner/home' ? (

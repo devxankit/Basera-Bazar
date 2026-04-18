@@ -379,6 +379,43 @@ const getPublicCategories = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get listings owned by the authenticated partner
+ * @route   GET /api/listings/my
+ * @access  Private (Partner)
+ */
+const getMyListings = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    
+    // Fetch from all regular listing collections
+    const [properties, services, suppliers, mandiItems] = await Promise.all([
+      PropertyListing.find({ partner_id: partnerId }).sort({ createdAt: -1 }),
+      ServiceListing.find({ partner_id: partnerId }).sort({ createdAt: -1 }),
+      SupplierListing.find({ partner_id: partnerId }).sort({ createdAt: -1 }),
+      MandiListing.find({ partner_id: partnerId }).sort({ createdAt: -1 })
+    ]);
+
+    // Flatten results and identify type
+    // We map to match the frontend expectations where possible
+    const combined = [
+       ...properties.map(i => ({ ...i._doc, type: 'property' })),
+       ...services.map(i => ({ ...i._doc, type: 'service' })),
+       ...suppliers.map(i => ({ ...i._doc, type: 'product' })),
+       ...mandiItems.map(i => ({ ...i._doc, type: 'mandi_product' }))
+    ];
+
+    res.status(200).json({
+      success: true,
+      count: combined.length,
+      data: combined
+    });
+  } catch (error) {
+    console.error("Error in getMyListings:", error);
+    res.status(500).json({ success: false, message: 'Server error fetching your listings.' });
+  }
+};
+
 module.exports = {
   getNearbyServices,
   getMandiListings,
@@ -388,5 +425,6 @@ module.exports = {
   getListingById,
   getAllListings,
   getPublicBanners,
-  getPublicCategories
+  getPublicCategories,
+  getMyListings
 };

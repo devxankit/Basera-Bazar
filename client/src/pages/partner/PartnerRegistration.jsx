@@ -249,7 +249,10 @@ export default function PartnerRegistration() {
                 setFormData={setFormData} 
                 onBack={prevStep} 
                 onComplete={handleCompleteRequest}
-                onVerified={(userData, token) => setAuthState({ user: userData, token })}
+                onVerified={(userData, token) => {
+                  console.log("Partner verified successfully", { userData, token });
+                  setAuthState({ user: userData, token });
+                }}
                 role={selectedRole}
                 plan={selectedPlan}
               />

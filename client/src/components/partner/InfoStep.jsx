@@ -34,6 +34,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
   const [timer, setTimer] = useState(0);
+  const [errors, setErrors] = useState({});
   
   // Timer Countdown Logic
   useEffect(() => {
@@ -61,8 +62,10 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
         state: value,
         district: '' // Reset district when state changes
       }));
+      if (errors.location) setErrors(prev => ({ ...prev, location: null }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
+      if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
     }
   };
 
@@ -113,8 +116,46 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
   const handleTogglePassword = () => setShowPassword(!showPassword);
   const handleToggleConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
 
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.fullName?.trim()) newErrors.fullName = "Full name is required";
+    if (!formData.email?.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Invalid email format";
+    }
+    if (!formData.phone || formData.phone.length !== 10) {
+      newErrors.phone = "Valid 10-digit phone number is required";
+    }
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+    if (!formData.city || !formData.state) {
+      newErrors.location = "Please set your service location";
+    }
+    if (!formData.service_radius_km) {
+      newErrors.service_radius_km = "Service radius is required";
+    }
+    
+    if (role === 'supplier' && (!formData.category || formData.category.length === 0)) {
+       newErrors.category = "Please select at least one category";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSendOtp = async () => {
-    if (formData.phone.length !== 10) return;
+    if (!validateForm()) {
+      const firstError = Object.values(errors)[0] || "Please fill all required fields correctly.";
+      // alert(firstError); // Optional: we can show inline errors instead
+      return;
+    }
     try {
       setVerifying(true);
       const response = await api.post('/auth/send-otp', { phone: formData.phone });
@@ -137,25 +178,32 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
         phone: formData.phone,
         otp: otp,
         role: 'partner',
-        flow: 'signup', // Ensure new accounts are created if not found
+        flow: 'signup',
         name: formData.fullName,
-        email: formData.email
+        email: formData.email,
+        password: formData.password
       });
       
-      if (response.data.success) {
+      if (response.data && response.data.success) {
+        // Success path
         setIsVerified(true);
         setShowOtpInput(false);
-        // Save auth state (token + user) for finalizing registration later
         if (onVerified) {
           onVerified(response.data.user, response.data.token);
         }
+      } else {
+        // Handle case where success is false but not an exception
+        alert(response.data?.message || "Verification failed. Please try again.");
       }
     } catch (error) {
+      console.error("OTP verification error:", error);
       if (error.response?.status === 409 && error.response?.data?.code === 'PHONE_EXISTS_OTHER') {
         alert(error.response.data.message);
       } else {
-        alert(error.response?.data?.message || "Invalid OTP.");
+        alert(error.response?.data?.message || "Invalid OTP or verification failed.");
       }
+      // Ensure verified state is NOT set on error
+      setIsVerified(false);
     } finally {
       setVerifying(false);
     }
@@ -228,34 +276,26 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
               value={formData.email}
               onChange={handleChange}
               placeholder="Email for communications" 
+              error={errors.email}
             />
-            <div className="relative">
-              <InputField 
-                icon={<Phone size={18} />} 
-                label="Phone Number *" 
-                name="phone"
-                disabled={isVerified}
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="+91 XXXXX XXXXX" 
-                style={{ paddingRight: isVerified ? '120px' : (formData.phone.length === 10 ? '100px' : '18px') }}
-              />
-              {formData.phone.length === 10 && !isVerified && !showOtpInput && (
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  disabled={verifying}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[#001b4e] bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-all"
-                >
-                  {verifying ? <Loader2 size={16} className="animate-spin" /> : 'Verify'}
-                </button>
-              )}
-              {isVerified && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-emerald-600 font-bold text-[14px]">
-                  <CheckCircle2 size={18} /> Verified
-                </div>
-              )}
-            </div>
+              <div className="relative">
+                <InputField 
+                  icon={<Phone size={18} />} 
+                  label="Phone Number *" 
+                  name="phone"
+                  disabled={isVerified}
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="+91 XXXXX XXXXX" 
+                  error={errors.phone}
+                  style={{ paddingRight: isVerified ? '120px' : '18px' }}
+                />
+                {isVerified && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-emerald-600 font-bold text-[14px]">
+                    <CheckCircle2 size={18} /> Verified
+                  </div>
+                )}
+              </div>
 
             {showOtpInput && !isVerified && (
               <motion.div 
@@ -308,6 +348,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
               value={formData.password}
               onChange={handleChange}
               placeholder="Create a strong password"
+              error={errors.password}
               toggle={<button type="button" onClick={handleTogglePassword}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>}
             />
             <InputField 
@@ -318,6 +359,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
               value={formData.confirmPassword}
               onChange={handleChange}
               placeholder="Re-enter password"
+              error={errors.confirmPassword}
               toggle={<button type="button" onClick={handleToggleConfirmPassword}>{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>}
             />
           </div>
@@ -343,9 +385,10 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
                 {formData.district ? `${formData.district} District` : 'Using GPS or Manual Selection'}
               </div>
             </div>
-            <div className="bg-white text-[#001b4e] px-6 py-2 rounded-xl text-[13px] font-bold mt-2 shadow-inner">
+            <div className={`bg-white text-[#001b4e] px-6 py-2 rounded-xl text-[13px] font-bold mt-2 shadow-inner ${errors.location ? 'border-2 border-red-500' : ''}`}>
               {formData.city ? 'Change Location' : 'Detect My Location'}
             </div>
+            {errors.location && <span className="text-[11px] text-red-200 font-bold mt-2 uppercase tracking-widest">{errors.location}</span>}
           </button>
 
           <div className="grid grid-cols-1 gap-4">
@@ -357,6 +400,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
               value={formData.service_radius_km || 100}
               onChange={handleChange}
               placeholder="e.g. 50" 
+              error={errors.service_radius_km}
             />
             <div className="text-[11px] text-slate-400 px-1 -mt-2 mb-2">
               Distance from your center you can provide service to.
@@ -413,6 +457,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
                        value: newCats.join(', ')
                      }
                    });
+                   if (errors.category) setErrors(prev => ({ ...prev, category: null }));
                 };
 
                 return (
@@ -634,11 +679,21 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
           Back
         </button>
         <button
-          onClick={onComplete}
-          disabled={!isVerified}
-          className={`flex-[2] py-5 ${!isVerified ? 'bg-slate-300' : 'bg-[#001b4e]'} text-white rounded-2xl font-bold text-[16px] shadow-lg shadow-indigo-900/20 active:bg-[#001b4e]/90 transition-all font-sans`}
+          onClick={isVerified ? onComplete : handleSendOtp}
+          disabled={verifying}
+          className={`flex-[2] py-5 ${verifying ? 'bg-slate-300' : 'bg-[#001b4e]'} text-white rounded-2xl font-bold text-[16px] shadow-lg shadow-indigo-900/20 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2`}
         >
-          {isPremium ? 'Proceed to Payment' : 'Create Account'}
+          {verifying ? (
+            <Loader2 size={24} className="animate-spin" />
+          ) : (
+            <>
+              {!isVerified ? (
+                <>Send OTP</>
+              ) : (
+                <>{isPremium ? 'Proceed to Payment' : 'Create Account'}</>
+              )}
+            </>
+          )}
         </button>
       </div>
 
@@ -693,32 +748,35 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
   );
 }
 
-function InputField({ label, icon, type = "text", placeholder, toggle, value, onChange, name, disabled, style }) {
+function InputField({ label, icon, type = "text", placeholder, toggle, value, onChange, name, disabled, style, error }) {
   return (
-    <div className="relative">
-      {icon && (
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-          {icon}
-        </div>
-      )}
-      <label className="absolute -top-2 left-4 px-2 bg-white text-[10px] font-bold text-[#001b4e] uppercase tracking-wider">
-        {label}
-      </label>
-      <input
-        type={type}
-        name={name}
-        value={value}
-        disabled={disabled}
-        onChange={onChange}
-        placeholder={placeholder}
-        style={style}
-        className={`w-full bg-white border border-slate-200 rounded-2xl py-4.5 ${icon ? 'pl-12' : 'pl-5'} pr-12 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all`}
-      />
-      {toggle && (
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-          {toggle}
-        </div>
-      )}
+    <div className="flex flex-col gap-1.5 w-full">
+      <div className="relative">
+        {icon && (
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+            {icon}
+          </div>
+        )}
+        <label className="absolute -top-2 left-4 px-2 bg-white text-[10px] font-bold text-[#001b4e] uppercase tracking-wider">
+          {label}
+        </label>
+        <input
+          type={type}
+          name={name}
+          value={value}
+          disabled={disabled}
+          onChange={onChange}
+          placeholder={placeholder}
+          style={style}
+          className={`w-full bg-white border ${error ? 'border-red-500' : 'border-slate-200'} rounded-2xl py-4.5 ${icon ? 'pl-12' : 'pl-5'} pr-12 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all`}
+        />
+        {toggle && (
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+            {toggle}
+          </div>
+        )}
+      </div>
+      {error && <span className="text-[11px] text-red-500 font-medium px-2">{error}</span>}
     </div>
   );
 }

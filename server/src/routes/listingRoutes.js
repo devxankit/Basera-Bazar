@@ -9,7 +9,8 @@ const {
   getListingById, 
   getAllListings, 
   getPublicBanners,
-  getPublicCategories
+  getPublicCategories,
+  getMyListings
 } = require('../controllers/listingController');
 
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
@@ -26,5 +27,6 @@ router.get('/:id', getListingById);
 router.post('/properties', protect, authorizeRoles('partner'), createPropertyListing);
 router.post('/services', protect, authorizeRoles('partner'), createServiceListing);
 router.post('/suppliers', protect, authorizeRoles('partner'), createSupplierListing);
+router.get('/my', protect, authorizeRoles('partner'), getMyListings);
 
 module.exports = router;
