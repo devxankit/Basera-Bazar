@@ -24,6 +24,7 @@ import PartnerRegistration from './pages/partner/PartnerRegistration';
 import PartnerHome from './pages/partner/PartnerHome';
 import PartnerInventory from './pages/partner/PartnerInventory';
 import PartnerInquiries from './pages/partner/PartnerInquiries';
+import PartnerLeadDetails from './pages/partner/PartnerLeadDetails';
 import PartnerProfile from './pages/partner/PartnerProfile';
 import PartnerSubscription from './pages/partner/PartnerSubscription';
 import AddService from './pages/partner/AddService';
@@ -265,6 +266,7 @@ function App() {
         <Route path="/partner/add-property" element={<AddProperty />} />
         <Route path="/partner/add-product" element={<AddProduct />} />
         <Route path="/partner/service-details/:id" element={<PartnerServiceDetails />} />
+        <Route path="/partner/lead-details/:id" element={<PartnerLeadDetails />} />
         <Route path="/partner/help" element={<PartnerHelp />} />
         <Route path="/partner/about" element={<PartnerAbout />} />
         <Route path="/partner/edit-profile" element={<PartnerEditProfile />} />

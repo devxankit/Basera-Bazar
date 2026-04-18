@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Bell, Trash2, CheckCircle2, XCircle, 
-  Clock, ArrowLeft, Loader2, Info
+  Clock, ArrowLeft, Loader2, Info, MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
@@ -46,6 +46,8 @@ export default function PartnerNotifications() {
         return <CheckCircle2 className="text-emerald-500" size={20} />;
       case 'listing_rejection':
         return <XCircle className="text-rose-500" size={20} />;
+      case 'enquiry':
+        return <MessageSquare className="text-blue-500" size={20} />;
       default:
         return <Info className="text-indigo-500" size={20} />;
     }
@@ -57,6 +59,8 @@ export default function PartnerNotifications() {
         return 'bg-emerald-50';
       case 'listing_rejection':
         return 'bg-rose-50';
+      case 'enquiry':
+        return 'bg-blue-50';
       default:
         return 'bg-indigo-50';
     }
@@ -64,9 +68,17 @@ export default function PartnerNotifications() {
 
   return (
     <div className="pb-24 pt-4 px-6 space-y-6 min-h-screen">
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Notifications</h1>
-        <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Updates & Alerts</p>
+      <div className="flex items-center gap-4">
+        <button 
+          onClick={() => navigate('/partner/home')}
+          className="p-2 -ml-2 text-slate-400 hover:text-[#001b4e] active:scale-95 transition-all"
+        >
+          <ArrowLeft size={24} />
+        </button>
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Notifications</h1>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Updates & Alerts</p>
+        </div>
       </div>
 
       {loading ? (
@@ -85,7 +97,12 @@ export default function PartnerNotifications() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: i * 0.05 }}
                 key={n._id}
-                className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex gap-4 group hover:border-[#001b4e]/10 transition-all"
+                onClick={() => {
+                  if (n.data?.type === 'enquiry' && n.data?.enquiry_id) {
+                    navigate(`/partner/lead-details/${n.data.enquiry_id}`);
+                  }
+                }}
+                className={`bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex gap-4 group hover:border-[#001b4e]/10 transition-all ${n.data?.type === 'enquiry' ? 'cursor-pointer active:scale-[0.98]' : ''}`}
               >
                 <div className={`w-12 h-12 rounded-2xl ${getBg(n.data?.type)} flex-shrink-0 flex items-center justify-center`}>
                   {getIcon(n.data?.type)}

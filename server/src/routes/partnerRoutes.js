@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { onboardPartner, getMyPartnerProfile } = require('../controllers/partnerController');
+const { onboardPartner, getMyPartnerProfile, getPartnerStats } = require('../controllers/partnerController');
 
 // Import our security middlewares!
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
@@ -24,6 +24,13 @@ router.get(
   protect,
   authorizeRoles('partner'),
   getMyPartnerProfile
+);
+
+router.get(
+  '/stats',
+  protect,
+  authorizeRoles('partner'),
+  getPartnerStats
 );
 
 module.exports = router;

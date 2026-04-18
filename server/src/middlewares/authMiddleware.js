@@ -99,4 +99,37 @@ const authorizeRoles = (...roles) => {
   };
 };
 
-module.exports = { protect, authorizeRoles };
+const optionalProtect = async (req, res, next) => {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      let token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      const { Partner } = require('../models/Partner');
+      const { AdminUser } = require('../models/Admin');
+      const { User } = require('../models/User');
+
+      let userFound;
+      if (decoded.role === 'super_admin' || decoded.role === 'SuperAdmin') {
+        userFound = await AdminUser.findById(decoded.id).select('-password');
+      } else if (decoded.role === 'partner') {
+        userFound = await Partner.findById(decoded.id).select('-password');
+      } else {
+        userFound = await User.findById(decoded.id).select('-password');
+      }
+
+      if (userFound) {
+        req.user = userFound.toObject();
+        req.user.id = userFound._id;
+        if (decoded.role === 'partner') {
+          req.user.role = 'partner';
+        }
+      }
+    } catch (error) {
+      // Token exists but is invalid/expired - just don't set user
+    }
+  }
+  next();
+};
+
+module.exports = { protect, authorizeRoles, optionalProtect };

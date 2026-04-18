@@ -1,4 +1,6 @@
 const { Partner } = require('../models/Partner');
+const { ServiceListing, PropertyListing, SupplierListing } = require('../models/Listing');
+const { Enquiry } = require('../models/Enquiry');
 
 /**
  * @desc    Submit KYC and onboard a partner
@@ -104,7 +106,56 @@ const getMyPartnerProfile = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get dashboard stats for partner
+ * @route   GET /api/partners/stats
+ * @access  Private (Partner Token Required)
+ */
+const getPartnerStats = async (req, res) => {
+  try {
+    const partnerId = req.user._id;
+
+    // 1. Get Listing Stats
+    const modelMap = {
+      'property_agent': PropertyListing,
+      'service_provider': ServiceListing,
+      'supplier': SupplierListing
+    };
+
+    const partner = await Partner.findById(partnerId);
+    if (!partner) return res.status(404).json({ success: false, message: 'Partner not found' });
+
+    const ListingModel = modelMap[partner.partner_type] || PropertyListing;
+
+    const [total, active, pending, featured] = await Promise.all([
+      ListingModel.countDocuments({ partner_id: partnerId }),
+      ListingModel.countDocuments({ partner_id: partnerId, status: 'active' }),
+      ListingModel.countDocuments({ partner_id: partnerId, status: 'pending_approval' }),
+      ListingModel.countDocuments({ partner_id: partnerId, is_featured: true })
+    ]);
+
+    // 2. Get Inquiry/Leads Stats
+    const [totalLeads, unreadLeads] = await Promise.all([
+      Enquiry.countDocuments({ partner_id: partnerId }),
+      Enquiry.countDocuments({ partner_id: partnerId, is_read: false })
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        listings: { total, active, pending, featured },
+        leads: { total: totalLeads, unread: unreadLeads }
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching partner stats:", error);
+    res.status(500).json({ success: false, message: 'Error fetching dashboard stats.' });
+  }
+};
+
 module.exports = {
   onboardPartner,
-  getMyPartnerProfile
+  getMyPartnerProfile,
+  getPartnerStats
 };

@@ -81,11 +81,57 @@ export default function AddProperty() {
     }
 
     if (editId) {
-      const stored = JSON.parse(localStorage.getItem('baserabazar_partner_services') || '[]');
-      const found = stored.find(s => s.id.toString() === editId);
-      if (found) {
-        setFormData(prev => ({ ...prev, ...found, images: found.images || [] }));
-      }
+      const fetchProperty = async () => {
+        try {
+          const res = await api.get(`/listings/${editId}`);
+          if (res.data.success) {
+            const data = res.data.data;
+            // Map backend schema back to frontend formData
+            setFormData(prev => ({
+              ...prev,
+              title: data.title || '',
+              description: data.description || '',
+              propertyType: data.property_type || '',
+              intention: data.listing_intent === 'rent' ? 'For Rent' : 'For Sale',
+              price: data.pricing?.amount || '',
+              categoryId: data.category_id || '',
+              subcategoryId: data.subcategory_id || '',
+              
+              // Address
+              state: data.address?.state || '',
+              district: data.address?.district || '',
+              completeAddress: data.address?.full_address || '',
+              pinCode: data.address?.pincode || '',
+              
+              // Details
+              bedrooms: data.details?.bhk || '',
+              bathrooms: data.details?.bathrooms || '',
+              washrooms: data.details?.washrooms || '',
+              furnishing: data.details?.furnishing || '',
+              builtUpArea: data.details?.area?.value || '',
+              unit: data.details?.area?.unit || 'sq. ft.',
+              superBuiltUpArea: data.details?.area?.super_built_up_area || '',
+              carpetArea: data.details?.area?.carpet_area || '',
+              monthlyMaintenance: data.pricing?.maintenance || '',
+              floorNumber: data.details?.floor_number || '',
+              totalFloors: data.details?.total_floors || '',
+              facing: data.details?.facing || '',
+              constructionStatus: data.details?.possession || 'ready',
+              
+              // Images
+              thumbnail: data.images?.[0] || data.thumbnail || null,
+              images: data.images || [],
+              
+              latitude: data.location?.coordinates?.[1] || '',
+              longitude: data.location?.coordinates?.[0] || '',
+              isFeatured: data.is_featured || false
+            }));
+          }
+        } catch (err) {
+          console.error("Error fetching property for edit:", err);
+        }
+      };
+      fetchProperty();
     }
   }, [editId, user, navigate]);
 
@@ -270,7 +316,12 @@ export default function AddProperty() {
         location_text: `${formData.completeAddress}, ${formData.district}, ${formData.state}`
       };
 
-      await db.create('listings', payload);
+      // 3. Create/Update Listing via API
+      if (editId) {
+        await api.put(`/listings/${editId}`, payload);
+      } else {
+        await db.create('listings', payload);
+      }
       
       // Log Activity
       const uid = user?._id || user?.id;

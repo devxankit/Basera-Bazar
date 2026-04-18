@@ -110,6 +110,12 @@ const propertyListingSchema = new mongoose.Schema({
   },
   status_reason: { type: String },
   is_featured: { type: Boolean, default: false },
+  stats: {
+    views: { type: Number, default: 0 },
+    enquiries: { type: Number, default: 0 },
+    calls: { type: Number, default: 0 },
+    whatsapp_clicks: { type: Number, default: 0 }
+  },
   deleted_at: { type: Date, default: null }
 }, baseListingSchemaConfig);
 
@@ -132,6 +138,12 @@ const supplierListingSchema = new mongoose.Schema({
     type: String,
     enum: ['draft', 'pending_approval', 'active', 'out_of_stock', 'inactive', 'suspended', 'rejected', 'deleted'],
     default: 'draft'
+  },
+  stats: {
+    views: { type: Number, default: 0 },
+    enquiries: { type: Number, default: 0 },
+    calls: { type: Number, default: 0 },
+    whatsapp_clicks: { type: Number, default: 0 }
   },
   deleted_at: { type: Date, default: null }
 }, baseListingSchemaConfig);
@@ -157,6 +169,12 @@ const mandiListingSchema = new mongoose.Schema({
     type: String,
     enum: ['pending_approval', 'active', 'inactive', 'suspended', 'rejected', 'deleted'],
     default: 'pending_approval'
+  },
+  stats: {
+    views: { type: Number, default: 0 },
+    enquiries: { type: Number, default: 0 },
+    calls: { type: Number, default: 0 },
+    whatsapp_clicks: { type: Number, default: 0 }
   },
   deleted_at: { type: Date, default: null }
 }, baseListingSchemaConfig);

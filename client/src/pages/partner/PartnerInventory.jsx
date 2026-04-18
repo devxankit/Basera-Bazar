@@ -8,7 +8,11 @@ import {
   Menu,
   ChevronRight,
   Edit,
-  Trash2
+  Trash2,
+  MapPin,
+  BedDouble,
+  Square,
+  AlertCircle
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -78,9 +82,9 @@ export default function PartnerInventory() {
     }
     
     return {
-      title: 'My Inventory',
-      item: 'item',
-      plural: 'items',
+      title: 'My Listings',
+      item: 'listing',
+      plural: 'listings',
       icon: <Package size={120} className="text-slate-200" />
     };
   };
@@ -102,15 +106,11 @@ export default function PartnerInventory() {
     }
   };
 
-  const handleDelete = (e, id) => {
+  const handleDelete = async (e, id) => {
     e.stopPropagation();
     if (window.confirm("Are you sure you want to delete this listing?")) {
-      const saved = localStorage.getItem('baserabazar_partner_services');
-      if (saved) {
-        let allItems = JSON.parse(saved);
-        allItems = allItems.filter(item => item.id.toString() !== id.toString());
-        localStorage.setItem('baserabazar_partner_services', JSON.stringify(allItems));
-        
+      try {
+        await api.delete(`/listings/${id}`);
         // Update local state
         setItems(prevItems => prevItems.filter(item => item.id.toString() !== id.toString()));
 
@@ -128,6 +128,9 @@ export default function PartnerInventory() {
            });
            localStorage.setItem(logKey, JSON.stringify(logs));
         }
+      } catch (err) {
+        console.error("Error deleting listing:", err);
+        alert("Failed to delete listing. Please try again.");
       }
     }
   };
@@ -211,97 +214,117 @@ export default function PartnerInventory() {
             </p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="flex flex-col gap-4">
             {displayedItems.map((item) => (
-              <div 
-                key={item.id} 
-                className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden flex flex-col relative group"
+              <motion.div 
+                key={item?.id || Math.random()} 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                onClick={() => navigate(`/partner/service-details/${item._id || item.id}`)}
+                className="bg-white rounded-[24px] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] overflow-hidden flex flex-row relative group hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all cursor-pointer"
               >
-                {/* Massive Image Header */}
-                <div 
-                  className="relative h-48 w-full bg-slate-100 cursor-pointer overflow-hidden" 
-                  onClick={() => navigate(`/partner/service-details/${item.id}`)}
-                >
+                {/* Left: Compact Image Section */}
+                <div className="relative w-32 h-32 sm:w-40 sm:h-40 bg-slate-100 overflow-hidden shrink-0">
+
                    {item.thumbnail || item.image ? (
-                     <img src={item.thumbnail || item.image} alt={item.serviceName || item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                   ) : item.type === 'property' ? (
-                     <div className="w-full h-full flex items-center justify-center bg-blue-50 text-[#001b4e]">
-                        <Building2 size={40} className="opacity-30" />
-                     </div>
+                     <img 
+                        src={item.thumbnail || item.image} 
+                        alt={item.serviceName || item.title} 
+                        className="w-full h-full object-cover" 
+                     />
                    ) : (
-                     <div className="w-full h-full flex items-center justify-center bg-blue-50 text-[#001b4e]">
-                        <Package size={40} className="opacity-30" />
+                     <div className="w-full h-full flex items-center justify-center bg-slate-50 text-[#001b4e]">
+                        {item.type === 'property' ? <Building2 size={32} className="opacity-20" /> : <Package size={32} className="opacity-20" />}
                      </div>
                    )}
+                   
+                   {/* Status Dot Overlay */}
+                   <div className="absolute top-2 left-2 z-10">
+                      <div className={`w-3 h-3 rounded-full border-2 border-white shadow-sm ${
+                        item.status === 'active' 
+                          ? 'bg-green-500' 
+                          : item.status === 'rejected' 
+                            ? 'bg-red-500' 
+                            : 'bg-amber-500'
+                      }`} />
+                   </div>
                 </div>
 
-                {/* Content Section */}
-                <div className="p-5 flex flex-col gap-4">
-                  <div 
-                    className="flex items-start justify-between cursor-pointer"
-                    onClick={() => navigate(`/partner/service-details/${item.id}`)}
-                  >
-                    <div className="pr-4 w-full">
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className="text-[18px] font-bold text-[#001b4e] leading-snug line-clamp-1">{item.serviceName || item.title}</h4>
-                        <ChevronRight size={18} className="text-slate-300 group-hover:text-[#001b4e] transition-colors shrink-0" />
-                      </div>
+                {/* Right: Tighter Content Section */}
+                <div className="flex-grow p-4 flex flex-col justify-between min-w-0">
+                  <div>
 
-                      {item.type === 'property' && (item.bhk || item.area) && (
-                        <div className="flex items-center gap-2 mb-2">
-                           {item.bhk && <span className="text-[12px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md">{item.bhk} BHK</span>}
-                           {item.area && <span className="text-[12px] font-medium text-slate-400">· {item.area} {item.areaUnit}</span>}
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center gap-2 flex-wrap mb-2">
-                        <span className="text-[12px] font-medium text-slate-500 uppercase tracking-tight">{item.category}</span>
-                        {(item.serviceType || item.property_type || item.material_name) && (
-                          <>
-                            <div className="w-1 h-1 bg-slate-300 rounded-full" />
-                            <span className="text-[12px] font-bold text-blue-600 uppercase tracking-tight">{item.serviceType || item.property_type || item.material_name}</span>
-                          </>
-                        )}
-                        <div className="w-1 h-1 bg-slate-300 rounded-full" />
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${item.status === 'active' ? 'bg-green-100 text-green-700' : item.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                           {item.status ? item.status.replace('_', ' ') : 'Pending'}
-                        </span>
+                    <div className="flex items-center justify-between mb-0.5">
+                       <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest truncate max-w-[100px]">
+                          {item.type === 'property' ? item.property_type || 'Property' : item.category || 'Listing'}
+                       </span>
+                       <span className="text-[10px] font-medium text-slate-300">
+                          #{item?.id?.slice?.(-4).toUpperCase()}
+                       </span>
+                    </div>
+                    
+                    <h4 className="text-[16px] font-bold text-[#001b4e] leading-tight line-clamp-1 mb-1">
+                       {item.title || item.serviceName || 'Untitled Listing'}
+                    </h4>
+
+                    <div className="flex items-center gap-1 text-[12px] text-slate-400 mb-2">
+                       <MapPin size={11} className="shrink-0" />
+                       <span className="truncate">{item.display_location || 'No location'}</span>
+                    </div>
+
+                    {/* Compact Property Specs */}
+                    {item.type === 'property' && (
+                      <div className="flex items-center gap-3 text-slate-500">
+                         {item.bhk && (
+                            <div className="flex items-center gap-1">
+                               <BedDouble size={14} className="text-slate-300" />
+                               <span className="text-[11px] font-bold">{item.bhk} BHK</span>
+                            </div>
+                         )}
+                         {item.area && (
+                            <div className="flex items-center gap-1">
+                               <Square size={12} className="text-slate-300" />
+                               <span className="text-[11px] font-bold">{item.area} <span className="text-[10px] font-normal">{item.areaUnit}</span></span>
+                            </div>
+                         )}
                       </div>
-                      
-                      {item.price && (
-                         <div className="text-[16px] font-extrabold text-[#001b4e]">
-                            {typeof item.price === 'object' 
-                              ? `₹${item.price.value}${item.price.unit || ''}` 
-                              : `₹${Number(item.price).toLocaleString()}`}
-                         </div>
-                      )}
+                    )}
+                  </div>
+
+                  {/* Price & Actions Row */}
+                  <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-50">
+                    <div className="text-[16px] font-black text-[#001b4e]">
+                       ₹{typeof item.price === 'object' 
+                         ? `${Number(item.price.value).toLocaleString()}${(!item.price.unit || item.price.unit === 'Total') ? '' : ' ' + item.price.unit}` 
+                         : Number(item.price || 0).toLocaleString()}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                       <button 
+                          onClick={(e) => handleEdit(e, item)}
+                          className="h-8 w-8 flex items-center justify-center bg-slate-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all transform active:scale-90"
+                       >
+                          <Edit size={14} />
+                       </button>
+                       <button 
+                          onClick={(e) => handleDelete(e, item.id)}
+                          className="h-8 w-8 flex items-center justify-center bg-slate-50 text-red-600 rounded-lg hover:bg-red-500 hover:text-white transition-all transform active:scale-90"
+                       >
+                          <Trash2 size={14} />
+                       </button>
                     </div>
                   </div>
-
-                  <div className="w-full h-px bg-slate-100" />
-
-                  {item.status === 'rejected' && (
-                     <div className="text-[13px] text-red-500 bg-red-50 p-3 rounded-xl font-medium">
-                        <span className="font-bold">Reason:</span> {item.status_reason || 'Does not meet our quality standards. Please update your listing.'}
-                     </div>
-                  )}
-                  
-                  <div className="flex items-center justify-end gap-2">
-                      <button 
-                         onClick={(e) => handleEdit(e, item)}
-                         className="flex-grow flex items-center justify-center gap-2 bg-blue-50 text-blue-600 px-4 py-3 rounded-xl text-[13px] font-bold hover:bg-blue-100 active:scale-95 transition-all"
-                      >
-                         <Edit size={16} /> Edit
-                      </button>
-                      <button 
-                         onClick={(e) => handleDelete(e, item.id)}
-                         className="flex items-center justify-center bg-red-50 text-red-600 p-3 rounded-xl hover:bg-red-100 active:scale-95 transition-all w-[44px]"
-                      >
-                         <Trash2 size={18} />
-                      </button>
-                  </div>
                 </div>
-              </div>
+
+                {/* Intent Ribbon */}
+                {item.listing_intent && (
+                  <div className="absolute top-0 right-0">
+                    <div className="bg-[#001b4e] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-bl-lg tracking-tighter shadow-sm">
+                      {item.listing_intent}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
             ))}
           </div>
         )}

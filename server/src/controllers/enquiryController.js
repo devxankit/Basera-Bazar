@@ -1,5 +1,6 @@
 const { Enquiry } = require('../models/Enquiry');
 const { ServiceListing, PropertyListing, SupplierListing, MandiListing } = require('../models/Listing');
+const { Notification } = require('../models/System');
 
 /**
  * @desc    Submit a new Enquiry for a listing
@@ -54,6 +55,28 @@ const createEnquiry = async (req, res) => {
       listing_snapshot: targetListing 
     });
 
+    // 3. Update Listing Stats
+    if (!targetListing.stats) {
+      targetListing.stats = { views: 0, enquiries: 0, calls: 0, whatsapp_clicks: 0 };
+    }
+    targetListing.stats.enquiries = (targetListing.stats.enquiries || 0) + 1;
+    await targetListing.save();
+
+    // 4. Create Notification for Partner (if applicable)
+    if (partnerId) {
+      await Notification.create({
+        recipient_type: 'partner',
+        recipient_id: partnerId,
+        title: 'New Lead Received!',
+        body: `You have a new ${enquiry_type} inquiry for "${targetListing.title || targetListing.serviceName}" from ${req.user.name}.`,
+        data: {
+          type: 'enquiry',
+          enquiry_id: newEnquiry._id,
+          listing_id: targetListing._id
+        }
+      });
+    }
+
     res.status(201).json({ 
       success: true, 
       message: 'Enquiry submitted successfully! We will contact you soon.',
@@ -84,7 +107,124 @@ const getMyEnquiries = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get inquiries for the logged in partner (Leads)
+ * @route   GET /api/partners/enquiries
+ * @access  Private (Partner Token Required)
+ */
+const getPartnerInquiries = async (req, res) => {
+  try {
+    const { limit, status } = req.query;
+    const query = { partner_id: req.user._id };
+    if (status) query.status = status;
+
+    const inquiries = await Enquiry.find(query)
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit) || 50);
+
+    res.status(200).json({ 
+      success: true, 
+      count: inquiries.length, 
+      data: inquiries 
+    });
+  } catch (error) {
+    console.error("Error getting partner inquiries:", error);
+    res.status(500).json({ success: false, message: 'Server error fetching leads.' });
+  }
+};
+
+/**
+ * @desc    Get single inquiry details for partner
+ * @route   GET /api/partners/enquiries/:id
+ * @access  Private
+ */
+const getInquiryById = async (req, res) => {
+  try {
+    const inquiry = await Enquiry.findById(req.params.id);
+
+    if (!inquiry) {
+      return res.status(404).json({ success: false, message: 'Inquiry not found.' });
+    }
+
+    // Security: Check ownership
+    if (inquiry.partner_id && inquiry.partner_id.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ success: false, message: 'Not authorized to view this lead.' });
+    }
+
+    // Mark as read if it was new
+    if (!inquiry.is_read) {
+      inquiry.is_read = true;
+      if (inquiry.status === 'new') inquiry.status = 'read';
+      await inquiry.save();
+    }
+
+    res.status(200).json({ success: true, data: inquiry });
+  } catch (error) {
+    console.error("Error fetching lead detail:", error);
+    res.status(500).json({ success: false, message: 'Error fetching lead details.' });
+  }
+};
+
+/**
+ * @desc    Update inquiry status
+ * @route   PATCH /api/partners/enquiries/:id/status
+ * @access  Private
+ */
+const updateInquiryStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const inquiry = await Enquiry.findById(req.params.id);
+
+    if (!inquiry) {
+      return res.status(404).json({ success: false, message: 'Inquiry not found.' });
+    }
+
+    if (inquiry.partner_id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized.' });
+    }
+
+    inquiry.status = status;
+    if (status === 'contacted') inquiry.contact_status = 'contacted';
+    
+    await inquiry.save();
+
+    res.status(200).json({ success: true, data: inquiry });
+  } catch (error) {
+    console.error("Error updating lead status:", error);
+    res.status(500).json({ success: false, message: 'Error updating status.' });
+  }
+};
+
+/**
+ * @desc    Delete an inquiry
+ * @route   DELETE /api/partners/enquiries/:id
+ * @access  Private
+ */
+const deleteInquiry = async (req, res) => {
+  try {
+    const inquiry = await Enquiry.findById(req.params.id);
+    if (!inquiry) {
+      return res.status(404).json({ success: false, message: 'Inquiry not found.' });
+    }
+
+    if (inquiry.partner_id.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ success: false, message: 'Not authorized.' });
+    }
+
+    await inquiry.deleteOne();
+
+    res.status(200).json({ success: true, message: 'Lead deleted successfully.' });
+  } catch (error) {
+    console.error("Error deleting lead:", error);
+    res.status(500).json({ success: false, message: 'Error deleting lead.' });
+  }
+};
+
 module.exports = {
   createEnquiry,
-  getMyEnquiries
+  getMyEnquiries,
+  getPartnerInquiries,
+  getInquiryById,
+  updateInquiryStatus,
+  deleteInquiry
 };

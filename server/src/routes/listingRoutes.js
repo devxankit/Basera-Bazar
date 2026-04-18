@@ -10,10 +10,12 @@ const {
   getAllListings, 
   getPublicBanners,
   getPublicCategories,
-  getMyListings
+  getMyListings,
+  updateListing,
+  deleteListing
 } = require('../controllers/listingController');
 
-const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
+const { protect, authorizeRoles, optionalProtect } = require('../middlewares/authMiddleware');
 
 // public routes (No authentication needed to view)
 router.get('/', getAllListings);
@@ -28,7 +30,10 @@ router.post('/properties', protect, authorizeRoles('partner'), createPropertyLis
 router.post('/services', protect, authorizeRoles('partner'), createServiceListing);
 router.post('/suppliers', protect, authorizeRoles('partner'), createSupplierListing);
 
+router.put('/:id', protect, authorizeRoles('partner'), updateListing);
+router.delete('/:id', protect, authorizeRoles('partner'), deleteListing);
+
 // Parameterized catch-all — MUST be LAST
-router.get('/:id', getListingById);
+router.get('/:id', optionalProtect, getListingById);
 
 module.exports = router;

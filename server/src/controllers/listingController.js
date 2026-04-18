@@ -131,6 +131,7 @@ const getMandiListings = async (req, res) => {
 const createPropertyListing = async (req, res) => {
   try {
     const partnerId = req.user.id;
+    const partnerPhone = req.user.phone;
     const item = req.body;
 
     const title = item.title || 'Untitled Property';
@@ -306,11 +307,16 @@ const getListingById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Listing not found.' });
     }
 
-    // NEW: If listing is NOT active, it should only be viewable by owner or admin
+    // NEW: If listing is NOT active, it should only be viewable by owner, admin or superadmin
     if (listing.status !== 'active') {
-       // We can check if there's a user in req from 'protect' (if we make this route optionally protected)
-       // For now, let's keep it simple: Public can ONLY see 'active'
-       return res.status(403).json({ success: false, message: 'This listing is under review or inactive.' });
+       // Handle both populated and unpopulated partner_id
+       const listingOwnerId = listing.partner_id?._id || listing.partner_id;
+       const isOwner = req.user && req.user.id.toString() === listingOwnerId?.toString();
+       const isAdmin = req.user && (req.user.role === 'admin' || req.user.role === 'super_admin' || req.user.role === 'SuperAdmin');
+       
+       if (!isOwner && !isAdmin) {
+         return res.status(403).json({ success: false, message: 'This listing is under review or inactive.' });
+       }
     }
 
     res.status(200).json({ success: true, data: listing });
@@ -494,6 +500,84 @@ const getMyListings = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Update a listing
+ * @route   PUT /api/listings/:id
+ * @access  Private (Owner Partner)
+ */
+const updateListing = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const partnerId = req.user.id;
+    const updateData = req.body;
+
+    // We need to find which model contains this ID
+    let listing = await PropertyListing.findOne({ _id: id, partner_id: partnerId });
+    let Model = PropertyListing;
+
+    if (!listing) {
+      listing = await ServiceListing.findOne({ _id: id, partner_id: partnerId });
+      Model = ServiceListing;
+    }
+    if (!listing) {
+      listing = await SupplierListing.findOne({ _id: id, partner_id: partnerId });
+      Model = SupplierListing;
+    }
+    if (!listing) {
+      listing = await MandiListing.findOne({ _id: id, partner_id: partnerId });
+      Model = MandiListing;
+    }
+
+    if (!listing) {
+      return res.status(404).json({ success: false, message: 'Listing not found or unauthorized' });
+    }
+
+    // Update with new data (re-normalize if it's a property)
+    // Note: In a production app, we'd reuse the sanitation logic here.
+    // For now, we'll do a simple update but preserve the status as 'pending_approval' if it was changed
+    const updated = await Model.findByIdAndUpdate(
+      id,
+      { ...updateData, status: 'pending_approval' },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({ success: true, message: 'Listing updated and submitted for review', data: updated });
+  } catch (error) {
+    console.error("Error updating listing:", error);
+    res.status(500).json({ success: false, message: 'Server error updating listing' });
+  }
+};
+
+/**
+ * @desc    Delete a listing
+ * @route   DELETE /api/listings/:id
+ * @access  Private (Owner Partner)
+ */
+const deleteListing = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const partnerId = req.user.id;
+
+    // Try deleting from any collection
+    const result = await Promise.all([
+      PropertyListing.findOneAndDelete({ _id: id, partner_id: partnerId }),
+      ServiceListing.findOneAndDelete({ _id: id, partner_id: partnerId }),
+      SupplierListing.findOneAndDelete({ _id: id, partner_id: partnerId }),
+      MandiListing.findOneAndDelete({ _id: id, partner_id: partnerId })
+    ]);
+
+    const deleted = result.find(r => r !== null);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Listing not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Listing deleted successfully' });
+  } catch (error) {
+    console.error("Error deleting listing:", error);
+    res.status(500).json({ success: false, message: 'Server error deleting listing' });
+  }
+};
+
 module.exports = {
   getNearbyServices,
   getMandiListings,
@@ -504,5 +588,7 @@ module.exports = {
   getAllListings,
   getPublicBanners,
   getPublicCategories,
-  getMyListings
+  getMyListings,
+  updateListing,
+  deleteListing
 };

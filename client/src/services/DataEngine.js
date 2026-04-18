@@ -28,7 +28,7 @@ class DataEngine {
     if (item.pricing && (item.pricing.amount !== undefined || item.pricing.price_per_unit !== undefined)) {
       normalized.price = {
         value: item.pricing.amount || item.pricing.price_per_unit || 0,
-        unit: item.pricing.unit || (item.pricing.amount ? 'Total' : 'Unit'),
+        unit: item.pricing.unit || '',
         currency: item.pricing.currency || 'INR'
       };
     } else {

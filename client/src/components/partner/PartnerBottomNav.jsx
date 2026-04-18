@@ -12,36 +12,42 @@ import {
 export default function PartnerBottomNav({ role }) {
   // Define role-specific tabs
   const getTabs = () => {
-    switch (role) {
-      case 'property_agent':
-      case 'agent':
-        return {
-          category: { label: 'Properties', icon: <Building2 size={24} />, path: '/partner/properties' },
-          comm: { label: 'Leads', icon: <Users size={24} />, path: '/partner/leads' }
-        };
-      case 'service_provider':
-      case 'service':
-        return {
-          category: { label: 'Services', icon: <Briefcase size={24} />, path: '/partner/services' },
-          comm: { label: 'Inquiries', icon: <Users size={24} />, path: '/partner/leads' }
-        };
-      case 'supplier':
-        return {
-          category: { label: 'Inventory', icon: <Package size={24} />, path: '/partner/products' },
-          comm: { label: 'Inquiries', icon: <Users size={24} />, path: '/partner/leads' }
-        };
-      case 'mandi_seller':
-      case 'mandi':
-        return {
-          category: { label: 'Products', icon: <Package size={24} />, path: '/partner/mandi/inventory' },
-          comm: { label: 'Orders', icon: <Users size={24} />, path: '/partner/mandi/orders' }
-        };
-      default:
-        return {
-          category: { label: 'Inventory', icon: <Package size={24} />, path: '/partner/properties' }, // Safe fallback mapped to properties view
-          comm: { label: 'Leads', icon: <Users size={24} />, path: '/partner/leads' }
-        };
+    // Determine role with heavy normalization
+    const normalizedRole = (role || '').toLowerCase();
+    const isMandi = normalizedRole.includes('mandi');
+    const isService = normalizedRole.includes('service');
+    const isSupplier = normalizedRole.includes('supplier') || normalizedRole.includes('vendor');
+    const isAgent = normalizedRole.includes('agent') || normalizedRole.includes('property') || !role;
+
+    // MANDI: Stocks/Orders
+    if (isMandi) {
+      return {
+        category: { label: 'Stocks', icon: <Package size={24} />, path: '/partner/mandi/inventory' },
+        comm: { label: 'Orders', icon: <Users size={24} />, path: '/partner/mandi/orders' }
+      };
     }
+
+    // SERVICE: Services/Inquiries
+    if (isService) {
+      return {
+        category: { label: 'Services', icon: <Briefcase size={24} />, path: '/partner/services' },
+        comm: { label: 'Inquiries', icon: <Users size={24} />, path: '/partner/leads' }
+      };
+    }
+
+    // SUPPLIER: Products/Inquiries
+    if (isSupplier) {
+      return {
+        category: { label: 'Products', icon: <Package size={24} />, path: '/partner/products' },
+        comm: { label: 'Inquiries', icon: <Users size={24} />, path: '/partner/leads' }
+      };
+    }
+
+    // PROPERTY (Default for Partners): Properties/Leads
+    return {
+      category: { label: 'Properties', icon: <Building2 size={24} />, path: '/partner/properties' },
+      comm: { label: 'Leads', icon: <Users size={24} />, path: '/partner/leads' }
+    };
   };
 
   const { category: categoryTab, comm: commTab } = getTabs();

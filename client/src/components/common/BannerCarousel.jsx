@@ -71,16 +71,19 @@ const BannerCarousel = () => {
 
   return (
     <div className="relative w-full h-[160px] md:h-64 lg:h-80 overflow-hidden rounded-2xl group shadow-xl shadow-slate-200 bg-slate-100 border border-white">
-      <AnimatePresence initial={false} mode="wait">
+      <AnimatePresence initial={false}>
         <motion.div
           key={currentIndex}
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           onDragEnd={handleDragEnd}
-          initial={{ opacity: 0, x: 100 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -100 }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '-100%' }}
+          transition={{ 
+            x: { type: "spring", stiffness: 300, damping: 30 },
+            opacity: { duration: 0.2 }
+          }}
           className="absolute inset-0 cursor-grab active:cursor-grabbing"
         >
           {imageErrors[banners[currentIndex].id] ? (
