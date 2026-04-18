@@ -35,6 +35,7 @@ const createNotification = async (recipientType, recipientId, title, body, data 
     if (recipientType === 'partner') {
       const partner = await Partner.findById(recipientId);
       if (partner && partner.push_subscriptions && partner.push_subscriptions.length > 0) {
+        console.log(`[Push Notification] Found ${partner.push_subscriptions.length} subscriptions for partner ${recipientId}`);
         const payload = JSON.stringify({
           title,
           body,
@@ -51,8 +52,9 @@ const createNotification = async (recipientType, recipientId, title, body, data 
         await Promise.all(partner.push_subscriptions.map(async (sub, index) => {
           try {
             await webpush.sendNotification(sub, payload);
+            console.log(`[Push Notification] Successfully sent to subscription ${index}`);
           } catch (err) {
-            console.error(`[Push Notification] Failed for sub ${index}:`, err.statusCode);
+            console.error(`[Push Notification] Failed for sub ${index}:`, err.statusCode, err.message);
             // If the subscription is no longer valid (expired or revoked), we should remove it
             if (err.statusCode === 410 || err.statusCode === 404) {
               staleSubIndices.push(index);

@@ -64,17 +64,18 @@ const createEnquiry = async (req, res) => {
 
     // 4. Create Notification for Partner (if applicable)
     if (partnerId) {
-      await Notification.create({
-        recipient_type: 'partner',
-        recipient_id: partnerId,
-        title: 'New Lead Received!',
-        body: `You have a new ${enquiry_type} inquiry for "${targetListing.title || targetListing.serviceName}" from ${req.user.name}.`,
-        data: {
+      const { createNotification } = require('../utils/notificationHelper');
+      await createNotification(
+        'partner',
+        partnerId,
+        'New Lead Received!',
+        `You have a new ${enquiry_type} inquiry for "${targetListing.title || targetListing.serviceName}" from ${req.user.name}.`,
+        {
           type: 'enquiry',
           enquiry_id: newEnquiry._id,
           listing_id: targetListing._id
         }
-      });
+      );
     }
 
     res.status(201).json({ 
