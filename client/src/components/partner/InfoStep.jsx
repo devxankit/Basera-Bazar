@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Phone, Lock, MapPin, ChevronDown, Camera, 
   ShieldCheck, Eye, EyeOff, Navigation, Info, Building2, 
@@ -22,30 +23,18 @@ const SUPPLIER_CATEGORIES = [
   'tmt supplier'
 ];
 
-export default function InfoStep({ formData, setFormData, onBack, onComplete, role, plan }) {
+export default function InfoStep({ formData, setFormData, onBack, onComplete, onProceedToVerify, isVerified, role, plan }) {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isOptionalOpen, setIsOptionalOpen] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   
   // Verification States
-  const [isVerified, setIsVerified] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [showOtpInput, setShowOtpInput] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [timer, setTimer] = useState(0);
+  const [showExistsModal, setShowExistsModal] = useState(false);
   const [errors, setErrors] = useState({});
   
-  // Timer Countdown Logic
-  useEffect(() => {
-    let interval;
-    if (timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [timer]);
   
   const profileInputRef = useRef(null);
   const businessLogoRef = useRef(null);
@@ -152,16 +141,38 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
 
   const handleSendOtp = async () => {
     if (!validateForm()) {
-      const firstError = Object.values(errors)[0] || "Please fill all required fields correctly.";
-      // alert(firstError); // Optional: we can show inline errors instead
       return;
     }
     try {
       setVerifying(true);
-      const response = await api.post('/auth/send-otp', { phone: formData.phone });
+      
+      // 1. Check for conflicts (Existing Phone or Email)
+      const conflictRes = await api.post('/auth/check-conflicts', {
+        phone: formData.phone.trim(),
+        email: formData.email.trim()
+      });
+
+      if (conflictRes.data.success) {
+        const { conflicts } = conflictRes.data;
+        
+        if (conflicts.both) {
+          setShowExistsModal(true);
+          return;
+        }
+
+        if (conflicts.phone || conflicts.email) {
+          const newErrors = { ...errors };
+          if (conflicts.phone) newErrors.phone = "Phone number already exists";
+          if (conflicts.email) newErrors.email = "Email already registered";
+          setErrors(newErrors);
+          return;
+        }
+      }
+
+      // 2. Request OTP if no conflicts
+      const response = await api.post('/auth/send-otp', { phone: formData.phone.trim() });
       if (response.data.success) {
-        setShowOtpInput(true);
-        setTimer(60); // Start 60s countdown
+        onProceedToVerify();
       }
     } catch (error) {
       alert(error.response?.data?.message || "Failed to send OTP.");
@@ -170,44 +181,6 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (otp.length !== 6) return;
-    try {
-      setVerifying(true);
-      const response = await api.post('/auth/verify-otp', {
-        phone: formData.phone,
-        otp: otp,
-        role: 'partner',
-        flow: 'signup',
-        name: formData.fullName,
-        email: formData.email,
-        password: formData.password
-      });
-      
-      if (response.data && response.data.success) {
-        // Success path
-        setIsVerified(true);
-        setShowOtpInput(false);
-        if (onVerified) {
-          onVerified(response.data.user, response.data.token);
-        }
-      } else {
-        // Handle case where success is false but not an exception
-        alert(response.data?.message || "Verification failed. Please try again.");
-      }
-    } catch (error) {
-      console.error("OTP verification error:", error);
-      if (error.response?.status === 409 && error.response?.data?.code === 'PHONE_EXISTS_OTHER') {
-        alert(error.response.data.message);
-      } else {
-        alert(error.response?.data?.message || "Invalid OTP or verification failed.");
-      }
-      // Ensure verified state is NOT set on error
-      setIsVerified(false);
-    } finally {
-      setVerifying(false);
-    }
-  };
 
   const states = Object.keys(INDIA_DISTRICTS);
   const districts = formData.state ? INDIA_DISTRICTS[formData.state] : [];
@@ -297,49 +270,6 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
                 )}
               </div>
 
-            {showOtpInput && !isVerified && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative"
-              >
-                <InputField 
-                  icon={<ShieldCheck size={18} />} 
-                  label="OTP Verification" 
-                  name="otp"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Enter 6-digit OTP" 
-                />
-                <button
-                  type="button"
-                  onClick={handleVerifyOtp}
-                  disabled={otp.length !== 6 || verifying}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-[#001b4e] text-white px-4.5 py-2 rounded-xl text-[13px] font-bold disabled:opacity-50 shadow-md active:scale-95 transition-all"
-                >
-                  {verifying ? <Loader2 size={16} className="animate-spin" /> : 'Check'}
-                </button>
-
-                {/* Resend OTP Timer UI */}
-                {!isVerified && (
-                  <div className="mt-2 flex justify-end px-1">
-                    {timer > 0 ? (
-                      <span className="text-[12px] font-medium text-slate-400">
-                        Resend OTP in <span className="text-[#001b4e] font-bold">00:{timer < 10 ? `0${timer}` : timer}</span>
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleSendOtp}
-                        className="text-[12px] font-bold text-[#3b82f6] hover:text-[#2563eb] transition-colors"
-                      >
-                        Resend OTP
-                      </button>
-                    )}
-                  </div>
-                )}
-              </motion.div>
-            )}
             <InputField 
               icon={<Lock size={18} />} 
               label="Password *" 
@@ -740,6 +670,51 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, ro
                   setIsLocationModalOpen(false);
                 }}
               />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── USER ALREADY REGISTERED MODAL ── */}
+      <AnimatePresence>
+        {showExistsModal && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowExistsModal(false)}
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-[360px] bg-white rounded-[32px] p-8 text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mx-auto mb-6">
+                <User size={32} />
+              </div>
+              
+              <h3 className="text-[20px] font-bold text-[#001b4e] mb-3">User Already Registered</h3>
+              <p className="text-slate-500 text-[14px] leading-relaxed mb-8">
+                The phone number and email you entered are already linked to an existing account. Would you like to log in instead?
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => navigate('/partner/login')}
+                  className="w-full py-4.5 bg-[#001b4e] text-white rounded-2xl font-bold text-[16px] active:scale-[0.98] transition-all"
+                >
+                  Go to Login
+                </button>
+                <button
+                  onClick={() => setShowExistsModal(false)}
+                  className="w-full py-4.5 bg-slate-100 text-[#001b4e] rounded-2xl font-bold text-[16px] active:scale-[0.98] transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

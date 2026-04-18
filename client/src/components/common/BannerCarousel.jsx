@@ -70,7 +70,7 @@ const BannerCarousel = () => {
   const handleImageError = (id) => setImageErrors(prev => ({ ...prev, [id]: true }));
 
   return (
-    <div className="relative w-full h-[160px] md:h-64 lg:h-80 overflow-hidden rounded-[40px] group shadow-xl shadow-slate-200 bg-slate-100 border border-white">
+    <div className="relative w-full h-[160px] md:h-64 lg:h-80 overflow-hidden rounded-2xl group shadow-xl shadow-slate-200 bg-slate-100 border border-white">
       <AnimatePresence initial={false} mode="wait">
         <motion.div
           key={currentIndex}

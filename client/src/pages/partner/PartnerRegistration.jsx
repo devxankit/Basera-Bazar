@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import RoleStep from '../../components/partner/RoleStep';
 import PlanStep from '../../components/partner/PlanStep';
 import InfoStep from '../../components/partner/InfoStep';
+import OTPStep from '../../components/partner/OTPStep';
 import PartnerModal from '../../components/partner/PartnerModal';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -14,6 +15,7 @@ export default function PartnerRegistration() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [step, setStep] = useState(1);
+  const totalSteps = 4;
   const [selectedRole, setSelectedRole] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,7 +53,7 @@ export default function PartnerRegistration() {
   
   const [authState, setAuthState] = useState(null); // { token, user }
 
-  const nextStep = () => setStep(prev => Math.min(prev + 1, 3));
+  const nextStep = () => setStep(prev => Math.min(prev + 1, totalSteps));
   const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
 
   const handleCompleteRequest = () => {
@@ -182,6 +184,7 @@ export default function PartnerRegistration() {
       case 1: return 'Select Role';
       case 2: return 'Choose Plan';
       case 3: return 'Your Information';
+      case 4: return 'Verify Phone';
       default: return '';
     }
   };
@@ -204,13 +207,13 @@ export default function PartnerRegistration() {
         {/* Progress Indicator */}
         <div className="px-6 py-4">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-[14px] font-bold text-[#001b4e]">Step {step} of 3</span>
+            <span className="text-[14px] font-bold text-[#001b4e]">Step {step} of {totalSteps}</span>
             <span className="text-[13px] font-medium text-slate-400">{getStepTitle()}</span>
           </div>
           <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <motion.div 
-              initial={{ width: '33.33%' }}
-              animate={{ width: `${(step / 3) * 100}%` }}
+              initial={{ width: '25%' }}
+              animate={{ width: `${(step / totalSteps) * 100}%` }}
               className="h-full bg-[#3b82f6] rounded-full"
             />
           </div>
@@ -249,12 +252,28 @@ export default function PartnerRegistration() {
                 setFormData={setFormData} 
                 onBack={prevStep} 
                 onComplete={handleCompleteRequest}
-                onVerified={(userData, token) => {
-                  console.log("Partner verified successfully", { userData, token });
-                  setAuthState({ user: userData, token });
+                onProceedToVerify={() => {
+                  // This is called when user clicks "Send OTP"
+                  nextStep();
                 }}
+                isVerified={!!authState}
                 role={selectedRole}
                 plan={selectedPlan}
+              />
+            )}
+            {step === 4 && (
+              <OTPStep 
+                formData={formData}
+                onBack={prevStep}
+                onVerified={(userData, token) => {
+                  console.log("Partner verified successfully via Step 4", { userData, token });
+                  setAuthState({ user: userData, token });
+                  // Don't navigate automatically, wait for the final Create Account click in step 3
+                  // Actually, user wants "Verify & Create Account" behavior.
+                  // But we use the modal for final confirmation.
+                  // For now, let's just go back to step 3 as "Verified".
+                  setStep(3);
+                }}
               />
             )}
           </motion.div>

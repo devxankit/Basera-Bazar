@@ -86,7 +86,8 @@ const checkExists = async (req, res) => {
  */
 const requestOtp = async (req, res) => {
   try {
-    const { phone, checkExists: shouldCheckExists } = req.body;
+    const { phone: rawPhone, checkExists: shouldCheckExists } = req.body;
+    const phone = rawPhone ? rawPhone.trim() : '';
 
     if (!phone) {
       return res.status(400).json({ success: false, message: 'Please provide a phone number.' });
@@ -160,11 +161,12 @@ const requestOtp = async (req, res) => {
 const verifyOtp = async (req, res) => {
   try {
     const { 
-      phone, otp, role = 'user', flow = 'login', 
+      phone: rawPhone, otp, role = 'user', flow = 'login', 
       name, email, password,
       address, city, state, district, pincode, coords,
       service_radius_km
     } = req.body;
+    const phone = rawPhone ? rawPhone.trim() : '';
 
     // 1. Find the OTP record for this phone
     const otpRecord = await Otp.findOne({ phone }).sort({ createdAt: -1 });
@@ -551,6 +553,37 @@ const changePassword = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Check if phone or email already exists for signup
+ * @route   POST /api/auth/check-conflicts
+ * @access  Public
+ */
+const checkSignupConflicts = async (req, res) => {
+  try {
+    const { phone: rawPhone, email: rawEmail } = req.body;
+    const phone = rawPhone ? rawPhone.trim() : '';
+    const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
+
+    const [existingPhone, existingEmail] = await Promise.all([
+      phone ? User.findOne({ phone }) : null,
+      email ? User.findOne({ email }) : null
+    ]);
+
+    res.status(200).json({
+      success: true,
+      conflicts: {
+         phone: !!existingPhone,
+         email: !!existingEmail,
+         both: !!(existingPhone && existingEmail)
+      }
+    });
+
+  } catch (error) {
+    console.error("Conflict check error:", error);
+    res.status(500).json({ success: false, message: 'Server error checking conflicts.' });
+  }
+};
+
 module.exports = {
   checkExists,
   requestOtp,
@@ -560,4 +593,5 @@ module.exports = {
   changePassword,
   loginWithPassword,
   register,
+  checkSignupConflicts
 };

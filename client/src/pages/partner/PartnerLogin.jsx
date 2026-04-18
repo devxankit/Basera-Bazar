@@ -159,12 +159,14 @@ export default function PartnerLogin() {
               </div>
               <input
                 type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 required
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                 placeholder="6-digit OTP"
                 maxLength={6}
-                className="w-full bg-white border border-slate-200 rounded-2xl py-4.5 pl-16 pr-14 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-400 outline-none focus:border-[#001b4e] focus:ring-4 focus:ring-indigo-50 transition-all"
+                className="w-full bg-white border border-slate-200 rounded-2xl py-4.5 pl-16 pr-14 text-[18px] font-bold tracking-[0.5em] text-[#001b4e] placeholder:text-slate-400 placeholder:tracking-normal outline-none focus:border-[#001b4e] focus:ring-4 focus:ring-indigo-50 transition-all"
               />
             </motion.div>
           )}

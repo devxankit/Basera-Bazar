@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
 
-const { checkExists, requestOtp, verifyOtp, getMe, updateProfile, changePassword, loginWithPassword, register } = require('../controllers/authController');
+const { checkExists, requestOtp, verifyOtp, getMe, updateProfile, changePassword, loginWithPassword, register, checkSignupConflicts } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 
 // POST /api/auth/check-exists — Check if email/phone already registered (Signup)
 router.post('/check-exists', checkExists);
+
+// POST /api/auth/check-conflicts
+router.post('/check-conflicts', checkSignupConflicts);
 
 // POST /api/auth/send-otp
 router.post('/send-otp', requestOtp);
