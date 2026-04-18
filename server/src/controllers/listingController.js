@@ -130,30 +130,93 @@ const getMandiListings = async (req, res) => {
  */
 const createPropertyListing = async (req, res) => {
   try {
-    // Note: Partner must upload images to `/api/upload` *first* and then send the returned URLs here!
     const partnerId = req.user.id;
-    const { title, description, property_type, listing_intent, pricing, location_lat, location_lng } = req.body;
+    const item = req.body;
+
+    const title = item.title || 'Untitled Property';
+    const description = item.description || item.details?.description || '';
+    
+    // Map property type from frontend to lowercase enum
+    let property_type = (item.propertyType || 'residential').toLowerCase();
+    if (!['apartment', 'hostel_pg', 'office', 'plot', 'warehouse', 'residential', 'commercial', 'agricultural', 'industrial', 'house', 'villa'].includes(property_type)) {
+      property_type = 'residential';
+    }
+
+    const listing_intent = (item.intention && item.intention.toLowerCase().includes('rent')) ? 'rent' : 'sell';
+
+    const pricing = {
+      amount: Number(item.price?.value || item.price || 0),
+      currency: 'INR'
+    };
+
+    const locationLng = parseFloat(item.longitude || item.location?.coordinates?.[0]) || 0;
+    const locationLat = parseFloat(item.latitude || item.location?.coordinates?.[1]) || 0;
+
+    // Safely build details — map frontend field names to schema field names and normalize enums
+    const rawDetails = item.details || {};
+
+    // Normalize furnishing: 'Fully Furnished' -> 'fully-furnished'
+    const furnishingMap = { 
+      'fully furnished': 'fully-furnished', 'fully-furnished': 'fully-furnished',
+      'semi furnished': 'semi-furnished', 'semi-furnished': 'semi-furnished',
+      'unfurnished': 'unfurnished' 
+    };
+    const furnishing = furnishingMap[(rawDetails.furnishing || '').toLowerCase()] || 'unfurnished';
+
+    // Normalize facing: 'East' -> 'east'
+    const validFacing = ['north', 'south', 'east', 'west', 'no-preference'];
+    const facing = validFacing.includes((rawDetails.facing || '').toLowerCase())
+      ? (rawDetails.facing || '').toLowerCase() : 'no-preference';
+
+    const safeDetails = {
+      area: {
+        value: Number(rawDetails.area || rawDetails.builtUpArea || 0) || undefined,
+        unit: rawDetails.areaUnit || rawDetails.unit || 'sqft',
+      },
+      bhk: Number(rawDetails.bedrooms?.replace?.(/\D/g, '') || rawDetails.bhk || rawDetails.bedrooms) || undefined,
+      bathrooms: Number(rawDetails.bathrooms) || undefined,
+      washrooms: Number(rawDetails.washrooms) || undefined,
+      furnishing,
+      facing,
+      floor_number: Number(rawDetails.floorNumber || rawDetails.floor_number) || undefined,
+      total_floors: Number(rawDetails.totalFloors || rawDetails.total_floors) || undefined,
+    };
 
     const newProperty = await PropertyListing.create({
       partner_id: partnerId,
+      phone: partnerPhone, // Added for robust fallback
       title,
       description,
       property_type,
       listing_intent,
       pricing,
-      // Formatting into standard GeoJSON point
+      category_id: (item.categoryId && item.categoryId.length === 24) ? item.categoryId : undefined,
+      subcategory_id: (item.subcategoryId && item.subcategoryId.length === 24) ? item.subcategoryId : undefined,
       location: {
         type: 'Point',
-        coordinates: [parseFloat(location_lng), parseFloat(location_lat)]
+        coordinates: [parseFloat(locationLng), parseFloat(locationLat)]
       },
-      status: 'pending_approval' // Forces Admin review before it shows up publicly
+      address: {
+        district: item.district,
+        state: item.state,
+        full_address: item.completeAddress,
+        pincode: item.pinCode
+      },
+      details: safeDetails,
+      images: item.images || [],
+      thumbnail: item.image || item.thumbnail, 
+      status: 'pending_approval'
     });
 
     res.status(201).json({ success: true, message: 'Property submitted for Admin review.', data: newProperty });
 
   } catch (error) {
-    console.error("Error creating property:", error);
-    res.status(500).json({ success: false, message: 'Server error creating listing.' });
+    console.error("Error creating property:", error.message);
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(e => e.message).join(', ');
+      return res.status(400).json({ success: false, message: `Validation failed: ${messages}` });
+    }
+    res.status(500).json({ success: false, message: error.message || 'Server error creating listing.' });
   }
 };
 
@@ -165,10 +228,12 @@ const createPropertyListing = async (req, res) => {
 const createServiceListing = async (req, res) => {
   try {
     const partnerId = req.user.id;
+    const partnerPhone = req.user.phone;
     const { title, description, category, shortDescription, experience, details, image, images, location_text, location } = req.body;
 
     const newService = await ServiceListing.create({
       partner_id: partnerId,
+      phone: partnerPhone, // Added for robust fallback
       title,
       description: description || shortDescription,
       category,
@@ -387,11 +452,24 @@ const getPublicCategories = async (req, res) => {
 const getMyListings = async (req, res) => {
   try {
     const partnerId = req.user.id;
+    const partnerPhone = req.user.phone;
     
     // Fetch from all regular listing collections
+    // FALLBACK: Also search by phone number in case the Admin assigned it using phone instead of ID
     const [properties, services, suppliers, mandiItems] = await Promise.all([
-      PropertyListing.find({ partner_id: partnerId }).sort({ createdAt: -1 }),
-      ServiceListing.find({ partner_id: partnerId }).sort({ createdAt: -1 }),
+      PropertyListing.find({ 
+        $or: [
+          { partner_id: partnerId },
+          { phone: partnerPhone },
+          { contact_phone: partnerPhone } 
+        ]
+      }).sort({ createdAt: -1 }),
+      ServiceListing.find({ 
+        $or: [
+          { partner_id: partnerId },
+          { phone: partnerPhone }
+        ]
+      }).sort({ createdAt: -1 }),
       SupplierListing.find({ partner_id: partnerId }).sort({ createdAt: -1 }),
       MandiListing.find({ partner_id: partnerId }).sort({ createdAt: -1 })
     ]);
@@ -399,10 +477,10 @@ const getMyListings = async (req, res) => {
     // Flatten results and identify type
     // We map to match the frontend expectations where possible
     const combined = [
-       ...properties.map(i => ({ ...i._doc, type: 'property' })),
-       ...services.map(i => ({ ...i._doc, type: 'service' })),
-       ...suppliers.map(i => ({ ...i._doc, type: 'product' })),
-       ...mandiItems.map(i => ({ ...i._doc, type: 'mandi_product' }))
+       ...properties.map(i => ({ ...(i.toObject ? i.toObject() : i), type: 'property' })),
+       ...services.map(i => ({ ...(i.toObject ? i.toObject() : i), type: 'service' })),
+       ...suppliers.map(i => ({ ...(i.toObject ? i.toObject() : i), type: 'product' })),
+       ...mandiItems.map(i => ({ ...(i.toObject ? i.toObject() : i), type: 'mandi_product' }))
     ];
 
     res.status(200).json({

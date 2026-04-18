@@ -14,9 +14,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { db } from '../../services/DataEngine';
 
 export default function PartnerInventory() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
@@ -32,7 +34,8 @@ export default function PartnerInventory() {
         setLoading(true);
         const response = await api.get('/listings/my');
         if (response.data.success) {
-          setItems(response.data.data);
+          const normalizedData = (response.data.data || []).map(item => db._normalize(item));
+          setItems(normalizedData);
         }
       } catch (err) {
         console.error("Error fetching partner inventory:", err);
@@ -46,51 +49,56 @@ export default function PartnerInventory() {
 
   if (!user) return null;
   const partner = user;
+  const actualRole = (partner?.partner_type || partner?.role || '').toLowerCase();
 
   const getLabels = () => {
-    switch (partner.role) {
-      case 'agent':
-        return {
-          title: 'My Properties',
-          item: 'property',
-          plural: 'properties',
-          icon: <Building2 size={120} className="text-slate-200" />
-        };
-      case 'service':
-        return {
-          title: 'My Services',
-          item: 'service',
-          plural: 'services',
-          icon: <Briefcase size={120} className="text-slate-200" />
-        };
-      case 'supplier':
-        return {
-          title: 'My Products',
-          item: 'product',
-          plural: 'products',
-          icon: <Package size={120} className="text-slate-200" />
-        };
-      default:
-        return {
-          title: 'My Inventory',
-          item: 'item',
-          plural: 'items',
-          icon: <Package size={120} className="text-slate-200" />
-        };
+    if (actualRole.includes('agent')) {
+      return {
+        title: 'My Properties',
+        item: 'property',
+        plural: 'properties',
+        icon: <Building2 size={120} className="text-slate-200" />
+      };
     }
+    if (actualRole.includes('service')) {
+      return {
+        title: 'My Services',
+        item: 'service',
+        plural: 'services',
+        icon: <Briefcase size={120} className="text-slate-200" />
+      };
+    }
+    if (actualRole.includes('supplier')) {
+      return {
+        title: 'My Products',
+        item: 'product',
+        plural: 'products',
+        icon: <Package size={120} className="text-slate-200" />
+      };
+    }
+    
+    return {
+      title: 'My Inventory',
+      item: 'item',
+      plural: 'items',
+      icon: <Package size={120} className="text-slate-200" />
+    };
   };
 
   const labels = getLabels();
 
   const handleAddAction = () => {
-    if (partner.role === 'service') {
+    const role = (partner.partner_type || partner.role || '').toLowerCase();
+    if (role.includes('service')) {
       navigate('/partner/add-service');
-    } else if (partner.role === 'agent') {
+    } else if (role.includes('agent') || role.includes('property')) {
       navigate('/partner/add-property');
-    } else if (partner.role === 'supplier') {
+    } else if (role.includes('supplier')) {
       navigate('/partner/add-product');
+    } else if (role.includes('mandi')) {
+      navigate('/partner/add-mandi-product');
     } else {
-      alert(`Add ${labels.item} flow coming soon for ${partner.role}s!`);
+      alert(`Add ${labels.item} flow coming soon for ${role}s!`);
     }
   };
 
@@ -105,25 +113,50 @@ export default function PartnerInventory() {
         
         // Update local state
         setItems(prevItems => prevItems.filter(item => item.id.toString() !== id.toString()));
+
+        // Log Activity
+        const uid = partner?._id || partner?.id;
+        if (uid) {
+           const logKey = `baserabazar_activity_${uid}`;
+           let logs = [];
+           try { logs = JSON.parse(localStorage.getItem(logKey)) || []; } catch(e){}
+           logs.push({
+             type: 'listing',
+             title: 'Removed Listing',
+             time: 'Just now',
+             timestamp: new Date().toISOString()
+           });
+           localStorage.setItem(logKey, JSON.stringify(logs));
+        }
       }
     }
   };
 
   const handleEdit = (e, item) => {
     e.stopPropagation();
-    if (item.type === 'property' || partner.role === 'agent') {
+    const role = (partner.partner_type || partner.role || '').toLowerCase();
+    if (item.type === 'property' || role.includes('agent')) {
       navigate(`/partner/add-property?edit=${item.id}`);
-    } else if (item.type === 'product' || partner.role === 'supplier') {
+    } else if (item.type === 'product' || role.includes('supplier')) {
       navigate(`/partner/add-product?edit=${item.id}`);
+    } else if (item.type === 'mandi_product' || role.includes('mandi')) {
+      navigate(`/partner/add-mandi-product?edit=${item.id}`);
     } else {
-      // Assuming existing fallback for services
       navigate(`/partner/add-service?edit=${item.id}`);
     }
   };
 
   const displayedItems = items.filter(item => {
+     // First filter by type matches the current view (Property Agent should only see properties, etc.)
+     if (actualRole.includes('agent') && item.type !== 'property') return false;
+     if (actualRole.includes('service') && item.type !== 'service') return false;
+     if (actualRole.includes('supplier') && item.type !== 'product') return false;
+     if (actualRole.includes('mandi') && item.type !== 'mandi_product') return false;
+
      if (filter === 'All') return true;
      if (filter === 'Featured') return item.isFeatured === true;
+     if (filter === 'Pending') return item.status === 'pending_approval' || item.status === 'draft' || !item.status;
+     if (filter === 'Rejected') return item.status === 'rejected';
      return true;
   });
 
@@ -144,7 +177,7 @@ export default function PartnerInventory() {
 
       {/* Filter Tabs */}
       <div className="px-5 py-3 overflow-x-auto hide-scrollbar border-b border-slate-50 bg-white sticky top-[60px] z-40 flex items-center gap-2">
-        {['All', 'Featured'].map(f => (
+        {['All', 'Featured', 'Pending', 'Rejected'].map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -213,11 +246,26 @@ export default function PartnerInventory() {
                         <h4 className="text-[18px] font-bold text-[#001b4e] leading-snug line-clamp-1">{item.serviceName || item.title}</h4>
                         <ChevronRight size={18} className="text-slate-300 group-hover:text-[#001b4e] transition-colors shrink-0" />
                       </div>
+
+                      {item.type === 'property' && (item.bhk || item.area) && (
+                        <div className="flex items-center gap-2 mb-2">
+                           {item.bhk && <span className="text-[12px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md">{item.bhk} BHK</span>}
+                           {item.area && <span className="text-[12px] font-medium text-slate-400">· {item.area} {item.areaUnit}</span>}
+                        </div>
+                      )}
                       
                       <div className="flex items-center gap-2 flex-wrap mb-2">
                         <span className="text-[12px] font-medium text-slate-500 uppercase tracking-tight">{item.category}</span>
+                        {(item.serviceType || item.property_type || item.material_name) && (
+                          <>
+                            <div className="w-1 h-1 bg-slate-300 rounded-full" />
+                            <span className="text-[12px] font-bold text-blue-600 uppercase tracking-tight">{item.serviceType || item.property_type || item.material_name}</span>
+                          </>
+                        )}
                         <div className="w-1 h-1 bg-slate-300 rounded-full" />
-                        <span className="text-[12px] font-bold text-blue-600 uppercase tracking-tight">{item.serviceType}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${item.status === 'active' ? 'bg-green-100 text-green-700' : item.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                           {item.status ? item.status.replace('_', ' ') : 'Pending'}
+                        </span>
                       </div>
                       
                       {item.price && (
@@ -231,6 +279,12 @@ export default function PartnerInventory() {
                   </div>
 
                   <div className="w-full h-px bg-slate-100" />
+
+                  {item.status === 'rejected' && (
+                     <div className="text-[13px] text-red-500 bg-red-50 p-3 rounded-xl font-medium">
+                        <span className="font-bold">Reason:</span> {item.status_reason || 'Does not meet our quality standards. Please update your listing.'}
+                     </div>
+                  )}
                   
                   <div className="flex items-center justify-end gap-2">
                       <button 

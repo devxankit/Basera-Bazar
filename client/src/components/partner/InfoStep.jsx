@@ -321,7 +321,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
             {errors.location && <span className="text-[11px] text-red-200 font-bold mt-2 uppercase tracking-widest">{errors.location}</span>}
           </button>
 
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-6 mt-8 relative z-10 bg-transparent">
             <InputField 
               icon={<Box size={18} />} 
               label="Serviceable Radius (in KM) *" 
@@ -332,28 +332,27 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
               placeholder="e.g. 50" 
               error={errors.service_radius_km}
             />
-            <div className="text-[11px] text-slate-400 px-1 -mt-2 mb-2">
+            <div className="text-[11px] text-slate-400 px-1 -mt-4 mb-2">
               Distance from your center you can provide service to.
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <InputField 
-                label="District *" 
-                name="district"
-                value={formData.district}
-                onChange={handleChange}
-                icon={<MapPin size={18} />} 
-                placeholder="District Name"
-                disabled
-              />
-              <InputField 
+              <SelectField 
                 label="State *" 
                 name="state"
                 value={formData.state}
                 onChange={handleChange}
                 icon={<Map size={18} />} 
-                placeholder="State Name"
-                disabled
+                options={states}
+              />
+              <SelectField 
+                label="District *" 
+                name="district"
+                value={formData.district}
+                onChange={handleChange}
+                icon={<MapPin size={18} />} 
+                options={districts}
+                disabled={!formData.state}
               />
             </div>
           </div>

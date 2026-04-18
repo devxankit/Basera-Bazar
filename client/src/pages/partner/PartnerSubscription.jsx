@@ -6,6 +6,7 @@ import {
   TrendingUp, Activity, X, Info, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const PLAN_THEMES = {

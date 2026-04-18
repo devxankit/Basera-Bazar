@@ -58,6 +58,15 @@ const protect = async (req, res, next) => {
       req.user = userFound.toObject();
       req.user.id = userFound._id; // Ensure compatibility
       
+      // CRITICAL FIX: The DB stores role as 'Agent'/'Supplier'/'Service Provider' for partners,
+      // but the JWT token correctly has role: 'partner'. We preserve the token role for
+      // authorizeRoles() checks (e.g., authorizeRoles('partner')) to work correctly.
+      // The DB role is kept as req.user.db_role for any component that needs it.
+      if (decoded.role === 'partner') {
+        req.user.db_role = req.user.role; // Save the DB role ('Agent', 'Supplier', etc.)
+        req.user.role = 'partner';        // Use the token role for route authorization
+      }
+      
       // Move on to the actual router function
       next();
     } catch (error) {

@@ -162,6 +162,7 @@ const verifyOtp = async (req, res) => {
   try {
     const { 
       phone: rawPhone, otp, role = 'user', flow = 'login', 
+      partner_type,
       name, email, password,
       address, city, state, district, pincode, coords,
       service_radius_km
@@ -253,7 +254,7 @@ const verifyOtp = async (req, res) => {
           email: email.toLowerCase(),
           password: password || undefined, // Password optional for OTP auto-signup
           ...(role === 'partner' && { 
-            partner_type: role === 'partner' ? 'service_provider' : undefined,
+            partner_type: partner_type || 'service_provider',
             service_radius_km: service_radius_km || 100 
           }),
           default_location: role === 'user' ? {
@@ -564,17 +565,24 @@ const checkSignupConflicts = async (req, res) => {
     const phone = rawPhone ? rawPhone.trim() : '';
     const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
 
-    const [existingPhone, existingEmail] = await Promise.all([
+    const Partner = require('../models/Partner').Partner;
+
+    const [userPhone, partnerPhone, userEmail, partnerEmail] = await Promise.all([
       phone ? User.findOne({ phone }) : null,
-      email ? User.findOne({ email }) : null
+      phone ? Partner.findOne({ phone }) : null,
+      email ? User.findOne({ email }) : null,
+      email ? Partner.findOne({ email }) : null
     ]);
+
+    const existingPhone = !!(userPhone || partnerPhone);
+    const existingEmail = !!(userEmail || partnerEmail);
 
     res.status(200).json({
       success: true,
       conflicts: {
-         phone: !!existingPhone,
-         email: !!existingEmail,
-         both: !!(existingPhone && existingEmail)
+         phone: existingPhone,
+         email: existingEmail,
+         both: existingPhone && existingEmail
       }
     });
 

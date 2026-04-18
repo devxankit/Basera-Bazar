@@ -214,7 +214,7 @@ export default function AddService() {
   const categories = SERVICE_CATEGORIES;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-sans pb-28">
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden bg-[#f8fafc] font-sans pb-28">
       {/* Header */}
       <div className="bg-white px-5 py-4 flex items-center gap-4 sticky top-0 z-[60] border-b border-slate-100 shadow-sm">
         <button 

@@ -44,8 +44,9 @@ class DataEngine {
     // Identify category based on unique structural markers in the document
     if (item.category) {
       normalized.category = item.category;
-    } else if (item.listing_type) {
+    } else if (item.listing_type || item.listing_intent || item.property_type) {
       normalized.category = 'property';
+      normalized.serviceType = item.property_type || item.listing_type || 'Property';
     } else if (item.service_type || item.portfolio_images || item.years_of_experience !== undefined) {
       normalized.category = 'service';
     } else if (item.material_name || item.quality_grade) {
@@ -66,10 +67,14 @@ class DataEngine {
     
     // Normalize Area (PREVENTS OBJECT RENDERING CRASH)
     if (normalized.details && typeof normalized.details.area === 'object' && normalized.details.area !== null) {
-      normalized.details.areaValue = normalized.details.area.value;
       normalized.details.areaUnit = normalized.details.area.unit || 'sq.ft';
       normalized.details.area = normalized.details.area.value || ''; // Overwrite with string/number for UI
     }
+    
+    // Add BHK and Area to root for easy access
+    normalized.bhk = item.details?.bhk || item.bhk || '';
+    normalized.area = item.details?.areaValue || item.details?.area || item.area || '';
+    normalized.areaUnit = item.details?.areaUnit || item.areaUnit || 'Sqft';
 
     // Legacy support for components using .location as a string
     if (item.location && typeof item.location === 'object') {

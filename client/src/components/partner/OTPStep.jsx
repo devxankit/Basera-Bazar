@@ -3,7 +3,7 @@ import { ShieldCheck, Phone, ArrowLeft, Loader2, CheckCircle2, Info } from 'luci
 import { motion } from 'framer-motion';
 import api from '../../services/api';
 
-export default function OTPStep({ formData, onBack, onVerified }) {
+export default function OTPStep({ formData, selectedRole, onBack, onVerified }) {
   const [otp, setOtp] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [timer, setTimer] = useState(60);
@@ -38,10 +38,18 @@ export default function OTPStep({ formData, onBack, onVerified }) {
     try {
       setVerifying(true);
       setError('');
+      const roleMapping = {
+        'agent': 'property_agent',
+        'service': 'service_provider',
+        'supplier': 'supplier',
+        'mandi': 'mandi_seller'
+      };
+      
       const response = await api.post('/auth/verify-otp', {
         phone: formData.phone.trim(),
         otp: otp,
         role: 'partner',
+        partner_type: roleMapping[selectedRole] || 'service_provider',
         flow: 'signup',
         name: formData.fullName,
         email: formData.email,

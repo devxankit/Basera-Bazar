@@ -25,6 +25,8 @@ export default function AddProperty() {
 
   const [activeStep, setActiveStep] = useState(1);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   
   const [formData, setFormData] = useState({
     // Step 1: Essential Details
@@ -168,53 +170,44 @@ export default function AddProperty() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const compressImage = (file) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 1200;
-            const MAX_HEIGHT = 1200;
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height) {
-              if (width > MAX_WIDTH) {
-                height = Math.round(height * (MAX_WIDTH / width));
-                width = MAX_WIDTH;
-              }
-            } else {
-              if (height > MAX_HEIGHT) {
-                width = Math.round(width * (MAX_HEIGHT / height));
-                height = MAX_HEIGHT;
-              }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.5));
-          };
-          img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
-    };
-
-    if (field === 'thumbnail') {
-      const compressedDataUrl = await compressImage(files[0]);
-      setFormData(prev => ({ ...prev, thumbnail: compressedDataUrl }));
-    } else if (field === 'images') {
-      const maxSlots = 5 - formData.images.length;
-      const count = Math.min(files.length, maxSlots);
-      
-      for (let i = 0; i < count; i++) {
-        const compressedDataUrl = await compressImage(files[i]);
-        setFormData(prev => ({ ...prev, images: [...prev.images, compressedDataUrl] }));
+    setUploadingImage(true);
+    try {
+      if (field === 'thumbnail') {
+        const file = files[0];
+        // Show local preview immediately
+        const localUrl = URL.createObjectURL(file);
+        setFormData(prev => ({ ...prev, thumbnail: localUrl }));
+        
+        // Upload to Cloudinary
+        const res = await db.uploadFile(file);
+        if (res?.url) {
+          setFormData(prev => ({ ...prev, thumbnail: res.url }));
+        }
+      } else if (field === 'images') {
+        const maxSlots = 5 - formData.images.length;
+        const count = Math.min(files.length, maxSlots);
+        
+        for (let i = 0; i < count; i++) {
+          const file = files[i];
+          // Show local preview immediately
+          const localUrl = URL.createObjectURL(file);
+          setFormData(prev => ({ ...prev, images: [...prev.images, localUrl] }));
+          
+          // Upload to Cloudinary and replace local URL
+          const res = await db.uploadFile(file);
+          if (res?.url) {
+            setFormData(prev => ({
+              ...prev,
+              images: prev.images.map(img => img === localUrl ? res.url : img)
+            }));
+          }
+        }
       }
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -249,35 +242,14 @@ export default function AddProperty() {
     try {
       setIsSubmitting(true);
       
-      // 1. Upload Images to Cloudinary first
-      const uploadedImageUrls = [];
-      
-      // Thumbnail
-      if (formData.thumbnail && formData.thumbnail.startsWith('data:')) {
-        const thumbBlob = await fetch(formData.thumbnail).then(r => r.blob());
-        const thumbRes = await db.uploadFile(thumbBlob);
-        formData.image = thumbRes.url; // Use 'image' for backend compatibility
-      } else {
-        formData.image = formData.thumbnail;
-      }
-
-      // Additional Images
-      for (const imgData of formData.images) {
-        if (imgData.startsWith('data:')) {
-          const blob = await fetch(imgData).then(r => r.blob());
-          const res = await db.uploadFile(blob);
-          uploadedImageUrls.push(res.url);
-        } else {
-          uploadedImageUrls.push(imgData);
-        }
-      }
-
-      // 2. Prepare Payload
+      // Images are already uploaded to Cloudinary via handleFileChange.
+      // We just use the stored URLs directly.
       const payload = {
         ...formData,
-        images: uploadedImageUrls,
-        category: 'property', // Structural identifier
-        serviceType: formData.subcategoryName || formData.categoryName, // Used in local list
+        image: formData.thumbnail,  // Main thumbnail URL
+        images: formData.images,    // Additional image URLs (already Cloudinary)
+        category: 'property',
+        serviceType: formData.subcategoryName || formData.categoryName,
         details: {
           propertyType: formData.subcategoryName || formData.categoryName,
           categoryId: formData.categoryId,
@@ -295,16 +267,30 @@ export default function AddProperty() {
           value: formData.price,
           unit: formData.intention === 'For Sale' ? 'L' : '/mo'
         },
-        location_text: formData.completeAddress + ", " + formData.district + ", " + formData.state
+        location_text: `${formData.completeAddress}, ${formData.district}, ${formData.state}`
       };
 
-      // 3. Create Listing via API
       await db.create('listings', payload);
       
+      // Log Activity
+      const uid = user?._id || user?.id;
+      if (uid) {
+         const logKey = `baserabazar_activity_${uid}`;
+         let logs = [];
+         try { logs = JSON.parse(localStorage.getItem(logKey)) || []; } catch(e){}
+         logs.push({
+           type: 'listing',
+           title: `Added Property: ${formData.title}`,
+           time: 'Just now',
+           timestamp: new Date().toISOString()
+         });
+         localStorage.setItem(logKey, JSON.stringify(logs));
+      }
+      
       setShowConfirmModal(false);
-      navigate('/partner/inventory'); // Redirect to inventory
+      navigate('/partner/properties');
     } catch (error) {
-      console.error('Error saving property:', error);
+      console.error('Error saving property:', error.response?.data || error.message);
       alert(error.response?.data?.message || 'Failed to save property. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -312,8 +298,22 @@ export default function AddProperty() {
   };
 
   const nextStep = () => {
+    // Basic Validation per Step
+    if (activeStep === 1) {
+      if (!formData.title || !formData.price || !formData.categoryId || (subCategories.length > 0 && !formData.subcategoryId)) {
+        alert('Please fill in all required fields: Title, Price, and Category.');
+        return;
+      }
+    }
+    
+    if (activeStep === 3) {
+      if (!formData.state || !formData.district || !formData.completeAddress || !formData.pinCode) {
+        alert('Please fill in all required location details: State, City, Address, and PIN Code.');
+        return;
+      }
+    }
+
     if (activeStep < 4) {
-      // Add validation here if needed
       setActiveStep(prev => prev + 1);
       window.scrollTo(0, 0);
     } else {
@@ -329,7 +329,7 @@ export default function AddProperty() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-24">
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden bg-slate-50 font-sans pb-24">
       {/* Header */}
       <div className="bg-[#001b4e] px-5 py-4 flex items-center gap-4 sticky top-0 z-50 shadow-md">
         <button onClick={() => navigate(-1)} className="text-white hover:bg-white/10 rounded-lg p-1 transition-colors">
@@ -385,7 +385,7 @@ export default function AddProperty() {
               <StepThree formData={formData} handleChange={handleChange} handleSelect={handleSelect} handleAutoDetectLocation={handleAutoDetectLocation} />
             )}
             {activeStep === 4 && (
-              <StepFour formData={formData} handleChange={handleChange} handleFileChange={handleFileChange} removeImage={removeImage} />
+              <StepFour formData={formData} handleChange={handleChange} handleFileChange={handleFileChange} removeImage={removeImage} uploadingImage={uploadingImage} />
             )}
           </motion.div>
         </AnimatePresence>
@@ -403,9 +403,14 @@ export default function AddProperty() {
         ) : <div />}
         <button 
           onClick={nextStep}
-          className="px-10 py-3.5 bg-[#001b4e] text-white rounded-xl font-bold text-[15px] shadow-lg shadow-blue-900/20 active:scale-95 transition-all"
+          disabled={uploadingImage}
+          className={`px-10 py-3.5 rounded-xl font-bold text-[15px] shadow-lg active:scale-95 transition-all ${
+            uploadingImage 
+              ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
+              : 'bg-[#001b4e] text-white shadow-blue-900/20'
+          }`}
         >
-          {activeStep === 4 ? (editId ? 'Update Property' : 'Submit Property') : 'Next'}
+          {uploadingImage ? 'Uploading...' : (activeStep === 4 ? (editId ? 'Update Property' : 'Submit Property') : 'Next')}
         </button>
       </div>
 
@@ -662,7 +667,7 @@ function StepTwo({ formData, handleChange, handleSelect }) {
 // STEP 3 COMPONENTS
 // -------------------------------------------------------------
 function StepThree({ formData, handleChange, handleSelect, handleAutoDetectLocation }) {
-  const districtOptions = formData.state ? DISTRICTS[formData.state] || [] : [];
+  const districtOptions = formData.state ? INDIA_DISTRICTS[formData.state] || [] : [];
   return (
     <div className="space-y-6">
       {/* Auto Detect Card */}
@@ -688,8 +693,8 @@ function StepThree({ formData, handleChange, handleSelect, handleAutoDetectLocat
       <SectionCard title="Property Address" icon={<Home size={18} className="text-blue-500 fill-blue-500" />}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <SelectField label="CITY *" name="district" value={formData.district} options={formData.state ? INDIA_DISTRICTS[formData.state] : []} onChange={handleChange} disabled={!formData.state} />
             <SelectField label="STATE *" name="state" value={formData.state} options={Object.keys(INDIA_DISTRICTS)} onChange={handleChange} />
+            <SelectField label="CITY/DISTRICT *" name="district" value={formData.district} options={districtOptions} onChange={handleChange} disabled={!formData.state} />
           </div>
           
           <div>
@@ -728,7 +733,7 @@ function StepThree({ formData, handleChange, handleSelect, handleAutoDetectLocat
 // -------------------------------------------------------------
 // STEP 4 COMPONENTS
 // -------------------------------------------------------------
-function StepFour({ formData, handleChange, handleFileChange, removeImage }) {
+function StepFour({ formData, handleChange, handleFileChange, removeImage, uploadingImage }) {
   return (
     <div className="space-y-6">
       <SectionCard title="Property Images" icon={<Camera size={18} className="text-blue-500" />}>
@@ -740,12 +745,24 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage }) {
         <div>
           <label className="block text-[13px] font-bold text-[#001b4e] mb-3">Main Property Image</label>
           <div className="relative w-full h-48 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center overflow-hidden group bg-slate-50 hover:bg-slate-100 transition-colors">
-            {formData.thumbnail ? (
+            {uploadingImage && !formData.thumbnail ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-[12px] text-slate-500 font-medium">Uploading to Cloudinary...</p>
+              </div>
+            ) : formData.thumbnail ? (
               <>
                 <img src={formData.thumbnail} alt="Thumbnail preview" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                  <span className="text-white font-medium text-[13px] flex items-center gap-2"><UploadCloud size={16}/> Replace Image</span>
-                </div>
+                {uploadingImage && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                {!uploadingImage && (
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <span className="text-white font-medium text-[13px] flex items-center gap-2"><UploadCloud size={16}/> Replace Image</span>
+                  </div>
+                )}
               </>
             ) : (
                <div className="text-center">
@@ -753,12 +770,13 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage }) {
                    <UploadCloud size={24} className="text-slate-400" />
                  </div>
                  <p className="text-[13px] font-medium text-slate-500">Tap to add main property image</p>
-                 <p className="text-[11px] font-medium text-slate-400 mt-1">JPG, JPEG, PNG - Max 2MB</p>
+                 <p className="text-[11px] font-medium text-slate-400 mt-1">JPG, JPEG, PNG - Max 5MB</p>
                </div>
             )}
             <input 
               type="file" 
               accept="image/*" 
+              disabled={uploadingImage}
               onChange={(e) => handleFileChange(e, 'thumbnail')}
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
@@ -786,15 +804,23 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage }) {
           </div>
 
           {formData.images.length < 5 && (
-            <div className="relative w-full py-4 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors">
-               <span className="text-[14px] font-bold text-[#001b4e] flex items-center gap-2">
-                 <Camera size={18} className="text-slate-400"/>
-                 Add Additional Images
-               </span>
+            <div className={`relative w-full py-4 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center transition-colors ${uploadingImage ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 hover:bg-slate-100'}`}>
+               {uploadingImage ? (
+                 <span className="text-[14px] font-bold text-blue-600 flex items-center gap-2">
+                   <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                   Uploading...
+                 </span>
+               ) : (
+                 <span className="text-[14px] font-bold text-[#001b4e] flex items-center gap-2">
+                   <Camera size={18} className="text-slate-400"/>
+                   Add Additional Images
+                 </span>
+               )}
                <input 
                  type="file" 
                  accept="image/*" 
                  multiple
+                 disabled={uploadingImage}
                  onChange={(e) => handleFileChange(e, 'images')}
                  className="absolute inset-0 opacity-0 cursor-pointer"
                />

@@ -13,24 +13,32 @@ export default function PartnerBottomNav({ role }) {
   // Define role-specific tabs
   const getTabs = () => {
     switch (role) {
+      case 'property_agent':
       case 'agent':
         return {
           category: { label: 'Properties', icon: <Building2 size={24} />, path: '/partner/properties' },
           comm: { label: 'Leads', icon: <Users size={24} />, path: '/partner/leads' }
         };
+      case 'service_provider':
       case 'service':
         return {
           category: { label: 'Services', icon: <Briefcase size={24} />, path: '/partner/services' },
-          comm: { label: 'Inquiries', icon: <Users size={24} />, path: '/partner/leads' } // Using same path for simplicity
+          comm: { label: 'Inquiries', icon: <Users size={24} />, path: '/partner/leads' }
         };
       case 'supplier':
         return {
-          category: { label: 'Product', icon: <Package size={24} />, path: '/partner/products' },
+          category: { label: 'Inventory', icon: <Package size={24} />, path: '/partner/products' },
           comm: { label: 'Inquiries', icon: <Users size={24} />, path: '/partner/leads' }
+        };
+      case 'mandi_seller':
+      case 'mandi':
+        return {
+          category: { label: 'Products', icon: <Package size={24} />, path: '/partner/mandi/inventory' },
+          comm: { label: 'Orders', icon: <Users size={24} />, path: '/partner/mandi/orders' }
         };
       default:
         return {
-          category: { label: 'Inventory', icon: <Package size={24} />, path: '/partner/inventory' },
+          category: { label: 'Inventory', icon: <Package size={24} />, path: '/partner/properties' }, // Safe fallback mapped to properties view
           comm: { label: 'Leads', icon: <Users size={24} />, path: '/partner/leads' }
         };
     }

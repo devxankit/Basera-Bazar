@@ -264,15 +264,12 @@ export default function PartnerRegistration() {
             {step === 4 && (
               <OTPStep 
                 formData={formData}
+                selectedRole={selectedRole}
                 onBack={prevStep}
                 onVerified={(userData, token) => {
                   console.log("Partner verified successfully via Step 4", { userData, token });
                   setAuthState({ user: userData, token });
-                  // Don't navigate automatically, wait for the final Create Account click in step 3
-                  // Actually, user wants "Verify & Create Account" behavior.
-                  // But we use the modal for final confirmation.
-                  // For now, let's just go back to step 3 as "Verified".
-                  setStep(3);
+                  handleCompleteRequest();
                 }}
               />
             )}

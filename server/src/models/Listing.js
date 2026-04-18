@@ -59,9 +59,11 @@ const propertyListingSchema = new mongoose.Schema({
   subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   title: { type: String, required: true },
   description: { type: String },
+  phone: { type: String },
+  contact_phone: { type: String },
   property_type: {
     type: String,
-    enum: ['apartment', 'hostel_pg', 'office', 'plot', 'warehouse'],
+    enum: ['apartment', 'hostel_pg', 'office', 'plot', 'warehouse', 'residential', 'commercial', 'agricultural', 'industrial', 'house', 'villa'],
     required: true
   },
   listing_intent: {
@@ -86,14 +88,14 @@ const propertyListingSchema = new mongoose.Schema({
   details: {
     area: { 
       value: { type: Number },
-      unit: { type: String, enum: ['sqft', 'sqyrd', 'sqmt', 'acre'], default: 'sqft' },
+      unit: { type: String, enum: ['sqft', 'sqyrd', 'sqmt', 'acre', 'sq. ft.', 'sq. m.', 'dismil', 'gaj', 'bigha', 'katha', 'Sqft', 'Sq. Ft.', 'Gaj', 'Dismil', 'Acre', 'Bigha', 'Katha', 'sq. ft.'], default: 'sqft' },
       super_built_up_area: { type: Number },
       carpet_area: { type: Number }
     },
     bhk: { type: Number },
     bathrooms: { type: Number },
     washrooms: { type: Number },
-    furnishing: { type: String, enum: ['unfurnished', 'semi-furnished', 'fully-furnished'], default: 'unfurnished' },
+    furnishing: { type: String, enum: ['unfurnished', 'semi-furnished', 'fully-furnished', 'Unfurnished', 'Semi Furnished', 'Fully Furnished'], default: 'unfurnished' },
     floor_number: { type: Number },
     total_floors: { type: Number },
     parking: { type: String, enum: ['none', 'covered', 'open'], default: 'none' },

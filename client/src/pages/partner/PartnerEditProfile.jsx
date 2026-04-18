@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Edit2, Save, Building2, 
-  Mail, Phone, MapPin, User, Loader2 
+  Mail, Phone, MapPin, User, Loader2, X 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -61,6 +61,22 @@ export default function PartnerEditProfile() {
 
       if (response.data.success) {
         updateUser(response.data.data);
+        
+        // Log Activity
+        const uid = user?._id || user?.id;
+        if (uid) {
+           const logKey = `baserabazar_activity_${uid}`;
+           let logs = [];
+           try { logs = JSON.parse(localStorage.getItem(logKey)) || []; } catch(e){}
+           logs.push({
+             type: 'profile',
+             title: 'Profile Updated',
+             time: 'Just now',
+             timestamp: new Date().toISOString()
+           });
+           localStorage.setItem(logKey, JSON.stringify(logs));
+        }
+
         alert('Profile updated successfully!');
         navigate('/partner/profile');
       }
@@ -73,7 +89,7 @@ export default function PartnerEditProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-10">
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden bg-slate-50 font-sans pb-10">
       {/* Header */}
       <div className="bg-white px-5 py-4 flex items-center justify-between sticky top-0 z-50 border-b border-slate-100">
         <div className="flex items-center gap-3">

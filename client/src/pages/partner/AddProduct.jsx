@@ -238,7 +238,7 @@ export default function AddProduct() {
       await db.create('listings', payload);
       
       setShowConfirmModal(false);
-      navigate('/partner/inventory'); 
+      navigate('/partner/products'); 
     } catch (error) {
       console.error('Error saving product:', error);
       alert(error.response?.data?.message || 'Failed to save product. Please try again.');
@@ -264,7 +264,7 @@ export default function AddProduct() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-24">
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden bg-slate-50 font-sans pb-24">
       {/* Header */}
       <div className="bg-[#001b4e] px-5 py-4 flex items-center gap-4 sticky top-0 z-50 shadow-md">
         <button onClick={() => navigate(-1)} className="text-white hover:bg-white/10 rounded-lg p-1 transition-colors">

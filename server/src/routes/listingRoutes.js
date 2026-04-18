@@ -21,12 +21,14 @@ router.get('/banners', getPublicBanners);
 router.get('/services', getNearbyServices);
 router.get('/mandi', getMandiListings);
 router.get('/categories', getPublicCategories);
-router.get('/:id', getListingById);
 
-// private routes (Partner specific)
+// private routes (Partner specific) — MUST be before /:id catch-all!
+router.get('/my', protect, authorizeRoles('partner'), getMyListings);
 router.post('/properties', protect, authorizeRoles('partner'), createPropertyListing);
 router.post('/services', protect, authorizeRoles('partner'), createServiceListing);
 router.post('/suppliers', protect, authorizeRoles('partner'), createSupplierListing);
-router.get('/my', protect, authorizeRoles('partner'), getMyListings);
+
+// Parameterized catch-all — MUST be LAST
+router.get('/:id', getListingById);
 
 module.exports = router;

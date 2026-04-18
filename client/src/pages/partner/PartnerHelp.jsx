@@ -64,7 +64,7 @@ export default function PartnerHelp() {
   });
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-sans pb-20">
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden bg-[#f8fafc] font-sans pb-20">
       {/* Immersive Hero Section */}
       <div className="relative h-[340px] bg-[#001b4e] overflow-hidden rounded-b-[60px] shadow-2xl">
         {/* Animated Background Orbs */}

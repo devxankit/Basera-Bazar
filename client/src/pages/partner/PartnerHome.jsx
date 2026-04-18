@@ -11,7 +11,8 @@ import {
   ChevronRight,
   History,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Package
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -25,22 +26,21 @@ export default function PartnerHome() {
 
   if (!user) return null;
   const partner = user;
+  const actualRole = (partner?.partner_type || partner?.role || '').toLowerCase();
 
   const getRoleLabel = () => {
-    const roleMatch = partner.role?.toLowerCase() || '';
-    if (roleMatch === 'agent') return 'Agent';
-    if (roleMatch === 'service provider' || roleMatch === 'service') return 'Service Provider';
-    if (roleMatch === 'supplier') return 'Supplier';
-    if (roleMatch === 'mandi_seller') return 'Mandi Seller';
-    return partner.role || 'Partner';
+    if (actualRole.includes('agent')) return 'Agent';
+    if (actualRole.includes('service')) return 'Service Provider';
+    if (actualRole.includes('supplier')) return 'Supplier';
+    if (actualRole.includes('mandi')) return 'Mandi Seller';
+    return partner.partner_type || partner.role || 'Partner';
   };
 
   const getCategoryTheme = () => {
-    const roleMatch = partner.role?.toLowerCase() || '';
-    if (roleMatch === 'agent') return 'Properties';
-    if (roleMatch === 'service provider' || roleMatch === 'service') return 'Services';
-    if (roleMatch === 'supplier') return 'Products';
-    if (roleMatch === 'mandi_seller') return 'Mandi Marketplace';
+    if (actualRole.includes('agent')) return 'Properties';
+    if (actualRole.includes('service')) return 'Services';
+    if (actualRole.includes('supplier')) return 'Products';
+    if (actualRole.includes('mandi')) return 'Mandi Marketplace';
     return 'Items';
   };
 
@@ -53,11 +53,42 @@ export default function PartnerHome() {
     { label: 'Unread', value: '0', icon: <Mail size={24} />, color: 'text-red-500', bgColor: 'bg-red-50' },
   ];
 
-  const recentActivities = [
-    { type: 'Update', title: `Listing Updated: Modern 2BHK Flat`, time: '2 mins ago', icon: <TrendingUp className="text-blue-500" size={18} /> },
-    { type: 'Inquiry', title: `New inquiry from Ramesh Kumar`, time: '1 hour ago', icon: <MessageSquare className="text-green-500" size={18} /> },
-    { type: 'Alert', title: `Subscription expires in 15 days`, time: '3 hours ago', icon: <AlertCircle className="text-orange-500" size={18} /> },
-  ];
+  const getAddActionLabel = () => {
+    if (actualRole.includes('agent')) return 'Property';
+    if (actualRole.includes('service')) return 'Service';
+    return 'Product';
+  };
+
+  const [recentActivities, setRecentActivities] = useState([]);
+
+  useEffect(() => {
+    const fetchActivities = () => {
+      const logs = localStorage.getItem(`baserabazar_activity_${partner._id || partner.id}`);
+      if (logs) {
+        try {
+          const parsed = JSON.parse(logs);
+          setRecentActivities(parsed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5));
+        } catch (e) {
+           setRecentActivities([]);
+        }
+      }
+    };
+    fetchActivities();
+    
+    // Listen for custom events if we dispatch them
+    window.addEventListener('baserabazar_activity_updated', fetchActivities);
+    return () => window.removeEventListener('baserabazar_activity_updated', fetchActivities);
+  }, [partner]);
+
+  const getActivityIcon = (type) => {
+    switch (type) {
+      case 'listing': return <Package className="text-blue-500" size={18} />;
+      case 'profile': return <Users className="text-purple-500" size={18} />;
+      case 'subscription': return <AlertCircle className="text-orange-500" size={18} />;
+      case 'inquiry': return <MessageSquare className="text-green-500" size={18} />;
+      default: return <History className="text-slate-400" size={18} />;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24">
@@ -115,7 +146,7 @@ export default function PartnerHome() {
         </motion.div>
 
         {/* Overview Section */}
-        {partner.role === 'mandi_seller' ? (
+        {actualRole.includes('mandi') ? (
            <MandiOverview stats={overviewStats} partner={partner} />
         ) : (
           <div className="space-y-5">
@@ -145,13 +176,18 @@ export default function PartnerHome() {
           <h2 className="text-[20px] font-medium text-[#001b4e] px-1">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-5">
             <button 
-              onClick={() => navigate('/partner/add-service')}
-              className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-50 flex flex-col items-start text-left group active:scale-95 transition-all"
+              onClick={() => {
+                 if (actualRole.includes('agent')) navigate('/partner/add-property');
+                 else if (actualRole.includes('supplier')) navigate('/partner/add-product');
+                 else if (actualRole.includes('mandi')) navigate('/partner/mandi/add-product');
+                 else navigate('/partner/add-service');
+              }}
+              className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-50 flex flex-col items-start text-left group active:scale-95 transition-all w-full"
             >
               <div className="w-12 h-12 bg-indigo-50 text-[#001b4e] rounded-2xl flex items-center justify-center mb-5 shadow-inner">
                 <PlusCircle size={24} />
               </div>
-              <h4 className="text-[17px] font-medium text-[#001b4e] mb-1">Add {partner.role?.toLowerCase().includes('agent') ? 'Property' : partner.role?.toLowerCase().includes('service') ? 'Service' : 'Product'}</h4>
+              <h4 className="text-[17px] font-medium text-[#001b4e] mb-1">Add {getAddActionLabel()}</h4>
               <p className="text-[13px] font-normal text-slate-400 leading-snug">Create new listing</p>
             </button>
             <button 
@@ -178,7 +214,7 @@ export default function PartnerHome() {
               recentActivities.map((activity, idx) => (
                 <div key={idx} className={`flex items-start gap-4 ${idx !== recentActivities.length - 1 ? 'border-b border-slate-50 pb-5' : ''}`}>
                   <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center shrink-0">
-                    {activity.icon}
+                    {getActivityIcon(activity.type)}
                   </div>
                   <div className="flex-grow">
                     <div className="text-[14px] font-medium text-[#001b4e] leading-snug">{activity.title}</div>
@@ -218,7 +254,7 @@ function MandiOverview({ partner }) {
   }, []);
 
   const mandiStats = [
-    { label: 'Active Products', value: stats?.active_products || '0', icon: <BoxIcon size={20} />, color: 'text-blue-600', bgColor: 'bg-blue-50', path: '/partner/mandi/inventory' },
+    { label: 'Active Products', value: stats?.active_products || '0', icon: <Package size={20} />, color: 'text-blue-600', bgColor: 'bg-blue-50', path: '/partner/mandi/inventory' },
     { label: 'Total Orders', value: stats?.total_orders || '0', icon: <TrendingUp size={20} />, color: 'text-purple-600', bgColor: 'bg-purple-50', path: '/partner/mandi/orders' },
     { label: 'Penalty Due', value: `₹${stats?.penalty_due || 0}`, icon: <AlertCircle size={20} />, color: 'text-rose-600', bgColor: 'bg-rose-50', path: '/partner/mandi/penalties' },
   ];
@@ -267,7 +303,7 @@ function MandiOverview({ partner }) {
                <span className="text-[14px] font-bold">List Material</span>
             </button>
             <button onClick={() => navigate('/partner/mandi/inventory')} className="bg-white p-5 rounded-3xl border border-slate-100 text-[#001b4e] flex flex-col items-center gap-2 shadow-sm active:scale-95 transition-all">
-               <Box size={24} />
+               <Package size={24} />
                <span className="text-[14px] font-bold">Manage Stock</span>
             </button>
          </div>
