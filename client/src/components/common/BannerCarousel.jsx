@@ -16,6 +16,7 @@ const BannerCarousel = () => {
   const [banners, setBanners] = useState(defaultBanners);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageErrors, setImageErrors] = useState({});
+  const [aspectRatio, setAspectRatio] = useState(19/9);
   const timerRef = useRef(null);
 
   const fetchBanners = async () => {
@@ -69,8 +70,22 @@ const BannerCarousel = () => {
 
   const handleImageError = (id) => setImageErrors(prev => ({ ...prev, [id]: true }));
 
+  const handleImageLoad = (e) => {
+    // Only set aspect ratio from the first image if it hasn't been set or to match the uploaded dimensions
+    const { naturalWidth, naturalHeight } = e.target;
+    if (naturalWidth && naturalHeight) {
+      const ratio = naturalWidth / naturalHeight;
+      if (Math.abs(aspectRatio - ratio) > 0.01) {
+        setAspectRatio(ratio);
+      }
+    }
+  };
+
   return (
-    <div className="relative w-full h-[160px] md:h-64 lg:h-80 overflow-hidden rounded-2xl group shadow-xl shadow-slate-200 bg-slate-100 border border-white">
+    <div 
+      className="relative w-full overflow-hidden rounded-2xl group shadow-xl shadow-slate-200 bg-slate-100 border border-white"
+      style={{ aspectRatio: `${aspectRatio}` }}
+    >
       <AnimatePresence initial={false}>
         <motion.div
           key={currentIndex}
@@ -94,8 +109,9 @@ const BannerCarousel = () => {
             <img
               src={banners[currentIndex].imageUrl}
               alt={banners[currentIndex].title}
+              onLoad={handleImageLoad}
               onError={() => handleImageError(banners[currentIndex].id)}
-              className="w-full h-full object-cover select-none pointer-events-none"
+              className="w-full h-full object-fill select-none pointer-events-none"
               loading="eager"
             />
           )}
