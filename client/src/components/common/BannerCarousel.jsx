@@ -16,7 +16,6 @@ const BannerCarousel = () => {
   const [banners, setBanners] = useState(defaultBanners);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageErrors, setImageErrors] = useState({});
-  const [aspectRatio, setAspectRatio] = useState(19/9);
   const timerRef = useRef(null);
 
   const fetchBanners = async () => {
@@ -28,7 +27,10 @@ const BannerCarousel = () => {
         imageUrl: b.image_url || b.imageUrl
       }));
       
-      const activeBanners = normalizedData.filter(b => b.is_active !== false);
+      const activeBanners = normalizedData.filter(b => 
+        b.is_active !== false && 
+        !b.imageUrl?.includes('mandi_home_banner.png')
+      );
       if (activeBanners.length > 0) {
         setBanners(activeBanners);
       } else {
@@ -70,21 +72,10 @@ const BannerCarousel = () => {
 
   const handleImageError = (id) => setImageErrors(prev => ({ ...prev, [id]: true }));
 
-  const handleImageLoad = (e) => {
-    // Only set aspect ratio from the first image if it hasn't been set or to match the uploaded dimensions
-    const { naturalWidth, naturalHeight } = e.target;
-    if (naturalWidth && naturalHeight) {
-      const ratio = naturalWidth / naturalHeight;
-      if (Math.abs(aspectRatio - ratio) > 0.01) {
-        setAspectRatio(ratio);
-      }
-    }
-  };
-
   return (
     <div 
-      className="relative w-full overflow-hidden rounded-2xl group shadow-xl shadow-slate-200 bg-slate-100 border border-white"
-      style={{ aspectRatio: `${aspectRatio}` }}
+      className="relative w-full overflow-hidden rounded-[28px] group shadow-xl shadow-slate-200 bg-slate-100 border border-white"
+      style={{ aspectRatio: '21/10' }}
     >
       <AnimatePresence initial={false}>
         <motion.div
@@ -109,25 +100,24 @@ const BannerCarousel = () => {
             <img
               src={banners[currentIndex].imageUrl}
               alt={banners[currentIndex].title}
-              onLoad={handleImageLoad}
               onError={() => handleImageError(banners[currentIndex].id)}
               className="w-full h-full object-fill select-none pointer-events-none"
               loading="eager"
             />
           )}
           {/* Overlay for better text/indicator contrast */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
         </motion.div>
       </AnimatePresence>
       
       {/* Navigation Indicators */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2.5 z-10 px-4 py-2 bg-black/10 backdrop-blur-md rounded-full border border-white/10">
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2.5 z-10">
         {banners.map((_, i) => (
           <button
             key={i}
             onClick={() => { setCurrentIndex(i); resetTimer(); }}
-            className={`h-1.5 rounded-full transition-all duration-500 ${
-              i === currentIndex ? 'w-8 bg-white shadow-sm' : 'w-1.5 bg-white/40 hover:bg-white/60'
+            className={`h-1.5 rounded-full transition-all duration-500 shadow-sm ${
+              i === currentIndex ? 'w-8 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/60'
             }`}
           />
         ))}
