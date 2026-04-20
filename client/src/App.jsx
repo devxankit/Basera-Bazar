@@ -118,14 +118,14 @@ const UserLayout = ({ children }) => {
   const isAuth = location.pathname === '/login' || location.pathname === '/signup';
   const isCategory = location.pathname.startsWith('/category/');
   const isBrowse = location.pathname.startsWith('/browse/');
-  const isMandi = location.pathname.startsWith('/mandi-bazar');
+  const isMandi = location.pathname.startsWith('/mandi');
   const isDetail = location.pathname.startsWith('/listing/') || location.pathname.startsWith('/service/');
   const showBottomNav = !isDetail;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
       {isHome && <Header />}
-      <main className={`flex-grow ${showBottomNav ? 'pb-32' : 'pb-0'} ${(!isHome && !isAuth && !isCategory && !isBrowse && !isMandi) ? 'pt-4' : ''}`}>
+      <main className={`flex-grow ${showBottomNav ? 'pb-32' : 'pb-0'} ${(!isHome && !isAuth && !isCategory && !isBrowse && !isMandi && !isDetail) ? 'pt-4' : ''}`}>
         {children}
       </main>
 
