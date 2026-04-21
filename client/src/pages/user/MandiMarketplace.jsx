@@ -20,14 +20,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
 
-// Supplier Assets
-import aggregateImg from '../../assets/suppliers/aggregate supplier.jpg';
-import brickImg from '../../assets/suppliers/brick supplier.jpg';
-import cementImg from '../../assets/suppliers/cement supplier.jpg';
-import materialsImg from '../../assets/suppliers/cnstruction materials supplier.jpg';
-import sandImg from '../../assets/suppliers/sand supplier.jpg';
-import tmtImg from '../../assets/suppliers/tmt supplier.jpg';
-
 export default function MandiMarketplace() {
    const navigate = useNavigate();
    const [categories, setCategories] = useState([]);
@@ -50,16 +42,10 @@ export default function MandiMarketplace() {
    }, []);
 
    const getCatImage = (cat) => {
-      const name = cat.name?.toLowerCase() || '';
-      if (name.includes('aggregate')) return aggregateImg;
-      if (name.includes('brick')) return brickImg;
-      if (name.includes('cement')) return cementImg;
-      if (name.includes('material')) return materialsImg;
-      if (name.includes('sand') || name.includes('बालू') || name.includes('रेत')) return sandImg;
-      if (name.includes('tmt') || name.includes('steel') || name.includes('saria')) return tmtImg;
-      
-      // Secondary: Try database icon if it exists and looks valid (not a broken local path like missing uploads)
-      if (cat.icon && typeof cat.icon === 'string' && cat.icon.length > 5) return cat.icon;
+      // Primary: Use database icon URL
+      if (cat.icon && typeof cat.icon === 'string' && cat.icon.length > 5) {
+         return cat.icon;
+      }
       
       // Final safe fallback
       return '/default-product-category-image.png';
@@ -102,10 +88,10 @@ export default function MandiMarketplace() {
             </div>
 
             {/* 4 Dark Cards Grid (3 DB Categories + 1 More Button) */}
-            <div className="px-5 mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="px-3 md:px-5 mt-6 grid grid-cols-4 gap-2 md:gap-4">
                {loading ? (
                   Array(4).fill(0).map((_, i) => (
-                     <div key={i} className="bg-[#2A3F54] rounded-[16px] p-3 h-48 animate-pulse" />
+                     <div key={i} className="bg-[#2A3F54] rounded-[12px] p-2 h-36 animate-pulse" />
                   ))
                ) : (
                   <>
@@ -113,22 +99,22 @@ export default function MandiMarketplace() {
                         <div 
                            key={cat._id || i}
                            onClick={() => navigate(`/mandi-bazar/category/${cat._id}`)}
-                           className="bg-[#2A3F54] rounded-[16px] p-3 flex flex-col items-center gap-3 cursor-pointer shadow-xl active:scale-95 transition-transform"
+                           className="bg-white rounded-[16px] p-2 flex flex-col items-center gap-2 cursor-pointer shadow-xl active:scale-95 transition-transform border border-slate-100"
                         >
-                           <div className="w-full aspect-square bg-[#fbf9f6] rounded-[12px] flex flex-col items-center justify-center p-2 relative overflow-hidden">
+                        <div className="w-full aspect-square flex flex-col items-center justify-center p-1 relative overflow-hidden">
                               <img 
                                  src={getCatImage(cat)} 
-                                 className="w-full h-full object-contain mix-blend-multiply drop-shadow-md" 
+                                 className="w-full h-full object-contain mix-blend-multiply" 
                                  alt={cat.name} 
                                  onError={(e) => { e.target.onerror = null; e.target.src = '/default-product-category-image.png'; }}
                               />
                            </div>
-                           <div className="text-center w-full flex flex-col items-center justify-between gap-1 py-1 flex-grow">
-                              <h3 className="text-white font-semibold text-[13px] leading-tight truncate w-full capitalize">{cat.name}</h3>
-                              <p className="text-white/80 text-[10px] font-bold tracking-widest uppercase whitespace-nowrap">
+                           <div className="text-center w-full flex flex-col items-center justify-between gap-[2px] py-0.5 flex-grow">
+                              <h3 className="text-[#0c2461] font-semibold text-[10px] md:text-[13px] leading-tight truncate w-full capitalize">{cat.name?.split(' ')[0]}</h3>
+                              <p className="text-slate-500 text-[7px] md:text-[10px] font-bold tracking-widest uppercase whitespace-nowrap mb-1">
                                  {cat.listing_count ? `${cat.listing_count} Supplier${cat.listing_count > 1 ? 's' : ''}` : 'Check Price'}
                               </p>
-                              <button className="mt-auto border border-white/40 text-white rounded-[24px] py-1 px-3 text-[10px] font-extrabold tracking-wide hover:bg-white hover:text-[#2A3F54] transition-colors whitespace-nowrap">
+                              <button className="mt-auto bg-[#0c2461] border border-transparent text-white rounded-[24px] py-0.5 px-2 md:py-1 md:px-3 text-[8px] md:text-[10px] font-extrabold tracking-wide hover:bg-[#1e293b] transition-colors whitespace-nowrap shadow-sm">
                                  SHOP NOW
                               </button>
                            </div>
@@ -138,16 +124,16 @@ export default function MandiMarketplace() {
                      {/* 4th Card -> More Button */}
                      <div 
                         onClick={() => document.getElementById('main-content').scrollIntoView({ behavior: 'smooth' })}
-                        className="bg-[#2A3F54] rounded-[16px] p-3 flex flex-col items-center justify-center gap-3 cursor-pointer shadow-xl active:scale-95 transition-transform"
+                        className="bg-white rounded-[16px] p-2 flex flex-col items-center justify-center gap-2 cursor-pointer shadow-xl active:scale-95 transition-transform border border-slate-100"
                      >
-                        <div className="w-full aspect-square bg-white/5 rounded-[12px] flex flex-col items-center justify-center relative overflow-hidden group">
-                           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <Plus size={24} className="text-white" />
+                        <div className="w-full aspect-square flex flex-col items-center justify-center relative overflow-hidden group p-1.5">
+                           <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-slate-50 flex items-center justify-center group-hover:scale-110 transition-transform border border-slate-100">
+                              <Plus size={18} className="text-[#0c2461]" />
                            </div>
                         </div>
-                        <div className="text-center w-full flex flex-col items-center gap-1 py-1">
-                           <span className="text-white font-extrabold tracking-widest uppercase text-[12px] mt-2 block">View All</span>
-                           <span className="text-white/50 text-[10px] font-bold tracking-wider">CATEGORIES</span>
+                        <div className="text-center w-full flex flex-col items-center gap-1 py-0.5 justify-center flex-grow">
+                           <span className="text-[#0c2461] font-extrabold tracking-widest uppercase text-[10px] md:text-[12px] block whitespace-nowrap">View All</span>
+                           <span className="text-slate-400 text-[7px] md:text-[10px] font-bold tracking-wider">CATEGORIES</span>
                         </div>
                      </div>
                   </>
@@ -181,10 +167,10 @@ export default function MandiMarketplace() {
                         onClick={() => navigate(`/mandi-bazar/category/${cat._id}`)}
                         className="flex flex-col items-center gap-2 cursor-pointer group active:scale-95 transition-transform"
                      >
-                        <div className="w-full aspect-square bg-[#f0f4f4] rounded-[20px] p-2 flex items-center justify-center shadow-sm border border-slate-50 transition-shadow overflow-hidden">
+                        <div className="w-full aspect-square flex items-center justify-center transition-shadow overflow-hidden p-2 rounded-full bg-white shadow-sm">
                            <img 
                               src={getCatImage(cat)} 
-                              className="w-full h-full object-contain drop-shadow-sm mix-blend-multiply group-hover:scale-110 transition-transform duration-300" 
+                              className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-300" 
                               alt={cat.name} 
                               onError={(e) => { e.target.onerror = null; e.target.src = '/default-product-category-image.png'; }}
                            />
@@ -202,27 +188,46 @@ export default function MandiMarketplace() {
             </div>
 
             {/* Why Trust Mandi Bazar */}
-            <div className="bg-indigo-900 rounded-[40px] p-8 text-white relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-20 -mt-20 blur-2xl" />
-               <h3 className="text-[20px] font-bold mb-4 relative z-10">Direct From Mandi</h3>
-               <div className="space-y-4 relative z-10">
+            {/* Light Glassmorphism Trust Section: Direct From Mandi */}
+            <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               whileInView={{ opacity: 1, y: 0 }}
+               viewport={{ once: true }}
+               className="bg-white/70 backdrop-blur-3xl rounded-[32px] xs:rounded-[40px] p-5 xs:p-9 relative overflow-hidden shadow-[0_20px_50px_-10px_rgba(0,0,0,0.05)] border border-white/60 mx-1 xs:mx-0"
+            >
+               {/* Decorative soft light glows */}
+               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 rounded-full -mr-32 -mt-32 blur-[80px]" />
+               <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-50/40 rounded-full -ml-16 -mb-16 blur-[60px]" />
+               
+               <h3 className="text-[22px] xs:text-[28px] font-black mb-8 xs:mb-10 relative z-10 tracking-tight leading-tight text-[#0c2461]">
+                  Direct From Mandi
+               </h3>
+               
+               <div className="space-y-6 xs:space-y-8 relative z-10">
                   {[
-                     { icon: <ShieldCheck size={18} />, title: "Quality Guaranteed", desc: "Materials inspected before dispatch" },
-                     { icon: <Truck size={18} />, title: "Live Tracking", desc: "Real-time updates on site delivery" },
-                     { icon: <IndianRupee size={18} />, title: "Cash on Delivery", desc: "Pay after unloading materials" }
+                     { icon: <ShieldCheck size={22} />, title: "Quality Guaranteed", desc: "Inspection before dispatch" },
+                     { icon: <Truck size={22} />, title: "Live Tracking", desc: "Real-time updates on site" },
+                     { icon: <IndianRupee size={22} />, title: "Cash on Delivery", desc: "Pay after unloading" }
                   ].map((item, i) => (
-                     <div key={i} className="flex gap-3">
-                        <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0 border border-white/10">
-                           {item.icon}
+                     <motion.div 
+                        key={i}
+                        initial={{ opacity: 0, x: -10 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.1, duration: 0.4 }}
+                        viewport={{ once: true }}
+                        className="flex items-center gap-4 xs:gap-6 group"
+                     >
+                        <div className="w-11 h-11 xs:w-16 xs:h-16 bg-white rounded-[16px] xs:rounded-[24px] flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(12,36,97,0.06)] border border-slate-100 group-hover:scale-105 transition-all duration-300">
+                           <div className="text-[#0c2461]/90 scale-90 xs:scale-100">{item.icon}</div>
                         </div>
-                        <div>
-                           <h4 className="text-[14px] font-bold">{item.title}</h4>
-                           <p className="text-[11px] text-white/50">{item.desc}</p>
+                        <div className="flex flex-col gap-0.5">
+                           <h4 className="text-[15px] xs:text-[19px] font-extrabold text-[#0c2461] tracking-tight xs:tracking-wide">{item.title}</h4>
+                           <p className="text-[11px] xs:text-[14px] text-slate-500 font-bold leading-tight line-clamp-1 xs:line-clamp-none">{item.desc}</p>
                         </div>
-                     </div>
+                     </motion.div>
                   ))}
                </div>
-            </div>
+            </motion.div>
          </div>
       </div>
    );

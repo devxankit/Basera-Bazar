@@ -118,30 +118,7 @@ const Home = () => {
         <BannerCarousel />
       </div>
 
-      {/* Mandi Bazar Banner */}
-      <div className="px-5">
-        <div
-          onClick={() => navigate('/mandi-bazar')}
-          className="bg-gradient-to-br from-[#1f2355] to-[#2a307d] rounded-[28px] p-4 text-white relative overflow-hidden shadow-xl shadow-indigo-900/10 active:scale-[0.98] transition-all cursor-pointer group"
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-8 -mt-8 blur-xl transition-transform" />
 
-          <div className="relative z-10 flex flex-col gap-2">
-            <div className="flex items-center gap-2 px-2.5 py-1 bg-white/10 w-fit rounded-full border border-white/5 backdrop-blur-sm">
-              <ShoppingBag size={10} className="text-[#fa8639]" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Mandi Bazar</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <h2 className="text-[18px] font-black leading-tight italic">Direct <span className="text-[#fa8639]">Ordering</span></h2>
-                <p className="text-[11px] text-white/50 font-medium max-w-[200px]">Get materials delivered directly to your site.</p>
-              </div>
-              <ArrowRight size={20} className="text-[#fa8639] group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Vertical Selection Section (Ref #3) */}
       <div className="px-5 space-y-4">
@@ -277,7 +254,20 @@ const Home = () => {
           </div>
         </div>
       )}
-
+      {/* Bottom Mandi Bazar Final Banner */}
+      <div className="px-5 pb-8">
+        <div 
+          onClick={() => navigate('/mandi-bazar')}
+          className="relative w-full rounded-[32px] overflow-hidden shadow-2xl cursor-pointer group active:scale-[0.99] transition-all"
+        >
+          <img 
+            src="/mandi_home_banner.png" 
+            className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700" 
+            alt="Mandi Bazar Banner" 
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        </div>
+      </div>
     </div>
   );
 };

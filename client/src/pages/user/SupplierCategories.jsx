@@ -4,22 +4,6 @@ import { ArrowLeft, Search, MapPin, ChevronRight, Store, Loader2 } from 'lucide-
 import api from '../../services/api';
 import { useLocationContext } from '../../context/LocationContext';
 
-import aggregateImg from '../../assets/suppliers/aggregate supplier.jpg';
-import brickImg from '../../assets/suppliers/brick supplier.jpg';
-import cementImg from '../../assets/suppliers/cement supplier.jpg';
-import materialsImg from '../../assets/suppliers/cnstruction materials supplier.jpg';
-import sandImg from '../../assets/suppliers/sand supplier.jpg';
-import tmtImg from '../../assets/suppliers/tmt supplier.jpg';
-
-const localImages = {
-  'aggregate-supplier': aggregateImg,
-  'bricks-suppliers': brickImg,
-  'cement-supplier': cementImg,
-  'construction-materials-supplier': materialsImg,
-  'sand-supplier': sandImg,
-  'tmt-supplier': tmtImg,
-};
-
 const SupplierCategories = () => {
   const navigate = useNavigate();
   const { location } = useLocationContext();
@@ -87,11 +71,13 @@ const SupplierCategories = () => {
               >
                 <div className="flex items-center gap-5">
                   <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center p-2 group-hover:scale-110 transition-transform overflow-hidden">
-                    {cat.icon || localImages[cat.slug] ? (
-                      <img src={cat.icon || localImages[cat.slug]} alt={cat.name} className="w-full h-full object-contain" style={{ mixBlendMode: 'multiply' }} />
-                    ) : (
-                      <div className="w-full h-full bg-slate-50 rounded-xl" />
-                    )}
+                    <img 
+                      src={cat.icon && cat.icon.length > 5 ? cat.icon : '/default-product-category-image.png'} 
+                      alt={cat.name} 
+                      className="w-full h-full object-contain" 
+                      style={{ mixBlendMode: 'multiply' }} 
+                      onError={(e) => { e.target.onerror = null; e.target.src = '/default-product-category-image.png'; }}
+                    />
                   </div>
                   <div className="text-left space-y-2">
                     <h3 className="text-[14px] font-semibold text-primary-900 leading-tight tracking-wide">{cat.name}</h3>
