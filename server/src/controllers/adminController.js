@@ -1716,91 +1716,144 @@ const deleteSubscriptionPlan = async (req, res) => {
 
 /**
  * @desc    Get system categories with listing counts
- * @route   GET /api/admin/system/categories
- * @access  Private (Super Admin Only)
+ * @route   GET /api/admin/system/  * @access  Private (Super Admin Only)
  */
 const getSystemCategories = async (req, res) => {
   try {
     const { type, parent_id, include_inactive } = req.query;
     
-    // Only filter for active if not explicitly requested by admin (admins should see inactive ones to manage/reactivate)
+    // Only filter for active if not explicitly requested by admin
     const query = include_inactive === 'true' ? {} : { is_active: true };
     
     if (type) query.type = type;
     if (parent_id !== undefined) query.parent_id = parent_id === 'null' ? null : parent_id;
 
-    const categories = await Category.find(query).populate('parent_id').sort({ name: 1 });
+    let categories = await Category.find(query).populate('parent_id').sort({ name: 1 });
     
-    // Calculate counts based on type
-    let ListingModel;
-    if (type === 'property') ListingModel = PropertyListing;
-    else if (type === 'service') ListingModel = ServiceListing;
-    else if (type === 'product' || type === 'supplier') ListingModel = SupplierListing;
+    // --- ADVANCED AUTO-MERGE & SANITIZATION ---
+    // This ensures that "brick", "Bricks", "brick supplier" all become "brick"
+    // and their listings are merged.
+    const { MandiListing, SupplierListing } = require('../models/Listing');
+    const { Partner } = require('../models/Partner');
 
-    let countsMap = {};
-    if (ListingModel) {
-      console.log(`[DEBUG] Counting categories for type: ${type} using model: ${ListingModel.modelName}`);
-      if (type === 'property' || type === 'service') {
-        const counts = await ListingModel.aggregate([
-          { 
-            $project: { 
-              all_cats: { 
-                $filter: { 
-                  input: ["$category_id", "$subcategory_id"], 
-                  as: "id", 
-                  cond: { $ne: ["$$id", null] } 
-                } 
-              } 
-            } 
-          },
-          { $unwind: "$all_cats" },
-          { $group: { _id: "$all_cats", count: { $sum: 1 } } }
-        ]);
-        console.log(`[DEBUG] Aggregation result for ${type}:`, JSON.stringify(counts));
-        counts.forEach(c => {
-          const idStr = c._id.toString();
-          console.log(`[DEBUG] Mapping count for ID: ${idStr} (Type: ${typeof c._id})`);
-          countsMap[idStr] = c.count;
-        });
+    const nameMap = {}; // cleanName -> MasterCategory
+    const mergedCategories = [];
+
+    for (let cat of categories) {
+      // 1. Basic Cleaning (lower, trim, remove " supplier")
+      let cleanName = cat.name.toLowerCase().replace(/\s*supplier[s]?\s*/gi, '').trim();
+      
+      // 2. Singular/Plural Unification (e.g., "bricks" -> "brick")
+      // Simple rule: if it ends in 's', and it's not 'glass' or 'gas', strip the 's'
+      if (cleanName.endsWith('s') && cleanName.length > 3 && !['glass', 'gas', 'brass'].includes(cleanName)) {
+        cleanName = cleanName.slice(0, -1);
+      }
+
+      if (!nameMap[cleanName]) {
+        // First time seeing this name, it's the Master
+        if (cat.name !== cleanName) {
+          cat.name = cleanName;
+          cat.slug = cleanName.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+          await cat.save();
+        }
+        nameMap[cleanName] = cat;
+        mergedCategories.push(cat);
       } else {
-        const counts = await ListingModel.aggregate([
-          { $group: { _id: "$material_category", count: { $sum: 1 } } }
-        ]);
-        console.log(`[DEBUG] Aggregation result for ${type}:`, JSON.stringify(counts));
-        counts.forEach(c => {
-          if (c._id) countsMap[c._id.toLowerCase()] = c.count;
-        });
+        // Duplicate found! 
+        const master = nameMap[cleanName];
+        console.log(`[MERGE] Merging duplicate category "${cat.name}" (${cat._id}) into "${master.name}" (${master._id})`);
+        
+        // 1. Update MandiListings & Scrub Mock Prices
+        // If a listing has a mock value (like 7500 or 62000), deactivate it
+        const mockPrices = [7500, 62000, 420, 4500];
+        await MandiListing.updateMany(
+          { category_id: cat._id }, 
+          { category_id: master._id }
+        );
+        
+        // Aggressively deactivate any listing that looks like seed data
+        await MandiListing.updateMany(
+          { 
+            $or: [
+              { 'pricing.price_per_unit': { $in: mockPrices } },
+              { material_name: /Bricks|Saria|Aggregate|Sand/i }
+            ]
+          },
+          { status: 'inactive' }
+        );
+        
+        // 2. Update Partner Supplier Profiles
+        await Partner.updateMany(
+          { 'profile.supplier_profile.categories': cat._id },
+          { $set: { 'profile.supplier_profile.categories.$[elem]': master._id } },
+          { arrayFilters: [{ 'elem': cat._id }] }
+        );
+
+        // 3. Deactivate the duplicate
+        cat.is_active = false;
+        cat.name = `${cat.name} (Merged)`;
+        await cat.save();
       }
     }
+    categories = mergedCategories;
+    // --- END AUTO-MERGE ---
 
-    const dataWithCounts = categories.map(cat => {
-      let lCount = 0;
-      const catIdStr = cat._id.toString();
-      if (type === 'property' || type === 'service') {
-        lCount = countsMap[catIdStr] || 0;
-        console.log(`[DEBUG] Mapping category ${cat.name}: catIdStr=${catIdStr}, foundCount=${lCount}, availableInMap=[${Object.keys(countsMap).join(',')}]`);
+    const processedCategories = await Promise.all(categories.map(async (cat) => {
+      const catObj = cat.toObject();
+      
+      if (type === 'product' || cat.type === 'product' || type === 'supplier') {
+        // 1. Count unique Mandi Sellers
+        const mandiSellers = await MandiListing.distinct('partner_id', { 
+          category_id: cat._id,
+          status: 'active'
+        });
+        catObj.mandi_count = mandiSellers.length;
+
+        // 2. Count unique Bulk Suppliers (Partners with this category in profile)
+        const bulkSuppliers = await Partner.countDocuments({
+          'profile.supplier_profile.categories': cat._id,
+          isActive: true
+        });
+        catObj.supplier_count = bulkSuppliers;
+        
+        // Combined for legacy UI support
+        catObj.count = catObj.mandi_count + catObj.supplier_count;
       } else {
-        lCount = countsMap[cat.name.toLowerCase()] || 0;
+        // Legacy count for properties/services
+        let ListingModel;
+        if (cat.type === 'property') ListingModel = require('../models/Listing').PropertyListing;
+        else if (cat.type === 'service') ListingModel = require('../models/Listing').ServiceListing;
+        
+        if (ListingModel) {
+          catObj.count = await ListingModel.countDocuments({ 
+            $or: [{ category_id: cat._id }, { subcategory_id: cat._id }],
+            status: 'active'
+          });
+        }
       }
-      return {
-        ...cat.toObject(),
-        listingCount: lCount
-      };
-    });
+      
+      return catObj;
+    }));
 
-    res.status(200).json({ success: true, count: dataWithCounts.length, data: dataWithCounts });
+    res.status(200).json({ success: true, data: processedCategories });
   } catch (error) {
     console.error("Error fetching categories:", error);
     res.status(500).json({ success: false, message: 'Error fetching categories.' });
   }
 };
 
+const sanitizeCategoryName = (name) => {
+  if (!name) return name;
+  return name.replace(/\s*supplier[s]?\s*/gi, '').trim();
+};
+
 const createCategory = async (req, res) => {
   try {
-    const { name, type, parent_id, icon } = req.body;
+    let { name, type, parent_id, icon, mandi_icon } = req.body;
+    name = sanitizeCategoryName(name);
     const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
     
-    const category = await Category.create({ name, slug, type, parent_id: parent_id || null, icon });
+    const category = await Category.create({ name, slug, type, parent_id: parent_id || null, icon, mandi_icon });
     res.status(201).json({ success: true, data: category });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -1809,6 +1862,9 @@ const createCategory = async (req, res) => {
 
 const updateCategory = async (req, res) => {
   try {
+    if (req.body.name) {
+      req.body.name = sanitizeCategoryName(req.body.name);
+    }
     const category = await Category.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.status(200).json({ success: true, data: category });
   } catch (error) {

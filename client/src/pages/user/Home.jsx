@@ -30,14 +30,14 @@ const Home = () => {
           state: location.state
         };
 
-        const props = await db.getAll('listings', { 
-          category: 'property', 
+        const props = await db.getAll('listings', {
+          category: 'property',
           is_featured: true,
           limit: 6,
           ...locationParams
         });
-        const srvs = await db.getAll('listings', { 
-          category: 'service', 
+        const srvs = await db.getAll('listings', {
+          category: 'service',
           is_featured: true,
           limit: 6,
           ...locationParams
@@ -54,41 +54,41 @@ const Home = () => {
   }, [location]); // Refresh when location changes
 
   const categories = [
-    { 
-      id: 'property', 
-      title: 'PROPERTIES', 
-      count: '1.2k+ listings', 
-      icon: Building2, 
+    {
+      id: 'property',
+      title: 'PROPERTIES',
+      count: '1.2k+ listings',
+      icon: Building2,
       bgColor: 'bg-blue-50',
       iconColor: 'text-blue-600',
       borderColor: 'border-blue-100',
       path: '/category/property'
     },
-    { 
-      id: 'service', 
-      title: 'SERVICES', 
-      count: '800+ listings', 
-      icon: Wrench, 
+    {
+      id: 'service',
+      title: 'SERVICES',
+      count: '800+ listings',
+      icon: Wrench,
       bgColor: 'bg-orange-50',
       iconColor: 'text-orange-500',
       borderColor: 'border-orange-100',
       path: '/category/service'
     },
-    { 
-      id: 'supplier', 
-      title: 'SUPPLIERS', 
-      count: 'Enquiry System', 
-      icon: Store, 
+    {
+      id: 'supplier',
+      title: 'SUPPLIERS',
+      count: 'Enquiry System',
+      icon: Store,
       bgColor: 'bg-emerald-50',
       iconColor: 'text-emerald-500',
       borderColor: 'border-emerald-100',
       path: '/category/supplier'
     },
-    { 
-      id: 'mandi', 
-      title: 'MANDI BAZAR', 
-      count: 'Direct Order', 
-      icon: ShoppingBag, 
+    {
+      id: 'mandi',
+      title: 'MANDI BAZAR',
+      count: 'Direct Order',
+      icon: ShoppingBag,
       bgColor: 'bg-indigo-50',
       iconColor: 'text-[#1f2355]',
       borderColor: 'border-indigo-100',
@@ -99,8 +99,8 @@ const Home = () => {
   return (
     <div className="space-y-6 bg-slate-50 min-h-screen">
       {/* Ultra-Slim Location Info Bar */}
-      <div className="pt-2 px-3 xs:px-6"> 
-        <button 
+      <div className="pt-2 px-3 xs:px-6">
+        <button
           onClick={() => window.dispatchEvent(new CustomEvent('open-location-selector'))}
           className="w-full bg-[#f8fafc] border border-slate-200 rounded-2xl py-2.5 px-3 flex items-center gap-2 active:scale-[0.98] transition-all"
         >
@@ -118,17 +118,28 @@ const Home = () => {
         <BannerCarousel />
       </div>
 
-      {/* New Mandi Bazar Image Banner */}
+      {/* Mandi Bazar Banner */}
       <div className="px-5">
-        <div 
+        <div
           onClick={() => navigate('/mandi-bazar')}
-          className="rounded-[28px] overflow-hidden shadow-xl shadow-indigo-900/10 active:scale-[0.98] transition-all cursor-pointer group relative border border-slate-100"
+          className="bg-gradient-to-br from-[#1f2355] to-[#2a307d] rounded-[28px] p-4 text-white relative overflow-hidden shadow-xl shadow-indigo-900/10 active:scale-[0.98] transition-all cursor-pointer group"
         >
-           <img 
-            src="/mandi_home_banner.png" 
-            alt="Mandi Bazar - Order Now" 
-            className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-500"
-           />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-8 -mt-8 blur-xl transition-transform" />
+
+          <div className="relative z-10 flex flex-col gap-2">
+            <div className="flex items-center gap-2 px-2.5 py-1 bg-white/10 w-fit rounded-full border border-white/5 backdrop-blur-sm">
+              <ShoppingBag size={10} className="text-[#fa8639]" />
+              <span className="text-[9px] font-black uppercase tracking-widest">Mandi Bazar</span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <h2 className="text-[18px] font-black leading-tight italic">Direct <span className="text-[#fa8639]">Ordering</span></h2>
+                <p className="text-[11px] text-white/50 font-medium max-w-[200px]">Get materials delivered directly to your site.</p>
+              </div>
+              <ArrowRight size={20} className="text-[#fa8639] group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -139,7 +150,7 @@ const Home = () => {
         </h2>
         <div className="grid grid-cols-2 gap-3">
           {categories.map((cat) => (
-            <button 
+            <button
               key={cat.id}
               onClick={() => navigate(cat.path)}
               className="bg-white p-3 rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/40 flex flex-col items-center gap-2 active:scale-95 transition-all text-center group"
@@ -168,11 +179,11 @@ const Home = () => {
             <h2 className="text-lg font-bold text-[#1f2355] tracking-tight uppercase">Featured Properties</h2>
             <button onClick={() => navigate('/category/property')} className="text-xs font-bold text-slate-400 hover:text-[#124db5] transition-all uppercase tracking-widest">View All</button>
           </div>
-          
+
           <div className="flex gap-4 overflow-x-auto px-5 pb-4 no-scrollbar">
             {properties.map((item) => (
-              <div 
-                key={item.id} 
+              <div
+                key={item.id}
                 onClick={() => navigate(`/listing/${item.id}`)}
                 className="min-w-[260px] max-w-[260px] bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/20 overflow-hidden active:scale-[0.98] transition-all group relative cursor-pointer"
               >
@@ -213,11 +224,11 @@ const Home = () => {
             <h2 className="text-lg font-bold text-[#1f2355] tracking-tight uppercase">Featured Services</h2>
             <button onClick={() => navigate('/category/service')} className="text-xs font-bold text-slate-400 hover:text-[#124db5] transition-all uppercase tracking-widest">View All</button>
           </div>
-          
+
           <div className="flex gap-4 overflow-x-auto px-5 pb-4 no-scrollbar">
             {services.map((item) => (
-              <div 
-                key={item.id} 
+              <div
+                key={item.id}
                 onClick={() => navigate(`/service/${item.id}`)}
                 className="min-w-[260px] max-w-[260px] bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/20 overflow-hidden active:scale-[0.98] transition-all cursor-pointer group"
               >
@@ -226,7 +237,7 @@ const Home = () => {
                 </div>
                 <div className="p-4 space-y-2">
                   <h3 className="font-bold text-[#1f2355] text-[15px] truncate">{item.title}</h3>
-                  
+
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-[#f1f3ff] flex items-center justify-center text-[#1f2355] font-black text-[10px] shrink-0">
                       {String(item.businessName || item.title || 'BB').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()}

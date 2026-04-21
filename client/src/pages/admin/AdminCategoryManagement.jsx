@@ -29,26 +29,6 @@ export default function AdminCategoryManagement({
       if (res.data.success) {
         setItems(res.data.data);
       }
-
-      // For supplier categories: compute how many suppliers supply each material
-      if (type === 'supplier') {
-        const supRes = await api.get('/admin/users');
-        if (supRes.data.success) {
-          const suppliers = supRes.data.data.filter(u =>
-            (u.role || '').toLowerCase() === 'supplier' ||
-            (u.displayRole || '').toLowerCase() === 'supplier'
-          );
-          const countMap = {};
-          suppliers.forEach(s => {
-            const cats = s.profile?.supplier_profile?.material_categories || [];
-            cats.forEach(cat => {
-              const key = cat.toLowerCase();
-              countMap[key] = (countMap[key] || 0) + 1;
-            });
-          });
-          setSupplierCountMap(countMap);
-        }
-      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -120,15 +100,23 @@ export default function AdminCategoryManagement({
       header: 'CLASSIFICATION NAME', 
       render: (row) => (
         <div className="flex items-center gap-4 text-left">
-          <div className="w-10 h-10 border border-slate-200 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 font-bold group-hover:border-indigo-200 transition-all uppercase overflow-hidden flex-shrink-0">
-            {row.icon ? (
-              <img src={row.icon} className="w-full h-full object-cover" alt="" />
-            ) : (
-              row.name[0]
-            )}
+          <div className="flex -space-x-4">
+             <div className="w-10 h-10 border border-slate-200 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 font-bold group-hover:border-indigo-200 transition-all uppercase overflow-hidden flex-shrink-0 relative z-10 shadow-sm" title="Standard Icon">
+               {row.icon ? (
+                 <img src={row.icon} className="w-full h-full object-cover" alt="" />
+               ) : (
+                 row.name[0]
+               )}
+             </div>
+             {row.mandi_icon && (
+               <div className="w-10 h-10 border border-emerald-200 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-400 font-bold group-hover:border-emerald-400 transition-all uppercase overflow-hidden flex-shrink-0 relative z-20 shadow-lg translate-x-3 translate-y-1 scale-90" title="Mandi Marketplace Icon">
+                  <img src={row.mandi_icon} className="w-full h-full object-cover" alt="Mandi" />
+               </div>
+             )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex flex-col pl-4">
             <p className="font-bold text-slate-900 text-sm italic tracking-tight truncate">{row.name}</p>
+            {row.mandi_icon && <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mt-0.5">Mandi Ready</span>}
           </div>
         </div>
       )
@@ -170,39 +158,39 @@ export default function AdminCategoryManagement({
       }
     ]),
     {
-      header: type === 'supplier' ? 'SUPPLIERS' : 'TOTAL ENTRIES',
+      header: (type === 'product' || type === 'supplier') ? 'MANDI SELLERS' : 'TOTAL ENTRIES',
       render: (row) => {
-        let count = 0;
-        if (type === 'supplier') {
-          // Strip common suffixes like " supplier" from the category display name
-          // then do a partial match against the stored material category keys
-          const catBase = (row.name || '')
-            .toLowerCase()
-            .replace(/\s*supplier[s]?\s*/gi, '')
-            .trim();
-          count = Object.entries(supplierCountMap).reduce((sum, [key, val]) => {
-            // Match if catBase contains key OR key contains catBase (handles "brick"↔"bricks")
-            if (catBase && (catBase.includes(key) || key.includes(catBase))) {
-              return sum + val;
-            }
-            return sum;
-          }, 0);
-        } else {
-          count = row.listingCount || 0;
-        }
+        const count = (type === 'product' || type === 'supplier') ? (row.mandi_count || 0) : (row.count || 0);
         return (
           <div className="flex items-center gap-2 tabular-nums">
-            <Hash size={11} className="text-slate-300" />
-            <span className={`font-black ${count > 0 ? 'text-indigo-600' : 'text-slate-400'}`}>{count}</span>
-            {type === 'supplier' && count > 0 && (
-              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                {count === 1 ? 'supplier' : 'suppliers'}
+            <Hash size={11} className="text-emerald-300" />
+            <span className={`font-black ${count > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{count}</span>
+            {(type === 'product' || type === 'supplier') && count > 0 && (
+              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest whitespace-nowrap">
+                {count === 1 ? 'seller' : 'sellers'}
               </span>
             )}
           </div>
         );
       }
     },
+    ...((type === 'product' || type === 'supplier') ? [{
+      header: 'BULK SUPPLIERS',
+      render: (row) => {
+        const count = row.supplier_count || 0;
+        return (
+          <div className="flex items-center gap-2 tabular-nums">
+            <ShoppingBag size={11} className="text-indigo-300" />
+            <span className={`font-black ${count > 0 ? 'text-indigo-600' : 'text-slate-400'}`}>{count}</span>
+            {count > 0 && (
+              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest whitespace-nowrap">
+                {count === 1 ? 'supplier' : 'suppliers'}
+              </span>
+            )}
+          </div>
+        );
+      }
+    }] : []),
     {
       header: 'ACTIONS',
       render: (row) => (

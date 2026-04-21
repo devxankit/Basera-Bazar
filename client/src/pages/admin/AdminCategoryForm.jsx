@@ -20,7 +20,7 @@ export default function AdminCategoryForm() {
 
   const [formData, setFormData] = useState({
     name: '', type: typeFromUrl, parent_id: parentIdFromUrl && parentIdFromUrl !== 'null' ? parentIdFromUrl : null,
-    icon: '', description: '', is_active: true
+    icon: '', mandi_icon: '', description: '', is_active: true
   });
 
   const [loading, setLoading] = useState(false);
@@ -197,14 +197,28 @@ export default function AdminCategoryForm() {
                  <Layers size={16} className="text-slate-400" />
                  <span className="text-sm font-black text-slate-700 uppercase tracking-wider">Visual Identity</span>
                </div>
-               <div className="p-6">
-                  <MediaDropZone 
-                    value={formData.icon ? [formData.icon] : []}
-                    onChange={(urls) => setFormData({ ...formData, icon: urls[0] || '' })}
-                    multiple={false}
-                    label="Category Icon"
-                  />
-               </div>
+                <div className="p-6 space-y-6">
+                   <MediaDropZone 
+                     value={formData.icon ? [formData.icon] : []}
+                     onChange={(urls) => setFormData({ ...formData, icon: urls[0] || '' })}
+                     multiple={false}
+                     label="Category Icon (Standard)"
+                   />
+
+                   {(formData.type === 'supplier' || formData.type === 'product') && (
+                     <div className="pt-4 border-t border-slate-100">
+                        <MediaDropZone 
+                          value={formData.mandi_icon ? [formData.mandi_icon] : []}
+                          onChange={(urls) => setFormData({ ...formData, mandi_icon: urls[0] || '' })}
+                          multiple={false}
+                          label="Mandi Marketplace Icon (Premium)"
+                        />
+                        <p className="mt-2 text-[10px] text-slate-400 italic">
+                          Used specifically in the Mandi Bazar marketplace section.
+                        </p>
+                     </div>
+                   )}
+                </div>
              </div>
            )}
 

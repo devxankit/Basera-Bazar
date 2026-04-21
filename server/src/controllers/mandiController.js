@@ -78,10 +78,13 @@ const updateProductInventory = async (req, res) => {
  */
 const getMarketplaceHome = async (req, res) => {
   try {
-    // 1. Get all material categories
-    const categories = await Category.find({ type: 'product', is_active: true });
-    
-    // 2. For each category, find the listing with the lowest price
+    // 1. Fetch Categories (Unified under "product" type for Materials)
+    const categories = await Category.find({ 
+      type: 'product', 
+      is_active: true 
+    });
+
+    // 2. Fetch "Best Deal" for each category to show on the main marketplace
     const featuredDeals = await Promise.all(categories.map(async (cat) => {
       const bestPrice = await MandiListing.findOne({ 
         category_id: cat._id, 
@@ -95,13 +98,14 @@ const getMarketplaceHome = async (req, res) => {
         category: cat.name,
         category_id: cat._id,
         icon: cat.icon,
+        mandi_icon: cat.mandi_icon, // NEW: Specific image for Mandi
         deal: bestPrice
       };
     }));
 
     res.status(200).json({ 
       success: true, 
-      data: featuredDeals.filter(d => d.deal) // Only return categories with active deals
+      data: featuredDeals
     });
 
   } catch (error) {
