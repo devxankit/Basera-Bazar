@@ -21,7 +21,10 @@ import { motion } from 'framer-motion';
 import api from '../../services/api';
 
 // Supplier Assets
+import aggregateImg from '../../assets/suppliers/aggregate supplier.jpg';
 import brickImg from '../../assets/suppliers/brick supplier.jpg';
+import cementImg from '../../assets/suppliers/cement supplier.jpg';
+import materialsImg from '../../assets/suppliers/cnstruction materials supplier.jpg';
 import sandImg from '../../assets/suppliers/sand supplier.jpg';
 import tmtImg from '../../assets/suppliers/tmt supplier.jpg';
 
@@ -33,8 +36,10 @@ export default function MandiMarketplace() {
    useEffect(() => {
       const fetchMarketHome = async () => {
          try {
-            const res = await api.get('/mandi/marketplace/home');
-            setCategories(res.data.data);
+            const res = await api.get('/listings/categories?type=supplier');
+            if (res.data.success) {
+               setCategories(res.data.data);
+            }
          } catch (err) {
             console.error(err);
          } finally {
@@ -44,93 +49,109 @@ export default function MandiMarketplace() {
       fetchMarketHome();
    }, []);
 
+   const getCatImage = (cat) => {
+      const name = cat.name?.toLowerCase() || '';
+      if (name.includes('aggregate')) return aggregateImg;
+      if (name.includes('brick')) return brickImg;
+      if (name.includes('cement')) return cementImg;
+      if (name.includes('material')) return materialsImg;
+      if (name.includes('sand') || name.includes('बालू') || name.includes('रेत')) return sandImg;
+      if (name.includes('tmt') || name.includes('steel') || name.includes('saria')) return tmtImg;
+      
+      // Secondary: Try database icon if it exists and looks valid (not a broken local path like missing uploads)
+      if (cat.icon && typeof cat.icon === 'string' && cat.icon.length > 5) return cat.icon;
+      
+      // Final safe fallback
+      return '/default-product-category-image.png';
+   };
+
    return (
       <div className="min-h-screen bg-slate-50 font-sans pb-32">
-         {/* Hero Section (Balanced & Premium) */}
-         <div className="bg-[#0c2461] pt-10 pb-32 px-6 rounded-b-[40px] relative overflow-hidden shadow-2xl">
-            {/* Compact Hero Image (Pinned right) */}
-            <div className="absolute top-6 right-2 w-36 h-36 md:w-52 md:h-52 z-0 pointer-events-none">
-               <img
-                  src="/mandi_hero.png"
-                  alt="Mandi Hero"
-                  className="w-full h-full object-contain"
+         {/* Hero Section (Matched Exact Mockup) */}
+         <div className="relative w-full bg-white overflow-hidden pb-6">
+            {/* Poster Image */}
+            <div className="relative w-full aspect-[4/3] sm:aspect-video">
+               <img 
+                  src="/mandi_poster_hero.jpg" 
+                  className="w-full h-full object-cover" 
+                  style={{ maskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)' }}
+                  alt="Mandi Hero" 
+                  onError={(e) => { e.target.style.display = 'none'; }}
                />
+               <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full shadow-sm">
+                  <span className="text-[20px] font-black text-[#d97706]">मंडी</span>
+                  <span className="text-[20px] font-black text-[#1e293b]">BAZAR</span>
+               </div>
             </div>
 
-            <div className="relative z-10 space-y-5 max-w-[360px]">
-               <div className="flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 w-fit">
-                  <ShieldCheck size={12} className="text-emerald-400" />
-                  <span className="text-[10px] font-bold text-white uppercase tracking-wider">Verified Sellers Only</span>
+            {/* Bullets & Slogan */}
+            <div className="px-5 mt-2 flex items-center gap-5">
+               <div className="flex flex-col gap-2 border-r-2 border-[#d97706]/20 pr-5 shrink-0">
+                  {['Fresh Material', 'Fast Delivery', 'Lowest Price'].map((bullet, i) => (
+                     <div key={i} className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[#d97706]" />
+                        <span className="text-[12px] font-extrabold text-[#d97706] uppercase tracking-tighter">{bullet}</span>
+                     </div>
+                  ))}
                </div>
-
-               <div className="space-y-1">
-                  <h1 className="text-[34px] font-black leading-tight tracking-tight drop-shadow-lg flex flex-col">
-                     <span className="text-[#f97316]">Mandi</span>
-                     <span className="text-[#38bdf8] italic">Bazar</span>
+               <div className="flex-grow">
+                  <h1 className="text-[20px] sm:text-[24px] font-black text-[#1e293b] leading-[1.2] text-left">
+                     खदान मंडी से सीधे<br />आपके घर तक
                   </h1>
-                  <p className="text-white/60 text-[13px] font-medium leading-normal pr-8">
-                     Premium construction materials at your doorstep.
-                  </p>
-               </div>
-
-               {/* Clean Search Bar */}
-               <div className="bg-white rounded-[40px] p-1.5 shadow-xl flex items-center mt-6 ring-2 ring-white/5 relative z-20">
-                  <div className="flex-grow flex items-center px-4">
-                     <Search size={18} className="text-slate-300 mr-2" />
-                     <input
-                        type="text"
-                        placeholder="Search materials..."
-                        className="bg-transparent border-none outline-none text-[#001b4e] placeholder:text-slate-300 text-[15px] py-2.5 w-full font-extrabold"
-                     />
-                  </div>
-                  <button className="bg-[#0c2461] text-white p-3 rounded-full shadow-lg active:scale-95 transition-all">
-                     <Search size={20} strokeWidth={3} />
-                  </button>
                </div>
             </div>
-         </div>
 
-         {/* Category Selection Bubbles (Floating Overlap) */}
-         <div className="px-6 -mt-28 relative z-30">
-            <div className="relative flex justify-between items-center py-4 px-px">
-               {/* Connection Paths */}
-               <div className="absolute inset-0 pointer-events-none -z-10 flex items-center justify-center opacity-20">
-                  <svg width="100%" height="60" viewBox="0 0 400 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                     <path d="M50 50C100 20 150 80 200 50C250 20 300 80 350 50" stroke="#0c2461" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round" />
-                  </svg>
-               </div>
+            {/* 4 Dark Cards Grid (3 DB Categories + 1 More Button) */}
+            <div className="px-5 mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+               {loading ? (
+                  Array(4).fill(0).map((_, i) => (
+                     <div key={i} className="bg-[#2A3F54] rounded-[16px] p-3 h-48 animate-pulse" />
+                  ))
+               ) : (
+                  <>
+                     {categories.slice(0, 3).map((cat, i) => (
+                        <div 
+                           key={cat._id || i}
+                           onClick={() => navigate(`/mandi-bazar/category/${cat._id}`)}
+                           className="bg-[#2A3F54] rounded-[16px] p-3 flex flex-col items-center gap-3 cursor-pointer shadow-xl active:scale-95 transition-transform"
+                        >
+                           <div className="w-full aspect-square bg-[#fbf9f6] rounded-[12px] flex flex-col items-center justify-center p-2 relative overflow-hidden">
+                              <img 
+                                 src={getCatImage(cat)} 
+                                 className="w-full h-full object-contain mix-blend-multiply drop-shadow-md" 
+                                 alt={cat.name} 
+                                 onError={(e) => { e.target.onerror = null; e.target.src = '/default-product-category-image.png'; }}
+                              />
+                           </div>
+                           <div className="text-center w-full flex flex-col items-center justify-between gap-1 py-1 flex-grow">
+                              <h3 className="text-white font-semibold text-[13px] leading-tight truncate w-full capitalize">{cat.name}</h3>
+                              <p className="text-white/80 text-[10px] font-bold tracking-widest uppercase whitespace-nowrap">
+                                 {cat.listing_count ? `${cat.listing_count} Supplier${cat.listing_count > 1 ? 's' : ''}` : 'Check Price'}
+                              </p>
+                              <button className="mt-auto border border-white/40 text-white rounded-[24px] py-1 px-3 text-[10px] font-extrabold tracking-wide hover:bg-white hover:text-[#2A3F54] transition-colors whitespace-nowrap">
+                                 SHOP NOW
+                              </button>
+                           </div>
+                        </div>
+                     ))}
 
-               {[
-                  { name: 'Bricks', img: brickImg, path: '/mandi-bazar/category/bricks_id' },
-                  { name: 'Sand', img: sandImg, path: '/mandi-bazar/category/sand_id' },
-                  { name: 'TMT', img: tmtImg, path: '/mandi-bazar/category/steel_id' }
-               ].map((cat, i) => (
-                  <div
-                     key={i}
-                     onClick={() => navigate(cat.path)}
-                     className="flex flex-col items-center gap-2 active:scale-90 transition-transform cursor-pointer"
-                  >
-                     <div className="w-[68px] h-[68px] rounded-full bg-white p-[2px] border border-blue-100 flex items-center justify-center shadow-xl relative group">
-                        <div className="w-full h-full rounded-full overflow-hidden border border-slate-100 relative z-10 p-0 bg-slate-50">
-                           <img src={cat.img} className="w-full h-full object-cover brightness-105" alt={cat.name} />
+                     {/* 4th Card -> More Button */}
+                     <div 
+                        onClick={() => document.getElementById('main-content').scrollIntoView({ behavior: 'smooth' })}
+                        className="bg-[#2A3F54] rounded-[16px] p-3 flex flex-col items-center justify-center gap-3 cursor-pointer shadow-xl active:scale-95 transition-transform"
+                     >
+                        <div className="w-full aspect-square bg-white/5 rounded-[12px] flex flex-col items-center justify-center relative overflow-hidden group">
+                           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <Plus size={24} className="text-white" />
+                           </div>
+                        </div>
+                        <div className="text-center w-full flex flex-col items-center gap-1 py-1">
+                           <span className="text-white font-extrabold tracking-widest uppercase text-[12px] mt-2 block">View All</span>
+                           <span className="text-white/50 text-[10px] font-bold tracking-wider">CATEGORIES</span>
                         </div>
                      </div>
-                     <span className="text-[10px] font-black text-[#0c2461] tracking-widest uppercase">{cat.name}</span>
-                  </div>
-               ))}
-
-               {/* See More Bubble */}
-               <div
-                  onClick={() => document.getElementById('main-content').scrollIntoView({ behavior: 'smooth' })}
-                  className="flex flex-col items-center gap-2 active:scale-90 transition-transform cursor-pointer"
-               >
-                  <div className="w-[68px] h-[68px] rounded-full bg-white p-[2px] border border-blue-100 flex items-center justify-center shadow-xl relative group">
-                     <div className="w-full h-full rounded-full flex flex-col items-center justify-center border border-slate-100 relative z-10 bg-slate-50">
-                        <Plus size={22} className="text-[#0c2461]" />
-                     </div>
-                  </div>
-                  <span className="text-[10px] font-black text-[#0c2461] tracking-widest uppercase">More</span>
-               </div>
+                  </>
+               )}
             </div>
          </div>
 
@@ -142,42 +163,39 @@ export default function MandiMarketplace() {
                <span className="text-[10px] font-black text-[#6366f1] uppercase tracking-[2px] italic">Lowest Price Market</span>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-4 gap-x-2 gap-y-5">
                {loading ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
-                     <Loader2 className="animate-spin" size={32} />
-                     <span className="font-bold text-[14px]">Loading categories...</span>
-                  </div>
+                  Array(8).fill(0).map((_, i) => (
+                     <div key={i} className="flex flex-col items-center gap-2">
+                        <div className="w-full aspect-square bg-slate-100 rounded-[20px] animate-pulse" />
+                        <div className="w-3/4 h-3 bg-slate-100 rounded-md animate-pulse" />
+                     </div>
+                  ))
                ) : categories.length > 0 ? (
                   categories.map((cat, idx) => (
                      <motion.div
                         key={cat._id}
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1 }}
+                        transition={{ delay: idx * 0.05 }}
                         onClick={() => navigate(`/mandi-bazar/category/${cat._id}`)}
-                        className="bg-white p-5 rounded-[28px] shadow-[0_10px_35px_rgba(0,0,0,0.02)] border border-slate-100 flex items-center gap-5 active:scale-[0.98] transition-all group overflow-hidden relative"
+                        className="flex flex-col items-center gap-2 cursor-pointer group active:scale-95 transition-transform"
                      >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50/50 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform" />
-                        <div className="w-20 h-20 bg-slate-50 rounded-[22px] flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden relative z-10 transition-transform group-hover:scale-105">
-                           <img src={cat.icon || `https://images.unsplash.com/photo-1590480394626-82098d3f86e2?w=500&q=80`} className="w-full h-full object-cover" alt="" />
+                        <div className="w-full aspect-square bg-[#f0f4f4] rounded-[20px] p-2 flex items-center justify-center shadow-sm border border-slate-50 transition-shadow overflow-hidden">
+                           <img 
+                              src={getCatImage(cat)} 
+                              className="w-full h-full object-contain drop-shadow-sm mix-blend-multiply group-hover:scale-110 transition-transform duration-300" 
+                              alt={cat.name} 
+                              onError={(e) => { e.target.onerror = null; e.target.src = '/default-product-category-image.png'; }}
+                           />
                         </div>
-                        <div className="flex-grow relative z-10">
-                           <h3 className="text-[18px] font-black text-[#0c2461] leading-tight">{cat.name}</h3>
-                           <div className="flex items-center gap-2 mt-2">
-                              <TrendingUp size={14} className="text-emerald-500" />
-                              <span className="text-[12px] font-bold text-slate-400">Starts from</span>
-                              <span className="text-[16px] font-black text-emerald-600">₹{cat.best_price || cat.price || '---'}</span>
-                              <span className="text-[10px] text-slate-400 font-bold uppercase">/{cat.unit || 'unit'}</span>
-                           </div>
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-[#0c2461] border border-slate-100 shrink-0 group-hover:bg-[#0c2461] group-hover:text-white transition-all">
-                           <ChevronRight size={18} />
-                        </div>
+                        <h3 className="text-[11px] font-bold text-slate-800 leading-[1.1] text-center px-1 capitalize line-clamp-2">
+                           {cat.name}
+                        </h3>
                      </motion.div>
                   ))
                ) : (
-                  <div className="py-20 text-center text-slate-400 font-bold">
+                  <div className="col-span-4 py-20 text-center text-slate-400 font-bold">
                      No categories found.
                   </div>
                )}
