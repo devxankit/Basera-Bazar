@@ -15,9 +15,9 @@ export default function PartnerLayout({ children }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Priority 1: Context User
-    if (user && user.role) {
-      setRole(user.role);
+    // Priority 1: active_role from multi-role system
+    if (user && (user.active_role || user.partner_type || user.role)) {
+      setRole(user.active_role || user.partner_type || user.role);
     } else {
       // Priority 2: Local storage for persistence across reloads
       const savedRole = localStorage.getItem('baserabazar_partner_role');

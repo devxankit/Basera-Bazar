@@ -16,7 +16,7 @@ const updateSellerKYC = async (req, res) => {
     const adminId = req.user.id;
 
     const partner = await Partner.findById(id);
-    if (!partner || partner.partner_type !== 'mandi_seller') {
+    if (!partner || (partner.partner_type !== 'mandi_seller' && !(partner.roles && partner.roles.includes('mandi_seller')))) {
       return res.status(404).json({ success: false, message: 'Mandi seller not found.' });
     }
 

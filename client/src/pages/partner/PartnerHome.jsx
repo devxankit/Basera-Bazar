@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Building2,
   CheckCircle2,
@@ -26,7 +26,7 @@ export default function PartnerHome() {
 
   if (!user) return null;
   const partner = user;
-  const actualRole = (partner?.partner_type || partner?.role || '').toLowerCase();
+  const actualRole = (partner?.active_role || partner?.partner_type || partner?.role || '').toLowerCase();
 
   const getRoleLabel = () => {
     if (actualRole.includes('agent')) return 'Agent';
@@ -115,7 +115,14 @@ export default function PartnerHome() {
       </div>
 
       <div className="px-6 -mt-16 relative z-20 space-y-8">
-        {/* Subscription Card */}
+        {/* Role Switcher — shown only when partner has multiple roles */}
+        {(partner?.roles?.length > 1 || true) && (
+          <RoleSwitcher 
+            roles={partner?.roles || (partner?.partner_type ? [partner.partner_type] : [])} 
+            activeRole={actualRole}
+            partnerId={partner?._id || partner?.id}
+          />
+        )}        {/* Subscription Card */}
         <motion.div
           onClick={() => navigate('/partner/subscription')}
           initial={{ opacity: 0, y: 20 }}
@@ -234,6 +241,72 @@ export default function PartnerHome() {
     </div>
   );
 }
+
+function RoleSwitcher({ roles, activeRole, partnerId }) {
+  const navigate = useNavigate();
+  const { refreshUser } = useAuth();
+
+  const roleLabels = {
+    'property_agent': { label: 'Agent', icon: <Building2 size={16} /> },
+    'service_provider': { label: 'Service', icon: <Star size={16} /> },
+    'supplier': { label: 'Supplier', icon: <Package size={16} /> },
+    'mandi_seller': { label: 'Mandi', icon: <Package size={16} /> },
+  };
+
+  const handleSwitch = async (role) => {
+    if (role === activeRole) return;
+    try {
+      await api.put('/partners/switch-role', { role });
+      // Refresh user data from backend
+      if (refreshUser) {
+        await refreshUser();
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Switch role error:', err);
+    }
+  };
+
+  const safeRoles = roles && roles.length > 0 ? roles : ['property_agent'];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-[28px] p-2 shadow-sm border border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar"
+    >
+      {safeRoles.map((role) => {
+        const isActive = activeRole.includes(role.replace('_', ''));
+        const meta = roleLabels[role] || { label: role, icon: null };
+        return (
+          <button
+            key={role}
+            onClick={() => handleSwitch(role)}
+            className={`flex items-center gap-2 px-4 py-3 rounded-[22px] text-[13px] font-bold transition-all whitespace-nowrap ${
+              isActive
+                ? 'bg-[#001b4e] text-white shadow-lg shadow-blue-900/20'
+                : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+            }`}
+          >
+            {meta.icon}
+            {meta.label}
+          </button>
+        );
+      })}
+
+      {/* Add Role Button */}
+      <button
+        onClick={() => navigate('/partner/add-role')}
+        className="flex items-center gap-1.5 px-3 py-3 rounded-[22px] text-[13px] font-bold text-blue-500 hover:bg-blue-50 transition-all whitespace-nowrap border border-dashed border-blue-200"
+      >
+        <PlusCircle size={16} />
+        Add
+      </button>
+    </motion.div>
+  );
+}
+
 function MandiOverview({ partner }) {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);

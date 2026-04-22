@@ -20,7 +20,8 @@ export default function AdminMandiSellers() {
         if (response.data.success) {
           // Filter to only show approved mandi sellers
           const allSellers = response.data.data.filter(u => 
-            (u.partner_type || '').toLowerCase() === 'mandi_seller' &&
+            ((u.partner_type || '').toLowerCase() === 'mandi_seller' ||
+             (u.roles && u.roles.includes('mandi_seller'))) &&
             u.onboarding_status === 'approved'
           );
           setSellers(allSellers);

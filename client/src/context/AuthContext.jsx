@@ -79,12 +79,28 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
+  const refreshUser = async () => {
+    try {
+      const response = await api.get('/auth/me');
+      if (response.data.success) {
+        const freshUser = response.data.data;
+        setUser(freshUser);
+        localStorage.setItem('baserabazar_user', JSON.stringify(freshUser));
+        return freshUser;
+      }
+    } catch (error) {
+      console.error('refreshUser failed:', error);
+    }
+    return null;
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
       login, 
       logout, 
       updateUser, 
+      refreshUser,
       isAuthenticated: !!user,
       loading 
     }}>

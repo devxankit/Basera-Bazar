@@ -32,6 +32,7 @@ export default function AdminUserForm() {
 
   const [formData, setFormData] = useState({
     name: '', email: '', phone: '', password: '', role: 'Customer',
+    roles: [],
     is_active: true, partner_type: 'property_agent', active_subscription_id: '',
     state: '', district: '', address: '', material_categories: [],
     service_category_id: '', delivery_radius_km: 10,
@@ -87,6 +88,7 @@ export default function AdminUserForm() {
               phone: u.phone || '',
               password: '',
               role: derivedRole,
+              roles: u.roles || (u.partner_type ? [u.partner_type] : []),
               is_active: u.is_active ?? true,
               partner_type: u.partner_type || 'property_agent',
               active_subscription_id: resolvedSubId,
@@ -144,20 +146,47 @@ export default function AdminUserForm() {
       const newData = { ...prev, [name]: type === 'checkbox' ? checked : value };
       
       if (name === 'role') {
-        if (value === 'Supplier') newData.partner_type = 'supplier';
-        else if (value === 'Service Provider') newData.partner_type = 'service_provider';
-        else if (value === 'Mandi Seller') newData.partner_type = 'mandi_seller';
-        else newData.partner_type = 'property_agent';
+        const roleMap = {
+          'Supplier': 'supplier',
+          'Service Provider': 'service_provider',
+          'Mandi Seller': 'mandi_seller',
+          'Agent': 'property_agent'
+        };
+
+        if (roleMap[value]) {
+          newData.partner_type = roleMap[value];
+          // Ensure the primary role is in the roles array
+          if (!newData.roles.includes(roleMap[value])) {
+            newData.roles = [...newData.roles, roleMap[value]];
+          }
+        }
         
         if (value === 'Customer' || value === 'Admin') {
           newData.state = '';
           newData.district = '';
+          newData.roles = [];
         }
       }
 
       if (name === 'state') newData.district = '';
 
       return newData;
+    });
+  };
+
+  const togglePartnerRole = (pType) => {
+    setFormData(prev => {
+      const currentRoles = prev.roles || [];
+      const newRoles = currentRoles.includes(pType)
+        ? currentRoles.filter(r => r !== pType)
+        : [...currentRoles, pType];
+      
+      return { 
+        ...prev, 
+        roles: newRoles,
+        // Update primary partner_type if it was removed
+        partner_type: newRoles.includes(prev.partner_type) ? prev.partner_type : (newRoles[0] || 'service_provider')
+      };
     });
   };
 
@@ -266,7 +295,7 @@ export default function AdminUserForm() {
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className={labelClass}>System Role</label>
+                  <label className={labelClass}>Primary System Role</label>
                   <select name="role" value={formData.role} onChange={handleChange} className={inputClass}>
                     <option value="Customer">Regular Customer</option>
                     <option value="Agent">Property Expert</option>
@@ -276,6 +305,33 @@ export default function AdminUserForm() {
                     <option value="Admin">Platform Admin</option>
                   </select>
                 </div>
+                {isPartner && (
+                  <div className="md:col-span-2 space-y-3 mt-4">
+                    <label className={labelClass}>Account Capabilities (Multi-Role)</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { id: 'property_agent', label: 'Agent' },
+                        { id: 'service_provider', label: 'Service' },
+                        { id: 'supplier', label: 'Supplier' },
+                        { id: 'mandi_seller', label: 'Mandi' }
+                      ].map(r => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => togglePartnerRole(r.id)}
+                          className={`px-4 py-2.5 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-all ${
+                            formData.roles.includes(r.id)
+                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
+                              : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
+                          }`}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-bold italic">A partner can have multiple active roles simultaneously.</p>
+                  </div>
+                )}
                 <div className="flex items-center gap-5 pt-7">
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-slate-700">Account Active</span>

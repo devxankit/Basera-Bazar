@@ -31,14 +31,18 @@ export default function PartnerProfile() {
 
   if (!partner) return null;
 
-  const getRoleLabel = () => {
-    const roleMatch = partner.role?.toLowerCase() || '';
-    if (roleMatch === 'agent') return 'Agent';
-    if (roleMatch === 'service provider' || roleMatch === 'service') return 'Service Provider';
-    if (roleMatch === 'supplier') return 'Supplier';
-    if (roleMatch === 'mandi_seller') return 'Mandi Seller';
-    return partner.role || 'Partner';
+  const getRoleLabel = (roleStr) => {
+    const r = (roleStr || '').toLowerCase();
+    if (r.includes('agent') || r === 'property_agent') return 'Agent';
+    if (r.includes('service') || r === 'service_provider') return 'Service Provider';
+    if (r === 'supplier') return 'Supplier';
+    if (r.includes('mandi') || r === 'mandi_seller') return 'Mandi Seller';
+    return roleStr || 'Partner';
   };
+
+  const partnerRoles = partner.roles && partner.roles.length > 0 
+    ? partner.roles 
+    : (partner.partner_type ? [partner.partner_type] : [partner.role || 'Partner']);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-32">
@@ -74,10 +78,22 @@ export default function PartnerProfile() {
           <h2 className="text-white text-[24px] font-bold mb-1">{partner.name}</h2>
           <p className="text-white/60 text-[14px] mb-6">{partner.email}</p>
 
-          <div className="bg-white/10 px-6 py-2 rounded-2xl flex items-center gap-2 border border-white/10 backdrop-blur-md">
-            <Building2 size={16} className="text-white/80" />
-            <span className="text-white text-[13px] font-bold tracking-wide uppercase">{getRoleLabel()}</span>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {partnerRoles.map(r => (
+              <div key={r} className="bg-white/10 px-4 py-1.5 rounded-2xl flex items-center gap-2 border border-white/10 backdrop-blur-md">
+                <Building2 size={14} className="text-white/80" />
+                <span className="text-white text-[12px] font-bold tracking-wide uppercase">{getRoleLabel(r)}</span>
+              </div>
+            ))}
           </div>
+
+          {/* Add Role CTA */}
+          <button 
+            onClick={() => navigate('/partner/add-role')}
+            className="mt-4 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 px-5 py-2 rounded-2xl text-white/80 text-[12px] font-bold uppercase tracking-wider transition-all active:scale-95"
+          >
+            + Add Role
+          </button>
         </div>
 
         {/* Subscription Status */}

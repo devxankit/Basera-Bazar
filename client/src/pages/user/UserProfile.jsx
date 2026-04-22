@@ -231,22 +231,22 @@ const UserProfile = () => {
         </div>
 
         {/* Become Partner Banner */}
-        <div className="mt-8 px-6">
+        <div className="mt-8 px-4 xs:px-6">
           <div 
             onClick={() => navigate('/partner/register')}
-            className="bg-orange-50 border border-orange-100 rounded-2xl p-4 flex items-center justify-between group active:scale-[0.98] transition-all cursor-pointer shadow-sm"
+            className="bg-gradient-to-br from-orange-50 to-white border border-orange-100 rounded-[24px] p-3 sm:p-5 flex items-center justify-between group active:scale-[0.98] transition-all cursor-pointer shadow-sm hover:shadow-md hover:border-orange-200"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#fa8639] rounded-xl flex items-center justify-center shadow-lg shadow-orange-200">
-                <Briefcase size={22} className="text-white" />
+            <div className="flex items-center gap-2.5 sm:gap-4 overflow-hidden">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-[#fa8639] rounded-[18px] flex items-center justify-center shadow-lg shadow-orange-200 shrink-0">
+                <Briefcase size={20} className="text-white sm:w-6 sm:h-6" />
               </div>
-              <div>
-                <h3 className="text-[15px] font-bold text-[#1f2355]">Become a Partner</h3>
-                <p className="text-[12px] text-slate-500 font-medium">List your properties or services</p>
+              <div className="min-w-0">
+                <h3 className="text-[clamp(13px,4vw,16px)] font-black text-[#1f2355] leading-tight">Become a Partner</h3>
+                <p className="text-[clamp(10px,3vw,13px)] text-slate-500 font-medium mt-0.5 truncate">List your properties or services</p>
               </div>
             </div>
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-[#fa8639] shadow-sm group-hover:translate-x-1 transition-transform">
-              <ArrowRight size={18} />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-xl flex items-center justify-center text-[#fa8639] shadow-sm group-hover:translate-x-1.5 transition-transform shrink-0 ml-1.5">
+              <ArrowRight size={18} strokeWidth={3} className="sm:w-5 sm:h-5" />
             </div>
           </div>
         </div>

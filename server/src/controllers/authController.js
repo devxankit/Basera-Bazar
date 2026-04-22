@@ -248,13 +248,16 @@ const verifyOtp = async (req, res) => {
           });
         }
 
+        const initialPartnerType = partner_type || 'service_provider';
         account = await Model.create({
           phone,
           name,
           email: email.toLowerCase(),
           password: password || undefined, // Password optional for OTP auto-signup
           ...(role === 'partner' && { 
-            partner_type: partner_type || 'service_provider',
+            partner_type: initialPartnerType,
+            roles: [initialPartnerType],
+            active_role: initialPartnerType,
             service_radius_km: service_radius_km || 100 
           }),
           default_location: role === 'user' ? {
@@ -321,6 +324,10 @@ const verifyOtp = async (req, res) => {
         name: account.name,
         profileImage: account.profileImage || '',
         role: assignedRole,
+        // Multi-role fields
+        partner_type: account.partner_type || null,
+        roles: account.roles || (account.partner_type ? [account.partner_type] : []),
+        active_role: account.active_role || account.partner_type || null,
       },
     });
 
@@ -462,6 +469,10 @@ const loginWithPassword = async (req, res) => {
         name: account.name,
         profileImage: account.profileImage || '',
         role,
+        // Multi-role fields
+        partner_type: account.partner_type || null,
+        roles: account.roles || (account.partner_type ? [account.partner_type] : []),
+        active_role: account.active_role || account.partner_type || null,
       },
     });
 

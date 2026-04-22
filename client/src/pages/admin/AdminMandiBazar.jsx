@@ -58,7 +58,7 @@ export default function AdminMandiBazar() {
       if (activeTab === 'kyc') {
         const res = await api.get('/admin/users?role=partner');
         // Filter only mandi_sellers
-        const mandiSellers = res.data.data.filter(p => p.partner_type === 'mandi_seller');
+        const mandiSellers = res.data.data.filter(p => p.partner_type === 'mandi_seller' || (p.roles && p.roles.includes('mandi_seller')));
         setData(mandiSellers);
       } else if (activeTab === 'withdrawals') {
         const res = await api.get('/admin/marketplace/withdrawals'); // Need to ensure this route exists or use a generic one

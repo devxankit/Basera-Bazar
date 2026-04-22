@@ -38,6 +38,7 @@ import PartnerHelp from './pages/partner/PartnerHelp';
 import PartnerAbout from './pages/partner/PartnerAbout';
 import PartnerEditProfile from './pages/partner/PartnerEditProfile';
 import PartnerNotifications from './pages/partner/PartnerNotifications';
+import AddRolePage from './pages/partner/AddRolePage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -285,6 +286,7 @@ function App() {
             <Route path="/partner/help" element={<PartnerHelp />} />
             <Route path="/partner/about" element={<PartnerAbout />} />
             <Route path="/partner/edit-profile" element={<PartnerEditProfile />} />
+            <Route path="/partner/add-role" element={<AddRolePage />} />
             <Route path="/partner/notifications" element={
               <PartnerLayout>
                 <PartnerNotifications />

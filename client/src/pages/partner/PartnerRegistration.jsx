@@ -138,6 +138,8 @@ export default function PartnerRegistration() {
         name: formData.fullName,
         email: formData.email,
         partner_type: backendRole,
+        roles: [backendRole],
+        active_role: backendRole,
         image: profileUrl,
         service_radius_km: formData.service_radius_km,
         location: {

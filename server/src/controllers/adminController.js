@@ -34,7 +34,10 @@ const findNearestMandiSellers = async (req, res) => {
     // This is the custom geo-search query we built for you to easily find the nearest mandi sellers.
     // We restrict it to partners where partner_type === 'mandi_seller' AND onboarding_status === 'approved'.
     const nearestSellers = await Partner.find({
-      partner_type: 'mandi_seller',
+      $or: [
+        { roles: 'mandi_seller' },
+        { partner_type: 'mandi_seller' }
+      ],
       onboarding_status: 'approved',
       location: {
         $near: {
@@ -549,6 +552,8 @@ const createUser = async (req, res) => {
       newAccount = await Partner.create({ 
         name, phone, email: email?.toLowerCase(), password, 
         partner_type: pType,
+        roles: [pType],
+        active_role: pType,
         role,
         state: req.body.state,
         district: req.body.district,
@@ -605,7 +610,9 @@ const updateUser = async (req, res) => {
       email,
       phone,
       business_name,
-      business_description
+      business_description,
+      roles,
+      active_role
     } = req.body;
 
     // Detect Model
@@ -629,6 +636,8 @@ const updateUser = async (req, res) => {
 
     // Partner-specific fields
     if (isPartnerModel) {
+      if (roles !== undefined) updateData.roles = roles;
+      if (active_role !== undefined) updateData.active_role = active_role;
       if (state !== undefined) updateData.state = state;
       if (district !== undefined) updateData.district = district;
       if (address !== undefined) updateData.address = address;
@@ -789,7 +798,10 @@ const getAllSubscriptions = async (req, res) => {
        const mappedRole = role === 'ServiceProvider' ? 'service_provider' : 
                           role === 'Agent' ? 'property_agent' : 
                           role === 'Supplier' ? 'supplier' : role.toLowerCase();
-       pQuery.partner_type = mappedRole;
+       pQuery.$or = [
+         { partner_type: mappedRole },
+         { roles: mappedRole }
+       ];
     }
     if (s) {
        pQuery.$or = [{ name: s }, { email: s }, { phone: s }];

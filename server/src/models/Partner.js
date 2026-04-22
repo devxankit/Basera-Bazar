@@ -63,7 +63,17 @@ const partnerSchema = new mongoose.Schema({
   partner_type: {
     type: String,
     enum: ['service_provider', 'property_agent', 'supplier', 'mandi_seller'],
-    required: true
+    required: false // Kept for backward compat, prefer using 'roles' array
+  },
+  roles: {
+    type: [String],
+    enum: ['service_provider', 'property_agent', 'supplier', 'mandi_seller'],
+    default: []
+  },
+  active_role: {
+    type: String,
+    enum: ['service_provider', 'property_agent', 'supplier', 'mandi_seller'],
+    default: null // The currently active view in the partner app
   },
   role: {
     type: String,
@@ -160,6 +170,22 @@ partnerSchema.pre('save', async function() {
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+});
+
+// Auto-sync legacy partner_type → roles array for backward compatibility
+partnerSchema.pre('save', function() {
+  // If roles is empty but partner_type is set, auto-populate
+  if (this.partner_type && (!this.roles || this.roles.length === 0)) {
+    this.roles = [this.partner_type];
+  }
+  // Ensure active_role is always set
+  if (!this.active_role && this.roles && this.roles.length > 0) {
+    this.active_role = this.roles[0];
+  }
+  // Keep partner_type in sync with active_role
+  if (this.active_role) {
+    this.partner_type = this.active_role;
+  }
 });
 
 // Indexes

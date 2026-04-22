@@ -53,7 +53,7 @@ export default function PartnerInventory() {
 
   if (!user) return null;
   const partner = user;
-  const actualRole = (partner?.partner_type || partner?.role || '').toLowerCase();
+  const actualRole = (partner?.active_role || partner?.partner_type || partner?.role || '').toLowerCase();
 
   const getLabels = () => {
     if (actualRole.includes('agent')) {

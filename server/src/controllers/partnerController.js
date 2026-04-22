@@ -125,7 +125,7 @@ const getPartnerStats = async (req, res) => {
     const partner = await Partner.findById(partnerId);
     if (!partner) return res.status(404).json({ success: false, message: 'Partner not found' });
 
-    const ListingModel = modelMap[partner.partner_type] || PropertyListing;
+    const ListingModel = modelMap[partner.active_role || partner.partner_type] || PropertyListing;
 
     const [total, active, pending, featured] = await Promise.all([
       ListingModel.countDocuments({ partner_id: partnerId }),
@@ -154,8 +154,131 @@ const getPartnerStats = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Add a new role to an existing partner account
+ * @route   POST /api/partners/add-role
+ * @access  Private (Partner Token Required)
+ */
+const addRole = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    const { new_role, profile_data } = req.body;
+
+    const validRoles = ['service_provider', 'property_agent', 'supplier', 'mandi_seller'];
+    if (!new_role || !validRoles.includes(new_role)) {
+      return res.status(400).json({ success: false, message: 'Invalid role specified.' });
+    }
+
+    const partner = await Partner.findById(partnerId);
+    if (!partner) {
+      return res.status(404).json({ success: false, message: 'Partner account not found.' });
+    }
+
+    // Check if the role is already active
+    if (partner.roles && partner.roles.includes(new_role)) {
+      return res.status(400).json({ success: false, message: 'You already have this role.' });
+    }
+
+    // Add the new role
+    if (!partner.roles || partner.roles.length === 0) {
+      partner.roles = partner.partner_type ? [partner.partner_type] : [];
+    }
+    partner.roles.push(new_role);
+
+    // Populate role-specific profile data
+    if (profile_data) {
+      if (new_role === 'property_agent') {
+        partner.profile.property_profile = {
+          ...(partner.profile.property_profile || {}),
+          ...profile_data
+        };
+      } else if (new_role === 'service_provider') {
+        partner.profile.service_profile = {
+          ...(partner.profile.service_profile || {}),
+          ...profile_data
+        };
+      } else if (new_role === 'supplier') {
+        partner.profile.supplier_profile = {
+          ...(partner.profile.supplier_profile || {}),
+          ...profile_data
+        };
+      } else if (new_role === 'mandi_seller') {
+        partner.profile.mandi_profile = {
+          ...(partner.profile.mandi_profile || {}),
+          ...profile_data
+        };
+      }
+    }
+
+    // Auto-switch to the new role
+    partner.active_role = new_role;
+
+    await partner.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Role "${new_role}" added successfully!`,
+      data: {
+        roles: partner.roles,
+        active_role: partner.active_role,
+        partner_type: partner.partner_type
+      }
+    });
+
+  } catch (error) {
+    console.error("Error in addRole:", error);
+    res.status(500).json({ success: false, message: 'Server error adding role.' });
+  }
+};
+
+/**
+ * @desc    Switch the active role for the partner dashboard
+ * @route   PUT /api/partners/switch-role
+ * @access  Private (Partner Token Required)
+ */
+const switchRole = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    const { role } = req.body;
+
+    const partner = await Partner.findById(partnerId);
+    if (!partner) {
+      return res.status(404).json({ success: false, message: 'Partner not found.' });
+    }
+
+    // Validate the partner has this role
+    const partnerRoles = partner.roles && partner.roles.length > 0 
+      ? partner.roles 
+      : (partner.partner_type ? [partner.partner_type] : []);
+
+    if (!partnerRoles.includes(role)) {
+      return res.status(403).json({ success: false, message: 'You do not have this role.' });
+    }
+
+    partner.active_role = role;
+    partner.partner_type = role; // Keep legacy field in sync
+    await partner.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Switched to ${role} view.`,
+      data: {
+        active_role: partner.active_role,
+        partner_type: partner.partner_type,
+        roles: partner.roles
+      }
+    });
+
+  } catch (error) {
+    console.error("Error in switchRole:", error);
+    res.status(500).json({ success: false, message: 'Server error switching role.' });
+  }
+};
+
 module.exports = {
   onboardPartner,
   getMyPartnerProfile,
-  getPartnerStats
+  getPartnerStats,
+  addRole,
+  switchRole
 };
