@@ -12,8 +12,7 @@ import {
   Navigation,
   Building2
 } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useCart } from '../../context/CartContext';
 

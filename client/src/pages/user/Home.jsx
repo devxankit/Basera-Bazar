@@ -84,7 +84,7 @@ const Home = () => {
     },
     {
       id: 'mandi',
-      title: 'MANDI BAZAR',
+      title: 'BASERA BAZAR',
       count: 'Direct Order',
       icon: ShoppingBag,
       bgColor: 'bg-indigo-50',
@@ -289,7 +289,7 @@ const Home = () => {
           </div>
         </div>
       )}
-      {/* Bottom Mandi Bazar Final Banner */}
+      {/* Bottom Basera Bazar Final Banner */}
       <div className="px-5 pb-8">
         <div 
           onClick={() => navigate('/mandi-bazar')}
@@ -298,7 +298,7 @@ const Home = () => {
           <img 
             src="/mandi_home_banner.png" 
             className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700" 
-            alt="Mandi Bazar Banner" 
+            alt="Basera Bazar Banner" 
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>

@@ -3,18 +3,15 @@ import {
    ShoppingCart,
    Search,
    MapPin,
-   TrendingUp,
-   Box,
-   Star,
    ArrowRight,
    ChevronRight,
-   IndianRupee,
    Loader2,
    Building2,
    Package,
    ShieldCheck,
    Truck,
    Plus,
+   IndianRupee,
    HardHat
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -271,7 +268,7 @@ export default function MandiMarketplace() {
 
                <div className="mt-10 md:mt-16 w-full flex justify-center pt-8 border-t border-slate-50">
                   <span className="text-slate-400 font-bold text-[9px] xs:text-[11px] tracking-widest uppercase text-center">
-                     © {new Date().getFullYear()} Mandi Bazar Marketplace
+                     © {new Date().getFullYear()} Basera Bazar Marketplace
                   </span>
                </div>
             </div>

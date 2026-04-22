@@ -56,7 +56,7 @@ const navItems = [
   },
   { 
     id: 'mandi-bazar', 
-    label: 'Mandi Bazar', 
+    label: 'Basera Bazar', 
     icon: Store,
     children: [
       { label: 'KYC Queue', path: '/admin/mandi-bazar/kyc' },

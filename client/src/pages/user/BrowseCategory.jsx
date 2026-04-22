@@ -51,12 +51,20 @@ const BrowseCategory = () => {
     facingDirection: null,
     searchRadius: '25km',
     minExperience: 'Any',
-    featuredOnly: false,
+    featuredOnly: searchParams.get('featured') === 'true',
     supplierCategory: null,
     minProducts: 'Any',
     verifiedSupplier: false,
     wholesaleOnly: false
   });
+
+  // Sync filters with URL search params (handles internal navigation)
+  useEffect(() => {
+    const featured = searchParams.get('featured') === 'true';
+    if (featured !== activeFilters.featuredOnly) {
+      setActiveFilters(prev => ({ ...prev, featuredOnly: featured }));
+    }
+  }, [searchParams, activeFilters.featuredOnly]);
 
   const toggleFilter = (key, value) => {
     setActiveFilters(prev => ({

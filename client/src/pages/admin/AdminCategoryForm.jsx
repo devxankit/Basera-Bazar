@@ -211,10 +211,10 @@ export default function AdminCategoryForm() {
                           value={formData.mandi_icon ? [formData.mandi_icon] : []}
                           onChange={(urls) => setFormData({ ...formData, mandi_icon: urls[0] || '' })}
                           multiple={false}
-                          label="Mandi Marketplace Icon (Premium)"
+                          label="Basera Bazar Icon (Premium)"
                         />
                         <p className="mt-2 text-[10px] text-slate-400 italic">
-                          Used specifically in the Mandi Bazar marketplace section.
+                          Used specifically in the Basera Bazar marketplace section.
                         </p>
                      </div>
                    )}

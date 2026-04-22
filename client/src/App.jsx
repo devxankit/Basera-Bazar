@@ -200,7 +200,7 @@ function App() {
               </UserLayout>
             } />
 
-            {/* Mandi Bazar Customer Routes */}
+            {/* Basera Bazar Customer Routes */}
             <Route path="/mandi-bazar" element={
               <UserLayout>
                 <MandiMarketplace />

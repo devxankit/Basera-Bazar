@@ -63,7 +63,7 @@ const SupplierCategories = () => {
             <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No supplier categories found</p>
           </div>
         ) : (
-          categories.map((cat, idx) => (
+          categories.map((cat) => (
             <div key={cat._id} className="space-y-2">
               <button
                 onClick={() => navigate(`/browse/supplier?sub=${cat.slug}`)}

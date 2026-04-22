@@ -9,7 +9,7 @@ import {
   User, Mail, Phone, Calendar, LogOut, ChevronRight, 
   Package, Wrench, Settings, ArrowLeft, Building2, MapPin, 
   ExternalLink, Clock, CheckCircle2, ShoppingCart, MessageSquare, Briefcase, Send,
-  ShoppingBag, Download, Box, ArrowRight
+  ShoppingBag, Download, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
