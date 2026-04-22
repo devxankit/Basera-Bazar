@@ -303,17 +303,31 @@ const ListingDetails = () => {
               {activeImg + 1} / {allImages.length}
             </div>
 
-            <div className="h-full w-full relative group cursor-pointer" onClick={() => setIsLightboxOpen(true)}>
+            <div className="h-full w-full relative group cursor-pointer overflow-hidden">
               <AnimatePresence mode="wait">
                 <motion.img 
                   key={activeImg}
-                  initial={{ opacity: 0, x: 20 }}
+                  initial={{ opacity: 0, x: 100 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  exit={{ opacity: 0, x: -100 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
                   src={allImages[activeImg]} 
                   alt={listing.title} 
-                  className="w-full h-full object-cover" 
+                  className="w-full h-full object-cover absolute top-0 left-0" 
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.8}
+                  onDragEnd={(e, { offset, velocity }) => {
+                    const swipePower = Math.abs(offset.x) * velocity.x;
+                    if (swipePower < -500 || offset.x < -100) {
+                      setActiveImg(prev => (prev === allImages.length - 1 ? 0 : prev + 1));
+                    } else if (swipePower > 500 || offset.x > 100) {
+                      setActiveImg(prev => (prev === 0 ? allImages.length - 1 : prev - 1));
+                    } else if (Math.abs(offset.x) < 10) {
+                      // It's a click, not a swipe
+                      setIsLightboxOpen(true);
+                    }
+                  }}
                 />
               </AnimatePresence>
 

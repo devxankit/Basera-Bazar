@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Building2, MapPin, IndianRupee, Home, Camera, 
   CheckCircle2, Save, X, Loader2, ArrowLeft,
-  LayoutGrid, Layers, Briefcase, Star, Map, Pin, AlertCircle
+  LayoutGrid, Layers, Briefcase, Star, Map, Pin, AlertCircle, Navigation
 } from 'lucide-react';
 import api from '../../services/api';
 import MediaDropZone from '../../components/common/MediaDropZone';
+import MapModal from '../../components/common/MapModal';
 
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "block text-sm font-bold text-slate-600 mb-1.5";
@@ -35,6 +36,7 @@ export default function AdminPropertyForm() {
   const [initLoading, setInitLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [showMapModal, setShowMapModal] = useState(false);
 
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
@@ -174,6 +176,25 @@ export default function AdminPropertyForm() {
       images: urls,
       thumbnail: urls.length > 0 && !urls.includes(prev.thumbnail) ? urls[0] : prev.thumbnail
     }));
+  };
+
+  const fetchCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newCoords = [position.coords.longitude, position.coords.latitude];
+        setFormData(prev => ({
+          ...prev,
+          location: { ...prev.location, coordinates: newCoords }
+        }));
+      },
+      (err) => {
+        alert("Unable to retrieve your location: " + err.message);
+      }
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -318,10 +339,20 @@ export default function AdminPropertyForm() {
                     <input required maxLength={6} value={formData.address.pincode} onChange={e => handleInputChange(e, 'address.pincode')} className={inputClass} placeholder="6-digit" />
                   </div>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                      <Pin size={14} className="text-rose-500" />
-                      <span className="text-xs font-black text-slate-700 uppercase tracking-widest">GPS Coordinates</span>
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                      <div className="flex items-center gap-3">
+                         <Pin size={14} className="text-rose-500" />
+                         <span className="text-xs font-black text-slate-700 uppercase tracking-widest">GPS Coordinates</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={fetchCurrentLocation} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-xs font-bold transition-colors border border-indigo-100">
+                          <Navigation size={12} /> Fetch Current
+                        </button>
+                        <button type="button" onClick={() => setShowMapModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg text-xs font-bold transition-colors border border-emerald-100">
+                          <Map size={12} /> Pick on Map
+                        </button>
+                      </div>
                    </div>
                    <div className="flex gap-3">
                       <input type="number" step="any" step={0.000001} className="w-24 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono" value={formData.location.coordinates[1]} onChange={e => { const c = [...formData.location.coordinates]; c[1] = parseFloat(e.target.value); setFormData(p => ({...p, location: {...p.location, coordinates: c}})) }} placeholder="Lat" />
@@ -435,6 +466,15 @@ export default function AdminPropertyForm() {
           </form>
         </div>
       </div>
+
+      <MapModal 
+        isOpen={showMapModal} 
+        onClose={() => setShowMapModal(false)}
+        initialCoordinates={formData.location.coordinates}
+        onConfirm={(coords) => {
+          setFormData(prev => ({ ...prev, location: { ...prev.location, coordinates: coords } }));
+        }}
+      />
     </div>
   );
 }
