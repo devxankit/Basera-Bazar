@@ -296,7 +296,7 @@ const getListingById = async (req, res) => {
     // Search all collections for the ID
     // In a real high-traffic app, we might store a 'ListingLookup' index,
     // but for this MVP, we check the main types.
-    const populateOptions = { path: 'partner_id', select: 'name phone email role default_location profile' };
+    const populateOptions = { path: 'partner_id', select: 'name phone email role default_location profile createdAt' };
     
     const listing = await ServiceListing.findById(id).populate(populateOptions) ||
                     await PropertyListing.findById(id).populate(populateOptions) ||
@@ -333,7 +333,7 @@ const getListingById = async (req, res) => {
  */
 const getAllListings = async (req, res) => {
   try {
-    const { category, limit = 10, lat, lng, district, state, is_featured } = req.query;
+    const { category, limit = 10, lat, lng, district, state, is_featured, partner_id } = req.query;
     let results = [];
 
     const latitude = parseFloat(lat);
@@ -342,19 +342,43 @@ const getAllListings = async (req, res) => {
     const proximityRadius = 300;
 
     const fetchCategory = async (Model, modelName) => {
+      const query = { status: 'active' };
+      if (is_featured === 'true') {
+        query.is_featured = true;
+      }
+      if (partner_id) {
+        query.partner_id = partner_id;
+      }
+
       if (hasLocation) {
         const pipeline = buildProximityPipeline(latitude, longitude, district, state, proximityRadius);
-        if (is_featured === 'true') {
-          pipeline.push({ $match: { is_featured: true } });
-        }
-        pipeline.push({ $limit: parseInt(limit) });
+        // Add the extra filters to the aggregation pipeline
+        const matchStage = { $match: query };
+        pipeline.splice(1, 0, matchStage); // Insert after $geoNear
+
+        // Add population for partner data in aggregation
+        pipeline.push({
+          $lookup: {
+            from: 'partners',
+            localField: 'partner_id',
+            foreignField: '_id',
+            as: 'partner_id'
+          }
+        });
+        pipeline.push({ $unwind: { path: '$partner_id', preserveNullAndEmptyArrays: true } });
+        pipeline.push({
+          $project: {
+            'partner_id.password': 0,
+            'partner_id.kyc': 0
+          }
+        });
+
+        if (limit) pipeline.push({ $limit: parseInt(limit) });
         return await Model.aggregate(pipeline);
       } else {
-        const query = { status: 'active' };
-        if (is_featured === 'true') {
-          query.is_featured = true;
-        }
-        return await Model.find(query).limit(parseInt(limit));
+        return await Model.find(query)
+          .populate({ path: 'partner_id', select: 'name phone email role default_location profile createdAt' })
+          .limit(parseInt(limit));
       }
     };
 

@@ -14,7 +14,8 @@ import {
    Package,
    ShieldCheck,
    Truck,
-   Plus
+   Plus,
+   HardHat
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -24,6 +25,7 @@ export default function MandiMarketplace() {
    const navigate = useNavigate();
    const [categories, setCategories] = useState([]);
    const [loading, setLoading] = useState(true);
+   const [failedImages, setFailedImages] = useState({});
 
    useEffect(() => {
       const fetchMarketHome = async () => {
@@ -46,28 +48,30 @@ export default function MandiMarketplace() {
       if (cat.icon && typeof cat.icon === 'string' && cat.icon.length > 5) {
          return cat.icon;
       }
-      
+
       // Final safe fallback
       return '/default-product-category-image.png';
    };
 
    return (
-      <div className="min-h-screen bg-slate-50 font-sans pb-32">
+      <div className="min-h-screen bg-slate-50 font-sans">
          {/* Hero Section (Matched Exact Mockup) */}
          <div className="relative w-full bg-white overflow-hidden pb-6">
             {/* Poster Image */}
             <div className="relative w-full aspect-[4/3] sm:aspect-video">
-               <img 
-                  src="/mandi_poster_hero.jpg" 
-                  className="w-full h-full object-cover" 
+               <img
+                  src="/mandi_poster_hero.jpg"
+                  className="w-full h-full object-cover"
                   style={{ maskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)' }}
-                  alt="Mandi Hero" 
+                  alt="Mandi Hero"
                   onError={(e) => { e.target.style.display = 'none'; }}
                />
                <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full shadow-sm">
                   <span className="text-[20px] font-black text-[#d97706]">मंडी</span>
                   <span className="text-[20px] font-black text-[#1e293b]">BAZAR</span>
                </div>
+
+
             </div>
 
             {/* Bullets & Slogan */}
@@ -96,16 +100,16 @@ export default function MandiMarketplace() {
                ) : (
                   <>
                      {categories.slice(0, 3).map((cat, i) => (
-                        <div 
+                        <div
                            key={cat._id || i}
                            onClick={() => navigate(`/mandi-bazar/category/${cat._id}`)}
                            className="bg-white rounded-[16px] p-2 flex flex-col items-center gap-2 cursor-pointer shadow-xl active:scale-95 transition-transform border border-slate-100"
                         >
-                        <div className="w-full aspect-square flex flex-col items-center justify-center p-1 relative overflow-hidden">
-                              <img 
-                                 src={getCatImage(cat)} 
-                                 className="w-full h-full object-contain mix-blend-multiply" 
-                                 alt={cat.name} 
+                           <div className="w-full aspect-square flex flex-col items-center justify-center p-1 relative overflow-hidden">
+                              <img
+                                 src={getCatImage(cat)}
+                                 className="w-full h-full object-contain mix-blend-multiply"
+                                 alt={cat.name}
                                  onError={(e) => { e.target.onerror = null; e.target.src = '/default-product-category-image.png'; }}
                               />
                            </div>
@@ -122,7 +126,7 @@ export default function MandiMarketplace() {
                      ))}
 
                      {/* 4th Card -> More Button */}
-                     <div 
+                     <div
                         onClick={() => document.getElementById('main-content').scrollIntoView({ behavior: 'smooth' })}
                         className="bg-white rounded-[16px] p-2 flex flex-col items-center justify-center gap-2 cursor-pointer shadow-xl active:scale-95 transition-transform border border-slate-100"
                      >
@@ -168,10 +172,10 @@ export default function MandiMarketplace() {
                         className="flex flex-col items-center gap-2 cursor-pointer group active:scale-95 transition-transform"
                      >
                         <div className="w-full aspect-square flex items-center justify-center transition-shadow overflow-hidden p-2 rounded-full bg-white shadow-sm">
-                           <img 
-                              src={getCatImage(cat)} 
-                              className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-300" 
-                              alt={cat.name} 
+                           <img
+                              src={getCatImage(cat)}
+                              className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-300"
+                              alt={cat.name}
                               onError={(e) => { e.target.onerror = null; e.target.src = '/default-product-category-image.png'; }}
                            />
                         </div>
@@ -186,48 +190,67 @@ export default function MandiMarketplace() {
                   </div>
                )}
             </div>
+         </div>
 
-            {/* Why Trust Mandi Bazar */}
-            {/* Light Glassmorphism Trust Section: Direct From Mandi */}
-            <motion.div 
-               initial={{ opacity: 0, y: 20 }}
-               whileInView={{ opacity: 1, y: 0 }}
-               viewport={{ once: true }}
-               className="bg-white/70 backdrop-blur-3xl rounded-[32px] xs:rounded-[40px] p-5 xs:p-9 relative overflow-hidden shadow-[0_20px_50px_-10px_rgba(0,0,0,0.05)] border border-white/60 mx-1 xs:mx-0"
-            >
-               {/* Decorative soft light glows */}
-               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 rounded-full -mr-32 -mt-32 blur-[80px]" />
-               <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-50/40 rounded-full -ml-16 -mb-16 blur-[60px]" />
-               
-               <h3 className="text-[22px] xs:text-[28px] font-black mb-8 xs:mb-10 relative z-10 tracking-tight leading-tight text-[#0c2461]">
-                  Direct From Mandi
-               </h3>
-               
-               <div className="space-y-6 xs:space-y-8 relative z-10">
+         {/* Non-Interactive Marketplace Footer */}
+         <div className="w-full bg-white border-t border-slate-100 pt-10 xs:pt-16 pb-4 md:pb-8 mt-8 z-10 relative">
+            <div className="max-w-[1400px] mx-auto px-2 xs:px-6 md:px-12 flex flex-col items-center">
+               <div className="w-full grid grid-cols-4 gap-2 xs:gap-4 md:gap-16">
                   {[
-                     { icon: <ShieldCheck size={22} />, title: "Quality Guaranteed", desc: "Inspection before dispatch" },
-                     { icon: <Truck size={22} />, title: "Live Tracking", desc: "Real-time updates on site" },
-                     { icon: <IndianRupee size={22} />, title: "Cash on Delivery", desc: "Pay after unloading" }
+                     {
+                        img: "/3d_truck_delivery_icon_1776770486387.png",
+                        title: "Fast Delivery",
+                        fallback: <Truck size={24} className="text-orange-500" />
+                     },
+                     {
+                        img: "/3d_shield_verified_icon_1776770571779.png",
+                        title: "Verified Sellers",
+                        fallback: <ShieldCheck size={24} className="text-blue-500" />
+                     },
+                     {
+                        img: "/3d_rupee_coin_icon_1776770743699.png",
+                        title: "Best Prices",
+                        fallback: <IndianRupee size={24} className="text-emerald-500" />
+                     },
+                     {
+                        img: "/3d_hardhat_quality_icon_1776770864435.png",
+                        title: "Quality Assured",
+                        fallback: <HardHat size={24} className="text-amber-500" />
+                     }
                   ].map((item, i) => (
-                     <motion.div 
-                        key={i}
-                        initial={{ opacity: 0, x: -10 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.1, duration: 0.4 }}
-                        viewport={{ once: true }}
-                        className="flex items-center gap-4 xs:gap-6 group"
-                     >
-                        <div className="w-11 h-11 xs:w-16 xs:h-16 bg-white rounded-[16px] xs:rounded-[24px] flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(12,36,97,0.06)] border border-slate-100 group-hover:scale-105 transition-all duration-300">
-                           <div className="text-[#0c2461]/90 scale-90 xs:scale-100">{item.icon}</div>
+                     <div key={i} className="flex flex-col items-center text-center gap-2 xs:gap-3 md:gap-4">
+                        <div className="w-[4.2rem] h-[4.2rem] xs:w-20 xs:h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 flex items-center justify-center rounded-[16px] xs:rounded-[24px] md:rounded-[36px] bg-slate-50/50 border border-slate-100 overflow-hidden">
+                           {!failedImages[item.title] ? (
+                              <img
+                                 src={item.img}
+                                 alt={item.title}
+                                 className="w-[95%] h-[95%] object-contain mix-blend-multiply"
+                                 onError={() => setFailedImages(prev => ({ ...prev, [item.title]: true }))}
+                              />
+                           ) : (
+                              <div className="opacity-50">{item.fallback}</div>
+                           )}
                         </div>
-                        <div className="flex flex-col gap-0.5">
-                           <h4 className="text-[15px] xs:text-[19px] font-extrabold text-[#0c2461] tracking-tight xs:tracking-wide">{item.title}</h4>
-                           <p className="text-[11px] xs:text-[14px] text-slate-500 font-bold leading-tight line-clamp-1 xs:line-clamp-none">{item.desc}</p>
+                        <div className="flex flex-col min-h-[32px] xs:min-h-[40px] md:min-h-[48px] justify-center mt-1">
+                           <span className="text-[8px] xs:text-[11px] sm:text-[13px] md:text-[15px] font-black text-slate-700 uppercase tracking-tighter leading-[1.1]">
+                              {item.title.split(' ').map((word, index) => (
+                                 <React.Fragment key={index}>
+                                    {word}
+                                    {index === 0 && <br />}
+                                 </React.Fragment>
+                              ))}
+                           </span>
                         </div>
-                     </motion.div>
+                     </div>
                   ))}
                </div>
-            </motion.div>
+
+               <div className="mt-10 md:mt-16 w-full flex justify-center pt-8 border-t border-slate-50">
+                  <span className="text-slate-400 font-bold text-[9px] xs:text-[11px] tracking-widest uppercase text-center">
+                     © {new Date().getFullYear()} Mandi Bazar Marketplace
+                  </span>
+               </div>
+            </div>
          </div>
       </div>
    );

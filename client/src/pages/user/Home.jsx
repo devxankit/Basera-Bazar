@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BannerCarousel from '../../components/common/BannerCarousel';
-import { Search, Building2, Wrench, Store, ArrowRight, MapPin, Heart, Plus, Briefcase, Loader2, ShoppingBag, LayoutGrid } from 'lucide-react';
+import { Search, Building2, Wrench, Store, ArrowRight, MapPin, Heart, Plus, Briefcase, Loader2, ShoppingBag, LayoutGrid, Bed, Bath } from 'lucide-react';
 import { useLocationContext } from '../../context/LocationContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -162,30 +162,67 @@ const Home = () => {
               <div
                 key={item.id}
                 onClick={() => navigate(`/listing/${item.id}`)}
-                className="min-w-[260px] max-w-[260px] bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/20 overflow-hidden active:scale-[0.98] transition-all group relative cursor-pointer"
+                className="min-w-[220px] xs:min-w-[260px] max-w-[260px] bg-white rounded-[20px] xs:rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/20 overflow-hidden active:scale-[0.98] transition-all group relative cursor-pointer flex flex-col"
               >
-                <div className="h-36 relative">
-                  <img src={item.image || item.images?.[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt={item.title} />
-                  <div className="absolute top-3 right-3 flex gap-1.5">
-                    {item.featured && (
-                      <span className="bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-full text-[8px] font-bold text-emerald-600 shadow-sm">★</span>
-                    )}
+                <div className="h-28 xs:h-36 relative flex-shrink-0">
+                  <img 
+                    src={item.image || item.images?.[0]} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    alt={item.title} 
+                  />
+                  
+                  {/* Intent Badge */}
+                  <div className="absolute top-2 left-2">
+                    <div className={cn(
+                      "px-2 py-0.5 rounded-lg text-[7px] xs:text-[8px] font-black uppercase tracking-wider backdrop-blur-md shadow-sm border",
+                      (item.listing_intent || item.type || 'sell').toLowerCase() === 'sell' && "bg-emerald-500/90 text-white border-emerald-400/50",
+                      (item.listing_intent || item.type || 'rent' || item.intent).toLowerCase() === 'rent' && "bg-[#124db5]/90 text-white border-blue-400/50",
+                      (item.listing_intent || item.type || 'sell').toLowerCase() === 'lease' && "bg-purple-500/90 text-white border-purple-400/50"
+                    )}>
+                      {item.listing_intent || item.type || 'Buy'}
+                    </div>
                   </div>
                 </div>
-                <div className="p-4 space-y-1.5">
-                  <h3 className="font-bold text-[#1f2355] text-[15px] truncate">{item.title}</h3>
-                  <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
-                    <MapPin size={12} className="text-emerald-500" />
-                    <span className="truncate">{item.location_text || item.address?.district || 'Bihar'}</span>
-                  </div>
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[#124db5] text-[17px] font-black">
-                      ₹{(item.pricing?.amount || item.price?.value || 0).toLocaleString()}
-                    </span>
-                    <div className="bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 flex items-center gap-1.5">
-                      <LayoutGrid size={10} className="text-[#124db5]" />
-                      <span className="text-[9px] font-bold text-[#1f2355]/70">{item.details?.area?.value || 'Area'}</span>
+
+                <div className="p-3 xs:p-4 flex flex-col justify-between flex-grow">
+                  <div className="space-y-0.5">
+                    <h3 className="font-bold text-[#1f2355] text-[13px] xs:text-[15px] truncate leading-tight tracking-tight">{item.title}</h3>
+                    <div className="flex items-center gap-1 text-[9px] xs:text-[10px] font-semibold text-slate-400">
+                      <MapPin size={10} className="text-emerald-500" />
+                      <span className="truncate">{item.location_text || item.address?.district || 'Bihar'}</span>
                     </div>
+                  </div>
+
+                  {/* Specs Row */}
+                  <div className="flex gap-1.5 py-1.5">
+                    {item.details?.bhk && (
+                      <div className="bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-[8px] xs:text-[9px] font-bold text-slate-500">
+                        <Bed size={10} className="text-[#124db5]" /> {item.details.bhk} BHK
+                      </div>
+                    )}
+                    {(item.details?.area || item.details?.area?.value) && (
+                      <div className="bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-[8px] xs:text-[9px] font-bold text-slate-500">
+                        <LayoutGrid size={10} className="text-[#124db5]" />
+                        {item.details.area?.value || item.details.area} {item.details.area?.unit || 'sqft'}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-50">
+                    <div className="flex flex-col">
+                      <span className="text-[#124db5] text-[15px] xs:text-[17px] font-black leading-none">
+                        ₹{(() => {
+                          const val = item.pricing?.amount || item.price?.value || 0;
+                          if (val >= 10000000) return `${(val / 10000000).toFixed(2)} Cr`;
+                          if (val >= 100000) return `${(val / 100000).toFixed(2)} Lac`;
+                          return val.toLocaleString('en-IN');
+                        })()}
+                      </span>
+                      {(item.listing_intent?.toLowerCase() === 'rent' || item.type?.toLowerCase() === 'rent') && (
+                        <span className="text-[7px] xs:text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">per month</span>
+                      )}
+                    </div>
+                    <ArrowRight size={14} className="text-slate-300" />
                   </div>
                 </div>
               </div>

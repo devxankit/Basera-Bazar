@@ -108,7 +108,8 @@ class DataEngine {
       email: ownerData.email || 'contact@baserabazar.com',
       role: ownerData.role || (ownerData.partner_type?.replace('_', ' ') || 'Partner'),
       profileImage: ownerData.profileImage || profile.mandi_profile?.business_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(businessName || ownerData.name || 'Basera')}&background=f1f5f9&color=64748b`,
-      location: ownerData.default_location ? `${ownerData.default_location.city || ''}, ${ownerData.default_location.state || ''}`.trim().replace(/^,/, '').trim() || 'Muzaffarpur, Bihar' : (ownerData.city ? `${ownerData.city}, ${ownerData.state}` : 'Muzaffarpur, Bihar')
+      location: ownerData.default_location ? `${ownerData.default_location.city || ''}, ${ownerData.default_location.state || ''}`.trim().replace(/^,/, '').trim() || 'Muzaffarpur, Bihar' : (ownerData.city ? `${ownerData.city}, ${ownerData.state}` : 'Muzaffarpur, Bihar'),
+      joinedAt: ownerData.createdAt
     };
 
     return normalized;

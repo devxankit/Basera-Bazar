@@ -395,21 +395,7 @@ const ListingDetails = () => {
                   <span className="text-sm font-medium text-[#4a5578]">{listing.location}</span>
                 </div>
               </div>
-
-              <div className="grid grid-cols-3 gap-3 pt-4">
-                <button className="flex flex-col items-center justify-center gap-2 bg-[#f0f4fc] border border-[#d2dcf3] py-3.5 rounded-xl group active:scale-95 transition-all">
-                  <Phone size={18} className="text-[#124db5]" strokeWidth={2} />
-                  <span className="text-[11px] font-semibold text-[#124db5]">Call</span>
-                </button>
-                <button className="flex flex-col items-center justify-center gap-2 bg-[#f0fbf4] border border-[#cbebd7] py-3.5 rounded-xl group active:scale-95 transition-all">
-                  <MessageSquare size={18} className="text-[#159f42]" strokeWidth={2} />
-                  <span className="text-[11px] font-semibold text-[#159f42]">WhatsApp</span>
-                </button>
-                <button className="flex flex-col items-center justify-center gap-2 bg-[#f6effb] border border-[#dcd0ec] py-3.5 rounded-xl group active:scale-95 transition-all">
-                  <ArrowRightSquare size={18} className="text-[#7c43c2]" strokeWidth={2} />
-                  <span className="text-[11px] font-semibold text-[#7c43c2]">Direction</span>
-                </button>
-              </div>
+              {/* Action Buttons Removed per user request */}
           </div>
         </>
       ) : (
@@ -511,7 +497,7 @@ const ListingDetails = () => {
                     <div className="space-y-2">
                       {[
                         { label: 'Address', value: `Main Road, ${listing.location}` },
-                        { label: 'Pincode', value: listing.location?.includes('Patna') ? '800001' : '842001' },
+                        { label: 'Pincode', value: listing.pincode || '842001' },
                         { label: 'Location', value: listing.location }
                       ].map((detail, idx) => (
                         <div key={idx} className="flex flex-row items-start justify-between py-0.5">
@@ -521,6 +507,28 @@ const ListingDetails = () => {
                           </span>
                         </div>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* Property Map Pinpoint */}
+                  <div className="bg-white border border-[#eef2fc] rounded-[24px] p-2 shadow-[0_4px_15px_-5px_rgba(0,0,0,0.08)] overflow-hidden">
+                    <div className="h-48 w-full rounded-[20px] overflow-hidden bg-slate-100 relative">
+                      {listing.lat && listing.lng ? (
+                        <iframe 
+                          title="Property Location"
+                          width="100%" 
+                          height="100%" 
+                          frameBorder="0" 
+                          style={{ border: 0 }}
+                          src={`https://maps.google.com/maps?q=${listing.lat},${listing.lng}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                          allowFullScreen
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                          <MapPin size={32} className="opacity-20" />
+                          <span className="text-[11px] font-bold uppercase tracking-widest">Location pinpoint unavailable</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -588,6 +596,14 @@ const ListingDetails = () => {
                         </p>
                       </div>
                     </div>
+
+                    <button 
+                      onClick={() => navigate(`/agent/${listing.owner?.id}`)}
+                      className="w-full mt-4 bg-slate-50 border border-slate-100 py-3 rounded-2xl text-[13px] font-bold text-[#1f2355] hover:bg-slate-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    >
+                      <LayoutGrid size={16} />
+                      View All Property
+                    </button>
                   </div>
                   <div className="bg-white border border-[#eef2fc] rounded-[16px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-5">
                     <h3 className="text-[15px] font-semibold text-[#1f2355]">Contact Information</h3>

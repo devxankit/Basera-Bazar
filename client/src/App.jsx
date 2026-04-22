@@ -119,7 +119,7 @@ const UserLayout = ({ children }) => {
   const isCategory = location.pathname.startsWith('/category/');
   const isBrowse = location.pathname.startsWith('/browse/');
   const isMandi = location.pathname.startsWith('/mandi');
-  const isDetail = location.pathname.startsWith('/listing/') || location.pathname.startsWith('/service/');
+  const isDetail = location.pathname.startsWith('/listing/') || location.pathname.startsWith('/service/') || location.pathname.startsWith('/agent/');
   const showBottomNav = !isDetail;
 
   return (
@@ -134,669 +134,676 @@ const UserLayout = ({ children }) => {
   );
 };
 
+import AgentDetails from './pages/user/AgentDetails';
+
 function App() {
   return (
     <LocationProvider>
       <AuthProvider>
         <Router>
           <Routes>
-        {/* User Module Routes */}
-        <Route path="/" element={
-          <UserLayout>
-            <Home />
-          </UserLayout>
-        } />
+            {/* User Module Routes */}
+            <Route path="/" element={
+              <UserLayout>
+                <Home />
+              </UserLayout>
+            } />
 
-        <Route path="/listing/:id" element={
-          <UserLayout>
-            <ListingDetails />
-          </UserLayout>
-        } />
-        <Route path="/service/:id" element={
-          <UserLayout>
-            <ServiceProfile />
-          </UserLayout>
-        } />
-        <Route path="/profile" element={
-          <ProtectedRoute>
-            <UserLayout><UserProfile /></UserLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/edit-profile" element={
-          <ProtectedRoute>
-            <UserLayout><EditProfile /></UserLayout>
-          </ProtectedRoute>
-        } />
+            <Route path="/listing/:id" element={
+              <UserLayout>
+                <ListingDetails />
+              </UserLayout>
+            } />
+            <Route path="/agent/:id" element={
+              <UserLayout>
+                <AgentDetails />
+              </UserLayout>
+            } />
+            <Route path="/service/:id" element={
+              <UserLayout>
+                <ServiceProfile />
+              </UserLayout>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <UserLayout><UserProfile /></UserLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/edit-profile" element={
+              <ProtectedRoute>
+                <UserLayout><EditProfile /></UserLayout>
+              </ProtectedRoute>
+            } />
 
-        {/* Category Specific Selectors */}
-        <Route path="/category/property" element={
-          <UserLayout>
-            <PropertyCategories />
-          </UserLayout>
-        } />
-        <Route path="/category/service" element={
-          <UserLayout>
-            <ServiceCategories />
-          </UserLayout>
-        } />
-        <Route path="/category/supplier" element={<UserLayout><SupplierCategories /></UserLayout>} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
+            {/* Category Specific Selectors */}
+            <Route path="/category/property" element={
+              <UserLayout>
+                <PropertyCategories />
+              </UserLayout>
+            } />
+            <Route path="/category/service" element={
+              <UserLayout>
+                <ServiceCategories />
+              </UserLayout>
+            } />
+            <Route path="/category/supplier" element={<UserLayout><SupplierCategories /></UserLayout>} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
 
-        <Route path="/browse/:category" element={
-          <UserLayout>
-            <BrowseCategory />
-          </UserLayout>
-        } />
+            <Route path="/browse/:category" element={
+              <UserLayout>
+                <BrowseCategory />
+              </UserLayout>
+            } />
 
-        {/* Mandi Bazar Customer Routes */}
-        <Route path="/mandi-bazar" element={
-          <UserLayout>
-            <MandiMarketplace />
-          </UserLayout>
-        } />
-        <Route path="/mandi-bazar/category/:id" element={
-          <UserLayout>
-            <MandiCategoryView />
-          </UserLayout>
-        } />
-        <Route path="/mandi-checkout" element={
-          <ProtectedRoute>
-             <UserLayout><MandiCheckout /></UserLayout>
-          </ProtectedRoute>
-        } />
-        
-        {/* Placeholder Routes for NavLinks */}
-        <Route path="/categories" element={
-          <UserLayout>
-            <div className="p-8 text-center text-slate-400 font-semibold uppercase tracking-widest pt-20">
-              Categories Coming Soon
-            </div>
-          </UserLayout>
-        } />
-        <Route path="/leads" element={
-          <UserLayout>
-            <div className="p-8 text-center text-slate-400 font-semibold uppercase tracking-widest pt-20">
-              Lead Activity Coming Soon
-            </div>
-          </UserLayout>
-        } />
+            {/* Mandi Bazar Customer Routes */}
+            <Route path="/mandi-bazar" element={
+              <UserLayout>
+                <MandiMarketplace />
+              </UserLayout>
+            } />
+            <Route path="/mandi-bazar/category/:id" element={
+              <UserLayout>
+                <MandiCategoryView />
+              </UserLayout>
+            } />
+            <Route path="/mandi-checkout" element={
+              <ProtectedRoute>
+                <UserLayout><MandiCheckout /></UserLayout>
+              </ProtectedRoute>
+            } />
 
-        {/* Partner Module Routes */}
-        <Route path="/partner/login" element={<PartnerLogin />} />
-        <Route path="/partner/register" element={<PartnerRegistration />} />
-        
-        <Route path="/partner/home" element={
-          <PartnerLayout>
-            <PartnerHome />
-          </PartnerLayout>
-        } />
+            {/* Placeholder Routes for NavLinks */}
+            <Route path="/categories" element={
+              <UserLayout>
+                <div className="p-8 text-center text-slate-400 font-semibold uppercase tracking-widest pt-20">
+                  Categories Coming Soon
+                </div>
+              </UserLayout>
+            } />
+            <Route path="/leads" element={
+              <UserLayout>
+                <div className="p-8 text-center text-slate-400 font-semibold uppercase tracking-widest pt-20">
+                  Lead Activity Coming Soon
+                </div>
+              </UserLayout>
+            } />
 
-        {/* Real Partner Navigation Routes */}
-        <Route path="/partner/properties" element={
-          <PartnerLayout>
-            <PartnerInventory />
-          </PartnerLayout>
-        } />
-        <Route path="/partner/services" element={
-          <PartnerLayout>
-            <PartnerInventory />
-          </PartnerLayout>
-        } />
-        <Route path="/partner/products" element={
-          <PartnerLayout>
-            <PartnerInventory />
-          </PartnerLayout>
-        } />
-        <Route path="/partner/leads" element={
-          <PartnerLayout>
-            <PartnerInquiries />
-          </PartnerLayout>
-        } />
-        <Route path="/partner/profile" element={
-          <PartnerLayout>
-            <PartnerProfile />
-          </PartnerLayout>
-        } />
-        <Route path="/partner/subscription" element={
-          <PartnerLayout>
-            <PartnerSubscription />
-          </PartnerLayout>
-        } />
-        <Route path="/partner/add-service" element={<AddService />} />
-        <Route path="/partner/add-property" element={<AddProperty />} />
-        <Route path="/partner/add-product" element={<AddProduct />} />
-        <Route path="/partner/service-details/:id" element={<PartnerServiceDetails />} />
-        <Route path="/partner/lead-details/:id" element={<PartnerLeadDetails />} />
-        <Route path="/partner/help" element={<PartnerHelp />} />
-        <Route path="/partner/about" element={<PartnerAbout />} />
-        <Route path="/partner/edit-profile" element={<PartnerEditProfile />} />
-        <Route path="/partner/notifications" element={
-          <PartnerLayout>
-            <PartnerNotifications />
-          </PartnerLayout>
-        } />
-        
-        {/* Mandi Seller Specific Routes */}
-        <Route path="/partner/mandi/dashboard" element={<PartnerLayout><PartnerHome /></PartnerLayout>} />
-        <Route path="/partner/mandi/inventory" element={<PartnerLayout><MandiInventory /></PartnerLayout>} />
-        <Route path="/partner/mandi/add-product" element={<AddMandiProduct />} />
-        <Route path="/partner/mandi/orders" element={<PartnerLayout><MandiOrders /></PartnerLayout>} />
-        <Route path="/partner/mandi/penalties" element={<PartnerLayout><MandiPenalties /></PartnerLayout>} />
+            {/* Partner Module Routes */}
+            <Route path="/partner/login" element={<PartnerLogin />} />
+            <Route path="/partner/register" element={<PartnerRegistration />} />
 
-        {/* Admin Module Routes */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-        
-        <Route path="/admin/dashboard" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminDashboard />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/partner/home" element={
+              <PartnerLayout>
+                <PartnerHome />
+              </PartnerLayout>
+            } />
 
-        <Route path="/admin/profile" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminEditProfile />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            {/* Real Partner Navigation Routes */}
+            <Route path="/partner/properties" element={
+              <PartnerLayout>
+                <PartnerInventory />
+              </PartnerLayout>
+            } />
+            <Route path="/partner/services" element={
+              <PartnerLayout>
+                <PartnerInventory />
+              </PartnerLayout>
+            } />
+            <Route path="/partner/products" element={
+              <PartnerLayout>
+                <PartnerInventory />
+              </PartnerLayout>
+            } />
+            <Route path="/partner/leads" element={
+              <PartnerLayout>
+                <PartnerInquiries />
+              </PartnerLayout>
+            } />
+            <Route path="/partner/profile" element={
+              <PartnerLayout>
+                <PartnerProfile />
+              </PartnerLayout>
+            } />
+            <Route path="/partner/subscription" element={
+              <PartnerLayout>
+                <PartnerSubscription />
+              </PartnerLayout>
+            } />
+            <Route path="/partner/add-service" element={<AddService />} />
+            <Route path="/partner/add-property" element={<AddProperty />} />
+            <Route path="/partner/add-product" element={<AddProduct />} />
+            <Route path="/partner/service-details/:id" element={<PartnerServiceDetails />} />
+            <Route path="/partner/lead-details/:id" element={<PartnerLeadDetails />} />
+            <Route path="/partner/help" element={<PartnerHelp />} />
+            <Route path="/partner/about" element={<PartnerAbout />} />
+            <Route path="/partner/edit-profile" element={<PartnerEditProfile />} />
+            <Route path="/partner/notifications" element={
+              <PartnerLayout>
+                <PartnerNotifications />
+              </PartnerLayout>
+            } />
 
-        <Route path="/admin/users" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminUsers />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            {/* Mandi Seller Specific Routes */}
+            <Route path="/partner/mandi/dashboard" element={<PartnerLayout><PartnerHome /></PartnerLayout>} />
+            <Route path="/partner/mandi/inventory" element={<PartnerLayout><MandiInventory /></PartnerLayout>} />
+            <Route path="/partner/mandi/add-product" element={<AddMandiProduct />} />
+            <Route path="/partner/mandi/orders" element={<PartnerLayout><MandiOrders /></PartnerLayout>} />
+            <Route path="/partner/mandi/penalties" element={<PartnerLayout><MandiPenalties /></PartnerLayout>} />
 
-        <Route path="/admin/users/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminUserDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            {/* Admin Module Routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
 
-        <Route path="/admin/users/add" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminUserForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/dashboard" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminDashboard />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/users/edit/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminUserForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/profile" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminEditProfile />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/users/subscriptions/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminUserSubscriptions />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/users" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminUsers />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/mandi-bazar/sellers" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminMandiSellers />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/users/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminUserDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/mandi-bazar/:tab?" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminMandiBazar />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/users/add" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminUserForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/properties" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminProperties />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/users/edit/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminUserForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/properties/add" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminPropertyForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/users/subscriptions/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminUserSubscriptions />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/properties/edit/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminPropertyForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/mandi-bazar/sellers" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminMandiSellers />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/properties/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminPropertyDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/mandi-bazar/:tab?" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminMandiBazar />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/services" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminServices />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/properties" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminProperties />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/services/add" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminServiceForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/properties/add" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminPropertyForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/services/edit/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminServiceForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/properties/edit/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminPropertyForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/services/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminServiceDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/properties/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminPropertyDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/products" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminProducts />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/services" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminServices />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/products/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminProductDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/services/add" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminServiceForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/suppliers" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminSuppliers />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/services/edit/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminServiceForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/leads" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminLeads />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/services/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminServiceDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/leads/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminLeadDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/products" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminProducts />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        {/* Property System */}
-        <Route path="/admin/properties/categories" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminPropertyCategories />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/products/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminProductDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/properties/categories/add" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/suppliers" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminSuppliers />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/properties/categories/edit/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/leads" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminLeads />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/properties/categories/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/properties/subcategories/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/properties/subcategories" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminPropertySubcategories />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/leads/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminLeadDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        {/* Service System */}
-        <Route path="/admin/services/categories" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminServiceCategories />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/services/subcategories" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminServiceSubcategories />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/services/categories/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/services/subcategories/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/services/categories/add" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/services/categories/edit/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            {/* Property System */}
+            <Route path="/admin/properties/categories" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminPropertyCategories />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        {/* Product & Supplier System */}
-        <Route path="/admin/suppliers/categories" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminSupplierCategories />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/categories" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminProductCategories />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/subcategories" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminProductSubcategories />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/categories/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/subcategories/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/categories/add" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/categories/edit/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/suppliers/categories/add" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/suppliers/categories/edit/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/suppliers/categories/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCategoryDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/units" element={
-          <AdminRoute>
-            <AdminLayout><AdminProductUnits /></AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/units/add" element={
-          <AdminRoute>
-            <AdminLayout><AdminUnitForm /></AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/units/edit/:id" element={
-          <AdminRoute>
-            <AdminLayout><AdminUnitForm /></AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/units/view/:id" element={
-          <AdminRoute>
-            <AdminLayout><AdminUnitDetails /></AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/brands" element={
-          <AdminRoute>
-            <AdminLayout><AdminBrands /></AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/brands/add" element={
-          <AdminRoute>
-            <AdminLayout><AdminBrandForm /></AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/brands/edit/:id" element={
-          <AdminRoute>
-            <AdminLayout><AdminBrandForm /></AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/brands/view/:id" element={
-          <AdminRoute>
-            <AdminLayout><AdminBrandDetails /></AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/products/names" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminProductNames />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/properties/categories/add" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        {/* Subscriptions & Reports */}
-        <Route path="/admin/subscriptions" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminAllSubscriptions />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/subscriptions/add-manual/:userId" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminCreateManualSubscription />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/subscriptions/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminSubscriptionDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/subscriptions/plans" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminSubscriptionPlans />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/subscriptions/plans/add" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminSubscriptionPlanForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/subscriptions/plans/edit/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminSubscriptionPlanForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/reports/payments" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminPaymentReport />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/reports/subscriptions" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminSubscriptionReport />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/reports/users" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminUserReport />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/properties/categories/edit/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        {/* Marketing & System */}
-        <Route path="/admin/banners" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminBanners />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/banners/add" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminBannerForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/banners/edit/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminBannerForm />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/banners/view/:id" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminBannerDetails />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/properties/categories/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/properties/subcategories/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/properties/subcategories" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminPropertySubcategories />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+
+            {/* Service System */}
+            <Route path="/admin/services/categories" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminServiceCategories />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/services/subcategories" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminServiceSubcategories />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/services/categories/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/services/subcategories/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/services/categories/add" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/services/categories/edit/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+
+            {/* Product & Supplier System */}
+            <Route path="/admin/suppliers/categories" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminSupplierCategories />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/categories" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminProductCategories />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/subcategories" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminProductSubcategories />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/categories/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/subcategories/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/categories/add" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/categories/edit/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/suppliers/categories/add" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/suppliers/categories/edit/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/suppliers/categories/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCategoryDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/units" element={
+              <AdminRoute>
+                <AdminLayout><AdminProductUnits /></AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/units/add" element={
+              <AdminRoute>
+                <AdminLayout><AdminUnitForm /></AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/units/edit/:id" element={
+              <AdminRoute>
+                <AdminLayout><AdminUnitForm /></AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/units/view/:id" element={
+              <AdminRoute>
+                <AdminLayout><AdminUnitDetails /></AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/brands" element={
+              <AdminRoute>
+                <AdminLayout><AdminBrands /></AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/brands/add" element={
+              <AdminRoute>
+                <AdminLayout><AdminBrandForm /></AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/brands/edit/:id" element={
+              <AdminRoute>
+                <AdminLayout><AdminBrandForm /></AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/brands/view/:id" element={
+              <AdminRoute>
+                <AdminLayout><AdminBrandDetails /></AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/names" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminProductNames />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+
+            {/* Subscriptions & Reports */}
+            <Route path="/admin/subscriptions" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminAllSubscriptions />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/subscriptions/add-manual/:userId" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCreateManualSubscription />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/subscriptions/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminSubscriptionDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/subscriptions/plans" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminSubscriptionPlans />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/subscriptions/plans/add" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminSubscriptionPlanForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/subscriptions/plans/edit/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminSubscriptionPlanForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/reports/payments" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminPaymentReport />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/reports/subscriptions" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminSubscriptionReport />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/reports/users" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminUserReport />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+
+            {/* Marketing & System */}
+            <Route path="/admin/banners" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminBanners />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/banners/add" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminBannerForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/banners/edit/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminBannerForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/banners/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminBannerDetails />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
 
-        {/* New Dashboard Oversight Routes */}
-        <Route path="/admin/dashboard/activities" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminAllActivities />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            {/* New Dashboard Oversight Routes */}
+            <Route path="/admin/dashboard/activities" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminAllActivities />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/dashboard/pending/properties" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminPendingProperties />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+            <Route path="/admin/dashboard/pending/properties" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminPendingProperties />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
-        <Route path="/admin/dashboard/pending/others" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AdminPendingOthers />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-      </Routes>
-    </Router>
-    </AuthProvider>
+            <Route path="/admin/dashboard/pending/others" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminPendingOthers />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+          </Routes>
+        </Router>
+      </AuthProvider>
     </LocationProvider>
   );
 }
