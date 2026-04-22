@@ -18,6 +18,11 @@ class DataEngine {
   _normalize = (item) => {
     if (!item) return null;
     
+    // Check if this is an enquiry/lead object
+    if (item.enquiry_type || item.listing_snapshot) {
+      return this._normalizeEnquiry(item);
+    }
+
     // Create a copy to avoid mutating cache if any
     const normalized = {
       ...item,
@@ -115,6 +120,23 @@ class DataEngine {
     return normalized;
   }
 
+  _normalizeEnquiry(item) {
+    return {
+      id: item._id,
+      category: item.enquiry_type,
+      type: item.inquiry_type || 'enquiry',
+      listingId: item.listing_id,
+      listingTitle: item.listing_snapshot?.title || item.listing_snapshot?.serviceName || 'Listing Deleted',
+      date: item.createdAt,
+      content: item.content,
+      status: item.status || 'sent',
+      userId: item.user_id,
+      phone: item.user_details?.phone,
+      email: item.user_details?.email,
+      name: item.user_details?.name
+    };
+  }
+
   // -----------------------------------------------------
   // READ OPERATIONS
   // -----------------------------------------------------
@@ -130,7 +152,12 @@ class DataEngine {
       
       if (table === 'banners') {
         const response = await api.get('/listings/banners');
-        return (response.data.data || []).map(this._normalize).filter(Boolean);
+        return (response.data.data || []).map(this._normalize.bind(this)).filter(Boolean);
+      }
+
+      if (table === 'leads') {
+        const response = await api.get('/users/enquiries');
+        return (response.data.data || []).map(this._normalize.bind(this)).filter(Boolean);
       }
 
       return [];

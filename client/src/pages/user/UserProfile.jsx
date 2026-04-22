@@ -362,33 +362,34 @@ const UserProfile = () => {
                 className="space-y-4"
               >
                 {(activeTab === 'Property Enquiries' ? propertyEnquiries : (activeTab === 'Product Enquiries' ? productEnquiries : serviceEnquiries)).map((enquiry, idx) => (
-                  <div key={idx} className="bg-white rounded-[28px] border border-slate-100 p-5 space-y-4 shadow-sm group">
-                    <div className="flex items-start justify-between">
-                      <div className="flex gap-4">
-                        <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-[#1f2355] border border-slate-100 shrink-0">
-                          {enquiry.type === 'quotation' ? <ShoppingCart size={22} /> : (enquiry.category === 'service' ? <Wrench size={22} /> : <Building2 size={22} />)}
-                        </div>
-                        <div className="space-y-1">
-                          <h4 className="font-bold text-[#1f2355] leading-tight group-hover:text-[#fa8639] transition-colors line-clamp-1">{enquiry.listingTitle}</h4>
-                          <div className="flex items-center gap-2 text-[12px] text-slate-400 font-medium lowercase">
-                            <span className="px-1.5 py-0.5 bg-slate-50 rounded-md border border-slate-100">{enquiry.type}</span>
-                            <span>•</span>
-                            <Clock size={12} /> {new Date(enquiry.date).toLocaleDateString()}
-                          </div>
+                  <div key={idx} className="bg-white rounded-[24px] border border-slate-100 p-4 space-y-3 shadow-sm group relative overflow-hidden">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-[#1f2355] border border-slate-100 shrink-0">
+                        {enquiry.type === 'quotation' ? <ShoppingCart size={18} /> : (enquiry.category === 'service' ? <Wrench size={18} /> : <Building2 size={18} />)}
+                      </div>
+                      <div className="flex-grow min-w-0 pr-12">
+                        <h4 className="font-bold text-[#1f2355] text-[15px] leading-tight group-hover:text-[#fa8639] transition-colors truncate">{enquiry.listingTitle}</h4>
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium lowercase mt-0.5">
+                          <span className="px-1.5 py-0.5 bg-slate-50 rounded-md border border-slate-100">{enquiry.type}</span>
+                          <span>•</span>
+                          <Clock size={10} /> {new Date(enquiry.date).toLocaleDateString()}
                         </div>
                       </div>
-                      <div className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full border border-blue-100 flex items-center gap-1.5">
-                        <Send size={12} strokeWidth={2.5} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Sent</span>
+                      <div className="absolute top-4 right-4 bg-blue-50 text-blue-600 px-2 py-1 rounded-lg border border-blue-100 flex items-center gap-1 shadow-sm">
+                        <Send size={10} strokeWidth={2.5} />
+                        <span className="text-[9px] font-black uppercase tracking-wider">Sent</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1">
-                      <div className="flex items-center gap-2 text-[13px] font-semibold text-[#1f2355]/60 hover:text-[#1f2355] cursor-pointer" onClick={() => navigate(enquiry.category === 'service' ? `/service/${enquiry.listingId}` : `/listing/${enquiry.listingId}`)}>
-                        <ExternalLink size={14} /> View Details
-                      </div>
-                      <button className="flex items-center gap-1.5 text-[#fa8639] font-bold text-[13px] hover:bg-orange-50 px-3 py-1.5 rounded-xl transition-all">
-                        <MessageSquare size={16} /> Contact Again
+                    <div className="flex items-center gap-2 pt-1">
+                      <button 
+                        onClick={() => navigate(enquiry.category === 'service' ? `/service/${enquiry.listingId}` : `/listing/${enquiry.listingId}`)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-50 text-[#1f2355] rounded-xl text-[12px] font-bold active:scale-[0.98] transition-all border border-slate-100"
+                      >
+                        <ExternalLink size={14} /> Details
+                      </button>
+                      <button className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-orange-50 text-[#fa8639] rounded-xl text-[12px] font-bold active:scale-[0.98] transition-all border border-orange-100">
+                        <MessageSquare size={14} /> Contact
                       </button>
                     </div>
                   </div>
