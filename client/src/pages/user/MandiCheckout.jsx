@@ -15,11 +15,11 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
+import { useCart } from '../../context/CartContext';
 
 export default function MandiCheckout() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { cart, total } = location.state || { cart: {}, total: 0 };
+  const { cart, cartTotal: total, clearCart } = useCart();
   
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1); // 1: Address, 2: Review & Pay
@@ -64,6 +64,7 @@ export default function MandiCheckout() {
       if (res.data.success) {
          // Razorpay intent would be res.data.data.razorpay_order_id
          alert(`Booking Success! You paid ₹${res.data.data.payment_amount} as a non-refundable token. A supplier will contact you shortly to coordinate delivery.`);
+         clearCart();
          navigate('/profile?tab=orders');
       }
     } catch (err) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-   ShoppingBag,
+   ShoppingCart,
    Search,
    MapPin,
    TrendingUp,
@@ -20,9 +20,11 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
+import { useCart } from '../../context/CartContext';
 
 export default function MandiMarketplace() {
    const navigate = useNavigate();
+   const { cartCount } = useCart();
    const [categories, setCategories] = useState([]);
    const [loading, setLoading] = useState(true);
    const [failedImages, setFailedImages] = useState({});
@@ -66,11 +68,22 @@ export default function MandiMarketplace() {
                   alt="Mandi Hero"
                   onError={(e) => { e.target.style.display = 'none'; }}
                />
-               <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full shadow-sm">
-                  <span className="text-[20px] font-black text-[#d97706]">मंडी</span>
+               <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full shadow-sm">
+                  <span className="text-[20px] font-black text-[#d97706]">बसेरा</span>
                   <span className="text-[20px] font-black text-[#1e293b]">BAZAR</span>
                </div>
-
+               
+               <div 
+                  onClick={() => navigate('/cart')}
+                  className="absolute top-4 right-4 flex items-center justify-center w-10 h-10 bg-white/90 backdrop-blur-md rounded-full shadow-sm cursor-pointer hover:bg-white transition-colors"
+               >
+                  <ShoppingCart size={18} className="text-[#1e293b]" />
+                  {cartCount > 0 && (
+                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full text-[10px] text-white font-black flex items-center justify-center shadow-sm">
+                        {cartCount}
+                     </span>
+                  )}
+               </div>
 
             </div>
 
@@ -195,6 +208,17 @@ export default function MandiMarketplace() {
          {/* Non-Interactive Marketplace Footer */}
          <div className="w-full bg-white border-t border-slate-100 pt-10 xs:pt-16 pb-4 md:pb-8 mt-8 z-10 relative">
             <div className="max-w-[1400px] mx-auto px-2 xs:px-6 md:px-12 flex flex-col items-center">
+               
+               {/* CTA Text Section */}
+               <div className="w-full max-w-2xl text-center mb-10 xs:mb-14 space-y-3 px-4">
+                  <h2 className="text-[20px] xs:text-[24px] md:text-[32px] font-black text-[#0c2461] leading-tight tracking-tight">
+                     Get Materials Delivered <span className="text-[#d97706] italic">Fast & Direct</span>
+                  </h2>
+                  <p className="text-[12px] xs:text-[14px] md:text-[16px] font-medium text-slate-500 leading-relaxed max-w-lg mx-auto">
+                     Skip the hassle. Order construction materials directly from verified sellers at the lowest mandi prices, delivered straight to your site.
+                  </p>
+               </div>
+
                <div className="w-full grid grid-cols-4 gap-2 xs:gap-4 md:gap-16">
                   {[
                      {

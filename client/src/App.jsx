@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { LocationProvider } from './context/LocationContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
 import { Briefcase } from 'lucide-react';
@@ -15,6 +16,7 @@ import Login from './pages/auth/Login';
 import MandiMarketplace from './pages/user/MandiMarketplace';
 import MandiCategoryView from './pages/user/MandiCategoryView';
 import MandiCheckout from './pages/user/MandiCheckout';
+import CartPage from './pages/user/CartPage';
 import SignUp from './pages/auth/SignUp';
 import ServiceProfile from './pages/user/ServiceProfile';
 import UserProfile from './pages/user/UserProfile';
@@ -120,12 +122,13 @@ const UserLayout = ({ children }) => {
   const isBrowse = location.pathname.startsWith('/browse/');
   const isMandi = location.pathname.startsWith('/mandi');
   const isDetail = location.pathname.startsWith('/listing/') || location.pathname.startsWith('/service/') || location.pathname.startsWith('/agent/');
-  const showBottomNav = !isDetail;
+  const isCart = location.pathname === '/cart';
+  const showBottomNav = !isDetail && !isCart;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
       {isHome && <Header />}
-      <main className={`flex-grow ${showBottomNav ? 'pb-32' : 'pb-0'} ${(!isHome && !isAuth && !isCategory && !isBrowse && !isMandi && !isDetail) ? 'pt-4' : ''}`}>
+      <main className={`flex-grow ${showBottomNav ? 'pb-32' : 'pb-0'} ${(!isHome && !isAuth && !isCategory && !isBrowse && !isMandi && !isDetail && !isCart) ? 'pt-4' : ''}`}>
         {children}
       </main>
 
@@ -140,8 +143,9 @@ function App() {
   return (
     <LocationProvider>
       <AuthProvider>
-        <Router>
-          <Routes>
+        <CartProvider>
+          <Router>
+            <Routes>
             {/* User Module Routes */}
             <Route path="/" element={
               <UserLayout>
@@ -211,6 +215,9 @@ function App() {
               <ProtectedRoute>
                 <UserLayout><MandiCheckout /></UserLayout>
               </ProtectedRoute>
+            } />
+            <Route path="/cart" element={
+              <UserLayout><CartPage /></UserLayout>
             } />
 
             {/* Placeholder Routes for NavLinks */}
@@ -803,6 +810,7 @@ function App() {
             } />
           </Routes>
         </Router>
+        </CartProvider>
       </AuthProvider>
     </LocationProvider>
   );

@@ -6,6 +6,7 @@ import {
   MapPin, 
   Star, 
   ChevronRight,
+  ArrowRight,
   IndianRupee,
   Database,
   Building2,
@@ -18,13 +19,14 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import { useCart } from '../../context/CartContext';
 
 export default function MandiCategoryView() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [cart, setCart] = useState({}); // { productId: { item, qty } }
+  const { cart, addToCart, removeFromCart, cartTotal, cartCount } = useCart();
 
   useEffect(() => {
     const fetchCategoryListings = async () => {
@@ -41,29 +43,14 @@ export default function MandiCategoryView() {
   }, [id]);
 
   const updateCart = (product, delta) => {
-    const currentQty = cart[product._id]?.qty || 0;
-    const newQty = Math.max(0, currentQty + delta);
-    
-    // Check stock
-    if (newQty > product.stock_quantity) {
-       alert(`Only ${product.stock_quantity} units available in stock.`);
-       return;
-    }
-
-    if (newQty === 0) {
-      const newCart = { ...cart };
-      delete newCart[product._id];
-      setCart(newCart);
+    // Cart logic is now handled by context
+    // We just map the updateCart calls to addToCart or removeFromCart
+    if (delta > 0) {
+      addToCart(product);
     } else {
-      setCart({
-        ...cart,
-        [product._id]: { item: product, qty: newQty }
-      });
+      removeFromCart(product._id);
     }
   };
-
-  const cartTotal = Object.values(cart).reduce((sum, item) => sum + (item.item.pricing.price_per_unit * item.qty), 0);
-  const cartCount = Object.values(cart).length;
 
   if (loading) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -178,7 +165,7 @@ export default function MandiCategoryView() {
             className="fixed bottom-32 left-0 right-0 z-50 px-6 max-w-md mx-auto"
           >
              <button 
-               onClick={() => navigate('/mandi-checkout', { state: { cart, total: cartTotal } })}
+               onClick={() => navigate('/cart')}
                className="w-full bg-[#001b4e] p-5 rounded-[32px] text-white flex items-center justify-between shadow-2xl shadow-indigo-900/30 group active:scale-[0.98] transition-all"
              >
                 <div className="flex items-center gap-4">
