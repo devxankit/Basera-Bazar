@@ -122,6 +122,10 @@ const BrowseCategory = () => {
         ...activeFilters // Price ranges etc
       };
 
+      if (activeFilters.featuredOnly) {
+        params.is_featured = true;
+      }
+
       let data = await db.getAll('listings', params);
       
       // Filter by search query
@@ -147,7 +151,7 @@ const BrowseCategory = () => {
         data = data.filter(item => item.details?.bedrooms === beds);
       }
       if (activeFilters.featuredOnly) {
-        data = data.filter(item => item.featured === true);
+        data = data.filter(item => item.featured === true || item.is_featured === true);
       }
       if (activeFilters.minExperience !== 'Any') {
         const expReq = parseInt(activeFilters.minExperience);
@@ -451,8 +455,9 @@ const BrowseCategory = () => {
                     alt={item.title} 
                   />
                   
-                  {/* Transaction Badge (Rent/Sell/Lease) */}
-                  <div className="absolute top-3 left-3">
+                  {/* Badges Stack */}
+                  <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 items-start">
+                    {/* Intent Badge */}
                     <div className={cn(
                       "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-sm border",
                       (item.listing_intent || item.type || 'sell').toLowerCase() === 'sell' && "bg-emerald-500/90 text-white border-emerald-400/50",
@@ -461,12 +466,10 @@ const BrowseCategory = () => {
                     )}>
                       {item.listing_intent || item.type || 'Buy'}
                     </div>
-                  </div>
 
-                  {/* Top Right Badges */}
-                  <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end">
-                    {item.featured && (
-                      <span className="bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full text-[8px] font-black uppercase text-emerald-600 border border-emerald-100 shadow-sm">
+                    {/* Featured Badge */}
+                    {(item.featured || item.is_featured) && (
+                      <span className="bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full text-[8px] font-black uppercase text-emerald-600 border border-emerald-100 shadow-sm whitespace-nowrap">
                         ★ Featured
                       </span>
                     )}
@@ -868,6 +871,25 @@ const BrowseCategory = () => {
                 </>
               ) : (
                 <>
+              {/* Listing Type */}
+              <div className="space-y-3">
+                <h3 className="text-[15px] font-semibold text-[#1f2355]">Listing Type</h3>
+                <div className="flex flex-wrap gap-2.5">
+                  <button 
+                    onClick={() => setFilter('featuredOnly', false)}
+                    className={`px-5 py-2.5 rounded-full border font-medium text-[14px] transition-all ${!activeFilters.featuredOnly ? 'border-[#1f2355] bg-[#1f2355] text-white' : 'border-slate-200 text-[#4a5578] hover:border-[#1f2355] hover:text-[#1f2355]'}`}
+                  >
+                    All Properties
+                  </button>
+                  <button 
+                    onClick={() => setFilter('featuredOnly', true)}
+                    className={`px-5 py-2.5 rounded-full border font-medium text-[14px] transition-all ${activeFilters.featuredOnly ? 'border-[#1f2355] bg-[#1f2355] text-white' : 'border-slate-200 text-[#4a5578] hover:border-[#1f2355] hover:text-[#1f2355]'}`}
+                  >
+                    Featured
+                  </button>
+                </div>
+              </div>
+
               {/* Property For */}
               <div className="space-y-3">
                 <h3 className="text-[15px] font-semibold text-[#1f2355]">Property For</h3>
@@ -974,7 +996,6 @@ const BrowseCategory = () => {
                 <h3 className="text-[15px] font-semibold text-[#1f2355]">Features</h3>
                 <div className="space-y-4">
                   {[
-                    { label: 'Featured Properties Only', key: 'featuredOnly' },
                     { label: 'Car Parking', key: 'carParking' },
                     { label: 'Bike Parking', key: 'bikeParking' }
                   ].map(f => (

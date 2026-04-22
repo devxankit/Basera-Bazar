@@ -23,6 +23,7 @@ const ListingDetails = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('details');
   const [activeImg, setActiveImg] = useState(0);
+  const [slideDir, setSlideDir] = useState(1);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -304,24 +305,32 @@ const ListingDetails = () => {
             </div>
 
             <div className="h-full w-full relative group cursor-pointer overflow-hidden">
-              <AnimatePresence mode="wait">
+              <AnimatePresence initial={false} custom={slideDir}>
                 <motion.img 
                   key={activeImg}
-                  initial={{ opacity: 0, x: 100 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -100 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  custom={slideDir}
+                  variants={{
+                    enter: (dir) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0.8 }),
+                    center: { x: 0, opacity: 1, zIndex: 1 },
+                    exit: (dir) => ({ x: dir < 0 ? '100%' : '-100%', opacity: 0.8, zIndex: 0 })
+                  }}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
                   src={allImages[activeImg]} 
                   alt={listing.title} 
                   className="w-full h-full object-cover absolute top-0 left-0" 
                   drag="x"
                   dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.8}
+                  dragElastic={1}
                   onDragEnd={(e, { offset, velocity }) => {
                     const swipePower = Math.abs(offset.x) * velocity.x;
                     if (swipePower < -500 || offset.x < -100) {
+                      setSlideDir(1);
                       setActiveImg(prev => (prev === allImages.length - 1 ? 0 : prev + 1));
                     } else if (swipePower > 500 || offset.x > 100) {
+                      setSlideDir(-1);
                       setActiveImg(prev => (prev === 0 ? allImages.length - 1 : prev - 1));
                     } else if (Math.abs(offset.x) < 10) {
                       // It's a click, not a swipe
@@ -338,13 +347,13 @@ const ListingDetails = () => {
               {allImages.length > 1 && (
                 <>
                   <button 
-                    onClick={(e) => { e.stopPropagation(); setActiveImg(prev => (prev === 0 ? allImages.length - 1 : prev - 1)); }}
+                    onClick={(e) => { e.stopPropagation(); setSlideDir(-1); setActiveImg(prev => (prev === 0 ? allImages.length - 1 : prev - 1)); }}
                     className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <ChevronDown className="rotate-90" size={20} />
                   </button>
                   <button 
-                    onClick={(e) => { e.stopPropagation(); setActiveImg(prev => (prev === allImages.length - 1 ? 0 : prev + 1)); }}
+                    onClick={(e) => { e.stopPropagation(); setSlideDir(1); setActiveImg(prev => (prev === allImages.length - 1 ? 0 : prev + 1)); }}
                     className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <ChevronDown className="-rotate-90" size={20} />
@@ -359,7 +368,7 @@ const ListingDetails = () => {
                 {allImages.map((_, i) => (
                   <button 
                     key={i} 
-                    onClick={() => setActiveImg(i)}
+                    onClick={(e) => { e.stopPropagation(); setSlideDir(i > activeImg ? 1 : -1); setActiveImg(i); }}
                     className={cn(
                       "h-1.5 rounded-full transition-all duration-300", 
                       i === activeImg ? "bg-white w-8 shadow-[0_0_10px_rgba(255,255,255,0.5)]" : "bg-white/40 w-1.5 hover:bg-white/60"

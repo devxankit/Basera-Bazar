@@ -33,14 +33,12 @@ const Home = () => {
         const props = await db.getAll('listings', {
           category: 'property',
           is_featured: true,
-          limit: 6,
-          ...locationParams
+          limit: 10
         });
         const srvs = await db.getAll('listings', {
           category: 'service',
           is_featured: true,
-          limit: 6,
-          ...locationParams
+          limit: 10
         });
         setProperties(props);
         setServices(srvs);
@@ -154,7 +152,7 @@ const Home = () => {
         <div className="space-y-4">
           <div className="px-5 flex items-center justify-between">
             <h2 className="text-lg font-bold text-[#1f2355] tracking-tight uppercase">Featured Properties</h2>
-            <button onClick={() => navigate('/category/property')} className="text-xs font-bold text-slate-400 hover:text-[#124db5] transition-all uppercase tracking-widest">View All</button>
+            <button onClick={() => navigate('/browse/property?featured=true')} className="text-xs font-bold text-slate-400 hover:text-[#124db5] transition-all uppercase tracking-widest">View All</button>
           </div>
 
           <div className="flex gap-4 overflow-x-auto px-5 pb-4 no-scrollbar">
@@ -236,7 +234,7 @@ const Home = () => {
         <div className="space-y-4">
           <div className="px-5 flex items-center justify-between">
             <h2 className="text-lg font-bold text-[#1f2355] tracking-tight uppercase">Featured Services</h2>
-            <button onClick={() => navigate('/category/service')} className="text-xs font-bold text-slate-400 hover:text-[#124db5] transition-all uppercase tracking-widest">View All</button>
+            <button onClick={() => navigate('/browse/service?featured=true')} className="text-xs font-bold text-slate-400 hover:text-[#124db5] transition-all uppercase tracking-widest">View All</button>
           </div>
 
           <div className="flex gap-4 overflow-x-auto px-5 pb-4 no-scrollbar">
