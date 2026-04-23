@@ -94,11 +94,11 @@ export default function PartnerHelp() {
             </div>
           </div>
 
-          <div className="mt-10 text-center">
+          <div className="mt-8 xs:mt-10 text-center">
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-white text-[32px] font-bold leading-tight"
+              className="text-white text-[28px] xs:text-[32px] font-black leading-tight"
             >
               How can we <br /> <span className="text-blue-400 underline decoration-blue-500/30">help</span> you?
             </motion.h1>
@@ -106,9 +106,9 @@ export default function PartnerHelp() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-white/50 text-[14px] mt-4 font-medium"
+              className="text-white/50 text-[12px] xs:text-[14px] mt-3 xs:mt-4 font-black uppercase tracking-widest"
             >
-              Search for topics or browse by category below
+              Search for topics or browse below
             </motion.p>
           </div>
 
@@ -236,16 +236,16 @@ export default function PartnerHelp() {
             <p className="text-slate-400 text-[13px] font-medium mt-1">Our team is available 24/7 for you.</p>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 xs:gap-4">
             <SupportCard 
-              icon={<MessageCircle size={28} className="text-green-500" />} 
+              icon={<MessageCircle size={24} xs:size={28} className="text-green-500" />} 
               label="WhatsApp" 
               sub="Chat with us"
               primary={true}
               onClick={() => window.open('https://wa.me/918969321391', '_blank')}
             />
             <SupportCard 
-              icon={<Phone size={28} className="text-blue-500" />} 
+              icon={<Phone size={24} xs:size={28} className="text-blue-500" />} 
               label="Hotline" 
               sub="Direct call"
               primary={false}

@@ -99,29 +99,31 @@ export default function PartnerSubscription() {
         >
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl opacity-50" />
           
-          <div className="flex items-center gap-6 relative z-10">
-            <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center backdrop-blur-xl border border-white/20">
-              <CheckCircle2 size={44} fill="white" className={`${currentTheme.accentColor.replace('text-', 'text-[#')}`} style={{ color: currentTheme.name === 'Pro Partner' ? '#6366f1' : '#4CAF50' }} />
+          <div className="flex items-center gap-4 xs:gap-6 relative z-10">
+            <div className="w-16 h-16 xs:w-20 xs:h-20 bg-white/20 rounded-2xl xs:rounded-3xl flex items-center justify-center backdrop-blur-xl border border-white/20 shrink-0">
+              <CheckCircle2 size={36} xs:size={44} fill="white" className={`${currentTheme.accentColor.replace('text-', 'text-[#')}`} style={{ color: currentTheme.name === 'Pro Partner' ? '#6366f1' : '#4CAF50' }} />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="text-[30px] font-bold uppercase tracking-tighter leading-none">Active</h3>
-                {partner.plan === 'pro' && <Star size={18} fill="currentColor" className="text-yellow-400" />}
+                <h3 className="text-[24px] xs:text-[30px] font-black uppercase tracking-tighter leading-none">Active</h3>
+                {partner.plan === 'pro' && <Star size={16} fill="currentColor" className="text-yellow-400" />}
               </div>
-              <p className="text-white/80 font-bold mt-2 text-[15px] tracking-wide uppercase">{planInfo.name}</p>
+              <p className="text-white/80 font-black mt-1 xs:mt-2 text-[12px] xs:text-[15px] tracking-wide uppercase truncate">
+                {partner.plan === 'free' ? 'Free Trial Plan' : 'Pre-launching Offer'}
+              </p>
             </div>
           </div>
 
-          <div className="mt-10 grid grid-cols-2 gap-4">
-            <div className="p-6 bg-white/10 rounded-[28px] backdrop-blur-md border border-white/10 text-center">
-              <Calendar size={20} className="mx-auto mb-2 text-white/50" />
-              <div className="text-[28px] font-bold leading-none">{planInfo.daysLeft}</div>
-              <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-2">Days left</div>
+          <div className="mt-8 xs:mt-10 grid grid-cols-2 gap-3 xs:gap-4">
+            <div className="p-4 xs:p-6 bg-white/10 rounded-[24px] xs:rounded-[28px] backdrop-blur-md border border-white/10 text-center">
+              <Calendar size={18} xs:size={20} className="mx-auto mb-1.5 xs:mb-2 text-white/50" />
+              <div className="text-[22px] xs:text-[28px] font-black leading-none">{planInfo.daysLeft}</div>
+              <div className="text-[9px] xs:text-[10px] font-black text-white/40 uppercase tracking-widest mt-1.5 xs:mt-2">Days left</div>
             </div>
-            <div className="p-6 bg-white/10 rounded-[28px] backdrop-blur-md border border-white/10 text-center">
-              <Clock size={20} className="mx-auto mb-2 text-white/50" />
-              <div className="text-[18px] font-bold leading-none mt-1.5">{planInfo.endDate}</div>
-              <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-2">{partner.plan === 'pro' ? 'Renews On' : 'Expires On'}</div>
+            <div className="p-4 xs:p-6 bg-white/10 rounded-[24px] xs:rounded-[28px] backdrop-blur-md border border-white/10 text-center">
+              <Clock size={18} xs:size={20} className="mx-auto mb-1.5 xs:mb-2 text-white/50" />
+              <div className="text-[14px] xs:text-[18px] font-black leading-none mt-1 xs:mt-1.5">{planInfo.endDate}</div>
+              <div className="text-[9px] xs:text-[10px] font-black text-white/40 uppercase tracking-widest mt-1.5 xs:mt-2">{partner.plan === 'pro' ? 'Renews On' : 'Expires On'}</div>
             </div>
           </div>
         </motion.div>

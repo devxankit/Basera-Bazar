@@ -154,9 +154,9 @@ export default function PartnerProfile() {
           <div className="bg-white rounded-[28px] overflow-hidden border border-slate-100 shadow-sm">
             {!isIncomplete && (
               <SettingsItem 
-                icon={<div className="bg-blue-50 p-2.5 rounded-xl text-[#001b4e]"><CreditCard size={18} /></div>} 
+                icon={<div className="bg-blue-50 p-2 xs:p-2.5 rounded-xl text-[#001b4e]"><CreditCard size={18} /></div>} 
                 label="Subscription" 
-                text="Free Trial • 29 days left" 
+                text={partner.plan === 'free' ? 'Free Trial Plan • 29 days left' : 'Pre-launching Offer • 29 days left'} 
                 badge="ACTIVE" 
                 onClick={() => navigate('/partner/subscription')}
               />
@@ -252,21 +252,21 @@ function SettingsItem({ icon, label, text, badge, border = true, onClick }) {
       onClick={onClick}
       className={`p-5 flex items-center justify-between active:bg-slate-50 transition-colors cursor-pointer ${border ? 'border-b border-slate-50' : ''}`}
     >
-      <div className="flex items-center gap-4">
-        {icon}
-        <div>
-          <div className="text-[#001b4e] text-[15px] font-medium">{label}</div>
-          <div className="text-slate-400 text-[12px] font-medium mt-0.5">{text}</div>
+        <div className="flex items-center gap-3 xs:gap-4">
+          {icon}
+          <div className="min-w-0">
+            <div className="text-[#001b4e] text-[14px] xs:text-[15px] font-bold truncate">{label}</div>
+            <div className="text-slate-400 text-[11px] xs:text-[12px] font-medium mt-0.5 truncate">{text}</div>
+          </div>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        {badge && (
-          <span className="bg-green-500 text-white text-[9px] font-medium px-2 py-1 rounded-lg tracking-wider">
-            {badge}
-          </span>
-        )}
-        <ChevronRight className="text-slate-300" size={20} />
-      </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {badge && (
+            <span className="bg-green-500 text-white text-[8px] xs:text-[9px] font-black px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-lg tracking-widest uppercase">
+              {badge}
+            </span>
+          )}
+          <ChevronRight className="text-slate-300" size={18} xs:size={20} />
+        </div>
     </div>
   );
 }

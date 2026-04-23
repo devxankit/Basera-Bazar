@@ -116,19 +116,19 @@ export default function PartnerHome() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24">
       {/* Header */}
-      <div className="bg-[#001b4e] pt-12 pb-24 px-6 rounded-b-[40px] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl" />
+      <div className="bg-[#001b4e] pt-8 xs:pt-10 sm:pt-12 pb-20 xs:pb-24 px-5 xs:px-6 rounded-b-[32px] xs:rounded-b-[40px] relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-48 h-48 xs:w-64 xs:h-64 bg-white/5 rounded-full -mr-16 -mt-16 xs:-mr-20 xs:-mt-20 blur-3xl" />
 
         <div className="flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg overflow-hidden p-1">
+          <div className="flex items-center gap-3 xs:gap-4">
+            <div className="w-12 h-12 xs:w-14 xs:h-14 bg-white rounded-xl xs:rounded-2xl flex items-center justify-center shadow-lg overflow-hidden p-1 shrink-0">
               <img src={logo} alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <div>
-              <div className="text-white/60 text-[14px]">Good Afternoon</div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-white text-[22px] font-medium">{partner.name}</h1>
-                <span className="bg-white/10 px-3 py-1 rounded-full text-white/80 text-[11px] font-medium uppercase tracking-wider backdrop-blur-sm border border-white/10">
+            <div className="min-w-0">
+              <div className="text-white/60 text-[12px] xs:text-[14px]">Good Afternoon</div>
+              <div className="flex flex-wrap items-center gap-1.5 xs:gap-2">
+                <h1 className="text-white text-[18px] xs:text-[22px] font-bold truncate">{partner.name}</h1>
+                <span className="bg-white/10 px-2 xs:px-3 py-0.5 xs:py-1 rounded-full text-white/80 text-[9px] xs:text-[11px] font-black uppercase tracking-widest backdrop-blur-sm border border-white/10">
                   {getRoleLabel()}
                 </span>
               </div>
@@ -267,37 +267,37 @@ export default function PartnerHome() {
             partnerId={partner?._id || partner?.id}
             isApproved={isApproved}
           />
-        )}        {/* Subscription Card */}
+        {/* Subscription Card */}
         {isApproved && (
           <motion.div
             onClick={() => navigate('/partner/subscription')}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white p-5 sm:p-6 rounded-[32px] sm:rounded-[40px] shadow-sm border border-slate-50 flex items-center justify-between group active:scale-[0.98] transition-all cursor-pointer"
+            className="bg-white p-4 xs:p-5 mm:p-6 rounded-[24px] xs:rounded-[32px] mm:rounded-[40px] shadow-sm border border-slate-50 flex items-center justify-between group active:scale-[0.98] transition-all cursor-pointer"
           >
-            <div className="flex items-center gap-4 sm:gap-5 min-w-0">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-500 shadow-inner shrink-0 relative">
-                <CheckCircle2 size={24} fill="currentColor" className="text-white" />
-                <CheckCircle2 size={28} className="absolute opacity-100" />
+            <div className="flex items-center gap-3 xs:gap-4 mm:gap-5 min-w-0">
+              <div className="w-10 h-10 xs:w-12 xs:h-12 mm:w-14 mm:h-14 bg-green-50 rounded-xl xs:rounded-2xl flex items-center justify-center text-green-500 shadow-inner shrink-0 relative">
+                <CheckCircle2 size={20} fill="currentColor" className="text-white xs:w-6 xs:h-6" />
+                <CheckCircle2 size={24} className="absolute opacity-100 xs:w-7 xs:h-7" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-[16px] sm:text-[19px] font-bold text-[#001b4e] truncate">
-                  {partner.plan === 'free' ? 'Free Trial' : 'Pre-launching offer'}
+                <h3 className="text-[13px] xs:text-[15px] mm:text-[19px] font-black text-[#001b4e] truncate pr-2 uppercase tracking-tight">
+                  {partner.plan === 'free' ? 'Free Trial Plan' : 'Pre-launching Offer'}
                 </h3>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
-                  <div className="flex items-center gap-1.5 text-slate-400 text-[12px] sm:text-[13px] font-medium">
-                    <Clock size={13} className="text-green-500" />
+                <div className="flex flex-wrap items-center gap-x-2 xs:gap-x-3 gap-y-0.5 mt-0.5 mm:mt-1">
+                  <div className="flex items-center gap-1 xs:gap-1.5 text-slate-400 text-[10px] xs:text-[11px] mm:text-[13px] font-bold">
+                    <Clock size={11} className="text-green-500 xs:w-[13px] xs:h-[13px]" />
                     29 days left
                   </div>
                   <div className="hidden xs:block w-1 h-1 bg-slate-300 rounded-full" />
-                  <div className="flex items-center gap-1.5 text-slate-400 text-[12px] sm:text-[13px] font-medium">
-                    <PlusCircle size={13} className="text-blue-500" />
+                  <div className="flex items-center gap-1 xs:gap-1.5 text-slate-400 text-[10px] xs:text-[11px] mm:text-[13px] font-bold">
+                    <PlusCircle size={11} className="text-blue-500 xs:w-[13px] xs:h-[13px]" />
                     1 available
                   </div>
                 </div>
               </div>
             </div>
-            <ChevronRight className="text-slate-300 group-hover:text-[#001b4e] group-hover:translate-x-1 transition-all shrink-0" size={20} />
+            <ChevronRight className="text-slate-300 group-hover:text-[#001b4e] group-hover:translate-x-1 transition-all shrink-0" size={18} />
           </motion.div>
         )}
 
@@ -305,22 +305,22 @@ export default function PartnerHome() {
         {actualRole.includes('mandi') ? (
           <MandiOverview partner={partner} isRestricted={isRestricted} />
         ) : (
-          <div className="space-y-5">
-            <h2 className="text-[18px] sm:text-[20px] font-bold text-[#001b4e] px-1">{getCategoryTheme()} Overview</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5">
+          <div className="space-y-4 xs:space-y-5">
+            <h2 className="text-[16px] xs:text-[18px] mm:text-[20px] font-black text-[#001b4e] px-1 uppercase tracking-tight">{getCategoryTheme()} Overview</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 xs:gap-4 mm:gap-5">
               {overviewStats.map((stat, idx) => (
                 <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: idx * 0.05 }}
-                  className="bg-white p-4 sm:p-5 rounded-[24px] sm:rounded-[28px] shadow-sm border border-slate-50 flex flex-col items-center text-center group active:scale-95 transition-all"
+                  className="bg-white p-3 xs:p-4 mm:p-5 rounded-[20px] xs:rounded-[24px] mm:rounded-[28px] shadow-sm border border-slate-50 flex flex-col items-center text-center group active:scale-95 transition-all"
                 >
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 ${stat.bgColor} ${stat.color} rounded-full flex items-center justify-center mb-2.5 sm:mb-3 shadow-inner`}>
-                    {React.cloneElement(stat.icon, { size: 20 })}
+                  <div className={`w-8 h-8 xs:w-10 xs:h-10 mm:w-12 mm:h-12 ${stat.bgColor} ${stat.color} rounded-full flex items-center justify-center mb-2 xs:mb-2.5 mm:mb-3 shadow-inner`}>
+                    {React.cloneElement(stat.icon, { size: 18 })}
                   </div>
-                  <div className="text-[18px] sm:text-[20px] font-bold text-[#001b4e] mb-0.5">{stat.value}</div>
-                  <div className="text-[10px] sm:text-[12px] font-bold text-slate-400 uppercase tracking-tighter sm:tracking-tight">{stat.label}</div>
+                  <div className="text-[16px] xs:text-[18px] mm:text-[20px] font-black text-[#001b4e] mb-0.5">{stat.value}</div>
+                  <div className="text-[9px] xs:text-[10px] mm:text-[12px] font-black text-slate-400 uppercase tracking-tighter mm:tracking-tight leading-none">{stat.label}</div>
                 </motion.div>
               ))}
             </div>

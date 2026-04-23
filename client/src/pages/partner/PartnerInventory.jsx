@@ -221,10 +221,10 @@ export default function PartnerInventory() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 onClick={() => navigate(`/partner/service-details/${item._id || item.id}`)}
-                className="bg-white rounded-[24px] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] overflow-hidden flex flex-row relative group hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all cursor-pointer"
+                className="bg-white rounded-[20px] sm:rounded-[24px] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] overflow-hidden flex flex-row relative group hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all cursor-pointer"
               >
                 {/* Left: Compact Image Section */}
-                <div className="relative w-28 sm:w-36 h-auto bg-slate-100 overflow-hidden shrink-0">
+                <div className="relative w-24 xs:w-28 sm:w-36 h-auto bg-slate-100 overflow-hidden shrink-0">
                    {item.thumbnail || item.image ? (
                      <img 
                         src={item.thumbnail || item.image} 
@@ -239,7 +239,7 @@ export default function PartnerInventory() {
                    
                    {/* Status Dot Overlay */}
                    <div className="absolute top-2 left-2 z-10">
-                      <div className={`w-3 h-3 rounded-full border-2 border-white shadow-sm ${
+                      <div className={`w-2.5 h-2.5 xs:w-3 xs:h-3 rounded-full border-2 border-white shadow-sm ${
                         item.status === 'active' 
                           ? 'bg-green-500' 
                           : item.status === 'rejected' 
@@ -249,39 +249,39 @@ export default function PartnerInventory() {
                    </div>
                 </div>
                 {/* Right: Tighter Content Section */}
-                <div className="flex-grow p-3 sm:p-4 flex flex-col justify-between min-w-0">
-                  <div>
+                <div className="flex-grow p-3 xs:p-4 sm:p-5 flex flex-col justify-between min-w-0">
+                  <div className="space-y-0.5 xs:space-y-1 sm:space-y-1.5">
                     <div className="flex items-center justify-between mb-0.5">
-                       <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 uppercase tracking-widest truncate max-w-[80px] sm:max-w-[100px]">
+                       <span className="text-[8px] xs:text-[9px] mm:text-[10px] font-black text-blue-600 uppercase tracking-widest truncate max-w-[80px] sm:max-w-[100px]">
                           {item.type === 'property' ? item.property_type || 'Property' : item.category || 'Listing'}
                        </span>
-                       <span className="text-[9px] sm:text-[10px] font-medium text-slate-300">
+                       <span className="text-[8px] xs:text-[9px] mm:text-[10px] font-black text-slate-300 uppercase tracking-widest">
                           #{item?.id?.slice?.(-4).toUpperCase()}
                        </span>
                     </div>
                     
-                    <h4 className="text-[14px] sm:text-[16px] font-bold text-[#001b4e] leading-tight line-clamp-2 mb-1 pr-4">
+                    <h4 className="text-[13px] xs:text-[15px] mm:text-[17px] font-black text-[#001b4e] leading-tight line-clamp-2 mb-0.5 sm:mb-1 pr-4">
                        {item.title || item.serviceName || 'Untitled Listing'}
                     </h4>
  
-                    <div className="flex items-center gap-1 text-[11px] sm:text-[12px] text-slate-400 mb-1.5 sm:mb-2">
-                       <MapPin size={10} className="shrink-0" />
+                    <div className="flex items-center gap-1 text-[10px] xs:text-[11px] mm:text-[12px] text-slate-400 mb-1 xs:mb-1.5 sm:mb-2 font-medium">
+                       <MapPin size={9} xs:size={10} className="shrink-0 text-blue-500" />
                        <span className="truncate max-w-[120px] sm:max-w-none">{item.display_location || 'No location'}</span>
                     </div>
  
                     {/* Compact Property Specs */}
                     {item.type === 'property' && (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500">
+                      <div className="flex flex-wrap items-center gap-x-2.5 xs:gap-x-3 gap-y-0.5 text-slate-500">
                          {item.bhk && (
                             <div className="flex items-center gap-1">
-                               <BedDouble size={12} className="text-slate-300" />
-                               <span className="text-[10px] sm:text-[11px] font-bold whitespace-nowrap">{item.bhk} BHK</span>
+                               <BedDouble size={11} xs:size={12} className="text-blue-400/60" />
+                               <span className="text-[9px] xs:text-[10px] mm:text-[11px] font-black uppercase tracking-tight">{item.bhk} BHK</span>
                             </div>
                          )}
                          {item.area && (
                             <div className="flex items-center gap-1">
-                               <Square size={11} className="text-slate-300" />
-                               <span className="text-[10px] sm:text-[11px] font-bold whitespace-nowrap">{item.area} <span className="text-[9px] sm:text-[10px] font-normal uppercase">{item.areaUnit}</span></span>
+                               <Square size={10} xs:size={11} className="text-blue-400/60" />
+                               <span className="text-[9px] xs:text-[10px] mm:text-[11px] font-black uppercase tracking-tight">{item.area} {item.areaUnit}</span>
                             </div>
                          )}
                       </div>
@@ -289,29 +289,29 @@ export default function PartnerInventory() {
                   </div>
  
                   {/* Price & Actions Row */}
-                  <div className="flex items-center justify-between mt-1 sm:mt-auto pt-2 border-t border-slate-50">
-                    <div className="text-[14px] sm:text-[16px] font-black text-[#001b4e]">
+                  <div className="flex items-center justify-between mt-1 xs:mt-1.5 sm:mt-auto pt-2 xs:pt-3 border-t border-slate-50">
+                    <div className="text-[13px] xs:text-[15px] mm:text-[18px] font-black text-[#001b4e]">
                        ₹{typeof item.price === 'object' 
                          ? `${Number(item.price.value).toLocaleString()}${(!item.price.unit || item.price.unit === 'Total') ? '' : ' ' + item.price.unit}` 
                          : Number(item.price || 0).toLocaleString()}
                     </div>
-
-                    <div className="flex items-center gap-1">
+ 
+                    <div className="flex items-center gap-1 xs:gap-1.5">
                        <button 
                           onClick={(e) => handleEdit(e, item)}
-                          className="h-8 w-8 flex items-center justify-center bg-slate-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all transform active:scale-90"
+                          className="h-7 w-7 xs:h-8 xs:w-8 mm:h-10 mm:w-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-lg mm:rounded-xl hover:bg-blue-600 hover:text-white transition-all transform active:scale-90 border border-blue-100/50"
                        >
-                          <Edit size={14} />
+                          <Edit size={12} xs:size={14} />
                        </button>
                        <button 
                           onClick={(e) => handleDelete(e, item.id)}
-                          className="h-8 w-8 flex items-center justify-center bg-slate-50 text-red-600 rounded-lg hover:bg-red-500 hover:text-white transition-all transform active:scale-90"
+                          className="h-7 w-7 xs:h-8 xs:w-8 mm:h-10 mm:w-10 flex items-center justify-center bg-rose-50 text-rose-500 rounded-lg mm:rounded-xl hover:bg-red-500 hover:text-white transition-all transform active:scale-90 border border-rose-100/50"
                        >
-                          <Trash2 size={14} />
+                          <Trash2 size={12} xs:size={14} />
                        </button>
                     </div>
                   </div>
-                </div>
+                </div>v>
 
                 {/* Intent Ribbon */}
                 {item.listing_intent && (

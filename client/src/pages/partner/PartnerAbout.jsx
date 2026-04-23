@@ -22,13 +22,13 @@ export default function PartnerAbout() {
 
       <div className="px-5 pt-8 space-y-10 text-center">
         {/* Logo & App Info */}
-        <div className="space-y-4">
-          <div className="w-24 h-24 bg-white rounded-[32px] mx-auto shadow-2xl shadow-blue-900/10 flex items-center justify-center p-4 border border-slate-50 overflow-hidden">
+        <div className="space-y-3 xs:space-y-4">
+          <div className="w-20 h-20 xs:w-24 xs:h-24 bg-white rounded-[24px] xs:rounded-[32px] mx-auto shadow-2xl shadow-blue-900/10 flex items-center justify-center p-3 xs:p-4 border border-slate-50 overflow-hidden">
             <img src={logo} alt="BaseraBazar" className="w-full h-full object-contain" />
           </div>
           <div>
-            <h1 className="text-[26px] font-bold text-[#181d5f]">Basera Bazar</h1>
-            <p className="text-slate-400 text-[14px] font-medium tracking-wide">Version 1.0.0 (Beta)</p>
+            <h1 className="text-[22px] xs:text-[26px] font-black text-[#181d5f] uppercase tracking-tight">Basera Bazar</h1>
+            <p className="text-slate-400 text-[12px] xs:text-[14px] font-black uppercase tracking-widest opacity-60">Version 1.0.0 (Beta)</p>
           </div>
         </div>
 

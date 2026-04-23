@@ -119,43 +119,43 @@ export default function PartnerInquiries() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 onClick={() => navigate(`/partner/lead-details/${lead._id}`)}
-                className="bg-white p-5 rounded-[32px] border border-slate-100 shadow-sm active:scale-[0.98] transition-all cursor-pointer group"
+                className="bg-white p-4 xs:p-5 rounded-[24px] xs:rounded-[32px] border border-slate-100 shadow-sm active:scale-[0.98] transition-all cursor-pointer group"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
-                       <User size={22} />
+                <div className="flex items-start justify-between mb-3 xs:mb-4">
+                  <div className="flex items-center gap-2.5 xs:gap-3">
+                    <div className="w-10 h-10 xs:w-12 xs:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl xs:rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                       <User size={18} xs:size={22} />
                     </div>
-                    <div>
-                      <h4 className="text-[16px] font-bold text-[#001b4e] leading-tight">
+                    <div className="min-w-0">
+                      <h4 className="text-[14px] xs:text-[16px] font-black text-[#001b4e] leading-tight truncate pr-2">
                         {lead.user_details?.name || 'Potential Customer'}
                       </h4>
-                      <div className="flex items-center gap-1.5 text-slate-400 text-[12px] font-medium mt-0.5">
-                        <Clock size={12} />
+                      <div className="flex items-center gap-1.5 text-slate-400 text-[10px] xs:text-[12px] font-bold mt-0.5">
+                        <Clock size={10} xs:size={12} />
                         {new Date(lead.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                       </div>
                     </div>
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusStyle(lead.status)}`}>
+                  <div className={`px-2 xs:px-3 py-0.5 xs:py-1 rounded-full text-[8px] xs:text-[10px] font-black uppercase tracking-widest border shrink-0 ${getStatusStyle(lead.status)}`}>
                     {lead.status}
                   </div>
                 </div>
 
-                <div className="bg-slate-50 rounded-2xl p-4 mb-4">
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Interested In</div>
-                  <div className="text-[14px] font-bold text-[#001b4e] line-clamp-1">
+                <div className="bg-slate-50 rounded-xl xs:rounded-2xl p-3 xs:p-4 mb-3 xs:mb-4 border border-slate-100/50">
+                  <div className="text-[9px] xs:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 xs:mb-1.5">Interested In</div>
+                  <div className="text-[13px] xs:text-[14px] mm:text-[16px] font-black text-[#001b4e] line-clamp-1">
                     {lead.listing_snapshot?.title || lead.listing_snapshot?.serviceName || 'Property Listing'}
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[13px] font-bold text-blue-600">
+                <div className="flex items-center justify-between text-[12px] xs:text-[13px] font-black text-blue-600 uppercase tracking-tight">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
-                      <MessageSquare size={14} />
+                    <div className="w-7 h-7 xs:w-8 xs:h-8 rounded-lg xs:rounded-xl bg-blue-50 flex items-center justify-center">
+                      <MessageSquare size={12} xs:size={14} />
                     </div>
                     <span>View Request</span>
                   </div>
-                  <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                  <ChevronRight size={16} xs:size={18} className="text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
                 </div>
               </motion.div>
             ))
