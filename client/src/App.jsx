@@ -92,6 +92,7 @@ import AdminSubscriptionDetails from './pages/admin/AdminSubscriptionDetails';
 import AdminProductDetails from './pages/admin/AdminProductDetails';
 import AdminSuppliers from './pages/admin/AdminSuppliers';
 import AdminMandiSellers from './pages/admin/AdminMandiSellers';
+import AdminPartnerVerification from './pages/admin/AdminPartnerVerification';
 import MandiInventory from './pages/partner/MandiInventory';
 import AddMandiProduct from './pages/partner/AddMandiProduct';
 import MandiOrders from './pages/partner/MandiOrders';
@@ -324,6 +325,14 @@ function App() {
               <AdminRoute>
                 <AdminLayout>
                   <AdminUsers />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+
+            <Route path="/admin/partners/verification" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminPartnerVerification />
                 </AdminLayout>
               </AdminRoute>
             } />

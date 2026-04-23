@@ -23,6 +23,8 @@ export default function PartnerProfile() {
 
   // For compatibility with the existing UI code, we map 'user' to 'partner'
   const partner = user;
+  const isKYCPending = !partner.kyc?.pan_image || !partner.kyc?.aadhar_front_image;
+  const isIncomplete = partner.onboarding_status === 'incomplete' || isKYCPending || !partner.is_active;
 
   const handleLogout = () => {
     logout();
@@ -60,81 +62,85 @@ export default function PartnerProfile() {
 
       <div className="px-5 pt-4 space-y-6">
         {/* Profile Card */}
-        <div className="bg-[#001b4e] rounded-[32px] p-8 flex flex-col items-center text-center shadow-xl shadow-blue-900/20 relative overflow-hidden">
+        <div className="bg-[#001b4e] rounded-[32px] p-6 sm:p-8 flex flex-col items-center text-center shadow-xl shadow-blue-900/20 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-16 -mt-16 blur-2xl" />
           
           <div className="relative mb-4">
-            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-[40px] font-medium text-[#001b4e] shadow-lg border-4 border-white/10">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-full flex items-center justify-center text-[32px] sm:text-[40px] font-medium text-[#001b4e] shadow-lg border-4 border-white/10">
               {partner.name?.charAt(0) || 'U'}
             </div>
             <button 
               onClick={() => navigate('/partner/edit-profile')}
-              className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center border-4 border-[#001b4e] shadow-lg text-white active:scale-95 transition-all"
+              className="absolute bottom-0 right-0 w-7 h-7 sm:w-8 sm:h-8 bg-blue-500 rounded-full flex items-center justify-center border-4 border-[#001b4e] shadow-lg text-white active:scale-95 transition-all"
             >
-              <Edit2 size={12} fill="currentColor" />
+              <Edit2 size={10} fill="currentColor" className="sm:w-3 sm:h-3" />
             </button>
           </div>
 
-          <h2 className="text-white text-[24px] font-bold mb-1">{partner.name}</h2>
-          <p className="text-white/60 text-[14px] mb-6">{partner.email}</p>
+          <h2 className="text-white text-[20px] sm:text-[24px] font-bold mb-1">{partner.name}</h2>
+          <p className="text-white/60 text-[13px] sm:text-[14px] mb-6">{partner.email}</p>
 
           <div className="flex flex-wrap items-center justify-center gap-2">
             {partnerRoles.map(r => (
-              <div key={r} className="bg-white/10 px-4 py-1.5 rounded-2xl flex items-center gap-2 border border-white/10 backdrop-blur-md">
-                <Building2 size={14} className="text-white/80" />
-                <span className="text-white text-[12px] font-bold tracking-wide uppercase">{getRoleLabel(r)}</span>
+              <div key={r} className="bg-white/10 px-3 py-1 sm:px-4 sm:py-1.5 rounded-2xl flex items-center gap-1.5 sm:gap-2 border border-white/10 backdrop-blur-md">
+                <Building2 size={12} className="text-white/80" />
+                <span className="text-white text-[10px] sm:text-[12px] font-bold tracking-wide uppercase">{getRoleLabel(r)}</span>
               </div>
             ))}
           </div>
 
           {/* Add Role CTA */}
-          <button 
-            onClick={() => navigate('/partner/add-role')}
-            className="mt-4 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 px-5 py-2 rounded-2xl text-white/80 text-[12px] font-bold uppercase tracking-wider transition-all active:scale-95"
-          >
-            + Add Role
-          </button>
+          {!isIncomplete && (
+            <button 
+              onClick={() => navigate('/partner/add-role')}
+              className="mt-4 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 px-4 py-2 rounded-2xl text-white/80 text-[11px] font-bold uppercase tracking-wider transition-all active:scale-95"
+            >
+              + Add Role
+            </button>
+          )}
         </div>
 
         {/* Subscription Status */}
-        <motion.div 
-          onClick={() => navigate('/partner/subscription')}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-green-50 rounded-[24px] p-5 border border-green-100 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer shadow-sm"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-500/20">
-              <div className="w-6 h-6 border-2 border-white rounded-full flex items-center justify-center">
-                <div className="w-3 h-3 bg-white rounded-full" />
+        {!isIncomplete && (
+          <motion.div 
+            onClick={() => navigate('/partner/subscription')}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-green-50 rounded-[24px] p-4 sm:p-5 border border-green-100 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer shadow-sm"
+          >
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-500/20 shrink-0">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 border-2 border-white rounded-full flex items-center justify-center">
+                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white rounded-full" />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-green-800 text-[14px] sm:text-[15px] font-medium uppercase tracking-tight">Free Trial</span>
+                  <ChevronRight size={14} className="text-green-400 sm:w-4 sm:h-4" />
+                </div>
+                <div className="text-green-700/60 text-[12px] sm:text-[13px] font-medium mt-0.5">29 days left • 1 listings</div>
               </div>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-green-800 text-[15px] font-medium uppercase tracking-tight">Free Trial</span>
-                <ChevronRight size={16} className="text-green-400" />
-              </div>
-              <div className="text-green-700/60 text-[13px] font-medium mt-0.5">29 days left • 1 listings</div>
-            </div>
-          </div>
-          <ChevronRight className="text-green-300" size={20} />
-        </motion.div>
+            <ChevronRight className="text-green-300" size={18} />
+          </motion.div>
+        )}
 
         {/* Profile Information */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-1">
             <div className="w-1 h-4 bg-[#001b4e] rounded-full" />
-            <h3 className="text-[#001b4e] text-[17px] font-medium tracking-tight">Profile Information</h3>
+            <h3 className="text-[#001b4e] text-[16px] sm:text-[17px] font-medium tracking-tight">Profile Information</h3>
           </div>
           <div className="space-y-3">
-            <InfoField icon={<User className="text-blue-500" size={18} />} label="Full Name" value={partner.name} />
-            <InfoField icon={<Mail className="text-indigo-500" size={18} />} label="Email" value={partner.email} />
-            <InfoField icon={<Phone className="text-slate-600" size={18} />} label="Phone" value={partner.phone || 'N/A'} />
+            <InfoField icon={<User className="text-blue-500" size={16} />} label="Full Name" value={partner.name} />
+            <InfoField icon={<Mail className="text-indigo-500" size={16} />} label="Email" value={partner.email} />
+            <InfoField icon={<Phone className="text-slate-600" size={16} />} label="Phone" value={partner.phone || 'N/A'} />
             {partner.role !== 'agent' && (
-              <InfoField icon={<Building2 className="text-slate-500" size={18} />} label="Business Name" value={partner.businessName || 'N/A'} />
+              <InfoField icon={<Building2 className="text-slate-500" size={16} />} label="Business Name" value={partner.businessName || 'N/A'} />
             )}
             {partner.role === 'supplier' && (
-              <InfoField icon={<Box className="text-orange-500" size={18} />} label="Supplier Categories" value={partner.category || 'N/A'} />
+              <InfoField icon={<Box className="text-orange-500" size={16} />} label="Supplier Categories" value={partner.category || 'N/A'} />
             )}
           </div>
         </div>
@@ -146,13 +152,15 @@ export default function PartnerProfile() {
             <h3 className="text-[#001b4e] text-[17px] font-medium tracking-tight">Settings</h3>
           </div>
           <div className="bg-white rounded-[28px] overflow-hidden border border-slate-100 shadow-sm">
-            <SettingsItem 
-              icon={<div className="bg-blue-50 p-2.5 rounded-xl text-[#001b4e]"><CreditCard size={18} /></div>} 
-              label="Subscription" 
-              text="Free Trial • 29 days left" 
-              badge="ACTIVE" 
-              onClick={() => navigate('/partner/subscription')}
-            />
+            {!isIncomplete && (
+              <SettingsItem 
+                icon={<div className="bg-blue-50 p-2.5 rounded-xl text-[#001b4e]"><CreditCard size={18} /></div>} 
+                label="Subscription" 
+                text="Free Trial • 29 days left" 
+                badge="ACTIVE" 
+                onClick={() => navigate('/partner/subscription')}
+              />
+            )}
             <SettingsItem 
               icon={<div className="bg-slate-50 p-2.5 rounded-xl text-[#001b4e]"><HelpCircle size={18} /></div>} 
               label="Help & Support" 

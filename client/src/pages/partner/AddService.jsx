@@ -39,6 +39,7 @@ export default function AddService() {
     experience: '',
     state: '',
     district: '',
+    city: '',
     businessAddress: '',
     businessName: '',
     thumbnail: null,
@@ -81,10 +82,20 @@ export default function AddService() {
     if (name === 'shortDescription' && value.length > 500) return;
     
     if (name === 'state') {
+      // Normalize state name
+      const INDIAN_STATES = Object.keys(INDIAN_STATES_DISTRICTS);
+      const normalizedState = INDIAN_STATES.find(s => s.toLowerCase() === value.toLowerCase()) || value;
       setFormData(prev => ({ 
         ...prev, 
-        state: value,
-        district: '' // Reset district when state changes
+        state: normalizedState,
+        district: '',
+        city: ''
+      }));
+    } else if (name === 'district') {
+      setFormData(prev => ({ 
+        ...prev, 
+        district: value,
+        city: prev.city || value // Fallback city to district
       }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
@@ -209,8 +220,65 @@ export default function AddService() {
     }
   };
 
+  const [detecting, setDetecting] = useState(false);
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+          const data = await response.json();
+          
+          if (data && data.address) {
+            const adr = data.address;
+            const clean = (s) => s ? s.replace(/\s(district|zila|tahsil|division|tahsil|zila|subdivision|township|taluk|mandal)$/i, '').trim() : '';
+
+            const stateName = adr.state || '';
+            const INDIAN_STATES = Object.keys(INDIAN_STATES_DISTRICTS);
+            const normalizedState = INDIAN_STATES.find(s => s.toLowerCase() === stateName.toLowerCase()) || stateName;
+            
+            const cityName = clean(adr.city || adr.town || adr.village || adr.suburb || 'Unknown');
+            const rawDistrict = adr.county || adr.state_district || adr.city_district || cityName;
+
+            // Find matching district
+            const availableDistricts = INDIAN_STATES_DISTRICTS[normalizedState] || [];
+            const cleanedRaw = clean(rawDistrict);
+            const matchedDistrict = availableDistricts.find(d => clean(d) === cleanedRaw) || 
+                                   availableDistricts.find(d => clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))) || 
+                                   rawDistrict;
+
+            setFormData(prev => ({
+              ...prev,
+              state: normalizedState,
+              district: matchedDistrict,
+              city: cityName === 'Unknown' ? (matchedDistrict || rawDistrict) : cityName,
+              businessAddress: adr.road || prev.businessAddress
+            }));
+            alert("Location detected successfully!");
+          }
+        } catch (err) {
+          console.error("Geocoding error:", err);
+          alert("Failed to detect address details. Please enter manually.");
+        } finally {
+          setDetecting(false);
+        }
+      },
+      (err) => {
+        alert(err.message || "Failed to detect location");
+        setDetecting(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const states = Object.keys(INDIA_DISTRICTS);
-  const districts = formData.state ? INDIA_DISTRICTS[formData.state] : [];
+  const districts = formData.state ? INDIA_DISTRICTS[formData.state] || [] : [];
   const categories = SERVICE_CATEGORIES;
 
   return (
@@ -336,21 +404,21 @@ export default function AddService() {
         <section className="space-y-4">
           <SectionHeader icon={<MapPin size={18} />} title="Location" />
           
-          <button className="w-full bg-[#001b4e] text-white py-4.5 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-blue-900/10 active:scale-[0.98] transition-all font-medium text-[15px]">
-            <Navigation size={18} className="rotate-45" />
-            Get Current Location
+          <button 
+            type="button"
+            onClick={handleDetectLocation}
+            disabled={detecting}
+            className="w-full bg-[#001b4e] text-white py-4.5 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-blue-900/10 active:scale-[0.98] transition-all font-medium text-[15px] disabled:opacity-70"
+          >
+            {detecting ? (
+               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+               <Navigation size={18} className="rotate-45" />
+            )}
+            {detecting ? 'Detecting...' : 'Get Current Location'}
           </button>
 
-          <div className="grid grid-cols-2 gap-4">
-            <SelectField 
-              label="CITY *"
-              name="district"
-              value={formData.district}
-              options={formData.state ? INDIA_DISTRICTS[formData.state] : []}
-              placeholder={formData.state ? "Select City" : "Select StateFirst"}
-              onChange={handleChange}
-              disabled={!formData.state}
-            />
+          <div className="space-y-5">
             <SelectField 
               label="STATE *"
               name="state"
@@ -359,6 +427,26 @@ export default function AddService() {
               onChange={handleChange}
               placeholder="Select State"
             />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <SelectField 
+                label="DISTRICT *"
+                name="district"
+                value={formData.district}
+                options={districts}
+                placeholder={formData.state ? "Select District" : "Select State First"}
+                onChange={handleChange}
+                disabled={!formData.state}
+              />
+              <InputField 
+                label="TOWN / CITY *"
+                name="city"
+                value={formData.city}
+                placeholder="e.g. Muzaffarpur"
+                onChange={handleChange}
+                disabled={!formData.state}
+              />
+            </div>
           </div>
             
             <div className="relative">

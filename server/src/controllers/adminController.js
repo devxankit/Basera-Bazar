@@ -46,7 +46,7 @@ const findNearestMandiSellers = async (req, res) => {
             coordinates: [parseFloat(lng), parseFloat(lat)]
           },
           // Convert KM to meters for MongoDB
-          $maxDistance: parseFloat(radius) * 1000 
+          $maxDistance: parseFloat(radius) * 1000
         }
       }
     });
@@ -117,7 +117,7 @@ const assignMandiEnquiry = async (req, res) => {
 const getDashboardStats = async (req, res) => {
   try {
     const { range = 'weekly' } = req.query;
-    
+
     // 1. Calculate Time Ranges for Registration Trends
     let startDate = new Date();
     let dateFormat = "%Y-%m-%d";
@@ -215,7 +215,7 @@ const getDashboardStats = async (req, res) => {
         d.setDate(d.getDate() - (i * 7));
         const key = `${d.getFullYear()}-W${getISOWeek(d).toString().padStart(2, '0')}`;
         cumulativeBase += (trendMap[key] || 0);
-        chartData.push({ name: i === 0 ? 'This Week' : `Week ${4-i+1}`, users: cumulativeBase });
+        chartData.push({ name: i === 0 ? 'This Week' : `Week ${4 - i + 1}`, users: cumulativeBase });
       }
     } else if (range === 'yearly') {
       for (let i = 11; i >= 0; i--) {
@@ -310,9 +310,9 @@ const getAdminActivities = async (req, res) => {
       // Only include enquiries in the feed if no specific non-enquiry type is filtered
       (!type || type === 'enquiry')
         ? Enquiry.find(search ? { 'user_details.name': { $regex: search, $options: 'i' } } : {})
-            .sort({ createdAt: -1 })
-            .limit(limit)
-            .lean()
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .lean()
         : Promise.resolve([])
     ]);
 
@@ -353,7 +353,7 @@ const getAdminActivities = async (req, res) => {
 const getUserDetail = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // 1. Find the basic account (check User and Partner)
     let account = await User.findById(id);
     let partnerProfile = null;
@@ -382,18 +382,18 @@ const getUserDetail = async (req, res) => {
 
     // Default Plan Fallback Logic for Partners
     if (!effectiveSub && !['Customer', 'Admin', 'super_admin'].includes(account.role)) {
-      const defaultFreePlan = await mongoose.model('SubscriptionPlan').findOne({ 
-        $or: [{ name: /Free/i }, { price: 0 }] 
+      const defaultFreePlan = await mongoose.model('SubscriptionPlan').findOne({
+        $or: [{ name: /Free/i }, { price: 0 }]
       }).lean();
 
       effectiveSub = {
         plan_snapshot: defaultFreePlan ? {
-           name: defaultFreePlan.name,
-           price: defaultFreePlan.price,
-           duration_days: defaultFreePlan.duration_days,
-           listings_limit: defaultFreePlan.listings_limit,
-           featured_listings_limit: defaultFreePlan.featured_listings_limit,
-           leads_limit: defaultFreePlan.leads_limit
+          name: defaultFreePlan.name,
+          price: defaultFreePlan.price,
+          duration_days: defaultFreePlan.duration_days,
+          listings_limit: defaultFreePlan.listings_limit,
+          featured_listings_limit: defaultFreePlan.featured_listings_limit,
+          leads_limit: defaultFreePlan.leads_limit
         } : { name: 'Free Trail', price: 0, duration_days: 30, listings_limit: 1, featured_listings_limit: 1, leads_limit: 50 },
         status: 'active',
         starts_at: account.createdAt,
@@ -403,44 +403,44 @@ const getUserDetail = async (req, res) => {
     }
 
     if (effectiveSub) {
-       // Check for Expiry
-       const now = new Date();
-       if (effectiveSub.status === 'active' && effectiveSub.ends_at && new Date(effectiveSub.ends_at) < now) {
-         effectiveSub.status = 'expired';
-         if (effectiveSub._id && !effectiveSub.is_virtual) {
-           await mongoose.model('Subscription').findByIdAndUpdate(effectiveSub._id, { status: 'expired' });
-         }
-       }
+      // Check for Expiry
+      const now = new Date();
+      if (effectiveSub.status === 'active' && effectiveSub.ends_at && new Date(effectiveSub.ends_at) < now) {
+        effectiveSub.status = 'expired';
+        if (effectiveSub._id && !effectiveSub.is_virtual) {
+          await mongoose.model('Subscription').findByIdAndUpdate(effectiveSub._id, { status: 'expired' });
+        }
+      }
 
-       if (effectiveSub.status !== 'expired') {
-          const startDate = effectiveSub.starts_at;
-          const endDate = effectiveSub.ends_at || now;
+      if (effectiveSub.status !== 'expired') {
+        const startDate = effectiveSub.starts_at;
+        const endDate = effectiveSub.ends_at || now;
 
-          const [pUsed, sUsed, supUsed, fpUsed, fsUsed, eUsed] = await Promise.all([
-            PropertyListing.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } }),
-            ServiceListing.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } }),
-            SupplierListing.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } }),
-            PropertyListing.countDocuments({ partner_id: id, is_featured: true, createdAt: { $gte: startDate, $lte: endDate } }),
-            ServiceListing.countDocuments({ partner_id: id, is_featured: true, createdAt: { $gte: startDate, $lte: endDate } }),
-            Enquiry.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } })
-          ]);
+        const [pUsed, sUsed, supUsed, fpUsed, fsUsed, eUsed] = await Promise.all([
+          PropertyListing.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } }),
+          ServiceListing.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } }),
+          SupplierListing.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } }),
+          PropertyListing.countDocuments({ partner_id: id, is_featured: true, createdAt: { $gte: startDate, $lte: endDate } }),
+          ServiceListing.countDocuments({ partner_id: id, is_featured: true, createdAt: { $gte: startDate, $lte: endDate } }),
+          Enquiry.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } })
+        ]);
 
-          const totalListingsUsed = pUsed + sUsed + supUsed;
-          const totalFeaturedUsed = fpUsed + fsUsed;
+        const totalListingsUsed = pUsed + sUsed + supUsed;
+        const totalFeaturedUsed = fpUsed + fsUsed;
 
-          calculatedSubscription = { ...effectiveSub };
-          if (!effectiveSub.is_virtual && typeof effectiveSub.toObject === 'function') {
-             calculatedSubscription = effectiveSub.toObject();
-          }
-          
-          calculatedSubscription.usage = {
-            listings_created: totalListingsUsed,
-            featured_listings_used: totalFeaturedUsed,
-            enquiries_received_this_month: eUsed
-          };
-       } else {
-          calculatedSubscription = effectiveSub.is_virtual ? { ...effectiveSub } : effectiveSub.toObject();
-       }
+        calculatedSubscription = { ...effectiveSub };
+        if (!effectiveSub.is_virtual && typeof effectiveSub.toObject === 'function') {
+          calculatedSubscription = effectiveSub.toObject();
+        }
+
+        calculatedSubscription.usage = {
+          listings_created: totalListingsUsed,
+          featured_listings_used: totalFeaturedUsed,
+          enquiries_received_this_month: eUsed
+        };
+      } else {
+        calculatedSubscription = effectiveSub.is_virtual ? { ...effectiveSub } : effectiveSub.toObject();
+      }
     }
 
     // 3. Construct the response matching the UI needs
@@ -463,7 +463,7 @@ const getUserDetail = async (req, res) => {
       state: accountObj.state || accountObj.default_location?.state || 'Bihar',
       district: accountObj.district || accountObj.default_location?.district || 'Muzaffarpur',
       address: accountObj.address || accountObj.default_location?.address || 'Muzaffarpur, Bihar',
-      
+
       partner_profile: partnerProfileAlias,
       stats: {
         properties: propertyCount,
@@ -549,8 +549,8 @@ const createUser = async (req, res) => {
         };
       }
 
-      newAccount = await Partner.create({ 
-        name, phone, email: email?.toLowerCase(), password, 
+      newAccount = await Partner.create({
+        name, phone, email: email?.toLowerCase(), password,
         partner_type: pType,
         roles: [pType],
         active_role: pType,
@@ -560,7 +560,7 @@ const createUser = async (req, res) => {
         address: req.body.address,
         active_subscription_id: req.body.active_subscription_id || req.body.subscription_id || null,
         profile,
-        onboarding_status: 'approved' 
+        onboarding_status: 'approved'
       });
     } else {
       return res.status(400).json({ success: false, message: 'Invalid role selection.' });
@@ -612,7 +612,9 @@ const updateUser = async (req, res) => {
       business_name,
       business_description,
       roles,
-      active_role
+      active_role,
+      onboarding_status,
+      rejection_reason
     } = req.body;
 
     // Detect Model
@@ -641,6 +643,22 @@ const updateUser = async (req, res) => {
       if (state !== undefined) updateData.state = state;
       if (district !== undefined) updateData.district = district;
       if (address !== undefined) updateData.address = address;
+
+      if (onboarding_status !== undefined) {
+        updateData.onboarding_status = onboarding_status;
+        // Map onboarding status to kyc status
+        if (onboarding_status === 'approved') updateData['kyc.status'] = 'approved';
+        else if (onboarding_status === 'rejected') updateData['kyc.status'] = 'rejected';
+        else if (onboarding_status === 'pending_approval') updateData['kyc.status'] = 'pending';
+        
+        // Record review metadata
+        updateData['kyc.reviewed_at'] = new Date();
+        updateData['kyc.reviewed_by'] = req.user.id;
+      }
+
+      if (rejection_reason !== undefined) {
+        updateData['kyc.rejection_reason'] = rejection_reason;
+      }
 
       // Only set active_subscription_id if it's a non-empty valid value
       const subId = active_subscription_id || subscription_id;
@@ -681,7 +699,7 @@ const updateUser = async (req, res) => {
         isPartnerModel ? 'partner' : 'user',
         id,
         is_active ? 'Account Activated! 🔓' : 'Account Deactivated 🔒',
-        is_active 
+        is_active
           ? 'Welcome back! Your account has been activated by the administrator. You can now access all platform features.'
           : 'Your account has been deactivated by the administrator. Please contact support for more information.',
         { type: 'account_status_change', is_active }
@@ -781,30 +799,30 @@ const getAllSubscriptions = async (req, res) => {
     let s = search ? new RegExp(search, 'i') : null;
 
     // 1. Fetch from Users collection
-    let uQuery = { 
-      role: { $in: ['Agent', 'Supplier', 'Service Provider'] } 
+    let uQuery = {
+      role: { $in: ['Agent', 'Supplier', 'Service Provider'] }
     };
     if (role && role !== 'all') {
       uQuery.role = role.replace(/([A-Z])/g, ' $1').trim();
     }
     if (s) {
-       uQuery.$or = [{ name: s }, { email: s }, { phone: s }];
+      uQuery.$or = [{ name: s }, { email: s }, { phone: s }];
     }
     const users = await mongoose.model('User').find(uQuery).lean();
 
     // 2. Fetch from Partners collection
     let pQuery = {};
     if (role && role !== 'all') {
-       const mappedRole = role === 'ServiceProvider' ? 'service_provider' : 
-                          role === 'Agent' ? 'property_agent' : 
-                          role === 'Supplier' ? 'supplier' : role.toLowerCase();
-       pQuery.$or = [
-         { partner_type: mappedRole },
-         { roles: mappedRole }
-       ];
+      const mappedRole = role === 'ServiceProvider' ? 'service_provider' :
+        role === 'Agent' ? 'property_agent' :
+          role === 'Supplier' ? 'supplier' : role.toLowerCase();
+      pQuery.$or = [
+        { partner_type: mappedRole },
+        { roles: mappedRole }
+      ];
     }
     if (s) {
-       pQuery.$or = [{ name: s }, { email: s }, { phone: s }];
+      pQuery.$or = [{ name: s }, { email: s }, { phone: s }];
     }
     const legacyPartners = await mongoose.model('Partner').find(pQuery).lean();
 
@@ -836,19 +854,19 @@ const getAllSubscriptions = async (req, res) => {
     const finalData = [];
 
     // Fetch the default Free Plan once to use as fallback
-    const defaultFreePlan = await mongoose.model('SubscriptionPlan').findOne({ 
-      $or: [{ name: /Free/i }, { price: 0 }] 
+    const defaultFreePlan = await mongoose.model('SubscriptionPlan').findOne({
+      $or: [{ name: /Free/i }, { price: 0 }]
     }).lean();
 
     for (let partner of allPartners) {
       let activeSub = null;
-      
+
       if (partner.active_subscription_id) {
         activeSub = await mongoose.model('Subscription').findById(partner.active_subscription_id).lean();
       }
 
       if (!activeSub) {
-        activeSub = await mongoose.model('Subscription').findOne({ 
+        activeSub = await mongoose.model('Subscription').findOne({
           partner_id: partner._id,
           status: { $in: ['active', 'trial', 'expired'] }
         }).sort({ createdAt: -1 }).lean();
@@ -863,30 +881,30 @@ const getAllSubscriptions = async (req, res) => {
 
       // If STILL no activeSub, create a VIRTUAL default one per user's logic
       if (!activeSub) {
-         activeSub = {
-           _id: `VIRTUAL-FREE-${partner._id}`,
-           partner_id: partner._id,
-           plan_snapshot: defaultFreePlan ? {
-              name: defaultFreePlan.name,
-              price: defaultFreePlan.price,
-              duration_days: defaultFreePlan.duration_days,
-              listings_limit: defaultFreePlan.listings_limit,
-              featured_listings_limit: defaultFreePlan.featured_listings_limit,
-              leads_limit: defaultFreePlan.leads_limit
-           } : { name: 'Free Tier', price: 0, duration_days: 30, listings_limit: 1, featured_listings_limit: 1, leads_limit: 50 },
-           status: 'active', 
-           starts_at: partner.createdAt,
-           ends_at: null,
-           is_virtual: true
-         };
+        activeSub = {
+          _id: `VIRTUAL-FREE-${partner._id}`,
+          partner_id: partner._id,
+          plan_snapshot: defaultFreePlan ? {
+            name: defaultFreePlan.name,
+            price: defaultFreePlan.price,
+            duration_days: defaultFreePlan.duration_days,
+            listings_limit: defaultFreePlan.listings_limit,
+            featured_listings_limit: defaultFreePlan.featured_listings_limit,
+            leads_limit: defaultFreePlan.leads_limit
+          } : { name: 'Free Tier', price: 0, duration_days: 30, listings_limit: 1, featured_listings_limit: 1, leads_limit: 50 },
+          status: 'active',
+          starts_at: partner.createdAt,
+          ends_at: null,
+          is_virtual: true
+        };
       }
 
       if (plan && plan !== 'all') {
-         if (!activeSub || (activeSub.plan_id && activeSub.plan_id.toString() !== plan)) continue;
+        if (!activeSub || (activeSub.plan_id && activeSub.plan_id.toString() !== plan)) continue;
       }
 
       if (status && status !== 'all') {
-         if (activeSub.status !== status) continue;
+        if (activeSub.status !== status) continue;
       }
 
       finalData.push({
@@ -911,21 +929,21 @@ const getAllSubscriptions = async (req, res) => {
 const createManualSubscription = async (req, res) => {
   try {
     const { partner_id, plan_id, starts_at, duration_days, amount_paid, listings_limit, featured_listings_limit, leads_limit, notes } = req.body;
-    
+
     // 1. Get Plan snapshot or details
     const plan = await mongoose.model('SubscriptionPlan').findById(plan_id);
-    
+
     // 2. Create the subscription doc
     const subscription = await mongoose.model('Subscription').create({
       partner_id,
       plan_id,
       plan_snapshot: {
-         name: plan?.name || 'Manual Adjustment',
-         price: amount_paid !== undefined ? amount_paid : (plan?.price || 0),
-         duration_days: duration_days || plan?.duration_days || 30,
-         listings_limit: listings_limit !== undefined ? (listings_limit === -1 ? -1 : parseInt(listings_limit)) : (plan?.listings_limit || 0),
-         featured_listings_limit: featured_listings_limit !== undefined ? (featured_listings_limit === -1 ? -1 : parseInt(featured_listings_limit)) : (plan?.featured_listings_limit || 0),
-         leads_limit: leads_limit !== undefined ? (leads_limit === -1 ? -1 : parseInt(leads_limit)) : (plan?.leads_limit || 0),
+        name: plan?.name || 'Manual Adjustment',
+        price: amount_paid !== undefined ? amount_paid : (plan?.price || 0),
+        duration_days: duration_days || plan?.duration_days || 30,
+        listings_limit: listings_limit !== undefined ? (listings_limit === -1 ? -1 : parseInt(listings_limit)) : (plan?.listings_limit || 0),
+        featured_listings_limit: featured_listings_limit !== undefined ? (featured_listings_limit === -1 ? -1 : parseInt(featured_listings_limit)) : (plan?.featured_listings_limit || 0),
+        leads_limit: leads_limit !== undefined ? (leads_limit === -1 ? -1 : parseInt(leads_limit)) : (plan?.leads_limit || 0),
       },
       status: 'active',
       starts_at: starts_at || new Date(),
@@ -936,7 +954,7 @@ const createManualSubscription = async (req, res) => {
 
     // 3. Update Partner's active subscription ID shortcut
     const partner = await Partner.findByIdAndUpdate(partner_id, {
-       active_subscription_id: subscription._id
+      active_subscription_id: subscription._id
     }, { new: true });
 
     res.status(201).json({ success: true, data: subscription, message: 'Subscription manual override successful.' });
@@ -974,7 +992,7 @@ const getPendingApprovals = async (req, res) => {
         ServiceListing.find({ status: 'pending_approval' }).populate('partner_id', 'name phone'),
         SupplierListing.find({ status: 'pending_approval' }).populate('partner_id', 'name phone')
       ]);
-      listings = [...services.map(s => ({...s._doc, category: 'service'})), ...products.map(p => ({...p._doc, category: 'product'}))];
+      listings = [...services.map(s => ({ ...s._doc, category: 'service' })), ...products.map(p => ({ ...p._doc, category: 'product' }))];
     } else {
       return res.status(400).json({ success: false, message: 'Invalid queue type.' });
     }
@@ -1002,22 +1020,22 @@ const getUsers = async (req, res) => {
 
     // 2. Map and standardise the display roles for the frontend
     const standardizedUsers = [
-      ...regularUsers.map(u => ({ 
+      ...regularUsers.map(u => ({
         ...u.toObject(),
         displayRole: u.role === 'user' ? 'Customer' : u.role,
         source: 'User'
       })),
-      ...partners.map(p => ({ 
+      ...partners.map(p => ({
         ...p.toObject(),
-        displayRole: p.role || (p.partner_type === 'property_agent' ? 'Agent' : 
-                                p.partner_type === 'supplier' || p.partner_type === 'mandi_seller' ? 'Supplier' : 
-                                'Service Provider'),
+        displayRole: p.role || (p.partner_type === 'property_agent' ? 'Agent' :
+          p.partner_type === 'supplier' || p.partner_type === 'mandi_seller' ? 'Supplier' :
+            'Service Provider'),
         source: 'Partner'
       })),
       ...allAdmins.map(a => {
         const obj = a.toObject();
         const role = (obj.role || '').toLowerCase();
-        return { 
+        return {
           ...obj,
           displayRole: (role === 'admin' || role === 'superadmin' || role === 'super_admin') ? 'Admin' : obj.role,
           source: 'AdminUser'
@@ -1025,10 +1043,10 @@ const getUsers = async (req, res) => {
       })
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    res.status(200).json({ 
-      success: true, 
-      count: standardizedUsers.length, 
-      data: standardizedUsers 
+    res.status(200).json({
+      success: true,
+      count: standardizedUsers.length,
+      data: standardizedUsers
     });
   } catch (error) {
     console.error("Error fetching unified users:", error);
@@ -1050,7 +1068,7 @@ const getListings = async (req, res) => {
     if (category) query.category_id = category;
     if (subcategory) query.subcategory_id = subcategory;
     if (status) query.status = status;
-    
+
     if (type === 'property') {
       if (listing_intent) query.listing_intent = listing_intent;
       if (state) query['address.state'] = state;
@@ -1061,71 +1079,71 @@ const getListings = async (req, res) => {
       else if (price_range === '1C+') query['pricing.amount'] = { $gt: 10000000 };
 
       if (search) {
-         query.$or = [
-           { title: { $regex: search, $options: 'i' } },
-           { 'address.district': { $regex: search, $options: 'i' } },
-           { description: { $regex: search, $options: 'i' } }
-         ];
+        query.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { 'address.district': { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ];
       }
     } else {
-       if (search) {
-         query.$or = [
-           { title: { $regex: search, $options: 'i' } },
-           { description: { $regex: search, $options: 'i' } }
-         ];
-       }
+      if (search) {
+        query.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ];
+      }
     }
 
     let listings;
-    
+
     if (type === 'property') listings = await PropertyListing.find(query).populate('partner_id', 'name phone').sort({ createdAt: -1 });
     else if (type === 'service') listings = await ServiceListing.find(query).populate('partner_id', 'name phone').sort({ createdAt: -1 });
     else if (type === 'product') {
-       // --- ONE TIME FORCE RESET ---
-       const testRow = await SupplierListing.findOne({ title: 'Ultra-Strong Portland Cement (Fixed)' });
-       if (!testRow) {
-           await SupplierListing.deleteMany({}); // Wipe out the broken data completely.
-           
-           const Partner = require('../models/Partner').Partner; 
-           const { Category } = require('../models/System');
-           
-           let partner = await Partner.findOne({ role: { $regex: /supplier/i } });
-           if (!partner) partner = await Partner.findOne(); 
-           
-           let category = await Category.findOne({ type: 'supplier', parent_id: null });
-           if (!category) {
-               category = await Category.create({
-                   name: 'Construction Materials',
-                   slug: 'construction-materials-' + Date.now(),
-                   type: 'supplier',
-                   description: 'Heavy duty construction materials.'
-               });
-           }
-           
-           if (partner && category) {
-             await SupplierListing.insertMany([
-                {
-                  partner_id: partner._id,
-                  title: 'Ultra-Strong Portland Cement (Fixed)',
-                  description: 'Premium quality cement for structural integrity.',
-                  category_id: category._id,
-                  pricing: { price_per_unit: 450, min_order_qty: 50 },
-                  location: { type: 'Point', coordinates: [77.2, 28.6] },
-                  delivery_radius_km: 150,
-                  status: 'active'
-                }
-             ]);
-           }
-       }
-       // ------------------------------------
+      // --- ONE TIME FORCE RESET ---
+      const testRow = await SupplierListing.findOne({ title: 'Ultra-Strong Portland Cement (Fixed)' });
+      if (!testRow) {
+        await SupplierListing.deleteMany({}); // Wipe out the broken data completely.
 
-       listings = await SupplierListing.find(query)
-         .populate('partner_id', 'name phone')
-         .populate('category_id', 'name')
-         .populate('subcategory_id', 'name')
-         .populate('brand_id', 'name logo')
-         .populate('pricing.unit_id', 'name abbreviation')
-         .sort({ createdAt: -1 });
+        const Partner = require('../models/Partner').Partner;
+        const { Category } = require('../models/System');
+
+        let partner = await Partner.findOne({ role: { $regex: /supplier/i } });
+        if (!partner) partner = await Partner.findOne();
+
+        let category = await Category.findOne({ type: 'supplier', parent_id: null });
+        if (!category) {
+          category = await Category.create({
+            name: 'Construction Materials',
+            slug: 'construction-materials-' + Date.now(),
+            type: 'supplier',
+            description: 'Heavy duty construction materials.'
+          });
+        }
+
+        if (partner && category) {
+          await SupplierListing.insertMany([
+            {
+              partner_id: partner._id,
+              title: 'Ultra-Strong Portland Cement (Fixed)',
+              description: 'Premium quality cement for structural integrity.',
+              category_id: category._id,
+              pricing: { price_per_unit: 450, min_order_qty: 50 },
+              location: { type: 'Point', coordinates: [77.2, 28.6] },
+              delivery_radius_km: 150,
+              status: 'active'
+            }
+          ]);
+        }
+      }
+      // ------------------------------------
+
+      listings = await SupplierListing.find(query)
+        .populate('partner_id', 'name phone')
+        .populate('category_id', 'name')
+        .populate('subcategory_id', 'name')
+        .populate('brand_id', 'name logo')
+        .populate('pricing.unit_id', 'name abbreviation')
+        .sort({ createdAt: -1 });
     }
     else return res.status(400).json({ success: false, message: 'Invalid listing type.' });
 
@@ -1144,12 +1162,12 @@ const getListings = async (req, res) => {
 const getListingDetail = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Check across all listing types
     let listing = await PropertyListing.findById(id).populate('partner_id', 'name phone email').populate('category_id subcategory_id');
     if (!listing) listing = await ServiceListing.findById(id).populate('partner_id', 'name phone email').populate('category_id');
     if (!listing) listing = await SupplierListing.findById(id).populate('partner_id', 'name phone email');
-    
+
     if (!listing) {
       return res.status(404).json({ success: false, message: 'Listing not found.' });
     }
@@ -1177,7 +1195,7 @@ const updateListingStatus = async (req, res) => {
 
     // Identify and update
     let listing = await PropertyListing.findById(id) || await ServiceListing.findById(id) || await SupplierListing.findById(id);
-    
+
     if (!listing) return res.status(404).json({ success: false, message: 'Listing not found.' });
 
     listing.status = status;
@@ -1188,21 +1206,21 @@ const updateListingStatus = async (req, res) => {
 
     // NEW: Notify partner if approved
     if (status === 'active' && listing.partner_id) {
-       await createNotification(
-         'partner',
-         listing.partner_id,
-         'Listing Approved! 🎉',
-         `Congratulations! Your listing "${listing.title}" has been approved and is now live on BaseraBazar.`,
-         { listing_id: listing._id, type: 'listing_approval' }
-       );
+      await createNotification(
+        'partner',
+        listing.partner_id,
+        'Listing Approved! 🎉',
+        `Congratulations! Your listing "${listing.title}" has been approved and is now live on BaseraBazar.`,
+        { listing_id: listing._id, type: 'listing_approval' }
+      );
     } else if (status === 'rejected' && listing.partner_id) {
-       await createNotification(
-         'partner',
-         listing.partner_id,
-         'Listing Update',
-         `Your listing "${listing.title}" requires changes. Reason: ${status_reason || 'Not specified'}.`,
-         { listing_id: listing._id, type: 'listing_rejection' }
-       );
+      await createNotification(
+        'partner',
+        listing.partner_id,
+        'Listing Update',
+        `Your listing "${listing.title}" requires changes. Reason: ${status_reason || 'Not specified'}.`,
+        { listing_id: listing._id, type: 'listing_rejection' }
+      );
     }
 
     res.status(200).json({ success: true, message: `Listing marked as ${status}`, data: listing });
@@ -1270,9 +1288,9 @@ const updateListing = async (req, res) => {
 const deleteListing = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await PropertyListing.findByIdAndDelete(id) || 
-                   await ServiceListing.findByIdAndDelete(id) || 
-                   await SupplierListing.findByIdAndDelete(id);
+    const result = await PropertyListing.findByIdAndDelete(id) ||
+      await ServiceListing.findByIdAndDelete(id) ||
+      await SupplierListing.findByIdAndDelete(id);
 
     if (!result) return res.status(404).json({ success: false, message: 'Listing not found.' });
 
@@ -1290,15 +1308,15 @@ const deleteListing = async (req, res) => {
  */
 const getLeads = async (req, res) => {
   try {
-    const { 
-      owner, 
-      role, 
-      type, 
-      readStatus, 
-      contactStatus, 
-      search, 
-      dateFrom, 
-      dateTo 
+    const {
+      owner,
+      role,
+      type,
+      readStatus,
+      contactStatus,
+      search,
+      dateFrom,
+      dateTo
     } = req.query;
 
     let query = {};
@@ -1328,8 +1346,8 @@ const getLeads = async (req, res) => {
       leads = leads.filter(lead => {
         const matchesRole = !role || role === 'all' || (lead.partner_id && (lead.partner_id.role === role || (role === 'ServiceProvider' && lead.partner_id.role === 'service_provider')));
         const matchesOwner = !owner || owner === 'all' || (lead.partner_id && lead.partner_id._id.toString() === owner);
-        
-        const matchesSearch = !search || 
+
+        const matchesSearch = !search ||
           (lead.user_id && (
             (lead.user_id.name || '').toLowerCase().includes(searchText) ||
             (lead.user_id.email || '').toLowerCase().includes(searchText) ||
@@ -1337,7 +1355,7 @@ const getLeads = async (req, res) => {
           )) ||
           (lead.listing_snapshot && lead.listing_snapshot.title && lead.listing_snapshot.title.toLowerCase().includes(searchText)) ||
           (lead._id.toString().includes(searchText));
-        
+
         return matchesRole && matchesSearch && matchesOwner;
       });
     }
@@ -1350,20 +1368,20 @@ const getLeads = async (req, res) => {
 
     // Add historical metrics for each lead using the reliable raw user_id
     const leadsWithMetrics = await Promise.all(leads.map(async (lead) => {
-        const rawUserId = rawUserIdMap[lead._id.toString()];
-        const total_user_inquiries = rawUserId 
-            ? await Enquiry.countDocuments({ user_id: rawUserId })
-            : 0;
-        return { 
-            ...lead.toObject(), 
-            total_user_inquiries 
-        };
+      const rawUserId = rawUserIdMap[lead._id.toString()];
+      const total_user_inquiries = rawUserId
+        ? await Enquiry.countDocuments({ user_id: rawUserId })
+        : 0;
+      return {
+        ...lead.toObject(),
+        total_user_inquiries
+      };
     }));
 
-    res.status(200).json({ 
-        success: true, 
-        count: leads.length, 
-        data: leadsWithMetrics 
+    res.status(200).json({
+      success: true,
+      count: leads.length,
+      data: leadsWithMetrics
     });
   } catch (error) {
     console.error("Error fetching leads:", error);
@@ -1378,7 +1396,7 @@ const getLeadById = async (req, res) => {
     // which breaks countDocuments (it returns 0 instead of the real count).
     const rawLead = await Enquiry.findById(req.params.id).lean();
     if (!rawLead) return res.status(404).json({ success: false, message: 'Lead not found' });
-    
+
     // Capture the raw user_id ObjectId — this is always reliable
     const rawUserId = rawLead.user_id;
 
@@ -1390,20 +1408,20 @@ const getLeadById = async (req, res) => {
 
     // Automatically mark as read when viewing details
     if (!lead.is_read) {
-        lead.is_read = true;
-        lead.status = 'read';
-        await lead.save();
+      lead.is_read = true;
+      lead.status = 'read';
+      await lead.save();
     }
 
     // Use the captured rawUserId (never null) for accurate counting
     const totalCount = await Enquiry.countDocuments({ user_id: rawUserId });
 
-    res.status(200).json({ 
-        success: true, 
-        data: lead,
-        metrics: {
-            totalInquiries: totalCount
-        }
+    res.status(200).json({
+      success: true,
+      data: lead,
+      metrics: {
+        totalInquiries: totalCount
+      }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -1414,15 +1432,15 @@ const updateLeadStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { is_read, contact_status } = req.body;
-    
+
     const update = {};
     if (is_read !== undefined) {
-        update.is_read = is_read;
-        update.status = is_read ? 'read' : 'new';
+      update.is_read = is_read;
+      update.status = is_read ? 'read' : 'new';
     }
     if (contact_status !== undefined) {
-        update.contact_status = contact_status;
-        if (contact_status === 'contacted') update.status = 'contacted';
+      update.contact_status = contact_status;
+      if (contact_status === 'contacted') update.status = 'contacted';
     }
 
     const lead = await Enquiry.findByIdAndUpdate(id, update, { new: true });
@@ -1442,24 +1460,24 @@ const getSubscriptionById = async (req, res) => {
     if (id.startsWith('VIRTUAL-FREE-')) {
       const partnerId = id.replace('VIRTUAL-FREE-', '');
       const partner = await mongoose.model('User').findById(partnerId).lean();
-      
+
       if (!partner) return res.status(404).json({ success: false, message: 'Partner not found for virtual subscription' });
 
       // Fetch default free plan
-      const defaultFreePlan = await mongoose.model('SubscriptionPlan').findOne({ 
-        $or: [{ name: /Free/i }, { price: 0 }] 
+      const defaultFreePlan = await mongoose.model('SubscriptionPlan').findOne({
+        $or: [{ name: /Free/i }, { price: 0 }]
       }).lean();
 
       subscription = {
         _id: id,
         partner_id: partner,
         plan_snapshot: defaultFreePlan ? {
-           name: defaultFreePlan.name,
-           price: defaultFreePlan.price,
-           duration_days: defaultFreePlan.duration_days,
-           listings_limit: defaultFreePlan.listings_limit,
-           featured_listings_limit: defaultFreePlan.featured_listings_limit,
-           leads_limit: defaultFreePlan.leads_limit
+          name: defaultFreePlan.name,
+          price: defaultFreePlan.price,
+          duration_days: defaultFreePlan.duration_days,
+          listings_limit: defaultFreePlan.listings_limit,
+          featured_listings_limit: defaultFreePlan.featured_listings_limit,
+          leads_limit: defaultFreePlan.leads_limit
         } : { name: 'Free Tier', price: 0, duration_days: 30, listings_limit: 1, featured_listings_limit: 1, leads_limit: 50 },
         status: 'active',
         starts_at: partner.createdAt,
@@ -1470,7 +1488,7 @@ const getSubscriptionById = async (req, res) => {
       subscription = await mongoose.model('Subscription').findById(id)
         .populate('partner_id', 'name email phone partner_type role profileImage address state district createdAt')
         .populate('plan_id');
-      
+
       if (subscription) {
         subscription = subscription.toObject();
       }
@@ -1521,14 +1539,14 @@ const getSubscriptionById = async (req, res) => {
     // 3. Fetch associated transaction if any (only for real records)
     let transaction = null;
     if (!subscription.is_virtual) {
-      transaction = await mongoose.model('Transaction').findOne({ 
+      transaction = await mongoose.model('Transaction').findOne({
         reference_id: subscription._id,
         type: 'subscription_payment'
       }).populate('razorpay_order_id');
     }
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: subscription,
       transaction: transaction || null
     });
@@ -1557,7 +1575,7 @@ const getAdminProfile = async (req, res) => {
   try {
     const adminId = req.user._id || req.user.id;
     const adminEmail = req.user.email;
-    
+
     if (!adminId && !adminEmail) {
       return res.status(401).json({ success: false, message: 'Invalid session context. Please re-login.' });
     }
@@ -1571,7 +1589,7 @@ const getAdminProfile = async (req, res) => {
     if (!admin) {
       return res.status(404).json({ success: false, message: `Admin account not found. (Email: ${adminEmail || 'Unknown'})` });
     }
-    
+
     res.json({ success: true, data: admin });
   } catch (err) {
     console.error('getAdminProfile Error:', err);
@@ -1592,13 +1610,13 @@ const updateAdminProfile = async (req, res) => {
   try {
     const adminId = req.user._id || req.user.id;
     const adminEmail = req.user.email;
-    
+
     if (!adminId && !adminEmail) {
       return res.status(401).json({ success: false, message: 'Invalid session context. Please re-login.' });
     }
 
     const { name, email, phone, address, city, state, profileImage } = req.body;
-    
+
     // Robust lookup: Try by ID first, then by Email as fallback
     let admin = await AdminUser.findById(adminId);
     if (!admin && adminEmail) {
@@ -1679,9 +1697,9 @@ const getSubscriptionPlans = async (req, res) => {
  */
 const createSubscriptionPlan = async (req, res) => {
   try {
-    const plan = await SubscriptionPlan.create({ 
-      ...req.body, 
-      created_by: req.user?._id 
+    const plan = await SubscriptionPlan.create({
+      ...req.body,
+      created_by: req.user?._id
     });
     res.status(201).json({ success: true, data: plan });
   } catch (error) {
@@ -1698,8 +1716,8 @@ const createSubscriptionPlan = async (req, res) => {
 const updateSubscriptionPlan = async (req, res) => {
   try {
     const plan = await SubscriptionPlan.findByIdAndUpdate(
-      req.params.id, 
-      req.body, 
+      req.params.id,
+      req.body,
       { new: true, runValidators: true }
     );
     if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
@@ -1733,15 +1751,15 @@ const deleteSubscriptionPlan = async (req, res) => {
 const getSystemCategories = async (req, res) => {
   try {
     const { type, parent_id, include_inactive } = req.query;
-    
+
     // Only filter for active if not explicitly requested by admin
     const query = include_inactive === 'true' ? {} : { is_active: true };
-    
+
     if (type) query.type = type;
     if (parent_id !== undefined) query.parent_id = parent_id === 'null' ? null : parent_id;
 
     let categories = await Category.find(query).populate('parent_id').sort({ name: 1 });
-    
+
     // --- ADVANCED AUTO-MERGE & SANITIZATION ---
     // This ensures that "brick", "Bricks", "brick supplier" all become "brick"
     // and their listings are merged.
@@ -1754,7 +1772,7 @@ const getSystemCategories = async (req, res) => {
     for (let cat of categories) {
       // 1. Basic Cleaning (lower, trim, remove " supplier")
       let cleanName = cat.name.toLowerCase().replace(/\s*supplier[s]?\s*/gi, '').trim();
-      
+
       // 2. Singular/Plural Unification (e.g., "bricks" -> "brick")
       // Simple rule: if it ends in 's', and it's not 'glass' or 'gas', strip the 's'
       if (cleanName.endsWith('s') && cleanName.length > 3 && !['glass', 'gas', 'brass'].includes(cleanName)) {
@@ -1774,18 +1792,18 @@ const getSystemCategories = async (req, res) => {
         // Duplicate found! 
         const master = nameMap[cleanName];
         console.log(`[MERGE] Merging duplicate category "${cat.name}" (${cat._id}) into "${master.name}" (${master._id})`);
-        
+
         // 1. Update MandiListings & Scrub Mock Prices
         // If a listing has a mock value (like 7500 or 62000), deactivate it
         const mockPrices = [7500, 62000, 420, 4500];
         await MandiListing.updateMany(
-          { category_id: cat._id }, 
+          { category_id: cat._id },
           { category_id: master._id }
         );
-        
+
         // Aggressively deactivate any listing that looks like seed data
         await MandiListing.updateMany(
-          { 
+          {
             $or: [
               { 'pricing.price_per_unit': { $in: mockPrices } },
               { material_name: /Bricks|Saria|Aggregate|Sand/i }
@@ -1793,7 +1811,7 @@ const getSystemCategories = async (req, res) => {
           },
           { status: 'inactive' }
         );
-        
+
         // 2. Update Partner Supplier Profiles
         await Partner.updateMany(
           { 'profile.supplier_profile.categories': cat._id },
@@ -1812,10 +1830,10 @@ const getSystemCategories = async (req, res) => {
 
     const processedCategories = await Promise.all(categories.map(async (cat) => {
       const catObj = cat.toObject();
-      
+
       if (type === 'product' || cat.type === 'product' || type === 'supplier') {
         // 1. Count unique Mandi Sellers
-        const mandiSellers = await MandiListing.distinct('partner_id', { 
+        const mandiSellers = await MandiListing.distinct('partner_id', {
           category_id: cat._id,
           status: 'active'
         });
@@ -1827,7 +1845,7 @@ const getSystemCategories = async (req, res) => {
           isActive: true
         });
         catObj.supplier_count = bulkSuppliers;
-        
+
         // Combined for legacy UI support
         catObj.count = catObj.mandi_count + catObj.supplier_count;
       } else {
@@ -1835,15 +1853,15 @@ const getSystemCategories = async (req, res) => {
         let ListingModel;
         if (cat.type === 'property') ListingModel = require('../models/Listing').PropertyListing;
         else if (cat.type === 'service') ListingModel = require('../models/Listing').ServiceListing;
-        
+
         if (ListingModel) {
-          catObj.count = await ListingModel.countDocuments({ 
+          catObj.count = await ListingModel.countDocuments({
             $or: [{ category_id: cat._id }, { subcategory_id: cat._id }],
             status: 'active'
           });
         }
       }
-      
+
       return catObj;
     }));
 
@@ -1864,7 +1882,7 @@ const createCategory = async (req, res) => {
     let { name, type, parent_id, icon, mandi_icon } = req.body;
     name = sanitizeCategoryName(name);
     const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
-    
+
     const category = await Category.create({ name, slug, type, parent_id: parent_id || null, icon, mandi_icon });
     res.status(201).json({ success: true, data: category });
   } catch (error) {
@@ -1898,9 +1916,9 @@ const deleteCategory = async (req, res) => {
     const totalListings = propertyCount + serviceCount + supplierCount;
 
     if (totalListings > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Cannot delete category. It contains ${totalListings} active listings. Please delete or move those listings first.` 
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete category. It contains ${totalListings} active listings. Please delete or move those listings first.`
       });
     }
 
@@ -1918,19 +1936,19 @@ const getCategoryDetail = async (req, res) => {
   try {
     const category = await Category.findById(req.params.id).populate('parent_id');
     const subcategories = await Category.find({ parent_id: req.params.id, is_active: true });
-    
+
     // Count listings in this category
     const propertyCount = await PropertyListing.countDocuments({ category_id: req.params.id });
-    
-    res.status(200).json({ 
-      success: true, 
+
+    res.status(200).json({
+      success: true,
       data: {
         ...category.toObject(),
         subcategories,
         stats: {
           properties: propertyCount
         }
-      } 
+      }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -1953,19 +1971,19 @@ const getBrandById = async (req, res) => {
   try {
     const brand = await Brand.findById(req.params.id);
     if (!brand) return res.status(404).json({ success: false, message: 'Brand not found' });
-    
+
     // Fetch associated product names
     const productNames = await ProductName.find({ brand_id: req.params.id })
       .populate('category_id', 'name')
       .sort({ name: 1 });
 
-    res.status(200).json({ 
-      success: true, 
-      data: { 
-        ...brand.toObject(), 
+    res.status(200).json({
+      success: true,
+      data: {
+        ...brand.toObject(),
         productNameCount: productNames.length,
-        productNames 
-      } 
+        productNames
+      }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2017,19 +2035,19 @@ const getUnitById = async (req, res) => {
   try {
     const unit = await Unit.findById(req.params.id);
     if (!unit) return res.status(404).json({ success: false, message: 'Unit not found' });
-    
+
     // Count and fetch product names using this unit
     const productNames = await ProductName.find({ unit_id: req.params.id })
       .populate('category_id', 'name')
       .sort({ name: 1 });
-    
-    res.status(200).json({ 
-      success: true, 
-      data: { 
-        ...unit.toObject(), 
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...unit.toObject(),
         productNameCount: productNames.length,
         productNames
-      } 
+      }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2143,11 +2161,13 @@ const getSubscriptionReport = async (req, res) => {
     // Basic aggregation for report
     const report = await Transaction.aggregate([
       { $match: { status: 'success' } },
-      { $group: { 
-        _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-        revenue: { $sum: "$amount" },
-        count: { $sum: 1 }
-      }},
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+          revenue: { $sum: "$amount" },
+          count: { $sum: 1 }
+        }
+      },
       { $sort: { _id: -1 } }
     ]);
     res.status(200).json({ success: true, data: report });
@@ -2159,10 +2179,12 @@ const getSubscriptionReport = async (req, res) => {
 const getUserReport = async (req, res) => {
   try {
     const report = await User.aggregate([
-      { $group: { 
-        _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-        count: { $sum: 1 }
-      }},
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+          count: { $sum: 1 }
+        }
+      },
       { $sort: { _id: -1 } }
     ]);
     res.status(200).json({ success: true, data: report });
@@ -2177,7 +2199,7 @@ const getUserReport = async (req, res) => {
  */
 const createPropertyListing = async (req, res) => {
   try {
-    const { 
+    const {
       title, description, property_type, listing_intent, partner_id,
       category_id, subcategory_id, images, thumbnail, is_featured,
       status, location, address, pricing, details
@@ -2224,7 +2246,7 @@ const createPropertyListing = async (req, res) => {
  */
 const createServiceListing = async (req, res) => {
   try {
-    const { 
+    const {
       title, short_description, full_description, partner_id,
       category_id, subcategory_id, service_type, years_of_experience,
       thumbnail, portfolio_images, video_link,

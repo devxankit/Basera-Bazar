@@ -186,8 +186,11 @@ class DataEngine {
 
   async uploadFile(file) {
     try {
+      const { compressImage } = await import('../utils/imageUtils');
+      const optimizedFile = await compressImage(file);
+      
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('image', optimizedFile);
       const response = await api.post('/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });

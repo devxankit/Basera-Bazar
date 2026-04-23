@@ -14,6 +14,7 @@ const TYPES = ['Commercial', 'Residential', 'Agricultural', 'Industrial'];
 const UNITS = ['sq. ft.', 'sq. m.', 'acre', 'dismil', 'gaj'];
 
 import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
+import MapModal from '../../components/common/MapModal';
 
 const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
@@ -27,6 +28,7 @@ export default function AddProperty() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
   
   const [formData, setFormData] = useState({
     // Step 1: Essential Details
@@ -63,6 +65,7 @@ export default function AddProperty() {
     // Step 3: Location
     state: '',
     district: '',
+    city: '',
     completeAddress: '',
     pinCode: '',
     latitude: '',
@@ -138,10 +141,19 @@ export default function AddProperty() {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (name === 'state') {
+      const INDIAN_STATES = Object.keys(INDIAN_STATES_DISTRICTS);
+      const normalizedState = INDIAN_STATES.find(s => s.toLowerCase() === value.toLowerCase()) || value;
       setFormData(prev => ({ 
         ...prev, 
-        state: value,
-        district: '' // Reset district when state changes
+        state: normalizedState,
+        district: '',
+        city: ''
+      }));
+    } else if (name === 'district') {
+      setFormData(prev => ({ 
+        ...prev, 
+        district: value,
+        city: prev.city || value 
       }));
     } else {
       setFormData(prev => ({ 
@@ -230,7 +242,7 @@ export default function AddProperty() {
           setFormData(prev => ({ ...prev, thumbnail: res.url }));
         }
       } else if (field === 'images') {
-        const maxSlots = 5 - formData.images.length;
+        const maxSlots = 10 - formData.images.length;
         const count = Math.min(files.length, maxSlots);
         
         for (let i = 0; i < count; i++) {
@@ -264,24 +276,103 @@ export default function AddProperty() {
     }));
   };
 
+  const [detecting, setDetecting] = useState(false);
   const handleAutoDetectLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+          const data = await response.json();
+          
+          if (data && data.address) {
+            const adr = data.address;
+            const clean = (s) => s ? s.replace(/\s(district|zila|tahsil|division|subdivision|township|taluk|mandal)$/i, '').trim() : '';
+
+            const stateName = adr.state || '';
+            const INDIAN_STATES = Object.keys(INDIAN_STATES_DISTRICTS);
+            const normalizedState = INDIAN_STATES.find(s => s.toLowerCase() === stateName.toLowerCase()) || stateName;
+
+            const cityName = clean(adr.city || adr.town || adr.village || adr.suburb || 'Unknown');
+            const rawDistrict = adr.county || adr.state_district || adr.city_district || cityName;
+
+            // Find matching district
+            const availableDistricts = INDIAN_STATES_DISTRICTS[normalizedState] || [];
+            const cleanedRaw = clean(rawDistrict);
+            const matchedDistrict = availableDistricts.find(d => clean(d) === cleanedRaw) || 
+                                   availableDistricts.find(d => clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))) || 
+                                   rawDistrict;
+
+            setFormData(prev => ({
+              ...prev,
+              state: normalizedState,
+              district: matchedDistrict,
+              city: cityName === 'Unknown' ? (matchedDistrict || rawDistrict) : cityName,
+              completeAddress: adr.road || prev.completeAddress,
+              pinCode: adr.postcode || prev.pinCode,
+              latitude: latitude.toString(),
+              longitude: longitude.toString()
+            }));
+            alert("Location details detected successfully!");
+          }
+        } catch (err) {
+          console.error("Geocoding error:", err);
           setFormData(prev => ({
             ...prev,
-            latitude: position.coords.latitude.toString(),
-            longitude: position.coords.longitude.toString()
+            latitude: latitude.toString(),
+            longitude: longitude.toString()
           }));
-          alert("GPS Coordinates detected successfully!");
-        },
-        (error) => {
-          alert("Failed to get location. Please allow location permissions.");
+          alert("GPS Coordinates detected. Please enter address manually.");
+        } finally {
+          setDetecting(false);
         }
-      );
-    } else {
-      alert("Geolocation is not supported by this browser.");
+      },
+      (error) => {
+        alert("Failed to get location. Please allow location permissions.");
+        setDetecting(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleFetchCoordinates = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
     }
+
+    setDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setFormData(prev => ({
+          ...prev,
+          latitude: latitude.toString(),
+          longitude: longitude.toString()
+        }));
+        alert("Coordinates captured successfully!");
+        setDetecting(false);
+      },
+      (error) => {
+        alert("Failed to get location. Please allow location permissions.");
+        setDetecting(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleMapConfirm = (coords) => {
+    setFormData(prev => ({
+      ...prev,
+      longitude: coords[0].toString(),
+      latitude: coords[1].toString()
+    }));
   };
 
   const submitFinalProperty = async () => {
@@ -313,7 +404,7 @@ export default function AddProperty() {
           value: formData.price,
           unit: formData.intention === 'For Sale' ? 'L' : '/mo'
         },
-        location_text: `${formData.completeAddress}, ${formData.district}, ${formData.state}`
+        location_text: `${formData.completeAddress}, ${formData.city || formData.district}, ${formData.state}`
       };
 
       // 3. Create/Update Listing via API
@@ -433,7 +524,13 @@ export default function AddProperty() {
               <StepTwo formData={formData} handleChange={handleChange} handleSelect={handleSelect} />
             )}
             {activeStep === 3 && (
-              <StepThree formData={formData} handleChange={handleChange} handleSelect={handleSelect} handleAutoDetectLocation={handleAutoDetectLocation} />
+              <StepThree 
+                formData={formData} 
+                handleChange={handleChange} 
+                handleSelect={handleSelect} 
+                handleFetchCoordinates={handleFetchCoordinates}
+                setShowMapModal={setShowMapModal}
+              />
             )}
             {activeStep === 4 && (
               <StepFour formData={formData} handleChange={handleChange} handleFileChange={handleFileChange} removeImage={removeImage} uploadingImage={uploadingImage} />
@@ -508,6 +605,13 @@ export default function AddProperty() {
           </div>
         )}
       </AnimatePresence>
+
+      <MapModal 
+        isOpen={showMapModal}
+        onClose={() => setShowMapModal(false)}
+        onConfirm={handleMapConfirm}
+        initialCoordinates={formData.latitude && formData.longitude ? [parseFloat(formData.longitude), parseFloat(formData.latitude)] : null}
+      />
     </div>
   );
 }
@@ -717,35 +821,29 @@ function StepTwo({ formData, handleChange, handleSelect }) {
 // -------------------------------------------------------------
 // STEP 3 COMPONENTS
 // -------------------------------------------------------------
-function StepThree({ formData, handleChange, handleSelect, handleAutoDetectLocation }) {
+function StepThree({ formData, handleChange, handleSelect, handleFetchCoordinates, setShowMapModal }) {
   const districtOptions = formData.state ? INDIA_DISTRICTS[formData.state] || [] : [];
   return (
     <div className="space-y-6">
-      {/* Auto Detect Card */}
-      <div className="bg-blue-50 rounded-[20px] p-5 border border-blue-100 flex items-center justify-between shadow-sm">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
-            <Navigation size={22} className="text-blue-500" />
-          </div>
-          <div>
-             <h3 className="text-blue-900 font-bold text-[15px]">Auto-detect Location</h3>
-             <p className="text-blue-600/70 text-[12px] font-medium leading-tight mt-1 pr-4">Get coordinates and auto-fill state/district</p>
-          </div>
-        </div>
-        <button 
-          onClick={handleAutoDetectLocation}
-          className="bg-blue-500 text-white px-5 py-2.5 rounded-xl text-[13px] font-bold shrink-0 hover:bg-blue-600 active:scale-95 transition-all shadow-md shadow-blue-500/20 flex items-center gap-2"
-        >
-          <Navigation size={14} />
-          Detect
-        </button>
-      </div>
-
       <SectionCard title="Property Address" icon={<Home size={18} className="text-blue-500 fill-blue-500" />}>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-6">
+          <div className="space-y-4">
             <SelectField label="STATE *" name="state" value={formData.state} options={Object.keys(INDIA_DISTRICTS)} onChange={handleChange} />
-            <SelectField label="CITY/DISTRICT *" name="district" value={formData.district} options={districtOptions} onChange={handleChange} disabled={!formData.state} />
+            <div className="grid grid-cols-2 gap-4">
+              <SelectField label="CITY/DISTRICT *" name="district" value={formData.district} options={districtOptions} onChange={handleChange} disabled={!formData.state} />
+              <div className="space-y-1">
+                <label className="block text-[11px] font-bold text-[#001b4e] uppercase mb-1.5 ml-1">Town / City *</label>
+                <input 
+                  type="text" 
+                  name="city" 
+                  value={formData.city} 
+                  onChange={handleChange}
+                  placeholder="e.g. Muzaffarpur"
+                  disabled={!formData.state}
+                  className="w-full border border-slate-200 rounded-xl py-3.5 px-4 text-[14px] font-medium outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all bg-white"
+                />
+              </div>
+            </div>
           </div>
           
           <div>
@@ -772,9 +870,26 @@ function StepThree({ formData, handleChange, handleSelect, handleAutoDetectLocat
             <Info size={16} className="mt-0.5 shrink-0 text-blue-500" />
             <p>Tip: Click "Detect Location" while you're at the property site for most accurate coordinates.</p>
          </div>
-         <div className="grid grid-cols-2 gap-4">
+         <div className="grid grid-cols-2 gap-4 mb-4">
             <InputField label="Latitude (Optional)" name="latitude" value={formData.latitude} icon={<Map size={18} />} placeholder="Ex: 28.7041" onChange={handleChange} />
             <InputField label="Longitude (Optional)" name="longitude" value={formData.longitude} icon={<Map size={18} />} placeholder="Ex: 77.1025" onChange={handleChange} />
+         </div>
+
+         <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={handleFetchCoordinates}
+              className="flex items-center justify-center gap-2 py-3.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-[13px] active:scale-95 transition-all"
+            >
+              <Navigation size={16} />
+              Fetch GPS
+            </button>
+            <button
+              onClick={() => setShowMapModal(true)}
+              className="flex items-center justify-center gap-2 py-3.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl font-bold text-[13px] active:scale-95 transition-all"
+            >
+              <Search size={16} />
+              Select from Map
+            </button>
          </div>
       </SectionCard>
     </div>
@@ -837,7 +952,7 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage, uploa
         <div className="mt-6">
           <div className="flex items-center justify-between mb-3">
              <label className="block text-[13px] font-bold text-[#001b4e]">Additional Images</label>
-             <span className="text-[12px] font-medium text-slate-400">{formData.images.length}/5</span>
+             <span className="text-[12px] font-medium text-slate-400">{formData.images.length}/10</span>
           </div>
           
           <div className="grid grid-cols-3 gap-3 mb-3">
@@ -854,7 +969,7 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage, uploa
             ))}
           </div>
 
-          {formData.images.length < 5 && (
+          {formData.images.length < 10 && (
             <div className={`relative w-full py-4 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center transition-colors ${uploadingImage ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 hover:bg-slate-100'}`}>
                {uploadingImage ? (
                  <span className="text-[14px] font-bold text-blue-600 flex items-center gap-2">

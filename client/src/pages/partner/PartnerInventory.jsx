@@ -224,17 +224,16 @@ export default function PartnerInventory() {
                 className="bg-white rounded-[24px] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] overflow-hidden flex flex-row relative group hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all cursor-pointer"
               >
                 {/* Left: Compact Image Section */}
-                <div className="relative w-32 h-32 sm:w-40 sm:h-40 bg-slate-100 overflow-hidden shrink-0">
-
+                <div className="relative w-28 sm:w-36 h-auto bg-slate-100 overflow-hidden shrink-0">
                    {item.thumbnail || item.image ? (
                      <img 
                         src={item.thumbnail || item.image} 
-                        alt={item.serviceName || item.title} 
+                        alt={item.title} 
                         className="w-full h-full object-cover" 
                      />
                    ) : (
                      <div className="w-full h-full flex items-center justify-center bg-slate-50 text-[#001b4e]">
-                        {item.type === 'property' ? <Building2 size={32} className="opacity-20" /> : <Package size={32} className="opacity-20" />}
+                        {item.type === 'property' ? <Building2 size={24} className="opacity-20" /> : <Package size={24} className="opacity-20" />}
                      </div>
                    )}
                    
@@ -249,51 +248,49 @@ export default function PartnerInventory() {
                       }`} />
                    </div>
                 </div>
-
                 {/* Right: Tighter Content Section */}
-                <div className="flex-grow p-4 flex flex-col justify-between min-w-0">
+                <div className="flex-grow p-3 sm:p-4 flex flex-col justify-between min-w-0">
                   <div>
-
                     <div className="flex items-center justify-between mb-0.5">
-                       <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest truncate max-w-[100px]">
+                       <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 uppercase tracking-widest truncate max-w-[80px] sm:max-w-[100px]">
                           {item.type === 'property' ? item.property_type || 'Property' : item.category || 'Listing'}
                        </span>
-                       <span className="text-[10px] font-medium text-slate-300">
+                       <span className="text-[9px] sm:text-[10px] font-medium text-slate-300">
                           #{item?.id?.slice?.(-4).toUpperCase()}
                        </span>
                     </div>
                     
-                    <h4 className="text-[16px] font-bold text-[#001b4e] leading-tight line-clamp-1 mb-1">
+                    <h4 className="text-[14px] sm:text-[16px] font-bold text-[#001b4e] leading-tight line-clamp-2 mb-1 pr-4">
                        {item.title || item.serviceName || 'Untitled Listing'}
                     </h4>
-
-                    <div className="flex items-center gap-1 text-[12px] text-slate-400 mb-2">
-                       <MapPin size={11} className="shrink-0" />
-                       <span className="truncate">{item.display_location || 'No location'}</span>
+ 
+                    <div className="flex items-center gap-1 text-[11px] sm:text-[12px] text-slate-400 mb-1.5 sm:mb-2">
+                       <MapPin size={10} className="shrink-0" />
+                       <span className="truncate max-w-[120px] sm:max-w-none">{item.display_location || 'No location'}</span>
                     </div>
-
+ 
                     {/* Compact Property Specs */}
                     {item.type === 'property' && (
-                      <div className="flex items-center gap-3 text-slate-500">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500">
                          {item.bhk && (
                             <div className="flex items-center gap-1">
-                               <BedDouble size={14} className="text-slate-300" />
-                               <span className="text-[11px] font-bold">{item.bhk} BHK</span>
+                               <BedDouble size={12} className="text-slate-300" />
+                               <span className="text-[10px] sm:text-[11px] font-bold whitespace-nowrap">{item.bhk} BHK</span>
                             </div>
                          )}
                          {item.area && (
                             <div className="flex items-center gap-1">
-                               <Square size={12} className="text-slate-300" />
-                               <span className="text-[11px] font-bold">{item.area} <span className="text-[10px] font-normal">{item.areaUnit}</span></span>
+                               <Square size={11} className="text-slate-300" />
+                               <span className="text-[10px] sm:text-[11px] font-bold whitespace-nowrap">{item.area} <span className="text-[9px] sm:text-[10px] font-normal uppercase">{item.areaUnit}</span></span>
                             </div>
                          )}
                       </div>
                     )}
                   </div>
-
+ 
                   {/* Price & Actions Row */}
-                  <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-50">
-                    <div className="text-[16px] font-black text-[#001b4e]">
+                  <div className="flex items-center justify-between mt-1 sm:mt-auto pt-2 border-t border-slate-50">
+                    <div className="text-[14px] sm:text-[16px] font-black text-[#001b4e]">
                        ₹{typeof item.price === 'object' 
                          ? `${Number(item.price.value).toLocaleString()}${(!item.price.unit || item.price.unit === 'Total') ? '' : ' ' + item.price.unit}` 
                          : Number(item.price || 0).toLocaleString()}
@@ -331,14 +328,27 @@ export default function PartnerInventory() {
       </main>
 
       {/* Floating Action Button */}
-      <div className="fixed bottom-36 right-6 z-[70]">
-        <button 
-          onClick={handleAddAction}
-          className="bg-[#001b4e] text-white p-5 rounded-2xl shadow-2xl flex items-center gap-3 active:scale-90 transition-all font-medium"
-        >
-          <Plus size={24} />
-          <span className="text-[15px]">Add {labels.item.charAt(0).toUpperCase() + labels.item.slice(1)}</span>
-        </button>
+      <div className="fixed bottom-36 left-1/2 -translate-x-1/2 w-full max-w-md px-6 pointer-events-none z-[70]">
+        <div className="flex justify-end pointer-events-auto">
+          <button 
+            onClick={() => {
+              if (!partner.is_active) {
+                alert("Your account is disabled. Complete KYC to start listing.");
+                return;
+              }
+              handleAddAction();
+            }}
+            disabled={!partner.is_active}
+            className={`p-5 rounded-2xl shadow-2xl flex items-center gap-3 active:scale-90 transition-all font-medium ${
+              !partner.is_active 
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' 
+                : 'bg-[#001b4e] text-white'
+            }`}
+          >
+            <Plus size={24} />
+            <span className="text-[15px]">Add {labels.item.charAt(0).toUpperCase() + labels.item.slice(1)}</span>
+          </button>
+        </div>
       </div>
     </div>
   );

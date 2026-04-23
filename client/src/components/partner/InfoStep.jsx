@@ -23,6 +23,25 @@ const SUPPLIER_CATEGORIES = [
   'tmt supplier'
 ];
 
+// Helper to find best matching district from our list
+const findMatchingDistrict = (state, rawDistrict) => {
+  if (!state || !rawDistrict) return '';
+  const availableDistricts = INDIA_DISTRICTS[state] || [];
+  
+  const clean = (s) => s.toLowerCase().replace(/\s(district|zila|tahsil|division)$/i, '').trim();
+  const cleanedRaw = clean(rawDistrict);
+
+  // 1. Exact or cleaned match
+  const match = availableDistricts.find(d => clean(d) === cleanedRaw);
+  if (match) return match;
+  
+  // 2. Partial match
+  const partial = availableDistricts.find(d => 
+    clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))
+  );
+  return partial || '';
+};
+
 export default function InfoStep({ formData, setFormData, onBack, onComplete, onProceedToVerify, isVerified, role, plan }) {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -46,10 +65,21 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'state') {
+      // Normalize state name to match our constants if it comes from external source
+      const normalizedState = states.find(s => s.toLowerCase() === value.toLowerCase()) || value;
       setFormData(prev => ({ 
         ...prev, 
-        state: value,
-        district: '' // Reset district when state changes
+        state: normalizedState,
+        district: '', // Reset district when state changes
+        city: '' // Reset city when state changes
+      }));
+      if (errors.location) setErrors(prev => ({ ...prev, location: null }));
+    } else if (name === 'district') {
+      setFormData(prev => ({ 
+        ...prev, 
+        district: value,
+        // If city is empty, use district as a fallback city
+        city: prev.city || value 
       }));
       if (errors.location) setErrors(prev => ({ ...prev, location: null }));
     } else {
@@ -124,8 +154,8 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
-    if (!formData.city || !formData.state) {
-      newErrors.location = "Please set your service location";
+    if (!formData.state || !(formData.city || formData.district)) {
+      newErrors.location = "Please set your state and city/district";
     }
     if (!formData.service_radius_km) {
       newErrors.service_radius_km = "Service radius is required";
@@ -336,7 +366,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
               Distance from your center you can provide service to.
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-6">
               <SelectField 
                 label="State *" 
                 name="state"
@@ -345,15 +375,26 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                 icon={<Map size={18} />} 
                 options={states}
               />
-              <SelectField 
-                label="District *" 
-                name="district"
-                value={formData.district}
-                onChange={handleChange}
-                icon={<MapPin size={18} />} 
-                options={districts}
-                disabled={!formData.state}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <SelectField 
+                  label="District *" 
+                  name="district"
+                  value={formData.district}
+                  onChange={handleChange}
+                  icon={<MapPin size={18} />} 
+                  options={districts}
+                  disabled={!formData.state}
+                />
+                <InputField 
+                  label="Town / City *" 
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  icon={<Building2 size={18} />}
+                  placeholder="e.g. Muzaffarpur"
+                  disabled={!formData.state}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -494,72 +535,6 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                     ></textarea>
                   </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <InputField 
-                          icon={<CreditCard size={18} />} 
-                          label="PAN Number *" 
-                          name="pan"
-                          value={formData.pan}
-                          onChange={handleChange}
-                          placeholder="ABCDE1234F" 
-                        />
-                        {role === 'mandi' && (
-                          <div className="mt-2">
-                             <input type="file" ref={panInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'panImage')} />
-                             <button type="button" onClick={() => panInputRef.current.click()} className="w-full h-20 bg-white border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 overflow-hidden">
-                                {formData.panImage ? <img src={formData.panImage} className="w-full h-full object-cover" /> : <span className="text-[10px] text-slate-400">PAN Image *</span>}
-                             </button>
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <InputField 
-                          icon={<Hash size={18} />} 
-                          label="GST Number" 
-                          name="gst"
-                          value={formData.gst}
-                          onChange={handleChange}
-                          placeholder="Optional" 
-                        />
-                        {role === 'mandi' && (
-                          <div className="mt-2">
-                             <input type="file" ref={gstInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'gstImage')} />
-                             <button type="button" onClick={() => gstInputRef.current.click()} className="w-full h-20 bg-white border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 overflow-hidden">
-                                {formData.gstImage ? <img src={formData.gstImage} className="w-full h-full object-cover" /> : <span className="text-[10px] text-slate-400">GST Certificate *</span>}
-                             </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <InputField 
-                        icon={<User size={18} />} 
-                        label="Aadhar Number *" 
-                        name="aadhar"
-                        value={formData.aadhar}
-                        onChange={handleChange}
-                        placeholder="12 digit number" 
-                      />
-                      {role === 'mandi' && (
-                        <div className="grid grid-cols-2 gap-4">
-                           <div>
-                              <input type="file" ref={aadharFrontRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharFront')} />
-                              <button type="button" onClick={() => aadharFrontRef.current.click()} className="w-full h-24 bg-white border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 overflow-hidden">
-                                 {formData.aadharFront ? <img src={formData.aadharFront} className="w-full h-full object-cover" /> : <span className="text-[10px] text-slate-400">Aadhar Front *</span>}
-                              </button>
-                           </div>
-                           <div>
-                              <input type="file" ref={aadharBackRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharBack')} />
-                              <button type="button" onClick={() => aadharBackRef.current.click()} className="w-full h-24 bg-white border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 overflow-hidden">
-                                 {formData.aadharBack ? <img src={formData.aadharBack} className="w-full h-full object-cover" /> : <span className="text-[10px] text-slate-400">Aadhar Back *</span>}
-                              </button>
-                           </div>
-                        </div>
-                      )}
-                    </div>
-
                   <div className="relative">
                     <div className="absolute left-4 top-4 text-slate-400">
                       <MapPin size={18} />
@@ -649,23 +624,28 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
               <LocationPicker 
                 onClose={() => setIsLocationModalOpen(false)} 
                 onSelect={(loc) => {
-                  if (loc.isGPS) {
-                    setFormData(f => ({ 
-                      ...f, 
-                      coords: loc.coordinates,
-                      city: loc.name || f.city,
-                      state: loc.state || f.state,
-                      district: loc.district || f.district
-                    }));
-                  } else {
-                    setFormData(f => ({ 
-                      ...f, 
-                      city: loc.name, 
-                      district: loc.district, 
-                      state: loc.state,
-                      coords: null
-                    }));
-                  }
+                  setFormData(prev => {
+                    const detectedState = loc.state || prev.state;
+                    const detectedDistrict = findMatchingDistrict(detectedState, loc.district);
+                    
+                    if (loc.isGPS) {
+                      return { 
+                        ...prev, 
+                        coords: loc.coordinates,
+                        city: loc.name || prev.city,
+                        state: detectedState,
+                        district: detectedDistrict || loc.district || prev.district
+                      };
+                    } else {
+                      return { 
+                        ...prev, 
+                        city: loc.name, 
+                        district: detectedDistrict || loc.district, 
+                        state: loc.state,
+                        coords: null
+                      };
+                    }
+                  });
                   setIsLocationModalOpen(false);
                 }}
               />

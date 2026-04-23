@@ -41,9 +41,16 @@ const protect = async (req, res, next) => {
         return res.status(401).json({ success: false, message: 'User no longer exists.' });
       }
 
-      // Check if user is active
-      if (userFound.is_active === false || userFound.onboarding_status === 'suspended') {
-        return res.status(403).json({ success: false, message: 'Your account has been deactivated. All sessions closed.' });
+      // Check if user is active/suspended
+      // For partners, we allow them to be is_active: false (pending approval) 
+      // but we block them if they are explicitly 'suspended'.
+      if (userFound.onboarding_status === 'suspended') {
+        return res.status(403).json({ success: false, message: 'Your account has been suspended. Please contact support.' });
+      }
+
+      // For customers (Users), we still enforce strict is_active check
+      if (decoded.role === 'user' && userFound.is_active === false) {
+        return res.status(403).json({ success: false, message: 'Your account has been deactivated.' });
       }
 
       // Token Version Check (Session Closure)

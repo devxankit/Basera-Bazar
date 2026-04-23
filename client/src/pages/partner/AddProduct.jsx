@@ -43,6 +43,7 @@ export default function AddProduct() {
     description: '',
     state: '',
     district: '',
+    city: '',
     completeAddress: '',
     pinCode: '',
     
@@ -91,10 +92,20 @@ export default function AddProduct() {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (name === 'state') {
+      // Normalize state name
+      const INDIAN_STATES = Object.keys(INDIAN_STATES_DISTRICTS);
+      const normalizedState = INDIAN_STATES.find(s => s.toLowerCase() === value.toLowerCase()) || value;
       setFormData(prev => ({ 
         ...prev, 
-        state: value,
-        district: '' // Reset district when state changes
+        state: normalizedState,
+        district: '',
+        city: ''
+      }));
+    } else if (name === 'district') {
+      setFormData(prev => ({ 
+        ...prev, 
+        district: value,
+        city: prev.city || value // Fallback city to district
       }));
     } else {
       setFormData(prev => ({ 
@@ -108,57 +119,47 @@ export default function AddProduct() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const [uploadingImage, setUploadingImage] = useState(false);
   const handleFileChange = async (e, field) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const compressImage = (file) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 1200;
-            const MAX_HEIGHT = 1200;
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height) {
-              if (width > MAX_WIDTH) {
-                height = Math.round(height * (MAX_WIDTH / width));
-                width = MAX_WIDTH;
-              }
-            } else {
-              if (height > MAX_HEIGHT) {
-                width = Math.round(width * (MAX_HEIGHT / height));
-                height = MAX_HEIGHT;
-              }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.5));
-          };
-          img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
-    };
-
-    if (field === 'thumbnail') {
-      const compressedDataUrl = await compressImage(files[0]);
-      setFormData(prev => ({ ...prev, thumbnail: compressedDataUrl }));
-    } else if (field === 'images') {
-      const maxSlots = 5 - formData.images.length;
-      const count = Math.min(files.length, maxSlots);
-      
-      for (let i = 0; i < count; i++) {
-        const compressedDataUrl = await compressImage(files[i]);
-        setFormData(prev => ({ ...prev, images: [...prev.images, compressedDataUrl] }));
+    setUploadingImage(true);
+    try {
+      if (field === 'thumbnail') {
+        const file = files[0];
+        // Show local preview
+        const localUrl = URL.createObjectURL(file);
+        setFormData(prev => ({ ...prev, thumbnail: localUrl }));
+        
+        // Upload
+        const res = await db.uploadFile(file);
+        if (res?.url) {
+          setFormData(prev => ({ ...prev, thumbnail: res.url }));
+        }
+      } else if (field === 'images') {
+        const maxSlots = 10 - formData.images.length;
+        const count = Math.min(files.length, maxSlots);
+        
+        for (let i = 0; i < count; i++) {
+          const file = files[i];
+          const localUrl = URL.createObjectURL(file);
+          setFormData(prev => ({ ...prev, images: [...prev.images, localUrl] }));
+          
+          const res = await db.uploadFile(file);
+          if (res?.url) {
+            setFormData(prev => ({
+              ...prev,
+              images: prev.images.map(img => img === localUrl ? res.url : img)
+            }));
+          }
+        }
       }
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -190,42 +191,81 @@ export default function AddProduct() {
     setFormData(prev => ({ ...prev, specifications: newSpecs }));
   };
 
+  const [detecting, setDetecting] = useState(false);
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+          const data = await response.json();
+          
+          if (data && data.address) {
+            const adr = data.address;
+            const clean = (s) => s ? s.replace(/\s(district|zila|tahsil|division|subdivision|township|taluk|mandal)$/i, '').trim() : '';
+
+            const stateName = adr.state || '';
+            const INDIAN_STATES = Object.keys(INDIAN_STATES_DISTRICTS);
+            const normalizedState = INDIAN_STATES.find(s => s.toLowerCase() === stateName.toLowerCase()) || stateName;
+
+            const cityName = clean(adr.city || adr.town || adr.village || adr.suburb || 'Unknown');
+            const rawDistrict = adr.county || adr.state_district || adr.city_district || cityName;
+
+            // Find matching district
+            const availableDistricts = INDIAN_STATES_DISTRICTS[normalizedState] || [];
+            const cleanedRaw = clean(rawDistrict);
+            const matchedDistrict = availableDistricts.find(d => clean(d) === cleanedRaw) || 
+                                   availableDistricts.find(d => clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))) || 
+                                   rawDistrict;
+
+            setFormData(prev => ({
+              ...prev,
+              state: normalizedState,
+              district: matchedDistrict,
+              city: cityName === 'Unknown' ? (matchedDistrict || rawDistrict) : cityName,
+              completeAddress: adr.road || prev.completeAddress,
+              pinCode: adr.postcode || prev.pinCode
+            }));
+            alert("Location detected successfully!");
+          }
+        } catch (err) {
+          console.error("Geocoding error:", err);
+          alert("Failed to detect address details. Please enter manually.");
+        } finally {
+          setDetecting(false);
+        }
+      },
+      (err) => {
+        alert(err.message || "Failed to detect location");
+        setDetecting(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const submitFinalProduct = async () => {
     try {
       setIsSubmitting(true);
       
-      // 1. Upload Images
-      let thumbnailUrl = formData.thumbnail;
-      if (formData.thumbnail && formData.thumbnail.startsWith('data:')) {
-        const thumbBlob = await fetch(formData.thumbnail).then(r => r.blob());
-        const thumbRes = await db.uploadFile(thumbBlob);
-        thumbnailUrl = thumbRes.url;
-      }
-
-      const galleryUrls = [];
-      for (const img of formData.images) {
-        if (img.startsWith('data:')) {
-          const blob = await fetch(img).then(r => r.blob());
-          const res = await db.uploadFile(blob);
-          galleryUrls.push(res.url);
-        } else {
-          galleryUrls.push(img);
-        }
-      }
-
-      // 2. Prepare Payload
+      // Prepare Payload (Images are already URLs now)
       const payload = {
         title: formData.title,
         category: 'supplier',
-        sub_category: formData.category, // Map UI category to sub_category
+        sub_category: formData.category,
         brand: formData.brand,
         price: {
           value: formData.price,
           unit: formData.unit
         },
-        image: thumbnailUrl,
-        images: galleryUrls,
-        location_text: `${formData.completeAddress}, ${formData.district}, ${formData.state}`,
+        image: formData.thumbnail,
+        images: formData.images,
+        location_text: `${formData.completeAddress}, ${formData.city || formData.district}, ${formData.state}`,
         details: {
           description: formData.description,
           specifications: formData.specifications,
@@ -328,9 +368,14 @@ export default function AddProduct() {
         ) : <div className="px-8" />}
         <button 
           onClick={nextStep}
-          className="px-10 py-3.5 bg-[#001b4e] text-white rounded-xl font-bold text-[15px] shadow-lg shadow-blue-900/20 active:scale-95 transition-all"
+          disabled={uploadingImage}
+          className={`px-10 py-3.5 rounded-xl font-bold text-[15px] shadow-lg active:scale-95 transition-all ${
+            uploadingImage 
+              ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
+              : 'bg-[#001b4e] text-white shadow-blue-900/20'
+          }`}
         >
-          {activeStep === 3 ? (editId ? 'Update Product' : 'Submit Product') : 'Next'}
+          {uploadingImage ? 'Uploading...' : (activeStep === 3 ? (editId ? 'Update Product' : 'Submit Product') : 'Next')}
         </button>
       </div>
 
@@ -432,16 +477,22 @@ function StepOne({ formData, handleChange, partnerCategories }) {
       </SectionCard>
 
       <SectionCard title="Service Location" icon={<MapPin size={18} className="text-blue-500" />}>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <SelectField 
-              label="CITY *" 
-              name="district" 
-              value={formData.district} 
-              options={formData.state ? INDIA_DISTRICTS[formData.state] : []} 
-              onChange={handleChange} 
-              disabled={!formData.state}
-            />
+        <div className="space-y-6">
+          <button 
+            type="button"
+            onClick={handleDetectLocation}
+            disabled={detecting}
+            className="w-full bg-[#001b4e] text-white py-4.5 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-blue-900/10 active:scale-[0.98] transition-all font-medium text-[15px] disabled:opacity-70"
+          >
+            {detecting ? (
+               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+               <Navigation size={18} className="rotate-45" />
+            )}
+            {detecting ? 'Detecting...' : 'Get Current Location'}
+          </button>
+
+          <div className="space-y-4">
             <SelectField 
               label="STATE *" 
               name="state" 
@@ -449,6 +500,25 @@ function StepOne({ formData, handleChange, partnerCategories }) {
               options={Object.keys(INDIA_DISTRICTS)} 
               onChange={handleChange} 
             />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <SelectField 
+                label="CITY/DISTRICT *" 
+                name="district" 
+                value={formData.district} 
+                options={formData.state ? INDIA_DISTRICTS[formData.state] || [] : []} 
+                onChange={handleChange} 
+                disabled={!formData.state}
+              />
+              <InputField 
+                label="Town / City *" 
+                name="city" 
+                value={formData.city} 
+                placeholder="e.g. Muzaffarpur" 
+                onChange={handleChange} 
+                disabled={!formData.state}
+              />
+            </div>
           </div>
           
           <div>
@@ -559,7 +629,7 @@ function StepThree({ formData, handleChange, handleFileChange, removeImage, addS
         <div className="mt-6">
           <div className="flex items-center justify-between mb-3">
              <label className="block text-[13px] font-bold text-[#001b4e]">Additional Angles</label>
-             <span className="text-[12px] font-medium text-slate-400">{formData.images.length}/5</span>
+             <span className="text-[12px] font-medium text-slate-400">{formData.images.length}/10</span>
           </div>
           
           <div className="grid grid-cols-3 gap-3 mb-3">
@@ -575,17 +645,25 @@ function StepThree({ formData, handleChange, handleFileChange, removeImage, addS
               </div>
             ))}
           </div>
-
-          {formData.images.length < 5 && (
-            <div className="relative w-full py-4 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors">
-               <span className="text-[14px] font-bold text-[#001b4e] flex items-center gap-2">
-                 <Camera size={18} className="text-slate-400"/>
-                 Add Additional Images
-               </span>
+ 
+          {formData.images.length < 10 && (
+            <div className={`relative w-full py-4 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center transition-colors ${uploadingImage ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 hover:bg-slate-100'}`}>
+               {uploadingImage ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[14px] font-bold text-blue-600">Uploading...</span>
+                  </div>
+               ) : (
+                  <span className="text-[14px] font-bold text-[#001b4e] flex items-center gap-2">
+                    <Camera size={18} className="text-slate-400"/>
+                    Add Additional Images
+                  </span>
+               )}
                <input 
                  type="file" 
                  accept="image/*" 
                  multiple
+                 disabled={uploadingImage}
                  onChange={(e) => handleFileChange(e, 'images')}
                  className="absolute inset-0 opacity-0 cursor-pointer"
                />

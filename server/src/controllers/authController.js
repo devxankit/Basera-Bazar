@@ -5,6 +5,7 @@ const { sendOTP } = require('../utils/sms');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { getCityCoords } = require('../utils/locationUtils');
+const { logActivity } = require('../utils/activityLogger');
 
 // Helper function to generate a secure JWT Token
 const generateToken = (id, role, email, version = 0) => {
@@ -281,6 +282,17 @@ const verifyOtp = async (req, res) => {
             pincode
           })
         });
+
+        // Log registration activity for admin dashboard
+        logActivity({
+          actor_name: account.name,
+          actor_id: account._id,
+          action: 'registered',
+          entity_type: role === 'partner' ? 'partner' : 'user',
+          entity_name: account.name,
+          entity_id: account._id,
+          description: `New ${role === 'partner' ? account.partner_type || 'partner' : 'user'} registered: ${account.name}`
+        });
       }
 
     } else {
@@ -296,13 +308,20 @@ const verifyOtp = async (req, res) => {
         });
       }
 
-      // NEW: Block inactive users from Login via OTP
+      // NEW: Block suspended accounts OR inactive customers
+      // Partners are allowed to login even if is_active is false (e.g. pending approval)
+      // but NOT if they are explicitly suspended.
+      const isPartner = account.roles && account.roles.length > 0 || account.partner_type;
       if (account.is_active === false) {
-        return res.status(403).json({
-          success: false,
-          code: 'ACCOUNT_INACTIVE',
-          message: 'Account is inactive. Please contact the administrator.'
-        });
+        if (!isPartner || account.onboarding_status === 'suspended') {
+          return res.status(403).json({
+            success: false,
+            code: 'ACCOUNT_INACTIVE',
+            message: account.onboarding_status === 'suspended' 
+              ? 'Your account has been suspended. Please contact support.' 
+              : 'Account is inactive. Please contact the administrator.'
+          });
+        }
       }
     }
 

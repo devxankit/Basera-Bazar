@@ -171,38 +171,38 @@ const UserProfile = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-24">
       {/* Header Profile Section */}
-      <div className="bg-[#1f2355] pt-12 pb-24 px-6 relative overflow-hidden">
+      <div className="bg-[#1f2355] pt-10 sm:pt-12 pb-20 sm:pb-24 px-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl opacity-50" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#fa8639]/10 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl opacity-30" />
         
         <div className="flex items-center justify-between mb-8 relative z-10">
           <button onClick={() => navigate('/')} className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all active:scale-95">
-            <ArrowLeft size={24} />
+            <ArrowLeft size={22} />
           </button>
-          <h1 className="text-lg font-bold text-white uppercase tracking-[0.2em]">Profile</h1>
+          <h1 className="text-[14px] sm:text-[16px] font-bold text-white uppercase tracking-[0.2em]">Profile</h1>
           <button onClick={() => navigate('/edit-profile')} className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all active:scale-95">
-            <Settings size={22} />
+            <Settings size={20} />
           </button>
         </div>
 
-        <div className="flex items-center gap-5 relative z-10">
-          <div className="w-20 h-20 rounded-[28px] bg-gradient-to-br from-[#fa8639] to-orange-600 border-4 border-white/10 flex items-center justify-center p-0.5 shadow-xl">
-             <div className="w-full h-full rounded-[24px] bg-white flex items-center justify-center text-[#1f2355]">
-               <User size={36} strokeWidth={2.5} />
+        <div className="flex items-center gap-4 sm:gap-5 relative z-10">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[24px] sm:rounded-[28px] bg-gradient-to-br from-[#fa8639] to-orange-600 border-4 border-white/10 flex items-center justify-center p-0.5 shadow-xl">
+             <div className="w-full h-full rounded-[20px] sm:rounded-[24px] bg-white flex items-center justify-center text-[#1f2355]">
+               <User size={28} sm:size={36} strokeWidth={2.5} />
              </div>
           </div>
-          <div className="space-y-1">
-            <h2 className="text-[24px] font-bold text-white tracking-tight">{user.name}</h2>
-            <div className="flex items-center gap-2 text-white/70 text-[13px] font-medium">
-              <MapPin size={14} className="text-[#fa8639]" />
-              {currentLocation || 'Location not set'}
+          <div className="space-y-0.5 sm:space-y-1 min-w-0">
+            <h2 className="text-[20px] sm:text-[24px] font-bold text-white tracking-tight truncate">{user.name}</h2>
+            <div className="flex items-center gap-2 text-white/70 text-[12px] sm:text-[13px] font-medium">
+              <MapPin size={12} className="text-[#fa8639]" />
+              <span className="truncate">{currentLocation || 'Location not set'}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="px-6 -mt-12 relative z-20">
-        <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-slate-200 border border-slate-100 space-y-5">
+      <div className="px-6 -mt-10 sm:-mt-12 relative z-20">
+        <div className="bg-white rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 shadow-xl shadow-slate-200 border border-slate-100 space-y-5">
            <div className="grid grid-cols-2 gap-4">
              <div className="space-y-1">
                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Phone</span>

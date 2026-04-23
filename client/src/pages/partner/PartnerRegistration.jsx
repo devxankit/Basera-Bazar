@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RoleStep from '../../components/partner/RoleStep';
-import PlanStep from '../../components/partner/PlanStep';
 import InfoStep from '../../components/partner/InfoStep';
 import OTPStep from '../../components/partner/OTPStep';
+import KYCStep from '../../components/partner/KYCStep';
 import PartnerModal from '../../components/partner/PartnerModal';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -17,7 +17,7 @@ export default function PartnerRegistration() {
   const [step, setStep] = useState(1);
   const totalSteps = 4;
   const [selectedRole, setSelectedRole] = useState(null);
-  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState('free');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
@@ -169,6 +169,16 @@ export default function PartnerRegistration() {
       await api.put('/auth/profile', updatePayload);
 
       // 6. Finalize Auth Session
+      const activity = {
+        title: `Account Registered as ${selectedRole}`,
+        time: new Date().toLocaleTimeString(),
+        timestamp: new Date().toISOString(),
+        type: 'profile'
+      };
+      const activityKey = `baserabazar_activity_${userData.id || userData._id}`;
+      const existingLogs = JSON.parse(localStorage.getItem(activityKey) || '[]');
+      localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs]));
+
       login(userData, token);
 
       setModalConfig(prev => ({ ...prev, isOpen: false }));
@@ -184,9 +194,9 @@ export default function PartnerRegistration() {
   const getStepTitle = () => {
     switch(step) {
       case 1: return 'Select Role';
-      case 2: return 'Choose Plan';
-      case 3: return 'Your Information';
-      case 4: return 'Verify Phone';
+      case 2: return 'Your Information';
+      case 3: return 'Verify Phone';
+      case 4: return 'KYC Documents';
       default: return '';
     }
   };
@@ -241,14 +251,6 @@ export default function PartnerRegistration() {
               />
             )}
             {step === 2 && (
-              <PlanStep 
-                selectedPlan={selectedPlan} 
-                onSelect={setSelectedPlan} 
-                onNext={nextStep} 
-                onBack={prevStep} 
-              />
-            )}
-            {step === 3 && (
               <InfoStep 
                 formData={formData} 
                 setFormData={setFormData} 
@@ -263,16 +265,26 @@ export default function PartnerRegistration() {
                 plan={selectedPlan}
               />
             )}
-            {step === 4 && (
+            {step === 3 && (
               <OTPStep 
                 formData={formData}
                 selectedRole={selectedRole}
                 onBack={prevStep}
                 onVerified={(userData, token) => {
-                  console.log("Partner verified successfully via Step 4", { userData, token });
+                  console.log("Partner verified successfully via Step 3", { userData, token });
                   setAuthState({ user: userData, token });
-                  handleCompleteRequest();
+                  nextStep();
                 }}
+              />
+            )}
+            {step === 4 && (
+              <KYCStep 
+                formData={formData}
+                setFormData={setFormData}
+                onBack={prevStep}
+                onComplete={handleCompleteRequest}
+                onSkip={handleConfirmRegistration}
+                role={selectedRole}
               />
             )}
           </motion.div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, Search, Check, ChevronRight, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
 
 // Common cities mapping for manual selection center points
 const MAJOR_CITIES = [
@@ -105,14 +106,34 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
               adr.road || // Fallback to road if it's a very specific coordinate
               'Unknown'
             );
+            // Normalization logic for Indian states
+            const INDIAN_STATES = [
+              "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", 
+              "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", 
+              "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", 
+              "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", 
+              "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", 
+              "Telangana", "Tripura", "Uttarakhand", "Uttar Pradesh", "West Bengal"
+            ];
+            
             const stateName = adr.state || '';
-            const districtName = cleanName(adr.county || adr.state_district || adr.city_district || cityName);
+            const normalizedState = INDIAN_STATES.find(s => s.toLowerCase() === stateName.toLowerCase()) || stateName;
+            const rawDistrict = adr.county || adr.state_district || adr.city_district || cityName;
+
+            // Find matching district from our list
+            const clean = (s) => s.toLowerCase().replace(/\s(district|zila|tahsil|division)$/i, '').trim();
+            const cleanedRaw = clean(rawDistrict);
+            const availableDistricts = INDIAN_STATES_DISTRICTS[normalizedState] || [];
+            
+            const matchedDistrict = availableDistricts.find(d => clean(d) === cleanedRaw) || 
+                                   availableDistricts.find(d => clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))) || 
+                                   rawDistrict;
 
             onSelect({
               coordinates: [longitude, latitude],
               name: cityName === 'Unknown' ? null : cityName,
-              state: stateName,
-              district: districtName,
+              state: normalizedState,
+              district: matchedDistrict,
               isGPS: true,
               rawAddress: adr
             });

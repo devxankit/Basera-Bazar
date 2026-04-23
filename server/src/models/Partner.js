@@ -94,7 +94,7 @@ const partnerSchema = new mongoose.Schema({
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     id_type: { type: String },
     id_number: { type: String }, // Generic ID (legacy)
-    
+
     // New Detailed KYC
     pan_number: { type: String },
     pan_image: { type: String },
@@ -105,7 +105,8 @@ const partnerSchema = new mongoose.Schema({
     gst_image: { type: String },
 
     reviewed_by: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser' },
-    reviewed_at: { type: Date }
+    reviewed_at: { type: Date },
+    rejection_reason: { type: String, default: null }
   },
   onboarding_status: {
     type: String,
@@ -128,7 +129,7 @@ const partnerSchema = new mongoose.Schema({
   },
   is_active: {
     type: Boolean,
-    default: true
+    default: false
   },
   free_credits: {
     total: { type: Number, default: 0 },
@@ -158,13 +159,13 @@ const partnerSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Add method to compare password
-partnerSchema.methods.matchPassword = async function(enteredPassword) {
+partnerSchema.methods.matchPassword = async function (enteredPassword) {
   if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Hash password before saving
-partnerSchema.pre('save', async function() {
+partnerSchema.pre('save', async function () {
   if (!this.isModified('password') || !this.password) {
     return;
   }
@@ -173,7 +174,7 @@ partnerSchema.pre('save', async function() {
 });
 
 // Auto-sync legacy partner_type → roles array for backward compatibility
-partnerSchema.pre('save', function() {
+partnerSchema.pre('save', function () {
   // If roles is empty but partner_type is set, auto-populate
   if (this.partner_type && (!this.roles || this.roles.length === 0)) {
     this.roles = [this.partner_type];
