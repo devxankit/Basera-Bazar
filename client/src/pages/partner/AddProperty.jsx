@@ -155,6 +155,9 @@ export default function AddProperty() {
         district: value,
         city: prev.city || value 
       }));
+    } else if (name === 'pinCode') {
+      const val = value.slice(0, 6);
+      setFormData(prev => ({ ...prev, [name]: val }));
     } else {
       setFormData(prev => ({ 
         ...prev, 
@@ -458,7 +461,11 @@ export default function AddProperty() {
     if (activeStep < 4) {
       setActiveStep(prev => prev + 1);
       window.scrollTo(0, 0);
-    } else {
+    } else if (activeStep === 4) {
+      if (!formData.thumbnail && formData.images.length === 0) {
+        alert('Please upload at least one image of the property.');
+        return;
+      }
       setShowConfirmModal(true);
     }
   };
@@ -540,25 +547,25 @@ export default function AddProperty() {
       </div>
 
       {/* Fixed Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-slate-100 flex items-center justify-between z-40 max-w-md mx-auto">
-        {activeStep > 1 ? (
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100 flex items-center gap-3 z-40 max-w-md mx-auto">
+        {activeStep > 1 && (
           <button 
             onClick={prevStep}
-            className="px-8 py-3.5 border-2 border-[#001b4e] text-[#001b4e] rounded-xl font-bold text-[15px] active:scale-95 transition-all"
+            className="flex-1 py-4 border-2 border-[#001b4e] text-[#001b4e] rounded-xl font-bold text-[15px] active:scale-95 transition-all whitespace-nowrap"
           >
             Previous
           </button>
-        ) : <div />}
+        )}
         <button 
           onClick={nextStep}
           disabled={uploadingImage}
-          className={`px-10 py-3.5 rounded-xl font-bold text-[15px] shadow-lg active:scale-95 transition-all ${
+          className={`flex-[2] py-4 rounded-xl font-bold text-[15px] shadow-lg active:scale-95 transition-all whitespace-nowrap ${
             uploadingImage 
               ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
               : 'bg-[#001b4e] text-white shadow-blue-900/20'
           }`}
         >
-          {uploadingImage ? 'Uploading...' : (activeStep === 4 ? (editId ? 'Update Property' : 'Submit Property') : 'Next')}
+          {uploadingImage ? 'Uploading...' : (activeStep === 4 ? (editId ? 'Update Property' : 'Submit Property') : 'Next Step')}
         </button>
       </div>
 
@@ -729,6 +736,12 @@ function StepOne({ formData, handleChange, handleCategorySelect, handleSubCatego
 // STEP 2 COMPONENTS
 // -------------------------------------------------------------
 function StepTwo({ formData, handleChange, handleSelect }) {
+  const isPlotOrLand = 
+    (formData.categoryName || '').toLowerCase().includes('plot') || 
+    (formData.categoryName || '').toLowerCase().includes('land') ||
+    (formData.subcategoryName || '').toLowerCase().includes('plot') || 
+    (formData.subcategoryName || '').toLowerCase().includes('land');
+
   return (
     <div className="space-y-6">
       <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex items-start gap-3 text-blue-600 mb-6 font-medium text-[13px]">
@@ -736,14 +749,16 @@ function StepTwo({ formData, handleChange, handleSelect }) {
          <p>All fields in this step are optional but highly recommended to attract better leads.</p>
       </div>
 
-      <SectionCard title="Room Configuration" icon={<BedDouble size={18} className="text-blue-500" />}>
-        <div className="space-y-4">
-          <SelectField label="Bedrooms (Optional)" name="bedrooms" icon={<BedDouble size={18} />} value={formData.bedrooms} options={['Studio', '1 BHK', '2 BHK', '3 BHK', '4 BHK', 'Penthouse']} onChange={handleChange} />
-          <SelectField label="Bathrooms (Optional)" name="bathrooms" icon={<Bath size={18} />} value={formData.bathrooms} options={['1', '2', '3', '4', '5+']} onChange={handleChange} />
-          <SelectField label="Washrooms (Optional)" name="washrooms" icon={<Users size={18} />} value={formData.washrooms} options={['1', '2', '3', '4', '5+']} onChange={handleChange} />
-          <SelectField label="Furnishing (Optional)" name="furnishing" icon={<Home size={18} />} value={formData.furnishing} options={['Fully Furnished', 'Semi Furnished', 'Unfurnished']} onChange={handleChange} />
-        </div>
-      </SectionCard>
+      {!isPlotOrLand && (
+        <SectionCard title="Room Configuration" icon={<BedDouble size={18} className="text-blue-500" />}>
+          <div className="space-y-4">
+            <SelectField label="Bedrooms (Optional)" name="bedrooms" icon={<BedDouble size={18} />} value={formData.bedrooms} options={['Studio', '1 BHK', '2 BHK', '3 BHK', '4 BHK', 'Penthouse']} onChange={handleChange} />
+            <SelectField label="Bathrooms (Optional)" name="bathrooms" icon={<Bath size={18} />} value={formData.bathrooms} options={['1', '2', '3', '4', '5+']} onChange={handleChange} />
+            <SelectField label="Washrooms (Optional)" name="washrooms" icon={<Users size={18} />} value={formData.washrooms} options={['1', '2', '3', '4', '5+']} onChange={handleChange} />
+            <SelectField label="Furnishing (Optional)" name="furnishing" icon={<Home size={18} />} value={formData.furnishing} options={['Fully Furnished', 'Semi Furnished', 'Unfurnished']} onChange={handleChange} />
+          </div>
+        </SectionCard>
+      )}
 
       <SectionCard title="Area Details" icon={<Square size={18} className="text-blue-500" />}>
         <div className="space-y-4">
@@ -753,67 +768,73 @@ function StepTwo({ formData, handleChange, handleSelect }) {
         </div>
       </SectionCard>
 
-      <SectionCard title="Building & Floor Details" icon={<Building2 size={18} className="text-blue-500" />}>
-        <div className="space-y-4">
-          <SelectField label="Floor Number (Optional)" name="floorNumber" icon={<Square size={18} />} value={formData.floorNumber} options={['Ground', '1', '2', '3', '4', '5', '6-10', '10+']} onChange={handleChange} />
-          <SelectField label="Total Floors (Optional)" name="totalFloors" icon={<Building2 size={18} />} value={formData.totalFloors} options={['1', '2', '3', '4', '5', '6-10', '10+']} onChange={handleChange} />
-          <SelectField label="Property Facing (Optional)" name="facing" icon={<Navigation size={18} />} value={formData.facing} options={['East', 'West', 'North', 'South', 'North-East', 'South-East', 'North-West', 'South-West']} onChange={handleChange} />
-          <SelectField label="Construction Status (Optional)" name="constructionStatus" icon={<Building2 size={18} />} value={formData.constructionStatus} options={['Ready to move', 'Under construction', 'New Launch']} onChange={handleChange} />
-        </div>
-      </SectionCard>
+      {!isPlotOrLand && (
+        <SectionCard title="Building & Floor Details" icon={<Building2 size={18} className="text-blue-500" />}>
+          <div className="space-y-4">
+            <SelectField label="Floor Number (Optional)" name="floorNumber" icon={<Square size={18} />} value={formData.floorNumber} options={['Ground', '1', '2', '3', '4', '5', '6-10', '10+']} onChange={handleChange} />
+            <SelectField label="Total Floors (Optional)" name="totalFloors" icon={<Building2 size={18} />} value={formData.totalFloors} options={['1', '2', '3', '4', '5', '6-10', '10+']} onChange={handleChange} />
+            <SelectField label="Property Facing (Optional)" name="facing" icon={<Navigation size={18} />} value={formData.facing} options={['East', 'West', 'North', 'South', 'North-East', 'South-East', 'North-West', 'South-West']} onChange={handleChange} />
+            <SelectField label="Construction Status (Optional)" name="constructionStatus" icon={<Building2 size={18} />} value={formData.constructionStatus} options={['Ready to move', 'Under construction', 'New Launch']} onChange={handleChange} />
+          </div>
+        </SectionCard>
+      )}
       
       <SectionCard title="Additional Information" icon={<Info size={18} className="text-blue-500 fill-blue-500" />}>
          <div className="space-y-4">
            <InputField label="Project/Society Name (Optional)" name="projectName" value={formData.projectName} icon={<Building2 size={18} />} placeholder="Enter society name" onChange={handleChange} />
            <SelectField label="Listed By (Optional)" name="listedBy" icon={<Users size={18} />} value={formData.listedBy} options={['Owner', 'Dealer/Agent', 'Builder']} onChange={handleChange} />
            
-           <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50/50">
-              <div className="flex items-center gap-3">
-                 <Users size={18} className="text-slate-400"/>
-                 <div>
-                    <div className="text-[14px] font-bold text-[#001b4e]">Bachelors Allowed</div>
-                    <div className="text-[11px] text-slate-400 font-medium">Allow bachelor tenants</div>
-                 </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" name="bachelorsAllowed" checked={formData.bachelorsAllowed} onChange={handleChange} className="sr-only peer" />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-           </div>
+           {!isPlotOrLand && (
+             <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                   <Users size={18} className="text-slate-400"/>
+                   <div>
+                      <div className="text-[14px] font-bold text-[#001b4e]">Bachelors Allowed</div>
+                      <div className="text-[11px] text-slate-400 font-medium">Allow bachelor tenants</div>
+                   </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" name="bachelorsAllowed" checked={formData.bachelorsAllowed} onChange={handleChange} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+             </div>
+           )}
          </div>
       </SectionCard>
 
-      <SectionCard title="Parking Facilities" icon={<span className="font-bold text-blue-500 text-[18px]">P</span>}>
-         <div className="space-y-3">
-           <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50/50">
-              <div className="flex items-center gap-3">
-                 <Bike size={18} className="text-slate-400"/>
-                 <div>
-                    <div className="text-[14px] font-bold text-[#001b4e]">Bike Parking</div>
-                    <div className="text-[11px] text-slate-400 font-medium">Two-wheeler parking available</div>
-                 </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" name="bikeParking" checked={formData.bikeParking} onChange={handleChange} className="sr-only peer" />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
+      {!isPlotOrLand && (
+        <SectionCard title="Parking Facilities" icon={<span className="font-bold text-blue-500 text-[18px]">P</span>}>
+           <div className="space-y-3">
+             <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                   <Bike size={18} className="text-slate-400"/>
+                   <div>
+                      <div className="text-[14px] font-bold text-[#001b4e]">Bike Parking</div>
+                      <div className="text-[11px] text-slate-400 font-medium">Two-wheeler parking available</div>
+                   </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" name="bikeParking" checked={formData.bikeParking} onChange={handleChange} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+             </div>
+             
+             <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                   <Car size={18} className="text-slate-400"/>
+                   <div>
+                      <div className="text-[14px] font-bold text-[#001b4e]">Car Parking</div>
+                      <div className="text-[11px] text-slate-400 font-medium">Four-wheeler parking available</div>
+                   </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" name="carParking" checked={formData.carParking} onChange={handleChange} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+             </div>
            </div>
-           
-           <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50/50">
-              <div className="flex items-center gap-3">
-                 <Car size={18} className="text-slate-400"/>
-                 <div>
-                    <div className="text-[14px] font-bold text-[#001b4e]">Car Parking</div>
-                    <div className="text-[11px] text-slate-400 font-medium">Four-wheeler parking available</div>
-                 </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" name="carParking" checked={formData.carParking} onChange={handleChange} className="sr-only peer" />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-           </div>
-         </div>
-      </SectionCard>
+        </SectionCard>
+      )}
     </div>
   );
 }

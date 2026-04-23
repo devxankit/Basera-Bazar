@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { onboardPartner, getMyPartnerProfile, getPartnerStats, addRole, switchRole } = require('../controllers/partnerController');
+const { onboardPartner, getMyPartnerProfile, getPartnerStats, addRole, switchRole, deleteRole } = require('../controllers/partnerController');
 
 // Import our security middlewares!
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
@@ -37,6 +37,13 @@ router.post(
   protect,
   authorizeRoles('partner'),
   addRole
+);
+
+router.delete(
+  '/delete-role',
+  protect,
+  authorizeRoles('partner'),
+  deleteRole
 );
 
 router.put(

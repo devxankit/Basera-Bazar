@@ -60,7 +60,9 @@ const {
   createServiceListing,
   updateSubscriptionStatus,
   getMandiSettings,
-  updateMandiSettings
+  updateMandiSettings,
+  processRoleRequest,
+  getRoleRequests
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -143,6 +145,10 @@ router.get('/partners/mandi-search', findNearestMandiSellers);
 
 // The actual assignment logic route
 router.put('/enquiries/mandi/:id/assign', assignMandiEnquiry);
+
+// Partner Role Upgrade Management
+router.get('/partners/role-requests', getRoleRequests);
+router.post('/partners/role-request-action', processRoleRequest);
 
 // Mandi Marketplace Global Settings
 router.get('/mandi/settings', getMandiSettings);

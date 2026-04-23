@@ -9,73 +9,93 @@ export default function PartnerAbout() {
   return (
     <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden bg-slate-50 font-sans pb-20">
       {/* Header */}
-      <div className="bg-white px-5 py-4 flex items-center justify-between sticky top-0 z-50 border-b border-slate-100 shadow-sm">
+      <div className="bg-white px-5 py-3 flex items-center justify-between sticky top-0 z-50 border-b border-slate-50">
         <button 
           onClick={() => navigate('/partner/profile')}
           className="p-1 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
         >
-          <ArrowLeft size={24} />
+          <ArrowLeft size={22} />
         </button>
-        <h2 className="text-[20px] font-medium text-[#001b4e]">About Basera Bazar</h2>
+        <h2 className="text-[17px] font-bold text-[#001b4e] uppercase tracking-tight">Support</h2>
         <div className="w-8" />
       </div>
 
-      <div className="px-5 pt-8 space-y-10 text-center">
+      <div className="px-5 pt-6 space-y-6 text-center">
         {/* Logo & App Info */}
-        <div className="space-y-3 xs:space-y-4">
-          <div className="w-20 h-20 xs:w-24 xs:h-24 bg-white rounded-[24px] xs:rounded-[32px] mx-auto shadow-2xl shadow-blue-900/10 flex items-center justify-center p-3 xs:p-4 border border-slate-50 overflow-hidden">
-            <img src={logo} alt="BaseraBazar" className="w-full h-full object-contain" />
-          </div>
-          <div>
-            <h1 className="text-[22px] xs:text-[26px] font-black text-[#181d5f] uppercase tracking-tight">Basera Bazar</h1>
-            <p className="text-slate-400 text-[12px] xs:text-[14px] font-black uppercase tracking-widest opacity-60">Version 1.0.0 (Beta)</p>
+        <div className="space-y-2 xs:space-y-3">
+          <div className="mt-4 xs:mt-6 text-center">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-[#001b4e] text-[24px] xs:text-[26px] font-bold leading-tight uppercase tracking-tight"
+            >
+              How can we <br /> <span className="text-blue-600 underline decoration-blue-500/30">help</span> you?
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-slate-400 text-[10px] xs:text-[11px] mt-2 xs:mt-3 font-medium uppercase tracking-widest leading-none opacity-60"
+            >
+              Search for topics or browse below
+            </motion.p>
           </div>
         </div>
 
         {/* Mission Statement */}
-        <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-50 space-y-4">
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto text-blue-600">
-            <Info size={24} />
+        <div className="bg-white rounded-2xl xs:rounded-[24px] p-5 xs:p-6 shadow-sm border border-slate-100 space-y-3">
+          <div className="w-10 h-10 xs:w-11 xs:h-11 bg-blue-50 rounded-xl flex items-center justify-center mx-auto text-blue-600">
+            <Info size={20} />
           </div>
-          <h3 className="text-[19px] font-bold text-[#001b4e]">Connecting Bihar</h3>
-          <p className="text-[15px] text-slate-500 leading-relaxed font-normal">
-            Basera Bazar is a hyper-local platform dedicated to streamlining the property, home service, and material supply ecosystem in Bihar. We empower local partners to grow their business while providing users with verified high-quality services.
+          <h3 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] uppercase tracking-tight leading-none opacity-70">Connecting Bihar</h3>
+          <p className="text-[12px] xs:text-[13px] text-slate-500 leading-snug font-medium opacity-80">
+            Basera Bazar is a hyper-local platform dedicated to Bihar's property and home service ecosystem.
           </p>
         </div>
 
         {/* Core Values */}
-        <div className="grid grid-cols-2 gap-4">
-          <ValueCard icon={<Shield className="text-emerald-500" size={24} />} title="Trust" desc="Verified Partners" />
-          <ValueCard icon={<Award className="text-orange-500" size={24} />} title="Quality" desc="Premium Services" />
-          <ValueCard icon={<Users className="text-blue-500" size={24} />} title="Community" desc="Local Support" />
-          <ValueCard icon={<Heart className="text-red-500" size={24} />} title="Passion" desc="Bihar's Growth" />
+        <div className="grid grid-cols-2 gap-3 xs:gap-4">
+          <SupportCard 
+            icon={<MessageCircle size={20} className="text-green-500" />} 
+            label="WhatsApp" 
+            sub="Chat with us"
+            onClick={() => window.open('https://wa.me/918969321391', '_blank')}
+          />
+          <SupportCard 
+            icon={<Phone size={20} className="text-blue-500" />} 
+            label="Hotline" 
+            sub="Direct call"
+            onClick={() => window.open('tel:+918969321391', '_blank')}
+          />
         </div>
 
         {/* Footer Info */}
-        <div className="pt-6 border-t border-slate-200">
-          <p className="text-slate-400 text-[13px] font-medium leading-relaxed italic">
+        <div className="pt-4 border-t border-slate-200">
+          <p className="text-slate-400 text-[12px] font-medium leading-relaxed italic">
             "Building a better foundation for every home in Bihar."
           </p>
-          <div className="mt-8 space-y-2">
-            <button className="text-[13px] font-bold text-blue-600 uppercase tracking-widest hover:underline">Terms of Service</button>
-            <div className="h-1 w-1 bg-slate-300 rounded-full mx-auto" />
-            <button className="text-[13px] font-bold text-blue-600 uppercase tracking-widest hover:underline">Privacy Policy</button>
-          </div>
-          <p className="text-[12px] text-slate-300 mt-10 font-bold tracking-tight uppercase">© 2025 Basera Bazar • Proudly Made in Bihar</p>
+          <p className="text-[10px] text-slate-300 mt-6 font-medium tracking-tight uppercase">© 2025 Basera Bazar • Made in Bihar</p>
         </div>
       </div>
     </div>
   );
 }
 
-function ValueCard({ icon, title, desc }) {
+function SupportCard({ icon, label, sub, onClick }) {
   return (
-    <div className="bg-white p-5 rounded-[32px] border border-slate-50 shadow-sm flex flex-col items-center gap-2">
-      <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-1">
+    <motion.button 
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={`p-4 rounded-2xl xs:rounded-[24px] border flex flex-col gap-2 text-left transition-all bg-white border-slate-100 shadow-sm`}
+    >
+      <div className={`w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center`}>
         {icon}
       </div>
-      <h4 className="text-[15px] font-bold text-[#001b4e]">{title}</h4>
-      <p className="text-[11px] text-slate-400 font-medium leading-tight">{desc}</p>
-    </div>
+      <div className="min-w-0">
+        <div className="text-[#001b4e] text-[12px] xs:text-[13px] font-bold uppercase tracking-tight leading-none">{label}</div>
+        <div className="text-slate-400 text-[9px] xs:text-[10px] font-medium mt-1.5 uppercase tracking-widest opacity-60 leading-none">{sub}</div>
+      </div>
+    </motion.button>
   );
 }

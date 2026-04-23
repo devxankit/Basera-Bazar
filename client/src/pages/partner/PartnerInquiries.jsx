@@ -15,10 +15,12 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
 export default function PartnerInquiries() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, new, contacted
@@ -42,6 +44,24 @@ export default function PartnerInquiries() {
   };
 
   const filteredInquiries = inquiries.filter(item => {
+    // 1. Filter by Active Role
+    const activeRole = (user?.active_role || user?.partner_type || user?.role || '').toLowerCase();
+    const type = (item.enquiry_type || '').toLowerCase();
+    
+    // Mapping active_role to enquiry_type
+    const roleMap = {
+      'property_agent': 'property',
+      'service_provider': 'service',
+      'supplier': 'supplier',
+      'mandi_seller': 'mandi'
+    };
+
+    const targetType = roleMap[activeRole];
+    
+    // Only show if the enquiry type matches the active role's category
+    if (targetType && type !== targetType) return false;
+
+    // 2. Filter by Status
     if (filter === 'all') return true;
     return item.status === filter;
   });
@@ -61,35 +81,35 @@ export default function PartnerInquiries() {
       <div className="w-full max-w-[500px] bg-[#f8fafc] min-h-screen shadow-2xl relative flex flex-col">
         
         {/* Header */}
-        <div className="bg-white px-5 py-4 border-b border-slate-50 sticky top-0 z-50">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
+        <div className="bg-white px-5 py-3 border-b border-slate-50 sticky top-0 z-50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
               <button 
                 onClick={() => navigate('/partner/home')}
-                className="p-2 -ml-2 text-[#001b4e] active:scale-95 transition-all"
+                className="p-1 -ml-1 text-[#001b4e] active:scale-95 transition-all"
               >
-                <ArrowLeft size={24} />
+                <ArrowLeft size={22} />
               </button>
-              <h2 className="text-[20px] font-bold text-[#001b4e]">Manage Leads</h2>
+              <h2 className="text-[18px] font-bold text-[#001b4e] uppercase tracking-tight">Leads</h2>
             </div>
-            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-              <Inbox size={20} />
+            <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+              <Inbox size={18} />
             </div>
           </div>
 
           {/* Search Bar - Aesthetic Only for now */}
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input 
               type="text" 
-              placeholder="Search by name or property..."
-              className="w-full h-12 bg-slate-50 rounded-2xl pl-11 pr-4 text-[14px] font-medium border border-transparent focus:border-blue-200 focus:bg-white transition-all outline-none"
+              placeholder="Search leads..."
+              className="w-full h-10 bg-slate-50 rounded-xl pl-11 pr-4 text-[13px] font-medium border border-transparent focus:border-blue-200 focus:bg-white transition-all outline-none"
             />
           </div>
 
           {/* Filters */}
-          <div className="flex gap-2 mt-4 overflow-x-auto pb-1 scrollbar-hide">
-             <FilterBtn active={filter === 'all'} label="All Leads" onClick={() => setFilter('all')} count={inquiries.length} />
+          <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
+             <FilterBtn active={filter === 'all'} label="All" onClick={() => setFilter('all')} count={inquiries.length} />
              <FilterBtn active={filter === 'new'} label="New" onClick={() => setFilter('new')} count={inquiries.filter(i => i.status === 'new').length} />
              <FilterBtn active={filter === 'contacted'} label="Contacted" onClick={() => setFilter('contacted')} count={inquiries.filter(i => i.status === 'contacted').length} />
           </div>
@@ -119,7 +139,7 @@ export default function PartnerInquiries() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 onClick={() => navigate(`/partner/lead-details/${lead._id}`)}
-                className="bg-white p-4 xs:p-5 rounded-[24px] xs:rounded-[32px] border border-slate-100 shadow-sm active:scale-[0.98] transition-all cursor-pointer group"
+                className="bg-white p-3.5 xs:p-4.5 rounded-2xl xs:rounded-[24px] border border-slate-100 shadow-sm active:scale-[0.98] transition-all cursor-pointer group"
               >
                 <div className="flex items-start justify-between mb-3 xs:mb-4">
                   <div className="flex items-center gap-2.5 xs:gap-3">
@@ -127,35 +147,35 @@ export default function PartnerInquiries() {
                        <User size={18} xs:size={22} />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="text-[14px] xs:text-[16px] font-black text-[#001b4e] leading-tight truncate pr-2">
+                      <h4 className="text-[13px] xs:text-[15px] font-bold text-[#001b4e] leading-tight truncate pr-2 uppercase tracking-tight">
                         {lead.user_details?.name || 'Potential Customer'}
                       </h4>
-                      <div className="flex items-center gap-1.5 text-slate-400 text-[10px] xs:text-[12px] font-bold mt-0.5">
+                      <div className="flex items-center gap-1.5 text-slate-400 text-[10px] xs:text-[11px] font-medium mt-1 uppercase tracking-wider opacity-60">
                         <Clock size={10} xs:size={12} />
                         {new Date(lead.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                       </div>
                     </div>
                   </div>
-                  <div className={`px-2 xs:px-3 py-0.5 xs:py-1 rounded-full text-[8px] xs:text-[10px] font-black uppercase tracking-widest border shrink-0 ${getStatusStyle(lead.status)}`}>
+                  <div className={`px-2 xs:px-3 py-0.5 xs:py-1 rounded-lg text-[8px] xs:text-[9px] font-medium uppercase tracking-widest border shrink-0 ${getStatusStyle(lead.status)}`}>
                     {lead.status}
                   </div>
                 </div>
 
-                <div className="bg-slate-50 rounded-xl xs:rounded-2xl p-3 xs:p-4 mb-3 xs:mb-4 border border-slate-100/50">
-                  <div className="text-[9px] xs:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 xs:mb-1.5">Interested In</div>
-                  <div className="text-[13px] xs:text-[14px] mm:text-[16px] font-black text-[#001b4e] line-clamp-1">
+                <div className="bg-slate-50 rounded-xl xs:rounded-2xl p-3 xs:p-3.5 mb-3 xs:mb-4 border border-slate-100/50">
+                  <div className="text-[9px] xs:text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1 xs:mb-1.5 opacity-60">Interested In</div>
+                  <div className="text-[13px] xs:text-[14px] font-bold text-[#001b4e] line-clamp-1 uppercase tracking-tight">
                     {lead.listing_snapshot?.title || lead.listing_snapshot?.serviceName || 'Property Listing'}
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[12px] xs:text-[13px] font-black text-blue-600 uppercase tracking-tight">
+                <div className="flex items-center justify-between text-[11px] xs:text-[12px] font-bold text-blue-600 uppercase tracking-widest">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 xs:w-8 xs:h-8 rounded-lg xs:rounded-xl bg-blue-50 flex items-center justify-center">
                       <MessageSquare size={12} xs:size={14} />
                     </div>
                     <span>View Request</span>
                   </div>
-                  <ChevronRight size={16} xs:size={18} className="text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                  <ChevronRight size={16} />
                 </div>
               </motion.div>
             ))
@@ -171,14 +191,14 @@ function FilterBtn({ active, label, onClick, count }) {
   return (
     <button 
       onClick={onClick}
-      className={`px-5 py-2.5 rounded-2xl whitespace-nowrap text-[13px] font-bold transition-all flex items-center gap-2 border ${
+      className={`px-4 py-2 rounded-xl whitespace-nowrap text-[11px] xs:text-[12px] font-bold uppercase tracking-tight transition-all flex items-center gap-1.5 border ${
         active 
-          ? 'bg-[#001b4e] text-white border-[#001b4e] shadow-lg shadow-blue-900/20' 
+          ? 'bg-[#001b4e] text-white border-[#001b4e] shadow-lg shadow-blue-900/10' 
           : 'bg-white text-slate-500 border-slate-100 hover:bg-slate-50'
       }`}
     >
       {label}
-      <span className={`px-1.5 py-0.5 rounded-lg text-[10px] ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'}`}>
+      <span className={`px-1.5 py-0.5 rounded-lg text-[9px] font-medium ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'}`}>
         {count}
       </span>
     </button>

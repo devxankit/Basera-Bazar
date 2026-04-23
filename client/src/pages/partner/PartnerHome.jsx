@@ -15,7 +15,8 @@ import {
   AlertCircle,
   XCircle,
   Shield,
-  Package
+  Package,
+  Check
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -116,19 +117,19 @@ export default function PartnerHome() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24">
       {/* Header */}
-      <div className="bg-[#001b4e] pt-8 xs:pt-10 sm:pt-12 pb-20 xs:pb-24 px-5 xs:px-6 rounded-b-[32px] xs:rounded-b-[40px] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-48 h-48 xs:w-64 xs:h-64 bg-white/5 rounded-full -mr-16 -mt-16 xs:-mr-20 xs:-mt-20 blur-3xl" />
+      <div className="bg-[#001b4e] pt-6 xs:pt-7 sm:pt-8 pb-14 xs:pb-18 px-5 xs:px-6 rounded-b-[24px] xs:rounded-b-[32px] relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 xs:w-48 xs:h-48 bg-white/5 rounded-full -mr-12 -mt-12 xs:-mr-16 xs:-mt-16 blur-3xl" />
 
         <div className="flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-3 xs:gap-4">
-            <div className="w-12 h-12 xs:w-14 xs:h-14 bg-white rounded-xl xs:rounded-2xl flex items-center justify-center shadow-lg overflow-hidden p-1 shrink-0">
+          <div className="flex items-center gap-2.5 xs:gap-3">
+            <div className="w-10 h-10 xs:w-12 xs:h-12 bg-white rounded-lg xs:rounded-xl flex items-center justify-center shadow-lg overflow-hidden p-1 shrink-0">
               <img src={logo} alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div className="min-w-0">
-              <div className="text-white/60 text-[12px] xs:text-[14px]">Good Afternoon</div>
-              <div className="flex flex-wrap items-center gap-1.5 xs:gap-2">
-                <h1 className="text-white text-[18px] xs:text-[22px] font-bold truncate">{partner.name}</h1>
-                <span className="bg-white/10 px-2 xs:px-3 py-0.5 xs:py-1 rounded-full text-white/80 text-[9px] xs:text-[11px] font-black uppercase tracking-widest backdrop-blur-sm border border-white/10">
+              <div className="text-white/50 text-[10px] xs:text-[12px] font-bold uppercase tracking-widest leading-none mb-0.5">Partner Portal</div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <h1 className="text-white text-[16px] xs:text-[19px] font-bold truncate leading-tight uppercase tracking-tight">{partner.name}</h1>
+                <span className="bg-white/10 px-2 py-0.5 rounded-lg text-white/70 text-[8px] xs:text-[9px] font-bold uppercase tracking-widest backdrop-blur-sm border border-white/10">
                   {getRoleLabel()}
                 </span>
               </div>
@@ -137,25 +138,24 @@ export default function PartnerHome() {
         </div>
       </div>
 
-      <div className="px-6 -mt-16 relative z-20 space-y-8">
+      <div className="px-5 xs:px-6 -mt-10 xs:-mt-14 relative z-20 space-y-4 xs:space-y-6">
         {/* Success / Recently Verified Banner */}
         {isRecentlyApproved && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 mb-2 bg-[#00a86b] rounded-[32px] p-5 sm:p-8 relative overflow-hidden shadow-2xl shadow-emerald-500/10"
+            className="bg-[#00a86b] rounded-2xl xs:rounded-[24px] p-4 xs:p-6 relative overflow-hidden shadow-xl shadow-emerald-500/10"
           >
-            {/* Decorative background circle */}
-            <div className="absolute -right-4 -top-4 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+            <div className="absolute -right-4 -top-4 w-16 h-16 bg-white/10 rounded-full blur-xl" />
             
             <div className="relative flex flex-col items-center text-center">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-3 sm:mb-5 border border-white/30 shadow-inner">
-                <CheckCircle2 size={24} className="text-white sm:w-8 sm:h-8" />
+              <div className="w-10 h-10 xs:w-12 xs:h-12 bg-white/20 backdrop-blur-md rounded-xl xs:rounded-2xl flex items-center justify-center mb-2 xs:mb-3 border border-white/30 shadow-inner">
+                <CheckCircle2 size={20} className="text-white xs:w-6 xs:h-6" />
               </div>
               
-              <h2 className="text-white font-black text-[18px] sm:text-[26px] leading-tight mb-1 sm:mb-2 uppercase tracking-tight">You're Verified!</h2>
-              <p className="text-emerald-50/90 font-medium text-[12px] sm:text-[15px] leading-relaxed max-w-[260px] sm:max-w-[280px]">
-                Congratulations! Your account is now fully active. You can start listing your properties, products or services.
+              <h2 className="text-white font-bold text-[15px] xs:text-[18px] leading-tight mb-0.5 xs:mb-1 uppercase tracking-tight">Verified</h2>
+              <p className="text-emerald-50/80 font-semibold text-[10px] xs:text-[12px] leading-tight max-w-[240px] uppercase tracking-wider">
+                Account is active. Start listing now.
               </p>
               
               <button 
@@ -165,12 +165,10 @@ export default function PartnerHome() {
                   else if (actualRole.includes('mandi')) navigate('/partner/mandi/add-product');
                   else navigate('/partner/add-service');
                 }}
-                className="mt-5 sm:mt-8 w-full bg-white text-emerald-700 py-3.5 sm:py-4.5 rounded-2xl font-black text-[13px] sm:text-[15px] uppercase tracking-wider flex items-center justify-center gap-2 sm:gap-3 shadow-xl active:scale-[0.98] transition-all"
+                className="mt-3 xs:mt-4 w-full bg-white text-emerald-700 py-2.5 xs:py-3 rounded-xl xs:rounded-2xl font-bold text-[11px] xs:text-[13px] uppercase tracking-widest flex items-center justify-center gap-1.5 xs:gap-2 shadow-lg active:scale-[0.98] transition-all"
               >
-                Start Your First Listing
-                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center">
-                  <Plus size={14} sm:size={16} strokeWidth={3} />
-                </div>
+                Add Listing
+                <Plus size={12} strokeWidth={4} />
               </button>
             </div>
           </motion.div>
@@ -181,24 +179,92 @@ export default function PartnerHome() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-midnight-industrial border border-slate-800 p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] flex flex-col gap-5 sm:gap-6 shadow-xl shadow-slate-900/10"
-            style={{ backgroundColor: '#0f172a' }} // Deep Midnight
+            className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col gap-5 shadow-xl shadow-slate-900/10"
           >
-            <div className="flex gap-4 sm:gap-5 items-start">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-rose-500 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-rose-900/20">
-                <XCircle size={24} className="sm:w-7 sm:h-7" />
+            <div className="flex gap-4 items-start">
+              <div className="w-12 h-12 bg-rose-500 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-rose-900/20">
+                <XCircle size={24} />
               </div>
               <div className="min-w-0">
-                <h3 className="text-[18px] sm:text-[20px] font-black text-white tracking-tight leading-tight">KYC Rejected</h3>
-                <p className="text-[12px] sm:text-[14px] text-slate-400 font-medium mt-1 sm:mt-1.5 leading-relaxed">{rejectionMessage}</p>
+                <h3 className="text-[18px] font-bold text-white tracking-tight leading-tight uppercase">KYC Rejected</h3>
+                <p className="text-[12px] text-slate-400 font-medium mt-1 leading-relaxed">{rejectionMessage}</p>
               </div>
             </div>
             <button
               onClick={() => setShowKYCModal(true)}
-              className="w-full py-4 sm:py-5 bg-white text-slate-900 rounded-[20px] sm:rounded-[24px] font-black text-[13px] sm:text-[15px] uppercase tracking-widest active:scale-95 transition-all shadow-lg"
+              className="w-full py-4 bg-white text-slate-900 rounded-xl font-bold text-[13px] uppercase tracking-widest active:scale-95 transition-all shadow-lg"
             >
               Resubmit Documents
             </button>
+          </motion.div>
+        )}
+        {/* Role Rejected Banner */}
+        {user?.role_requests?.some(r => {
+          const isRejected = r.status === 'rejected';
+          const isActive = partner.roles?.includes(r.role);
+          const hasNewerPending = user.role_requests.some(pr => pr.role === r.role && pr.status === 'pending');
+          return isRejected && !isActive && !hasNewerPending;
+        }) && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-rose-50 border-2 border-rose-100 rounded-2xl xs:rounded-[24px] p-4 xs:p-5 relative overflow-hidden"
+          >
+            <div className="flex gap-4 items-start">
+              <div className="w-10 h-10 bg-rose-500 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-rose-200">
+                <XCircle size={20} />
+              </div>
+              <div className="flex-grow min-w-0">
+                <h3 className="text-[15px] font-bold text-rose-900 tracking-tight leading-tight uppercase">Upgrade Rejected</h3>
+                <div className="space-y-1 mt-1">
+                  {user.role_requests
+                    .filter(r => {
+                      const isRejected = r.status === 'rejected';
+                      const isActive = partner.roles?.includes(r.role);
+                      const hasNewerPending = user.role_requests.some(pr => pr.role === r.role && pr.status === 'pending');
+                      return isRejected && !isActive && !hasNewerPending;
+                    })
+                    .map((r, i) => (
+                    <div key={i} className="text-[10px] text-rose-600 font-bold uppercase tracking-wide">
+                      <span className="underline mr-1">{r.role.replace('_', ' ')}</span>: 
+                      <span className="text-rose-500 font-medium ml-1 normal-case">{r.rejection_reason || 'Documents were not accepted.'}</span>
+                    </div>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => navigate('/partner/add-role')}
+                  className="mt-3 text-[10px] font-black text-rose-700 uppercase tracking-widest flex items-center gap-1"
+                >
+                  Try Again <Plus size={10} strokeWidth={4} />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Role Pending Approval Banner */}
+        {user?.role_requests?.some(r => r.status === 'pending') && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#001b4e] rounded-2xl xs:rounded-[24px] p-4 xs:p-5 relative overflow-hidden shadow-xl shadow-blue-900/20 border border-white/10"
+          >
+            <div className="absolute -right-4 -top-4 w-16 h-16 bg-white/5 rounded-full blur-xl" />
+            
+            <div className="relative flex flex-col items-center text-center">
+              <div className="w-10 h-10 xs:w-11 xs:h-11 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center mb-2 xs:mb-3 border border-white/20 shadow-inner">
+                <Clock size={18} className="text-blue-400" />
+              </div>
+              
+              <h2 className="text-white font-bold text-[14px] xs:text-[16px] leading-tight mb-0.5 xs:mb-1 uppercase tracking-tight">Role Under Review</h2>
+              <p className="text-white/60 font-medium text-[9px] xs:text-[11px] leading-tight max-w-[260px] uppercase tracking-wider">
+                We are verifying your GST documents for the 
+                <span className="text-blue-400 mx-1">
+                  {user.role_requests.filter(r => r.status === 'pending').map(r => r.role.replace('_', ' ')).join(', ')}
+                </span> 
+                role.
+              </p>
+            </div>
           </motion.div>
         )}
 
@@ -207,28 +273,17 @@ export default function PartnerHome() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-indigo-900 to-slate-900 border border-indigo-500/30 p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] flex flex-col gap-5 sm:gap-6 shadow-2xl shadow-indigo-900/20 relative overflow-hidden group"
+            className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col gap-5 shadow-2xl relative overflow-hidden group"
           >
-            {/* Background Decorative Element */}
-            <div className="absolute -right-10 -top-10 w-32 h-32 sm:w-40 sm:h-40 bg-indigo-500/10 rounded-full blur-3xl" />
+            <div className="absolute -right-8 -top-8 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl" />
             
-            <div className="flex gap-4 sm:gap-5 items-start relative z-10">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-500 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-500/20">
-                <Clock size={24} className="sm:w-7 sm:h-7 animate-spin-slow" style={{ animationDuration: '8s' }} />
+            <div className="flex gap-4 items-start relative z-10">
+              <div className="w-11 h-11 bg-indigo-500 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-500/20">
+                <Clock size={22} className="animate-spin-slow" style={{ animationDuration: '8s' }} />
               </div>
               <div className="min-w-0">
-                <h3 className="text-[18px] sm:text-[20px] font-black text-white tracking-tight leading-tight">Verification in Progress</h3>
-                <p className="text-[12px] sm:text-[14px] text-indigo-100/60 font-medium mt-1 sm:mt-1.5 leading-relaxed">Our team is currently reviewing your documents. We'll notify you once your portal is active.</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between relative z-10">
-              <div className="flex items-center gap-2.5 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(129,140,248,0.8)]" />
-                <span className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">Reviewing</span>
-              </div>
-              <div className="text-white/10">
-                <Shield size={28} className="sm:w-8 sm:h-8" />
+                <h3 className="text-[17px] font-bold text-white tracking-tight leading-tight uppercase">Under Review</h3>
+                <p className="text-[11px] text-indigo-100/60 font-semibold mt-1 leading-relaxed">Our team is reviewing your documents. We'll notify you soon.</p>
               </div>
             </div>
           </motion.div>
@@ -239,23 +294,23 @@ export default function PartnerHome() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white border border-slate-100 p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] flex flex-col gap-5 sm:gap-6 shadow-xl shadow-slate-200/50 group active:scale-[0.99] transition-all"
+            className="bg-white border border-slate-100 p-4 xs:p-5 rounded-2xl xs:rounded-[24px] flex flex-col gap-4 shadow-sm active:scale-[0.99] transition-all group"
           >
-            <div className="flex gap-4 sm:gap-5 items-start">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-rose-500 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-rose-200 group-hover:rotate-12 transition-transform">
-                <AlertCircle size={24} className="sm:w-7 sm:h-7" />
+            <div className="flex gap-3 xs:gap-4 items-start">
+              <div className="w-10 h-10 bg-rose-500 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-rose-200">
+                <AlertCircle size={20} />
               </div>
               <div className="min-w-0">
-                <h3 className="text-[18px] sm:text-[20px] font-black text-slate-900 tracking-tight leading-tight">Action Required</h3>
-                <p className="text-[12px] sm:text-[14px] text-slate-500 font-medium mt-1 sm:mt-1.5 leading-relaxed">Your account is currently inactive. Complete your KYC verification to unlock all features.</p>
+                <h3 className="text-[15px] font-bold text-slate-900 tracking-tight leading-tight uppercase">Action Required</h3>
+                <p className="text-[10px] xs:text-[11px] text-slate-400 font-bold mt-0.5 uppercase tracking-wide">Account inactive. Complete KYC to start.</p>
               </div>
             </div>
             <button
               onClick={() => setShowKYCModal(true)}
-              className="w-full py-4 sm:py-5 bg-rose-500 text-white rounded-[20px] sm:rounded-[24px] font-black text-[13px] sm:text-[15px] uppercase tracking-widest shadow-xl shadow-rose-200 hover:bg-rose-600 active:scale-95 transition-all flex items-center justify-center gap-2 sm:gap-3"
+              className="w-full py-3 bg-rose-500 text-white rounded-xl font-bold text-[11px] xs:text-[12px] uppercase tracking-widest shadow-xl shadow-rose-200 active:scale-95 transition-all flex items-center justify-center gap-1.5"
             >
-              Start Verification
-              <ChevronRight size={18} />
+              Verify Identity
+              <ChevronRight size={14} />
             </button>
           </motion.div>
         )}
@@ -266,38 +321,39 @@ export default function PartnerHome() {
             activeRole={actualRole}
             partnerId={partner?._id || partner?.id}
             isApproved={isApproved}
+            user={partner}
           />
+        )}
         {/* Subscription Card */}
         {isApproved && (
           <motion.div
             onClick={() => navigate('/partner/subscription')}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white p-4 xs:p-5 mm:p-6 rounded-[24px] xs:rounded-[32px] mm:rounded-[40px] shadow-sm border border-slate-50 flex items-center justify-between group active:scale-[0.98] transition-all cursor-pointer"
+            className="bg-white p-3.5 xs:p-4.5 rounded-[20px] xs:rounded-[28px] shadow-sm border border-slate-50 flex items-center justify-between group active:scale-[0.98] transition-all cursor-pointer"
           >
-            <div className="flex items-center gap-3 xs:gap-4 mm:gap-5 min-w-0">
-              <div className="w-10 h-10 xs:w-12 xs:h-12 mm:w-14 mm:h-14 bg-green-50 rounded-xl xs:rounded-2xl flex items-center justify-center text-green-500 shadow-inner shrink-0 relative">
-                <CheckCircle2 size={20} fill="currentColor" className="text-white xs:w-6 xs:h-6" />
-                <CheckCircle2 size={24} className="absolute opacity-100 xs:w-7 xs:h-7" />
+            <div className="flex items-center gap-3 xs:gap-4 min-w-0">
+              <div className="w-9 h-9 xs:w-11 xs:h-11 bg-green-50 rounded-lg xs:rounded-xl flex items-center justify-center text-green-500 shadow-inner shrink-0">
+                <CheckCircle2 size={18} xs:size={22} fill="currentColor" className="text-white" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-[13px] xs:text-[15px] mm:text-[19px] font-black text-[#001b4e] truncate pr-2 uppercase tracking-tight">
+                <h3 className="text-[12px] xs:text-[14px] mm:text-[16px] font-bold text-[#001b4e] truncate pr-2 uppercase tracking-tight leading-none">
                   {partner.plan === 'free' ? 'Free Trial Plan' : 'Pre-launching Offer'}
                 </h3>
-                <div className="flex flex-wrap items-center gap-x-2 xs:gap-x-3 gap-y-0.5 mt-0.5 mm:mt-1">
-                  <div className="flex items-center gap-1 xs:gap-1.5 text-slate-400 text-[10px] xs:text-[11px] mm:text-[13px] font-bold">
-                    <Clock size={11} className="text-green-500 xs:w-[13px] xs:h-[13px]" />
+                <div className="flex items-center gap-2 xs:gap-3 mt-1 xs:mt-1.5">
+                  <div className="flex items-center gap-1 text-slate-400 text-[9px] xs:text-[10px] mm:text-[12px] font-bold">
+                    <Clock size={10} className="text-green-500" />
                     29 days left
                   </div>
-                  <div className="hidden xs:block w-1 h-1 bg-slate-300 rounded-full" />
-                  <div className="flex items-center gap-1 xs:gap-1.5 text-slate-400 text-[10px] xs:text-[11px] mm:text-[13px] font-bold">
-                    <PlusCircle size={11} className="text-blue-500 xs:w-[13px] xs:h-[13px]" />
+                  <div className="w-1 h-1 bg-slate-200 rounded-full" />
+                  <div className="flex items-center gap-1 text-slate-400 text-[9px] xs:text-[10px] mm:text-[12px] font-bold">
+                    <PlusCircle size={10} className="text-blue-500" />
                     1 available
                   </div>
                 </div>
               </div>
             </div>
-            <ChevronRight className="text-slate-300 group-hover:text-[#001b4e] group-hover:translate-x-1 transition-all shrink-0" size={18} />
+            <ChevronRight className="text-slate-300 group-hover:text-[#001b4e] group-hover:translate-x-1 transition-all shrink-0" size={16} />
           </motion.div>
         )}
 
@@ -306,7 +362,7 @@ export default function PartnerHome() {
           <MandiOverview partner={partner} isRestricted={isRestricted} />
         ) : (
           <div className="space-y-4 xs:space-y-5">
-            <h2 className="text-[16px] xs:text-[18px] mm:text-[20px] font-black text-[#001b4e] px-1 uppercase tracking-tight">{getCategoryTheme()} Overview</h2>
+            <h2 className="text-[15px] xs:text-[17px] font-bold text-[#001b4e] px-1 uppercase tracking-tight opacity-70">{getCategoryTheme()} Overview</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 xs:gap-4 mm:gap-5">
               {overviewStats.map((stat, idx) => (
                 <motion.div
@@ -314,13 +370,13 @@ export default function PartnerHome() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: idx * 0.05 }}
-                  className="bg-white p-3 xs:p-4 mm:p-5 rounded-[20px] xs:rounded-[24px] mm:rounded-[28px] shadow-sm border border-slate-50 flex flex-col items-center text-center group active:scale-95 transition-all"
+                  className="bg-white p-2.5 xs:p-4 rounded-xl xs:rounded-2xl shadow-sm border border-slate-50 flex flex-col items-center text-center group active:scale-95 transition-all"
                 >
-                  <div className={`w-8 h-8 xs:w-10 xs:h-10 mm:w-12 mm:h-12 ${stat.bgColor} ${stat.color} rounded-full flex items-center justify-center mb-2 xs:mb-2.5 mm:mb-3 shadow-inner`}>
-                    {React.cloneElement(stat.icon, { size: 18 })}
+                  <div className={`w-7 h-7 xs:w-9 xs:h-9 ${stat.bgColor} ${stat.color} rounded-full flex items-center justify-center mb-1.5 xs:mb-2 shadow-inner`}>
+                    {React.cloneElement(stat.icon, { size: 14 })}
                   </div>
-                  <div className="text-[16px] xs:text-[18px] mm:text-[20px] font-black text-[#001b4e] mb-0.5">{stat.value}</div>
-                  <div className="text-[9px] xs:text-[10px] mm:text-[12px] font-black text-slate-400 uppercase tracking-tighter mm:tracking-tight leading-none">{stat.label}</div>
+                  <div className="text-[13px] xs:text-[17px] font-bold text-[#001b4e] mb-0.5 leading-none">{stat.value}</div>
+                  <div className="text-[7px] xs:text-[9px] font-medium text-slate-400 uppercase tracking-widest leading-none">{stat.label}</div>
                 </motion.div>
               ))}
             </div>
@@ -328,9 +384,9 @@ export default function PartnerHome() {
         )}
 
         {/* Quick Actions */}
-        <div className="space-y-5">
-          <h2 className="text-[20px] font-medium text-[#001b4e] px-1">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-5">
+        <div className="space-y-3 xs:space-y-4">
+          <h2 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] px-1 uppercase tracking-tight opacity-70">Quick Actions</h2>
+          <div className="grid grid-cols-2 gap-3 xs:gap-4">
             <button
               onClick={() => {
                 if (isApproved) {
@@ -339,61 +395,56 @@ export default function PartnerHome() {
                   else if (actualRole.includes('mandi')) navigate('/partner/mandi/add-product');
                   else navigate('/partner/add-service');
                 } else if (isPending) {
-                  alert("Your application is currently under review. Please wait for approval to add new listings.");
+                  alert("Your application is currently under review.");
                 } else {
                   setShowKYCModal(true);
                 }
               }}
-              className={`bg-white p-6 rounded-[32px] shadow-sm border border-slate-50 flex flex-col items-start text-left group active:scale-95 transition-all w-full relative overflow-hidden ${isRestricted ? 'opacity-60 grayscale-[0.5]' : ''}`}
+              className={`bg-white p-3.5 xs:p-4.5 rounded-2xl xs:rounded-[24px] shadow-sm border border-slate-50 flex flex-col items-start text-left group active:scale-95 transition-all w-full relative overflow-hidden ${isRestricted ? 'opacity-60' : ''}`}
             >
-              {isRestricted && (
-                <div className="absolute top-4 right-4 text-slate-300">
-                  <AlertCircle size={20} />
-                </div>
-              )}
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-5 shadow-inner ${isIncomplete ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 text-[#001b4e]'}`}>
-                <PlusCircle size={24} />
+              <div className={`w-8 h-8 xs:w-9 xs:h-9 bg-blue-50 text-[#001b4e] rounded-xl flex items-center justify-center mb-2.5 xs:mb-3 shadow-inner`}>
+                <PlusCircle size={18} />
               </div>
-              <h4 className="text-[17px] font-medium text-[#001b4e] mb-1">Add {getAddActionLabel()}</h4>
-              <p className="text-[13px] font-normal text-slate-400 leading-snug">{isIncomplete ? 'KYC Required' : 'Create new listing'}</p>
+              <h4 className="text-[12px] xs:text-[14px] font-bold text-[#001b4e] mb-0.5 uppercase tracking-tight leading-none">Add {getAddActionLabel()}</h4>
+              <p className="text-[7px] xs:text-[9px] font-medium text-slate-400 leading-none uppercase tracking-widest">{isIncomplete ? 'KYC Required' : 'Create new'}</p>
             </button>
             <button
               onClick={() => {
                 if (isApproved) {
                   navigate('/partner/leads');
                 } else if (isPending) {
-                  alert("Your application is currently under review. Inquiries will be available once approved.");
+                  alert("Your application is currently under review.");
                 } else {
                   setShowKYCModal(true);
                 }
               }}
-              className={`bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 flex flex-col items-start text-left group active:scale-95 transition-all ${isRestricted ? 'opacity-60 grayscale-[0.5]' : ''}`}
+              className={`bg-white p-3.5 xs:p-4.5 rounded-2xl xs:rounded-[24px] shadow-sm border border-slate-50 flex flex-col items-start text-left group active:scale-95 transition-all ${isRestricted ? 'opacity-60' : ''}`}
             >
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-5 shadow-inner ${isRestricted ? 'bg-slate-100 text-slate-400' : 'bg-purple-50 text-purple-600'}`}>
-                <Mail size={24} />
+              <div className={`w-8 h-8 xs:w-9 xs:h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-2.5 xs:mb-3 shadow-inner`}>
+                <Mail size={18} />
               </div>
-              <h4 className="text-[17px] font-medium text-[#001b4e] mb-1">Inquiries</h4>
-              <p className="text-[13px] font-normal text-slate-400 leading-snug">{isIncomplete ? 'KYC Required' : 'View messages'}</p>
+              <h4 className="text-[12px] xs:text-[14px] font-bold text-[#001b4e] mb-0.5 uppercase tracking-tight leading-none">Inquiries</h4>
+              <p className="text-[7px] xs:text-[9px] font-medium text-slate-400 leading-none uppercase tracking-widest">{isIncomplete ? 'KYC Required' : 'View leads'}</p>
             </button>
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="space-y-5 pb-10">
-          <h2 className="text-[20px] font-medium text-[#001b4e] px-1 flex items-center gap-2">
-            <History size={20} className="text-[#001b4e]" />
+        <div className="space-y-3 xs:space-y-4 pb-6">
+          <h2 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] px-1 flex items-center gap-2 uppercase tracking-tight opacity-70">
+            <History size={16} className="text-[#001b4e]" />
             Recent Activity
           </h2>
-          <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-50 space-y-6">
+          <div className="bg-white rounded-[24px] xs:rounded-[28px] p-4 xs:p-5 shadow-sm border border-slate-50 space-y-4 xs:space-y-5">
             {recentActivities.length > 0 ? (
               recentActivities.map((activity, idx) => (
-                <div key={idx} className={`flex items-start gap-4 ${idx !== recentActivities.length - 1 ? 'border-b border-slate-50 pb-5' : ''}`}>
-                  <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center shrink-0">
+                <div key={idx} className={`flex items-start gap-3 xs:gap-4 ${idx !== recentActivities.length - 1 ? 'border-b border-slate-50 pb-4 xs:pb-5' : ''}`}>
+                  <div className="w-8 h-8 xs:w-9 xs:h-9 bg-slate-50 rounded-lg xs:rounded-xl flex items-center justify-center shrink-0">
                     {getActivityIcon(activity.type)}
                   </div>
-                  <div className="flex-grow">
-                    <div className="text-[14px] font-medium text-[#001b4e] leading-snug">{activity.title}</div>
-                    <div className="text-[12px] font-normal text-slate-400 mt-1">{activity.time}</div>
+                  <div className="flex-grow min-w-0">
+                    <div className="text-[13px] xs:text-[14px] font-bold text-[#001b4e] leading-tight truncate pr-2">{activity.title}</div>
+                    <div className="text-[10px] xs:text-[11px] font-medium text-slate-400 mt-0.5 xs:mt-1 uppercase tracking-wider">{activity.time}</div>
                   </div>
                 </div>
               ))
@@ -416,7 +467,7 @@ export default function PartnerHome() {
   );
 }
 
-function RoleSwitcher({ roles, activeRole, partnerId, isApproved }) {
+function RoleSwitcher({ roles, activeRole, partnerId, isApproved, user }) {
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
 
@@ -448,28 +499,36 @@ function RoleSwitcher({ roles, activeRole, partnerId, isApproved }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-[28px] p-2 shadow-sm border border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar"
+      className="bg-white rounded-xl xs:rounded-2xl p-1.5 shadow-sm border border-slate-100 flex items-center gap-1 overflow-x-auto no-scrollbar"
     >
       {safeRoles.map((role) => {
-        const isActive = activeRole.includes(role.replace('_', ''));
+        const isActive = activeRole === role || activeRole === role.replace('_', '');
         const meta = roleLabels[role] || { label: role, icon: null };
         return (
           <button
             key={role}
             onClick={() => handleSwitch(role)}
-            className={`flex items-center gap-2 px-4 py-3 rounded-[22px] text-[13px] font-bold transition-all whitespace-nowrap ${isActive
-                ? 'bg-[#001b4e] text-white shadow-lg shadow-blue-900/20'
-                : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all whitespace-nowrap uppercase tracking-tight relative ${isActive
+                ? 'bg-[#001b4e] text-white shadow-lg shadow-indigo-900/20 ring-2 ring-indigo-900/10 scale-[1.02]'
+                : 'text-slate-400 hover:bg-slate-50 border border-transparent'
               }`}
           >
-            {meta.icon}
+            {isActive && (
+              <motion.div 
+                layoutId="activeRoleIndicator"
+                className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center shadow-sm"
+              >
+                <Check size={8} strokeWidth={4} className="text-white" />
+              </motion.div>
+            )}
+            {meta.icon && React.cloneElement(meta.icon, { size: 14, className: isActive ? 'text-blue-300' : 'text-slate-400' })}
             {meta.label}
           </button>
         );
       })}
 
-      {/* Add Role Button */}
-      {isApproved && (
+      {/* Add Role Button - Only show if there are roles left to add (not active and not pending) */}
+      {isApproved && (roles.length < 4 && !user?.role_requests?.some(r => r.status === 'pending' && !roles.includes(r.role))) && (
         <button
           onClick={() => navigate('/partner/add-role')}
           className="flex items-center gap-1.5 px-3 py-3 rounded-[22px] text-[13px] font-bold text-blue-500 hover:bg-blue-50 transition-all whitespace-nowrap border border-dashed border-blue-200"

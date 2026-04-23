@@ -64,7 +64,7 @@ import AdminCreateManualSubscription from './pages/admin/AdminCreateManualSubscr
 import AdminLayout from './components/layout/AdminLayout';
 import AdminAllActivities from './pages/admin/AdminAllActivities';
 import AdminPendingProperties from './pages/admin/AdminPendingProperties';
-import AdminPendingOthers from './pages/admin/AdminPendingOthers';
+
 import AdminPropertyCategories from './pages/admin/AdminPropertyCategories';
 import AdminPropertySubcategories from './pages/admin/AdminPropertySubcategories';
 import AdminServiceCategories from './pages/admin/AdminServiceCategories';
@@ -93,6 +93,7 @@ import AdminProductDetails from './pages/admin/AdminProductDetails';
 import AdminSuppliers from './pages/admin/AdminSuppliers';
 import AdminMandiSellers from './pages/admin/AdminMandiSellers';
 import AdminPartnerVerification from './pages/admin/AdminPartnerVerification';
+import AdminRoleRequests from './pages/admin/AdminRoleRequests';
 import MandiInventory from './pages/partner/MandiInventory';
 import AddMandiProduct from './pages/partner/AddMandiProduct';
 import MandiOrders from './pages/partner/MandiOrders';
@@ -333,6 +334,14 @@ function App() {
               <AdminRoute>
                 <AdminLayout>
                   <AdminPartnerVerification />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+
+            <Route path="/admin/partners/role-requests" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminRoleRequests />
                 </AdminLayout>
               </AdminRoute>
             } />
@@ -812,13 +821,7 @@ function App() {
               </AdminRoute>
             } />
 
-            <Route path="/admin/dashboard/pending/others" element={
-              <AdminRoute>
-                <AdminLayout>
-                  <AdminPendingOthers />
-                </AdminLayout>
-              </AdminRoute>
-            } />
+
           </Routes>
         </Router>
         </CartProvider>

@@ -162,7 +162,7 @@ const getPartnerStats = async (req, res) => {
 const addRole = async (req, res) => {
   try {
     const partnerId = req.user.id;
-    const { new_role, profile_data } = req.body;
+    const { new_role, profile_data, gst_number, gst_image } = req.body;
 
     const validRoles = ['service_provider', 'property_agent', 'supplier', 'mandi_seller'];
     if (!new_role || !validRoles.includes(new_role)) {
@@ -175,38 +175,76 @@ const addRole = async (req, res) => {
     }
 
     // Check if the role is already active
-    if (partner.roles && partner.roles.includes(new_role)) {
-      return res.status(400).json({ success: false, message: 'You already have this role.' });
+    const activeRoles = partner.roles || (partner.partner_type ? [partner.partner_type] : []);
+    if (activeRoles.includes(new_role)) {
+      return res.status(400).json({ success: false, message: 'You already have this role active.' });
     }
 
-    // Add the new role
+    // Roles requiring GST and admin approval
+    const gstRequiredRoles = ['supplier', 'mandi_seller'];
+    
+    if (gstRequiredRoles.includes(new_role)) {
+      // Check if there's already a pending request for this role
+      const existingRequest = partner.role_requests?.find(r => r.role === new_role && r.status === 'pending');
+      if (existingRequest) {
+        return res.status(400).json({ success: false, message: 'A request for this role is already pending approval.' });
+      }
+
+      if (!gst_number || !gst_image) {
+        return res.status(400).json({ success: false, message: 'GST details and certificate image are required for this role.' });
+      }
+
+      // Add to role_requests
+      if (!partner.role_requests) partner.role_requests = [];
+      partner.role_requests.push({
+        role: new_role,
+        status: 'pending',
+        gst_number,
+        gst_image,
+        submitted_at: new Date()
+      });
+
+      // Update profile data even if pending
+      if (profile_data) {
+        if (new_role === 'supplier') {
+          partner.profile.supplier_profile = { ...(partner.profile.supplier_profile || {}), ...profile_data };
+        } else if (new_role === 'mandi_seller') {
+          partner.profile.mandi_profile = { ...(partner.profile.mandi_profile || {}), ...profile_data };
+        }
+      }
+
+      await partner.save();
+
+      return res.status(200).json({
+        success: true,
+        message: `Request for "${new_role}" submitted for approval.`,
+        data: {
+          role_requests: partner.role_requests,
+          status: 'pending'
+        }
+      });
+    }
+
+    // For other roles (service_provider, property_agent), add immediately
     if (!partner.roles || partner.roles.length === 0) {
       partner.roles = partner.partner_type ? [partner.partner_type] : [];
     }
-    partner.roles.push(new_role);
+    
+    if (!partner.roles.includes(new_role)) {
+      partner.roles.push(new_role);
+    }
+
+    // Remove from deleted_roles if it was there
+    if (partner.deleted_roles) {
+      partner.deleted_roles = partner.deleted_roles.filter(r => r !== new_role);
+    }
 
     // Populate role-specific profile data
     if (profile_data) {
       if (new_role === 'property_agent') {
-        partner.profile.property_profile = {
-          ...(partner.profile.property_profile || {}),
-          ...profile_data
-        };
+        partner.profile.property_profile = { ...(partner.profile.property_profile || {}), ...profile_data };
       } else if (new_role === 'service_provider') {
-        partner.profile.service_profile = {
-          ...(partner.profile.service_profile || {}),
-          ...profile_data
-        };
-      } else if (new_role === 'supplier') {
-        partner.profile.supplier_profile = {
-          ...(partner.profile.supplier_profile || {}),
-          ...profile_data
-        };
-      } else if (new_role === 'mandi_seller') {
-        partner.profile.mandi_profile = {
-          ...(partner.profile.mandi_profile || {}),
-          ...profile_data
-        };
+        partner.profile.service_profile = { ...(partner.profile.service_profile || {}), ...profile_data };
       }
     }
 
@@ -228,6 +266,66 @@ const addRole = async (req, res) => {
   } catch (error) {
     console.error("Error in addRole:", error);
     res.status(500).json({ success: false, message: 'Server error adding role.' });
+  }
+};
+
+/**
+ * @desc    Delete a role from partner account
+ * @route   DELETE /api/partners/delete-role
+ * @access  Private (Partner Token Required)
+ */
+const deleteRole = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    const { role } = req.body;
+
+    if (!role) {
+      return res.status(400).json({ success: false, message: 'Role not specified.' });
+    }
+
+    const partner = await Partner.findById(partnerId);
+    if (!partner) {
+      return res.status(404).json({ success: false, message: 'Partner not found.' });
+    }
+
+    // Cannot delete the only active role
+    if (partner.roles.length <= 1) {
+      return res.status(400).json({ success: false, message: 'Cannot delete your only active role.' });
+    }
+
+    if (!partner.roles.includes(role)) {
+      return res.status(400).json({ success: false, message: 'Role is not active.' });
+    }
+
+    // Remove from roles
+    partner.roles = partner.roles.filter(r => r !== role);
+
+    // Add to deleted_roles
+    if (!partner.deleted_roles) partner.deleted_roles = [];
+    if (!partner.deleted_roles.includes(role)) {
+      partner.deleted_roles.push(role);
+    }
+
+    // If deleting active role, switch to another
+    if (partner.active_role === role) {
+      partner.active_role = partner.roles[0];
+      partner.partner_type = partner.roles[0];
+    }
+
+    await partner.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Role "${role}" deleted successfully.`,
+      data: {
+        roles: partner.roles,
+        active_role: partner.active_role
+      }
+    });
+
+  } catch (error) {
+    console.error("Error in deleteRole:", error);
+    res.status(500).json({ success: false, message: 'Server error deleting role.' });
   }
 };
 
@@ -280,5 +378,6 @@ module.exports = {
   getMyPartnerProfile,
   getPartnerStats,
   addRole,
-  switchRole
+  switchRole,
+  deleteRole
 };

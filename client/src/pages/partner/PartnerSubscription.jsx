@@ -72,21 +72,21 @@ export default function PartnerSubscription() {
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans pb-40">
       {/* Header */}
-      <div className="bg-white px-5 py-4 flex items-center justify-between sticky top-0 z-50 border-b border-slate-100 shadow-sm">
-        <div className="flex items-center gap-4">
+      <div className="bg-white px-5 py-3 flex items-center justify-between sticky top-0 z-50 border-b border-slate-100 shadow-sm">
+        <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate('/partner/profile')}
             className="p-1 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
           >
-            <ArrowLeft size={24} />
+            <ArrowLeft size={22} />
           </button>
-          <h2 className="text-[20px] font-medium text-[#001b4e]">My Subscription</h2>
+          <h2 className="text-[18px] font-bold text-[#001b4e] uppercase tracking-tight">Subscription</h2>
         </div>
         <button 
           onClick={() => setShowHistory(true)}
-          className="p-2 text-[#001b4e] hover:bg-slate-50 rounded-xl transition-colors active:scale-95"
+          className="p-1.5 text-[#001b4e] hover:bg-slate-50 rounded-xl transition-colors active:scale-95"
         >
-          <History size={24} strokeWidth={2.2} />
+          <History size={22} strokeWidth={2.5} />
         </button>
       </div>
 
@@ -95,103 +95,102 @@ export default function PartnerSubscription() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`${currentTheme.mainColor} rounded-[40px] p-8 text-white shadow-2xl ${currentTheme.shadow} relative overflow-hidden`}
+          className={`${currentTheme.mainColor} rounded-2xl xs:rounded-[24px] p-6 xs:p-7 text-white shadow-xl ${currentTheme.shadow} relative overflow-hidden`}
         >
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl opacity-50" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl opacity-50" />
           
-          <div className="flex items-center gap-4 xs:gap-6 relative z-10">
-            <div className="w-16 h-16 xs:w-20 xs:h-20 bg-white/20 rounded-2xl xs:rounded-3xl flex items-center justify-center backdrop-blur-xl border border-white/20 shrink-0">
-              <CheckCircle2 size={36} xs:size={44} fill="white" className={`${currentTheme.accentColor.replace('text-', 'text-[#')}`} style={{ color: currentTheme.name === 'Pro Partner' ? '#6366f1' : '#4CAF50' }} />
+          <div className="flex items-center gap-3 xs:gap-5 relative z-10">
+            <div className="w-14 h-14 xs:w-16 xs:h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-xl border border-white/20 shrink-0">
+              <CheckCircle2 size={32} xs:size={36} fill="white" style={{ color: currentTheme.name === 'Pro Partner' ? '#6366f1' : '#4CAF50' }} />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="text-[24px] xs:text-[30px] font-black uppercase tracking-tighter leading-none">Active</h3>
-                {partner.plan === 'pro' && <Star size={16} fill="currentColor" className="text-yellow-400" />}
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-[20px] xs:text-[22px] font-bold uppercase tracking-tighter leading-none">Active</h3>
+                {partner.plan === 'pro' && <Star size={14} fill="currentColor" className="text-yellow-400" />}
               </div>
-              <p className="text-white/80 font-black mt-1 xs:mt-2 text-[12px] xs:text-[15px] tracking-wide uppercase truncate">
+              <p className="text-white/80 font-medium mt-1.5 text-[11px] xs:text-[12px] tracking-wide uppercase truncate leading-none opacity-80">
                 {partner.plan === 'free' ? 'Free Trial Plan' : 'Pre-launching Offer'}
               </p>
             </div>
           </div>
 
-          <div className="mt-8 xs:mt-10 grid grid-cols-2 gap-3 xs:gap-4">
-            <div className="p-4 xs:p-6 bg-white/10 rounded-[24px] xs:rounded-[28px] backdrop-blur-md border border-white/10 text-center">
-              <Calendar size={18} xs:size={20} className="mx-auto mb-1.5 xs:mb-2 text-white/50" />
-              <div className="text-[22px] xs:text-[28px] font-black leading-none">{planInfo.daysLeft}</div>
-              <div className="text-[9px] xs:text-[10px] font-black text-white/40 uppercase tracking-widest mt-1.5 xs:mt-2">Days left</div>
+          <div className="mt-6 xs:mt-8 grid grid-cols-2 gap-3 xs:gap-4">
+            <div className="p-4 bg-white/10 rounded-xl xs:rounded-2xl backdrop-blur-md border border-white/10 text-center">
+              <Calendar size={16} className="mx-auto mb-1 text-white/50" />
+              <div className="text-[20px] xs:text-[22px] font-bold leading-none">{planInfo.daysLeft}</div>
+              <div className="text-[8px] xs:text-[9px] font-medium text-white/40 uppercase tracking-widest mt-1.5 leading-none">Days left</div>
             </div>
-            <div className="p-4 xs:p-6 bg-white/10 rounded-[24px] xs:rounded-[28px] backdrop-blur-md border border-white/10 text-center">
-              <Clock size={18} xs:size={20} className="mx-auto mb-1.5 xs:mb-2 text-white/50" />
-              <div className="text-[14px] xs:text-[18px] font-black leading-none mt-1 xs:mt-1.5">{planInfo.endDate}</div>
-              <div className="text-[9px] xs:text-[10px] font-black text-white/40 uppercase tracking-widest mt-1.5 xs:mt-2">{partner.plan === 'pro' ? 'Renews On' : 'Expires On'}</div>
+            <div className="p-4 bg-white/10 rounded-xl xs:rounded-2xl backdrop-blur-md border border-white/10 text-center">
+              <Clock size={16} className="mx-auto mb-1 text-white/50" />
+              <div className="text-[13px] xs:text-[14px] font-bold leading-none mt-1">{planInfo.endDate}</div>
+              <div className="text-[8px] xs:text-[9px] font-medium text-white/40 uppercase tracking-widest mt-1.5 leading-none opacity-60">Expires</div>
             </div>
           </div>
         </motion.div>
 
         {/* Plan Details Card */}
-        <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 group-hover:scale-125 transition-all duration-700" />
-          <h4 className="text-[19px] font-bold text-[#001b4e] mb-8 relative z-10 flex items-center gap-2">
-             <Activity size={20} className="text-blue-500" />
+        <div className="bg-white rounded-2xl xs:rounded-[24px] p-6 xs:p-7 border border-slate-100 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-full -mr-12 -mt-12 group-hover:scale-125 transition-all duration-700" />
+          <h4 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] mb-5 relative z-10 flex items-center gap-2 uppercase tracking-tight leading-none opacity-70">
+             <Activity size={18} className="text-blue-500" />
              Plan Details
           </h4>
           
-          <div className="space-y-6 relative z-10">
-            <DetailItem icon={<Package size={20} />} label="Tier" value={planInfo.name} />
-            <DetailItem icon={<TrendingUp size={20} />} label="Member Since" value="April 2026" />
-            <DetailItem icon={<ShieldCheck size={20} />} label="Account Status" value="Verified" />
+          <div className="space-y-4 relative z-10">
+            <DetailItem icon={<Package size={18} />} label="Tier" value={planInfo.name} />
+            <DetailItem icon={<TrendingUp size={18} />} label="Since" value="April 2026" />
+            <DetailItem icon={<ShieldCheck size={18} />} label="Status" value="Verified" />
           </div>
         </div>
 
         {/* Feature Limits */}
-        <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <h4 className="text-[19px] font-bold text-[#001b4e]">Your Quota</h4>
-            <div className={`px-4 py-1.5 ${currentTheme.lightBg} ${currentTheme.accentColor} rounded-full text-[10px] font-bold uppercase tracking-widest`}>
+        <div className="bg-white rounded-2xl xs:rounded-[24px] p-6 xs:p-7 border border-slate-100 shadow-sm">
+          <div className="flex items-center justify-between mb-6 xs:mb-7">
+            <h4 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] uppercase tracking-tight leading-none opacity-70">Quota</h4>
+            <div className={`px-2.5 py-1 ${currentTheme.lightBg} ${currentTheme.accentColor} rounded-lg text-[8px] font-medium uppercase tracking-widest leading-none`}>
               RESET MONTHLY
             </div>
           </div>
           
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-3 xs:gap-5">
             <LimitBox 
-              icon={<Package size={22} />} 
+              icon={<Package size={20} xs:size={22} />} 
               count={planInfo.limits.listings} 
-              label="Listings" 
+              label="Items" 
               color={partner.plan === 'pro' ? 'bg-indigo-50 text-indigo-500' : 'bg-blue-50 text-blue-500'}
             />
             <LimitBox 
-              icon={<Star size={22} />} 
+              icon={<Star size={20} xs:size={22} />} 
               count={planInfo.limits.featured} 
-              label="Featured" 
+              label="Ads" 
               color={partner.plan === 'pro' ? 'bg-yellow-50 text-yellow-500' : 'bg-slate-50 text-slate-300'}
             />
             <LimitBox 
-              icon={<Users size={22} />} 
+              icon={<Users size={20} xs:size={22} />} 
               count={planInfo.limits.leads} 
-              label="Hot Leads" 
+              label="Leads" 
               color={partner.plan === 'pro' ? 'bg-green-50 text-green-500' : 'bg-green-50 text-green-600'}
             />
           </div>
         </div>
       </div>
 
-      {/* Dynamic Footer Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100 z-[60] max-w-lg mx-auto pb-10">
+      <div className="fixed bottom-0 left-0 right-0 p-5 bg-white/80 backdrop-blur-xl border-t border-slate-100 z-[60] max-w-lg mx-auto pb-8">
         {partner.plan === 'free' ? (
           <button 
             onClick={() => setShowComparison(true)}
-            className="w-full bg-[#001b4e] text-white py-5 rounded-[24px] font-bold text-[16px] flex items-center justify-center gap-3 shadow-2xl shadow-blue-900/30 active:scale-[0.98] transition-all"
+            className="w-full bg-[#001b4e] text-white py-4.5 rounded-xl xs:rounded-2xl font-bold text-[15px] flex items-center justify-center gap-2.5 shadow-2xl shadow-blue-900/20 active:scale-[0.98] transition-all uppercase tracking-tight"
           >
-            <TrendingUp size={20} />
-            Upgrade to Pro Partner
+            <TrendingUp size={18} />
+            Upgrade to Pro
           </button>
         ) : (
           <button 
             onClick={() => setShowComparison(true)}
-            className="w-full bg-[#6366f1] text-white py-5 rounded-[24px] font-bold text-[16px] flex items-center justify-center gap-3 shadow-2xl shadow-indigo-900/40 active:scale-[0.98] transition-all"
+            className="w-full bg-[#6366f1] text-white py-4.5 rounded-xl xs:rounded-2xl font-bold text-[15px] flex items-center justify-center gap-2.5 shadow-2xl shadow-indigo-900/20 active:scale-[0.98] transition-all uppercase tracking-tight"
           >
-            <CheckCircle2 size={20} />
-            Already on Best Plan
+            <CheckCircle2 size={18} />
+            Best Plan Active
           </button>
         )}
       </div>
@@ -212,7 +211,7 @@ export default function PartnerSubscription() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative w-full max-w-lg bg-white rounded-t-[40px] p-8 shadow-2xl overflow-hidden"
+              className="relative w-full max-w-lg bg-white rounded-t-3xl xs:rounded-t-[32px] p-8 shadow-2xl overflow-hidden"
             >
               <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-slate-100 rounded-full" />
               <div className="flex items-center justify-between mb-8 mt-2">
@@ -231,7 +230,7 @@ export default function PartnerSubscription() {
                       </div>
                       <div>
                         <div className="text-[#001b4e] font-bold text-[15px]">{item.name}</div>
-                        <div className="text-slate-400 text-[12px] font-medium">{item.date} • {item.price}</div>
+                        <div className="text-slate-400 text-[12px] font-normal">{item.date} • {item.price}</div>
                       </div>
                     </div>
                     <span className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${item.status === 'Active' ? 'bg-green-500 text-white' : 'bg-slate-300 text-white'}`}>
@@ -260,7 +259,7 @@ export default function PartnerSubscription() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-md bg-white rounded-[40px] p-8 shadow-2xl overflow-hidden"
+              className="relative w-full max-w-md bg-white rounded-2xl xs:rounded-[24px] p-5 xs:p-8 shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -272,17 +271,17 @@ export default function PartnerSubscription() {
                 </button>
               </div>
 
-              <div className="space-y-1">
-                <div className="grid grid-cols-3 p-4 bg-slate-50 rounded-t-3xl text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center">
+              <div className="space-y-1 bg-slate-50/50 rounded-3xl p-1 border border-slate-100">
+                <div className="grid grid-cols-[1.5fr_1fr_1fr] p-3 xs:p-4 bg-slate-100/50 rounded-2xl text-[9px] xs:text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
                   <div className="text-left text-[#001b4e]">Features</div>
                   <div className="text-green-600">Free</div>
                   <div className="text-indigo-600">Pro</div>
                 </div>
                 {COMPARISON_DATA.map((item, idx) => (
-                  <div key={idx} className={`grid grid-cols-3 p-4 border-b border-slate-50 last:border-0 items-center ${idx === COMPARISON_DATA.length - 1 ? 'rounded-b-3xl' : ''}`}>
-                    <div className="text-left text-[14px] font-bold text-[#001b4e] leading-tight">{item.feature}</div>
-                    <div className="flex justify-center text-[13px] font-medium text-slate-400">{item.free}</div>
-                    <div className="flex justify-center text-[13px] font-bold text-[#001b4e]">{item.pro}</div>
+                  <div key={idx} className="grid grid-cols-[1.5fr_1fr_1fr] p-3 xs:p-4 border-b border-slate-50 last:border-0 items-center">
+                    <div className="text-left text-[11px] xs:text-[13px] font-medium text-[#001b4e] leading-tight pr-2">{item.feature}</div>
+                    <div className="flex justify-center text-[10px] xs:text-[12px] font-medium text-slate-400 text-center">{item.free}</div>
+                    <div className="flex justify-center text-[10px] xs:text-[12px] font-medium text-indigo-600 text-center">{item.pro}</div>
                   </div>
                 ))}
               </div>
@@ -322,28 +321,28 @@ export default function PartnerSubscription() {
 
 function DetailItem({ icon, label, value }) {
   return (
-    <div className="flex items-center justify-between py-1 px-1">
-      <div className="flex items-center gap-4">
-        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+    <div className="flex items-center justify-between py-1">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 xs:w-9 xs:h-9 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 opacity-70">
           {icon}
         </div>
-        <span className="text-[15px] font-bold text-slate-400/80">{label}</span>
+        <span className="text-[12px] xs:text-[13px] font-medium text-slate-400 uppercase tracking-tight leading-none opacity-60">{label}</span>
       </div>
-      <span className="text-[#001b4e] font-bold text-[15px] tracking-tight">{value}</span>
+      <span className="text-[#001b4e] font-medium text-[13px] xs:text-[14px] tracking-tight leading-none uppercase">{value}</span>
     </div>
   );
 }
 
 function LimitBox({ icon, count, label, color }) {
   return (
-    <div className="flex flex-col items-center">
-      <div className={`w-16 h-16 ${color} rounded-[24px] flex items-center justify-center mb-4 shadow-inner ring-1 ring-white transition-all`}>
-        {icon}
+    <div className="flex flex-col items-center min-w-0">
+      <div className={`w-11 h-11 xs:w-12 xs:h-12 ${color} rounded-xl xs:rounded-2xl flex items-center justify-center mb-2 shadow-inner ring-1 ring-white/50 transition-all`}>
+        {React.cloneElement(icon, { size: 18 })}
       </div>
-      <div className="flex items-center gap-1">
-        <div className={`text-[26px] font-bold leading-none ${color.split(' ')[1]}`}>{count}</div>
+      <div className="flex items-center gap-0.5 min-w-0">
+        <div className={`text-[18px] xs:text-[20px] font-bold leading-none truncate ${color.split(' ')[1]}`}>{count}</div>
       </div>
-      <div className="text-[10px] font-bold text-slate-300 mt-2 tracking-widest uppercase">{label}</div>
+      <div className="text-[8px] font-medium text-slate-300 mt-1 uppercase tracking-widest leading-none text-center opacity-60">{label}</div>
     </div>
   );
 }

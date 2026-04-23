@@ -166,28 +166,28 @@ export default function PartnerInventory() {
   return (
     <div className="min-h-screen bg-white font-sans flex flex-col">
       {/* Header */}
-      <div className="px-5 py-4 flex items-center justify-between border-b border-slate-50 sticky top-0 bg-white z-50">
-        <div className="flex items-center gap-4">
+      <div className="px-5 py-3 flex items-center justify-between border-b border-slate-50 sticky top-0 bg-white z-50">
+        <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate('/partner/home')}
             className="p-1 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
           >
-            <ArrowLeft size={24} />
+            <ArrowLeft size={22} />
           </button>
-          <h2 className="text-[20px] font-medium text-[#001b4e]">{labels.title}</h2>
+          <h2 className="text-[18px] font-bold text-[#001b4e] uppercase tracking-tight">{labels.title}</h2>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="px-5 py-3 overflow-x-auto hide-scrollbar border-b border-slate-50 bg-white sticky top-[60px] z-40 flex items-center gap-2">
+      <div className="px-5 py-2.5 overflow-x-auto hide-scrollbar border-b border-slate-50 bg-white sticky top-[54px] z-40 flex items-center gap-2">
         {['All', 'Featured', 'Pending', 'Rejected'].map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-2.5 rounded-full whitespace-nowrap text-[13px] font-bold transition-all ${
+            className={`px-3.5 py-2 rounded-lg xs:rounded-xl whitespace-nowrap text-[12px] font-bold uppercase tracking-tight transition-all ${
               filter === f 
-                ? 'bg-[#001b4e] text-white shadow-md shadow-blue-900/10' 
-                : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                ? 'bg-[#001b4e] text-white shadow-md' 
+                : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
             }`}
           >
             {f}
@@ -221,10 +221,10 @@ export default function PartnerInventory() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 onClick={() => navigate(`/partner/service-details/${item._id || item.id}`)}
-                className="bg-white rounded-[20px] sm:rounded-[24px] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] overflow-hidden flex flex-row relative group hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all cursor-pointer"
+                className="bg-white rounded-xl xs:rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-row relative group hover:shadow-md transition-all cursor-pointer"
               >
                 {/* Left: Compact Image Section */}
-                <div className="relative w-24 xs:w-28 sm:w-36 h-auto bg-slate-100 overflow-hidden shrink-0">
+                <div className="relative w-24 xs:w-28 sm:w-32 h-auto bg-slate-100 overflow-hidden shrink-0">
                    {item.thumbnail || item.image ? (
                      <img 
                         src={item.thumbnail || item.image} 
@@ -233,13 +233,13 @@ export default function PartnerInventory() {
                      />
                    ) : (
                      <div className="w-full h-full flex items-center justify-center bg-slate-50 text-[#001b4e]">
-                        {item.type === 'property' ? <Building2 size={24} className="opacity-20" /> : <Package size={24} className="opacity-20" />}
+                        {item.type === 'property' ? <Building2 size={20} className="opacity-20" /> : <Package size={20} className="opacity-20" />}
                      </div>
                    )}
                    
                    {/* Status Dot Overlay */}
-                   <div className="absolute top-2 left-2 z-10">
-                      <div className={`w-2.5 h-2.5 xs:w-3 xs:h-3 rounded-full border-2 border-white shadow-sm ${
+                   <div className="absolute top-1.5 left-1.5 z-10">
+                      <div className={`w-2 h-2 xs:w-2.5 xs:h-2.5 rounded-full border-2 border-white shadow-sm ${
                         item.status === 'active' 
                           ? 'bg-green-500' 
                           : item.status === 'rejected' 
@@ -249,39 +249,38 @@ export default function PartnerInventory() {
                    </div>
                 </div>
                 {/* Right: Tighter Content Section */}
-                <div className="flex-grow p-3 xs:p-4 sm:p-5 flex flex-col justify-between min-w-0">
-                  <div className="space-y-0.5 xs:space-y-1 sm:space-y-1.5">
+                <div className="flex-grow p-2.5 xs:p-3 sm:p-4 flex flex-col justify-between min-w-0">
+                  <div className="space-y-0.5 xs:space-y-1">
                     <div className="flex items-center justify-between mb-0.5">
-                       <span className="text-[8px] xs:text-[9px] mm:text-[10px] font-black text-blue-600 uppercase tracking-widest truncate max-w-[80px] sm:max-w-[100px]">
+                       <span className="text-[7px] xs:text-[8px] mm:text-[9px] font-black text-blue-600 uppercase tracking-[0.1em] truncate max-w-[80px] sm:max-w-[100px]">
                           {item.type === 'property' ? item.property_type || 'Property' : item.category || 'Listing'}
                        </span>
-                       <span className="text-[8px] xs:text-[9px] mm:text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                       <span className="text-[7px] xs:text-[8px] mm:text-[9px] font-black text-slate-300 uppercase tracking-widest opacity-60">
                           #{item?.id?.slice?.(-4).toUpperCase()}
                        </span>
                     </div>
                     
-                    <h4 className="text-[13px] xs:text-[15px] mm:text-[17px] font-black text-[#001b4e] leading-tight line-clamp-2 mb-0.5 sm:mb-1 pr-4">
+                    <h4 className="text-[12px] xs:text-[14px] mm:text-[15px] font-bold text-[#001b4e] leading-tight line-clamp-1 mb-0.5 pr-4 uppercase tracking-tight">
                        {item.title || item.serviceName || 'Untitled Listing'}
                     </h4>
  
-                    <div className="flex items-center gap-1 text-[10px] xs:text-[11px] mm:text-[12px] text-slate-400 mb-1 xs:mb-1.5 sm:mb-2 font-medium">
-                       <MapPin size={9} xs:size={10} className="shrink-0 text-blue-500" />
+                    <div className="flex items-center gap-1 text-[9px] xs:text-[10px] mm:text-[11px] text-slate-400 mb-1 font-bold uppercase tracking-widest opacity-50">
+                       <MapPin size={8} xs:size={9} className="shrink-0 text-blue-500" />
                        <span className="truncate max-w-[120px] sm:max-w-none">{item.display_location || 'No location'}</span>
                     </div>
  
-                    {/* Compact Property Specs */}
                     {item.type === 'property' && (
-                      <div className="flex flex-wrap items-center gap-x-2.5 xs:gap-x-3 gap-y-0.5 text-slate-500">
+                      <div className="flex flex-wrap items-center gap-x-2 xs:gap-x-2.5 gap-y-0.5 text-slate-400">
                          {item.bhk && (
                             <div className="flex items-center gap-1">
-                               <BedDouble size={11} xs:size={12} className="text-blue-400/60" />
-                               <span className="text-[9px] xs:text-[10px] mm:text-[11px] font-black uppercase tracking-tight">{item.bhk} BHK</span>
+                               <BedDouble size={9} className="text-blue-400/40" />
+                               <span className="text-[8px] xs:text-[9px] font-bold uppercase tracking-widest leading-none opacity-60">{item.bhk} BHK</span>
                             </div>
                          )}
                          {item.area && (
                             <div className="flex items-center gap-1">
-                               <Square size={10} xs:size={11} className="text-blue-400/60" />
-                               <span className="text-[9px] xs:text-[10px] mm:text-[11px] font-black uppercase tracking-tight">{item.area} {item.areaUnit}</span>
+                               <Square size={8} className="text-blue-400/40" />
+                               <span className="text-[8px] xs:text-[9px] font-bold uppercase tracking-widest leading-none opacity-60">{item.area} {item.areaUnit}</span>
                             </div>
                          )}
                       </div>
@@ -289,34 +288,34 @@ export default function PartnerInventory() {
                   </div>
  
                   {/* Price & Actions Row */}
-                  <div className="flex items-center justify-between mt-1 xs:mt-1.5 sm:mt-auto pt-2 xs:pt-3 border-t border-slate-50">
-                    <div className="text-[13px] xs:text-[15px] mm:text-[18px] font-black text-[#001b4e]">
+                  <div className="flex items-center justify-between mt-1 pt-2 border-t border-slate-50">
+                    <div className="text-[13px] xs:text-[14px] mm:text-[15px] font-bold text-[#001b4e] leading-none uppercase tracking-tighter">
                        ₹{typeof item.price === 'object' 
                          ? `${Number(item.price.value).toLocaleString()}${(!item.price.unit || item.price.unit === 'Total') ? '' : ' ' + item.price.unit}` 
                          : Number(item.price || 0).toLocaleString()}
                     </div>
  
-                    <div className="flex items-center gap-1 xs:gap-1.5">
+                    <div className="flex items-center gap-1">
                        <button 
                           onClick={(e) => handleEdit(e, item)}
-                          className="h-7 w-7 xs:h-8 xs:w-8 mm:h-10 mm:w-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-lg mm:rounded-xl hover:bg-blue-600 hover:text-white transition-all transform active:scale-90 border border-blue-100/50"
+                          className="h-6 w-6 xs:h-7 xs:w-7 mm:h-9 mm:w-9 flex items-center justify-center bg-blue-50 text-blue-600 rounded-lg mm:rounded-xl hover:bg-blue-600 hover:text-white transition-all transform active:scale-90 border border-blue-100/30"
                        >
-                          <Edit size={12} xs:size={14} />
+                          <Edit size={10} xs:size={12} />
                        </button>
                        <button 
                           onClick={(e) => handleDelete(e, item.id)}
-                          className="h-7 w-7 xs:h-8 xs:w-8 mm:h-10 mm:w-10 flex items-center justify-center bg-rose-50 text-rose-500 rounded-lg mm:rounded-xl hover:bg-red-500 hover:text-white transition-all transform active:scale-90 border border-rose-100/50"
+                          className="h-6 w-6 xs:h-7 xs:w-7 mm:h-9 mm:w-9 flex items-center justify-center bg-rose-50 text-rose-500 rounded-lg mm:rounded-xl hover:bg-red-500 hover:text-white transition-all transform active:scale-90 border border-rose-100/30"
                        >
-                          <Trash2 size={12} xs:size={14} />
+                          <Trash2 size={10} xs:size={12} />
                        </button>
                     </div>
                   </div>
-                </div>v>
+                </div>
 
                 {/* Intent Ribbon */}
                 {item.listing_intent && (
                   <div className="absolute top-0 right-0">
-                    <div className="bg-[#001b4e] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-bl-lg tracking-tighter shadow-sm">
+                    <div className="bg-[#001b4e] text-white text-[8px] font-bold uppercase px-2 py-0.5 rounded-bl-lg tracking-widest shadow-sm">
                       {item.listing_intent}
                     </div>
                   </div>
@@ -339,14 +338,14 @@ export default function PartnerInventory() {
               handleAddAction();
             }}
             disabled={!partner.is_active}
-            className={`p-5 rounded-2xl shadow-2xl flex items-center gap-3 active:scale-90 transition-all font-medium ${
+            className={`p-4 xs:p-5 rounded-xl xs:rounded-2xl shadow-2xl flex items-center gap-3 active:scale-90 transition-all font-bold uppercase tracking-widest ${
               !partner.is_active 
                 ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' 
                 : 'bg-[#001b4e] text-white'
             }`}
           >
-            <Plus size={24} />
-            <span className="text-[15px]">Add {labels.item.charAt(0).toUpperCase() + labels.item.slice(1)}</span>
+            <Plus size={22} />
+            <span className="text-[13px] xs:text-[14px]">Add {labels.item}</span>
           </button>
         </div>
       </div>

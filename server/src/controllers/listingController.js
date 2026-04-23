@@ -244,10 +244,10 @@ const createServiceListing = async (req, res) => {
       images,
       location_text,
       location: location || { type: 'Point', coordinates: [0, 0] },
-      status: 'pending_approval'
+      status: 'active'
     });
 
-    res.status(201).json({ success: true, message: 'Service submitted for Admin review.', data: newService });
+    res.status(201).json({ success: true, message: 'Service listing created successfully.', data: newService });
   } catch (error) {
     console.error("Error creating service:", error);
     res.status(500).json({ success: false, message: 'Server error creating service listing.' });
@@ -274,10 +274,10 @@ const createSupplierListing = async (req, res) => {
       images,
       location_text,
       location: location || { type: 'Point', coordinates: [0, 0] },
-      status: 'pending_approval'
+      status: 'active'
     });
 
-    res.status(201).json({ success: true, message: 'Supplier/Product submitted for Admin review.', data: newSupplier });
+    res.status(201).json({ success: true, message: 'Product listing created successfully.', data: newSupplier });
   } catch (error) {
     console.error("Error creating supplier listing:", error);
     res.status(500).json({ success: false, message: 'Server error creating supplier listing.' });
@@ -558,14 +558,17 @@ const updateListing = async (req, res) => {
 
     // Update with new data (re-normalize if it's a property)
     // Note: In a production app, we'd reuse the sanitation logic here.
-    // For now, we'll do a simple update but preserve the status as 'pending_approval' if it was changed
+    // Properties still require approval, but services and suppliers can be active immediately
+    const nextStatus = Model === PropertyListing ? 'pending_approval' : 'active';
+
     const updated = await Model.findByIdAndUpdate(
       id,
-      { ...updateData, status: 'pending_approval' },
+      { ...updateData, status: nextStatus },
       { new: true, runValidators: true }
     );
 
-    res.status(200).json({ success: true, message: 'Listing updated and submitted for review', data: updated });
+    const message = nextStatus === 'active' ? 'Listing updated successfully' : 'Listing updated and submitted for review';
+    res.status(200).json({ success: true, message, data: updated });
   } catch (error) {
     console.error("Error updating listing:", error);
     res.status(500).json({ success: false, message: 'Server error updating listing' });

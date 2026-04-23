@@ -108,6 +108,19 @@ const partnerSchema = new mongoose.Schema({
     reviewed_at: { type: Date },
     rejection_reason: { type: String, default: null }
   },
+  role_requests: [{
+    role: { type: String, enum: ['service_provider', 'property_agent', 'supplier', 'mandi_seller'] },
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    gst_number: { type: String },
+    gst_image: { type: String },
+    submitted_at: { type: Date, default: Date.now },
+    reviewed_at: { type: Date },
+    rejection_reason: { type: String }
+  }],
+  deleted_roles: {
+    type: [String],
+    default: []
+  },
   onboarding_status: {
     type: String,
     enum: ['incomplete', 'pending_approval', 'approved', 'rejected', 'suspended'],

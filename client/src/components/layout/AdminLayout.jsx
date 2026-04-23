@@ -19,6 +19,7 @@ const navItems = [
     children: [
       { label: 'All Users', path: '/admin/users' },
       { label: 'Partner Verification', path: '/admin/partners/verification' },
+      { label: 'Upgrade Requests', path: '/admin/partners/role-requests' },
     ]
   },
   { 

@@ -114,13 +114,11 @@ export default function AdminDashboard() {
       // Update local state instead of refetching for better UX
       setData(prev => {
         const newProperties = prev.pending.properties.filter(p => p._id !== id);
-        const newOthers = prev.pending.others.filter(o => o._id !== id);
         return {
           ...prev,
           pending: {
             ...prev.pending,
-            properties: newProperties,
-            others: newOthers
+            properties: newProperties
           }
         };
       });
@@ -198,7 +196,7 @@ export default function AdminDashboard() {
     },
     { 
       title: 'Pending Requests', 
-      value: (data.pending?.properties?.length || 0) + (data.pending?.others?.length || 0), 
+      value: (data.pending?.properties?.length || 0), 
       icon: Clock, 
       color: 'bg-rose-100 text-rose-600', 
       badge: { text: 'Attention', color: 'bg-rose-500 text-white', icon: AlertCircle, subtext: 'Require Review' } 
@@ -486,7 +484,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Pending Approvals Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         {/* Pending Property Approvals */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
           <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
@@ -566,93 +564,6 @@ export default function AdminDashboard() {
                 <p className="text-slate-400 font-bold uppercase tracking-widest text-[11px]">No pending properties</p>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Pending Product/Service Approvals */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-          <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <ShoppingBag className="text-slate-900" size={20} />
-              <h2 className="text-lg font-black text-slate-900 tracking-tight">Pending Product/Service Approvals</h2>
-            </div>
-            <div className="relative group/btn">
-              <button 
-                onClick={() => navigate('/admin/dashboard/pending/others')}
-                className="px-5 py-2.5 rounded-lg border border-orange-200 text-orange-500 text-[11px] font-black uppercase tracking-widest hover:bg-orange-50 transition-colors flex items-center gap-2"
-              >
-                View All <ArrowDownRight size={14} />
-              </button>
-            </div>
-          </div>
-          <div className="flex-grow flex flex-col items-center justify-center py-20 px-10 text-center">
-             {data.pending?.others?.length > 0 ? (
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="bg-slate-50/50">
-                      <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-left">Listing</th>
-                      <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-left">Partner</th>
-                      <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-left">Type</th>
-                      <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {data.pending.others.map((item, i) => (
-                      <tr key={i} className="hover:bg-slate-50/30 transition-colors group">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
-                               <img src={item.thumbnail || item.images?.[0] || 'https://via.placeholder.com/40'} className="w-full h-full object-cover" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-black text-slate-700 tracking-tight truncate">{item.title}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-[11px] font-bold text-slate-500 truncate">{item.partner_id?.name || 'N/A'}</p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${item.type === 'Service' ? 'bg-indigo-50 text-indigo-600' : 'bg-cyan-50 text-cyan-600'}`}>
-                            {item.type}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                             <button 
-                               onClick={() => navigate(`/admin/${item.type.toLowerCase()}s/view/${item._id}`)} 
-                               className="p-2 rounded-full border border-orange-100 text-orange-500 hover:bg-orange-50 transition-colors"
-                             >
-                               <Eye size={15} />
-                             </button>
-                             <button 
-                               onClick={() => handleStatusUpdate(item._id, 'active', item.type)}
-                               disabled={isProcessing}
-                               className="p-2 rounded-full border border-emerald-100 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-50"
-                             >
-                               <CheckCircle2 size={15} />
-                             </button>
-                             <button 
-                               onClick={() => handleStatusUpdate(item._id, 'rejected', item.type)}
-                               disabled={isProcessing}
-                               className="p-2 rounded-full border border-rose-100 text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50"
-                             >
-                               <XCircle size={15} />
-                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-             ) : (
-               <div className="flex flex-col items-center">
-                 <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-6">
-                   <Activity size={32} className="text-slate-300" />
-                 </div>
-                 <p className="text-slate-400 font-bold uppercase tracking-widest text-[11px]">No pending product or service approvals.</p>
-               </div>
-             )}
           </div>
         </div>
       </div>

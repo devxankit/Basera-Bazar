@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+// Metadata: v1.0.1 - Added role deletion support
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 

@@ -2361,6 +2361,148 @@ const updateMandiSettings = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Approve or Reject a partner role upgrade request
+ * @route   POST /api/admin/partners/role-request-action
+ * @access  Private (Super Admin Only)
+ */
+const processRoleRequest = async (req, res) => {
+  try {
+    const { partnerId, role, action, rejectionReason } = req.body;
+    const adminId = req.user.id;
+
+    if (!partnerId || !role || !action) {
+      return res.status(400).json({ success: false, message: 'Please provide partnerId, role, and action.' });
+    }
+
+    const partner = await Partner.findById(partnerId);
+    if (!partner) {
+      return res.status(404).json({ success: false, message: 'Partner not found.' });
+    }
+
+    // Find the request in the array
+    const requestIndex = partner.role_requests.findIndex(r => r.role === role && r.status === 'pending');
+    if (requestIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Pending request for this role not found.' });
+    }
+
+    if (action === 'approve') {
+      // 1. Add role to roles array if not already there
+      if (!partner.roles.includes(role)) {
+        partner.roles.push(role);
+      }
+      
+      // 2. Update status to approved
+      partner.role_requests[requestIndex].status = 'approved';
+      partner.role_requests[requestIndex].reviewed_at = new Date();
+      partner.role_requests[requestIndex].reviewed_by = adminId;
+
+      // 3. Optional: Set active_role to the newly approved role
+      partner.active_role = role;
+
+      await partner.save();
+
+      // Create Notification
+      await createNotification(
+        'partner',
+        partnerId,
+        'Role Upgrade Approved! 🎉',
+        `Congratulations! Your request for the ${role.replace('_', ' ')} role has been approved. You can now access new features.`,
+        { type: 'role_upgrade_approved', role }
+      );
+
+      // Log Activity
+      await logActivity({
+        actor_name: req.user.name,
+        actor_id: adminId,
+        action: 'approved',
+        entity_type: 'partner_role',
+        entity_name: partner.name,
+        entity_id: partnerId,
+        description: `Approved ${role} role for ${partner.name}`
+      });
+
+    } else if (action === 'reject') {
+      // Update status to rejected
+      partner.role_requests[requestIndex].status = 'rejected';
+      partner.role_requests[requestIndex].reviewed_at = new Date();
+      partner.role_requests[requestIndex].reviewed_by = adminId;
+      partner.role_requests[requestIndex].rejection_reason = rejectionReason || 'Documents were not accepted.';
+
+      await partner.save();
+
+      // Create Notification
+      await createNotification(
+        'partner',
+        partnerId,
+        'Role Upgrade Rejected',
+        `Your request for the ${role.replace('_', ' ')} role was not approved. Reason: ${rejectionReason || 'Documents were not accepted.'}`,
+        { type: 'role_upgrade_rejected', role, reason: rejectionReason }
+      );
+
+      // Log Activity
+      await logActivity({
+        actor_name: req.user.name,
+        actor_id: adminId,
+        action: 'rejected',
+        entity_type: 'partner_role',
+        entity_name: partner.name,
+        entity_id: partnerId,
+        description: `Rejected ${role} role for ${partner.name}. Reason: ${rejectionReason || 'N/A'}`
+      });
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid action. Use approve or reject.' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Role request ${action}ed successfully.`
+    });
+
+  } catch (error) {
+    console.error("Process role request error:", error);
+    res.status(500).json({ success: false, message: 'Server error processing role request.' });
+  }
+};
+
+/**
+ * @desc    Get all partner role upgrade requests
+ * @route   GET /api/admin/partners/role-requests
+ * @access  Private (Super Admin Only)
+ */
+const getRoleRequests = async (req, res) => {
+  try {
+    const partnersWithRequests = await Partner.find({
+      'role_requests.0': { $exists: true }
+    }).select('name phone email role_requests').sort({ 'role_requests.submitted_at': -1 });
+
+    const roleRequests = [];
+    partnersWithRequests.forEach(partner => {
+      partner.role_requests.forEach(req => {
+        roleRequests.push({
+          ...req.toObject(),
+          partnerId: partner._id,
+          partnerName: partner.name,
+          partnerPhone: partner.phone,
+          partnerEmail: partner.email
+        });
+      });
+    });
+
+    // Sort by submission date
+    roleRequests.sort((a, b) => new Date(b.submitted_at || b.requested_at) - new Date(a.submitted_at || a.requested_at));
+
+    res.status(200).json({
+      success: true,
+      count: roleRequests.length,
+      data: roleRequests
+    });
+  } catch (error) {
+    console.error("Get role requests error:", error);
+    res.status(500).json({ success: false, message: 'Error fetching role requests.' });
+  }
+};
+
 module.exports = {
   findNearestMandiSellers,
   assignMandiEnquiry,
@@ -2420,5 +2562,7 @@ module.exports = {
   getSubscriptionById,
   updateSubscriptionStatus,
   getMandiSettings,
-  updateMandiSettings
+  updateMandiSettings,
+  processRoleRequest,
+  getRoleRequests
 };

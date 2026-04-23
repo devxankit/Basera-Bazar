@@ -66,7 +66,7 @@ export default function PartnerHelp() {
   return (
     <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden bg-[#f8fafc] font-sans pb-20">
       {/* Immersive Hero Section */}
-      <div className="relative h-[340px] bg-[#001b4e] overflow-hidden rounded-b-[60px] shadow-2xl">
+      <div className="relative h-[300px] bg-[#001b4e] overflow-hidden rounded-b-3xl xs:rounded-b-[40px] shadow-2xl">
         {/* Animated Background Orbs */}
         <div className="absolute top-0 left-0 w-full h-full opacity-30">
           <motion.div 
@@ -98,7 +98,7 @@ export default function PartnerHelp() {
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-white text-[28px] xs:text-[32px] font-black leading-tight"
+              className="text-white text-[28px] xs:text-[30px] font-bold leading-tight uppercase tracking-tight"
             >
               How can we <br /> <span className="text-blue-400 underline decoration-blue-500/30">help</span> you?
             </motion.h1>
@@ -106,7 +106,7 @@ export default function PartnerHelp() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-white/50 text-[12px] xs:text-[14px] mt-3 xs:mt-4 font-black uppercase tracking-widest"
+              className="text-white/50 text-[11px] xs:text-[12px] mt-3 xs:mt-4 font-medium uppercase tracking-widest opacity-80"
             >
               Search for topics or browse below
             </motion.p>
@@ -123,7 +123,7 @@ export default function PartnerHelp() {
                 placeholder="Ex: 'Listings', 'Verify account'..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white rounded-[24px] py-5 pl-14 pr-6 text-[16px] shadow-2xl shadow-blue-900/20 border-none outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-[#001b4e] placeholder:text-slate-300"
+                className="w-full bg-white rounded-xl xs:rounded-2xl py-4.5 xs:py-5 pl-14 pr-6 text-[15px] shadow-2xl shadow-blue-900/10 border-none outline-none focus:ring-4 focus:ring-blue-500/5 transition-all font-medium text-[#001b4e] placeholder:text-slate-300 uppercase tracking-tight"
               />
             </div>
           </div>
@@ -133,22 +133,22 @@ export default function PartnerHelp() {
       <div className="px-6 pt-16 space-y-10">
         {/* Topic Navigator */}
         <div className="space-y-4">
-          <h2 className="text-[18px] font-bold text-[#001b4e] px-1">Browse Topics</h2>
-          <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-6 px-6">
+          <h2 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] px-1 uppercase tracking-tight opacity-70">Browse Topics</h2>
+          <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar -mx-6 px-6">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`flex-shrink-0 px-6 py-4 rounded-3xl flex items-center gap-3 transition-all ${
+                className={`flex-shrink-0 px-5 py-3 rounded-xl xs:rounded-2xl flex items-center gap-2.5 transition-all ${
                   selectedCategory === cat.id 
-                  ? 'bg-[#001b4e] text-white shadow-xl shadow-blue-900/20 active:scale-95' 
-                  : 'bg-white text-slate-500 border border-slate-100 hover:border-slate-200 active:scale-95'
+                  ? 'bg-[#001b4e] text-white shadow-lg shadow-blue-900/10 active:scale-95' 
+                  : 'bg-white text-slate-500 border border-slate-100 active:scale-95'
                 }`}
               >
                 <div className={`${selectedCategory === cat.id ? 'text-blue-400' : cat.color}`}>
                   {cat.icon}
                 </div>
-                <span className="text-[14px] font-bold whitespace-nowrap">{cat.label}</span>
+                <span className="text-[12px] font-medium whitespace-nowrap uppercase tracking-tight">{cat.label}</span>
               </button>
             ))}
           </div>
@@ -157,9 +157,9 @@ export default function PartnerHelp() {
         {/* Dynamic FAQ Area */}
         <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-[18px] font-bold text-[#001b4e]">Frequently Asked</h2>
-            <div className="flex items-center gap-1.5 text-blue-500 bg-blue-50 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider">
-              <Zap size={12} fill="currentColor" />
+            <h2 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] uppercase tracking-tight opacity-70">Frequently Asked</h2>
+            <div className="flex items-center gap-1.5 text-blue-500 bg-blue-50 px-2.5 py-1 rounded-lg text-[9px] font-medium uppercase tracking-wider">
+              <Zap size={10} fill="currentColor" />
               {filteredFaqs.length} Items
             </div>
           </div>
@@ -175,7 +175,7 @@ export default function PartnerHelp() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className={`bg-white rounded-[28px] overflow-hidden border transition-all ${
+                    className={`bg-white rounded-2xl xs:rounded-[24px] overflow-hidden border transition-all ${
                       activeFaq === idx ? 'border-blue-100 shadow-xl shadow-blue-900/5' : 'border-slate-100 shadow-sm'
                     }`}
                   >
@@ -204,7 +204,7 @@ export default function PartnerHelp() {
                           <div className="pt-2 border-t border-slate-50 text-[14px] text-slate-500 leading-relaxed">
                             {faq.answer}
                           </div>
-                          <button className="mt-4 text-blue-500 text-[13px] font-bold flex items-center gap-1.5 hover:gap-2 transition-all">
+                          <button className="mt-4 text-blue-500 text-[13px] font-medium flex items-center gap-1.5 hover:gap-2 transition-all">
                             Learn More <ArrowUpRight size={14} />
                           </button>
                         </motion.div>
@@ -232,8 +232,8 @@ export default function PartnerHelp() {
         {/* Reimagined Support Suite */}
         <div className="space-y-5">
           <div className="px-1">
-            <h2 className="text-[18px] font-bold text-[#001b4e]">Get Direct Support</h2>
-            <p className="text-slate-400 text-[13px] font-medium mt-1">Our team is available 24/7 for you.</p>
+            <h2 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] uppercase tracking-tight opacity-70">Direct Support</h2>
+            <p className="text-slate-400 text-[11px] xs:text-[12px] font-medium mt-1 uppercase tracking-widest opacity-50">24/7 Professional assistance</p>
           </div>
           
           <div className="grid grid-cols-2 gap-3 xs:gap-4">
@@ -255,18 +255,18 @@ export default function PartnerHelp() {
 
           <motion.div 
             whileHover={{ y: -5 }}
-            className="w-full bg-gradient-to-br from-blue-600 to-indigo-900 rounded-[36px] p-8 relative overflow-hidden group cursor-pointer"
+            className="w-full bg-gradient-to-br from-blue-600 to-indigo-900 rounded-2xl xs:rounded-[32px] p-6 xs:p-8 relative overflow-hidden group cursor-pointer"
             onClick={() => window.open('mailto:support@baserabazar.com')}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl group-hover:scale-150 transition-all duration-700" />
             <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md mb-4 border border-white/20">
-                <Mail size={32} className="text-white" />
+              <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md mb-4 border border-white/20">
+                <Mail size={28} className="text-white" />
               </div>
-              <h3 className="text-white text-[20px] font-bold uppercase tracking-tight">Email Concierge</h3>
-              <p className="text-white/60 text-[13px] mt-1">Typical response within 2 working hours</p>
-              <div className="mt-6 flex items-center gap-2 bg-white text-blue-600 px-8 py-3.5 rounded-2xl font-bold text-[15px] shadow-xl group-active:scale-95 transition-all">
-                Submit Ticket <ExternalLink size={16} />
+              <h3 className="text-white text-[18px] xs:text-[20px] font-bold uppercase tracking-tight">Email Support</h3>
+              <p className="text-white/50 text-[11px] mt-1 font-medium uppercase tracking-widest">Fast response within 2 hours</p>
+              <div className="mt-6 flex items-center gap-2 bg-white text-blue-600 px-7 py-3 rounded-xl font-bold text-[14px] shadow-xl group-active:scale-95 transition-all uppercase tracking-widest">
+                Submit Ticket <ExternalLink size={14} />
               </div>
             </div>
           </motion.div>
@@ -282,18 +282,18 @@ function SupportCard({ icon, label, sub, primary, onClick }) {
       whileHover={{ y: -5 }}
       active={{ scale: 0.95 }}
       onClick={onClick}
-      className={`p-6 rounded-[36px] border flex flex-col gap-4 text-left transition-all ${
+      className={`p-5 xs:p-6 rounded-2xl xs:rounded-[32px] border flex flex-col gap-3 xs:gap-4 text-left transition-all ${
         primary 
         ? 'bg-white border-slate-100 shadow-sm shadow-slate-200/50' 
         : 'bg-white border-slate-100 shadow-sm shadow-slate-200/50'
       }`}
     >
-      <div className={`w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center shadow-inner`}>
+      <div className={`w-12 h-12 xs:w-14 xs:h-14 bg-slate-50 rounded-xl xs:rounded-2xl flex items-center justify-center shadow-inner`}>
         {icon}
       </div>
       <div>
-        <div className="text-[#001b4e] text-[16px] font-bold">{label}</div>
-        <div className="text-slate-400 text-[12px] font-medium mt-1">{sub}</div>
+        <div className="text-[#001b4e] text-[15px] xs:text-[16px] font-bold uppercase tracking-tight leading-none">{label}</div>
+        <div className="text-slate-400 text-[10px] xs:text-[11px] font-medium mt-1.5 uppercase tracking-widest opacity-60">{sub}</div>
       </div>
     </motion.button>
   );
