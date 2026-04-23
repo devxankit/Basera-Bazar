@@ -19,7 +19,7 @@ const baseListingSchemaConfig = {
 
 const serviceListingSchema = new mongoose.Schema({
   partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
-  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   title: { type: String, required: true },
   service_type: { type: String }, // e.g., Consultation, Repair, Maintenance
@@ -123,7 +123,7 @@ const supplierListingSchema = new mongoose.Schema({
   partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
   title: { type: String, required: true },
   description: { type: String },
-  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   brand_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' },
   pricing: {
@@ -150,7 +150,7 @@ const supplierListingSchema = new mongoose.Schema({
 
 const mandiListingSchema = new mongoose.Schema({
   partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
-  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   title: { type: String, required: true }, // e.g., "Premium Red Bricks"
   material_name: { type: String, required: true }, // e.g., "Bricks"

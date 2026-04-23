@@ -1,4 +1,5 @@
 const { ServiceListing, PropertyListing, SupplierListing, MandiListing } = require('../models/Listing');
+const { Category } = require('../models/System');
 const mongoose = require('mongoose');
 
 /**
@@ -230,27 +231,54 @@ const createServiceListing = async (req, res) => {
   try {
     const partnerId = req.user.id;
     const partnerPhone = req.user.phone;
-    const { title, description, category, shortDescription, experience, details, image, images, location_text, location } = req.body;
+    const { title, description, category, shortDescription, detailedDescription, experience, details, image, images, location_text, location, state, district, pincode } = req.body;
+
+    // Find the category ID by name
+    let category_id;
+    if (category) {
+      console.log(`Searching for category: "${category}" (type: service)`);
+      const catObj = await Category.findOne({ 
+        name: { $regex: new RegExp(`^${category}$`, 'i') },
+        type: 'service' 
+      });
+      category_id = catObj?._id;
+      console.log(`Found category_id: ${category_id}`);
+    }
 
     const newService = await ServiceListing.create({
       partner_id: partnerId,
-      phone: partnerPhone, // Added for robust fallback
+      category_id: category_id || null, // Will fail if required: true and null, so we handle it
       title,
-      description: description || shortDescription,
-      category,
+      short_description: shortDescription || description?.slice(0, 200),
+      full_description: detailedDescription || description,
       experience,
       details,
       image,
-      images,
-      location_text,
+      thumbnail: image,
+      portfolio_images: images || [],
+      address: {
+        state,
+        district,
+        full_address: location_text,
+        pincode
+      },
       location: location || { type: 'Point', coordinates: [0, 0] },
+      service_radius_km: 50, // Default 50km radius for services
       status: 'active'
     });
 
     res.status(201).json({ success: true, message: 'Service listing created successfully.', data: newService });
   } catch (error) {
-    console.error("Error creating service:", error);
-    res.status(500).json({ success: false, message: 'Server error creating service listing.' });
+    console.error("Error creating service listing:", error);
+    if (error.name === 'ValidationError') {
+      console.error("Validation Details:", error.errors);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Validation failed.', 
+        error: Object.values(error.errors).map(e => e.message).join(', ') 
+      });
+    }
+    res.status(500).json({ success: false, message: 'Server error creating service listing.', error: error.message });
   }
 };
 
@@ -262,25 +290,50 @@ const createServiceListing = async (req, res) => {
 const createSupplierListing = async (req, res) => {
   try {
     const partnerId = req.user.id;
-    const { title, description, category, details, image, images, location_text, location } = req.body;
+    const { title, description, category, details, image, images, location_text, location, state, district, pincode, pricing } = req.body;
+
+    // Find the category ID by name
+    let category_id;
+    if (category) {
+      const catObj = await Category.findOne({ 
+        name: { $regex: new RegExp(`^${category}$`, 'i') },
+        type: { $in: ['supplier', 'material', 'product'] } 
+      });
+      category_id = catObj?._id;
+    }
 
     const newSupplier = await SupplierListing.create({
       partner_id: partnerId,
+      category_id: category_id || null,
       title,
       description,
-      category,
       details,
       image,
       images,
-      location_text,
+      pricing: pricing || { price_per_unit: 0, min_order_qty: 1 },
+      address: {
+        state,
+        district,
+        full_address: location_text,
+        pincode
+      },
       location: location || { type: 'Point', coordinates: [0, 0] },
+      service_radius_km: 100, // Default 100km for suppliers
       status: 'active'
     });
 
     res.status(201).json({ success: true, message: 'Product listing created successfully.', data: newSupplier });
   } catch (error) {
     console.error("Error creating supplier listing:", error);
-    res.status(500).json({ success: false, message: 'Server error creating supplier listing.' });
+    if (error.name === 'ValidationError') {
+      console.error("Validation Details:", error.errors);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Validation failed.', 
+        error: Object.values(error.errors).map(e => e.message).join(', ') 
+      });
+    }
+    res.status(500).json({ success: false, message: 'Server error creating supplier listing.', error: error.message });
   }
 };
 
@@ -437,7 +490,6 @@ const getPublicBanners = async (req, res) => {
  */
 const getPublicCategories = async (req, res) => {
   try {
-    const { Category } = require('../models/System');
     const { type, parent_id } = req.query;
     
     const query = { is_active: true };
@@ -605,12 +657,53 @@ const deleteListing = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Partner creates a Mandi Listing
+ * @route   POST /api/listings/mandi
+ * @access  Private (Partner Token Required)
+ */
+const createMandiListing = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    const { title, material_name, category_id, description, thumbnail, pricing, stock_quantity, location, state, district, pincode } = req.body;
+
+    const newMandiItem = await MandiListing.create({
+      partner_id: partnerId,
+      category_id,
+      title,
+      material_name,
+      description,
+      thumbnail,
+      pricing: {
+        unit: pricing?.unit || 'Piece',
+        price_per_unit: Number(pricing?.price_per_unit || 0),
+        effective_date: Date.now()
+      },
+      stock_quantity: Number(stock_quantity || 0),
+      address: {
+        state,
+        district,
+        full_address: req.body.location_text,
+        pincode
+      },
+      location: location || { type: 'Point', coordinates: [0, 0] },
+      status: 'pending_approval'
+    });
+
+    res.status(201).json({ success: true, message: 'Material listed successfully. Pending approval.', data: newMandiItem });
+  } catch (error) {
+    console.error("Error creating Mandi listing:", error);
+    res.status(500).json({ success: false, message: 'Server error creating mandi listing.', error: error.message });
+  }
+};
+
 module.exports = {
   getNearbyServices,
   getMandiListings,
   createPropertyListing,
   createServiceListing,
   createSupplierListing,
+  createMandiListing,
   getListingById,
   getAllListings,
   getPublicBanners,

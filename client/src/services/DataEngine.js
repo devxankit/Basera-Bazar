@@ -221,8 +221,8 @@ class DataEngine {
 
       if (table === 'listings') {
         let endpoint = '/listings/properties';
-        if (item.category === 'service') endpoint = '/listings/services';
-        if (item.category === 'supplier') endpoint = '/listings/suppliers';
+        if (item.category === 'service' || item.listing_type === 'service') endpoint = '/listings/services';
+        if (item.category === 'supplier' || item.listing_type === 'supplier') endpoint = '/listings/suppliers';
 
         // Mapping for Property intention
         if (item.intention) {

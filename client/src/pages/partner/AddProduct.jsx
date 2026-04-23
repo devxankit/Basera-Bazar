@@ -256,7 +256,8 @@ export default function AddProduct() {
       // Prepare Payload (Images are already URLs now)
       const payload = {
         title: formData.title,
-        category: 'supplier',
+        listing_type: 'supplier',
+        category: formData.category, // Material Category Name
         sub_category: formData.category,
         brand: formData.brand,
         price: {

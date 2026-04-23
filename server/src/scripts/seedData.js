@@ -73,9 +73,28 @@ const seedData = async () => {
     const servCat = await Category.create({ name: 'Services', slug: 'services', type: 'service' });
     const maintServ = await Category.create({ name: 'Maintenance', slug: 'maintenance', type: 'service', parent_id: servCat._id });
     const constServ = await Category.create({ name: 'Construction', slug: 'construction', type: 'service', parent_id: servCat._id });
-    const elecServ = await Category.create({ name: 'Electrician', slug: 'electrician', type: 'service', parent_id: maintServ._id });
-    const plumbServ = await Category.create({ name: 'Plumber', slug: 'plumber', type: 'service', parent_id: maintServ._id });
-    const archServ = await Category.create({ name: 'Architect', slug: 'architect', type: 'service', parent_id: constServ._id });
+    const homeServ = await Category.create({ name: 'Home Services', slug: 'home-services', type: 'service', parent_id: servCat._id });
+
+    // Individual Service Categories (Matching AddService.jsx)
+    await Category.insertMany([
+      { name: 'AC maintenance', slug: 'ac-maintenance', type: 'service', parent_id: maintServ._id },
+      { name: 'CCTV Services', slug: 'cctv-services', type: 'service', parent_id: maintServ._id },
+      { name: 'Architect', slug: 'architect', type: 'service', parent_id: constServ._id },
+      { name: 'Carpenter', slug: 'carpenter', type: 'service', parent_id: homeServ._id },
+      { name: 'Civil Engineer', slug: 'civil-engineer', type: 'service', parent_id: constServ._id },
+      { name: 'Electrician', slug: 'electrician', type: 'service', parent_id: maintServ._id },
+      { name: 'Interior Designer', slug: 'interior-designer', type: 'service', parent_id: homeServ._id },
+      { name: 'Lift Installation', slug: 'lift-installation', type: 'service', parent_id: constServ._id },
+      { name: 'packers and movers', slug: 'packers-movers', type: 'service', parent_id: homeServ._id },
+      { name: 'Painter', slug: 'painter', type: 'service', parent_id: homeServ._id },
+      { name: 'Plumber', slug: 'plumber', type: 'service', parent_id: maintServ._id },
+      { name: 'Surveyor Ameen', slug: 'surveyor-ameen', type: 'service', parent_id: constServ._id },
+      { name: 'Vastu Consultant', slug: 'vastu-consultant', type: 'service', parent_id: homeServ._id }
+    ]);
+
+    // Fetch some IDs for later seeding
+    const elecServ = await Category.findOne({ name: 'Electrician' });
+    const archServ = await Category.findOne({ name: 'Architect' });
 
     // Products/Materials
     const prodCat = await Category.create({ name: 'Products', slug: 'products', type: 'product' });

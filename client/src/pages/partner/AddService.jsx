@@ -195,7 +195,8 @@ export default function AddService() {
       // 2. Prepare Payload
       const payload = {
         ...formData,
-        category: 'service',
+        listing_type: 'service', // Use a different field for internal type
+        category: formData.category, // Keep the actual service category name
         image: thumbnailUrl,
         images: portfolioUrls,
         title: formData.serviceName,
