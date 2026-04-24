@@ -74,7 +74,7 @@ const BannerCarousel = () => {
 
   return (
     <div 
-      className="relative w-full overflow-hidden rounded-[28px] group shadow-xl shadow-slate-200 bg-slate-100 border border-white"
+      className="relative w-full overflow-hidden rounded-2xl group bg-slate-100 border border-white"
       style={{ aspectRatio: '21/10' }}
     >
       <AnimatePresence initial={false}>
@@ -105,8 +105,7 @@ const BannerCarousel = () => {
               loading="eager"
             />
           )}
-          {/* Overlay for better text/indicator contrast */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
+          {/* Internal gradient removed per user request */}
         </motion.div>
       </AnimatePresence>
       

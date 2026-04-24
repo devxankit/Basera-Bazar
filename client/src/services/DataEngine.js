@@ -29,42 +29,80 @@ class DataEngine {
       id: item._id || item.id
     };
 
-    // Normalize Pricing
-    if (item.pricing && (item.pricing.amount !== undefined || item.pricing.price_per_unit !== undefined)) {
-      normalized.price = {
-        value: item.pricing.amount || item.pricing.price_per_unit || 0,
-        unit: item.pricing.unit || '',
-        currency: item.pricing.currency || 'INR'
+    // Check if this is a partner object (Supplier)
+    if (item.roles || item.partner_type) {
+      const profile = item.profile || {};
+      const businessName = profile.supplier_profile?.business_name || 
+                          profile.mandi_profile?.business_name || 
+                          item.name;
+
+      normalized.title = businessName;
+      normalized.businessName = businessName;
+      normalized.category = 'supplier';
+      normalized.image = profile.business_logo || item.profileImage || "https://cdn-icons-png.flaticon.com/512/3119/3119338.png";
+      normalized.price = { value: 0, unit: 'Contact for Quote', currency: 'INR' };
+      normalized.isPartner = true;
+
+      // For partners, the "owner" is the partner itself
+      normalized.owner = {
+        id: item._id || item.id,
+        name: item.name,
+        phone: item.phone,
+        email: item.email,
+        profileImage: item.profileImage || profile.mandi_profile?.business_logo,
+        experience: profile.supplier_profile?.delivery_radius_km ? `${profile.supplier_profile.delivery_radius_km}km Radius` : 'Verified Supplier',
+        role: item.active_role || item.partner_type || 'Supplier',
+        location: item.district && item.state ? `${item.district}, ${item.state}` : (item.city ? `${item.city}, ${item.state}` : 'Muzaffarpur, Bihar'),
+        memberSince: item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'N/A',
+        contactPerson: item.name
+      };
+      
+      // Also map some fields to the root for consistency
+      normalized.location = normalized.owner.location;
+      
+      const materials = profile.supplier_profile?.material_categories;
+      normalized.details = {
+        skuCount: 0, 
+        propertyType: (materials && materials.length > 0) ? materials.join(', ') : 'Building Materials'
       };
     } else {
-      normalized.price = { value: 0, unit: 'Contact for Price', currency: 'INR' };
-    }
+      // Normalize Pricing for listings
+      if (item.pricing && (item.pricing.amount !== undefined || item.pricing.price_per_unit !== undefined)) {
+        normalized.price = {
+          value: item.pricing.amount || item.pricing.price_per_unit || 0,
+          unit: item.pricing.unit || '',
+          currency: item.pricing.currency || 'INR'
+        };
+      } else {
+        normalized.price = { value: 0, unit: 'Contact for Price', currency: 'INR' };
+      }
 
-    // Normalize Images
-    if (!normalized.image) {
-      normalized.image = item.thumbnail || (item.images && item.images[0]) || (item.portfolio_images && item.portfolio_images[0]);
-    }
+      // Normalize Images
+      if (!normalized.image) {
+        normalized.image = item.thumbnail || (item.images && item.images[0]) || (item.portfolio_images && item.portfolio_images[0]);
+      }
 
-    // Normalize Category (CRITICAL FOR ENQUIRIES)
-    // Identify category based on unique structural markers in the document
-    if (item.category) {
-      normalized.category = item.category;
-    } else if (item.listing_type || item.listing_intent || item.property_type) {
-      normalized.category = 'property';
-      normalized.serviceType = item.property_type || item.listing_type || 'Property';
-    } else if (item.service_type || item.portfolio_images || item.years_of_experience !== undefined) {
-      normalized.category = 'service';
-    } else if (item.material_name || item.quality_grade) {
-      normalized.category = 'mandi';
-    } else if (item.pricing?.min_order_qty || item.brand_id) {
-      normalized.category = 'supplier';
-    } else {
-      normalized.category = 'property'; // default fallback
+      // Normalize Category (CRITICAL FOR ENQUIRIES)
+      // Identify category based on unique structural markers in the document
+      if (item.category) {
+        normalized.category = item.category;
+      } else if (item.listing_type || item.listing_intent || item.property_type) {
+        normalized.category = 'property';
+        normalized.serviceType = item.property_type || item.listing_type || 'Property';
+      } else if (item.service_type || item.portfolio_images || item.years_of_experience !== undefined) {
+        normalized.category = 'service';
+      } else if (item.material_name || item.quality_grade) {
+        normalized.category = 'mandi';
+      } else if (item.pricing?.min_order_qty || item.brand_id) {
+        normalized.category = 'supplier';
+      } else {
+        normalized.category = 'property'; // default fallback
+      }
     }
 
     // Normalize Location Display (PREVENTS OBJECT INJECTION CRASH)
-    const district = item.address?.district || item.location_text?.split(',')[0];
-    const state = item.address?.state || item.location_text?.split(',')[1];
+    const district = item.district || item.address?.district || item.location_text?.split(',')[0];
+    const state = item.state || item.address?.state || item.location_text?.split(',')[1];
     
     normalized.display_location = district && state 
       ? `${district}, ${state}` 
@@ -143,13 +181,19 @@ class DataEngine {
 
   async getAll(table, params = {}) {
     try {
+      const queryParams = new URLSearchParams(params).toString();
+
       // Mapping table names to backend routes
       if (table === 'listings') {
-        const queryParams = new URLSearchParams(params).toString();
         const response = await api.get(`/listings?${queryParams}`);
         return (response.data.data || []).map(this._normalize).filter(Boolean);
       }
       
+      if (table === 'partners') {
+        const response = await api.get(`/partners/public?${queryParams}`);
+        return (response.data.data || []).map(this._normalize).filter(Boolean);
+      }
+
       if (table === 'banners') {
         const response = await api.get('/listings/banners');
         return (response.data.data || []).map(this._normalize.bind(this)).filter(Boolean);
@@ -171,6 +215,10 @@ class DataEngine {
     try {
       if (table === 'listings') {
         const response = await api.get(`/listings/${id}`);
+        return this._normalize(response.data.data);
+      }
+      if (table === 'partners') {
+        const response = await api.get(`/partners/public/${id}`);
         return this._normalize(response.data.data);
       }
       return null;

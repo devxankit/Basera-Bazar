@@ -3,9 +3,9 @@ const { Partner } = require('../models/Partner');
 const { Enquiry } = require('../models/Enquiry');
 const { AuditLog, AdminUser } = require('../models/Admin');
 const { User } = require('../models/User');
-const { PropertyListing, ServiceListing, SupplierListing, MandiListing } = require('../models/Listing');
+const { PropertyListing, ServiceListing, MandiListing } = require('../models/Listing');
 const { Transaction, SubscriptionPlan } = require('../models/Finance');
-const { Category, Brand, Unit, ProductName, Banner, AppConfig } = require('../models/System');
+const { Category, Banner, AppConfig } = require('../models/System');
 const { ActivityLog, logActivity } = require('../utils/activityLogger');
 const { createNotification } = require('../utils/notificationHelper');
 
@@ -146,14 +146,12 @@ const getDashboardStats = async (req, res) => {
       adminCollectionCounts,
       totalProperties,
       totalServices,
-      totalProducts,
       totalRevenueData,
       registrationTrendsUser,
       registrationTrendsPartner,
       registrationTrendsAdmin,
       pendingProperties,
       pendingServices,
-      pendingProducts,
       adminSummary,
       partnerSummary,
       userSummary
@@ -164,7 +162,6 @@ const getDashboardStats = async (req, res) => {
       AdminUser.countDocuments(),
       PropertyListing.countDocuments({ status: 'active' }),
       ServiceListing.countDocuments({ status: 'active' }),
-      SupplierListing.countDocuments({ status: 'active' }),
       Transaction.aggregate([
         { $match: { status: 'success' } },
         { $group: { _id: null, total: { $sum: "$amount" } } }
@@ -185,7 +182,6 @@ const getDashboardStats = async (req, res) => {
       // High Priority queues
       PropertyListing.find({ status: 'pending_approval' }).populate('partner_id', 'name').sort({ createdAt: -1 }).limit(5),
       ServiceListing.find({ status: 'pending_approval' }).populate('partner_id', 'name').sort({ createdAt: -1 }).limit(5),
-      SupplierListing.find({ status: 'pending_approval' }).populate('partner_id', 'name').sort({ createdAt: -1 }).limit(5),
       // Distribution Summary
       AdminUser.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]),
       Partner.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]),
@@ -277,8 +273,7 @@ const getDashboardStats = async (req, res) => {
         pending: {
           properties: pendingProperties,
           others: [
-            ...pendingServices.map(s => ({ ...s.toObject(), type: 'Service' })),
-            ...pendingProducts.map(p => ({ ...p.toObject(), type: 'Product' }))
+            ...pendingServices.map(s => ({ ...s.toObject(), type: 'Service' }))
           ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5)
         }
       }
@@ -419,13 +414,12 @@ const getUserDetail = async (req, res) => {
         const [pUsed, sUsed, supUsed, fpUsed, fsUsed, eUsed] = await Promise.all([
           PropertyListing.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } }),
           ServiceListing.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } }),
-          SupplierListing.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } }),
           PropertyListing.countDocuments({ partner_id: id, is_featured: true, createdAt: { $gte: startDate, $lte: endDate } }),
           ServiceListing.countDocuments({ partner_id: id, is_featured: true, createdAt: { $gte: startDate, $lte: endDate } }),
           Enquiry.countDocuments({ partner_id: id, createdAt: { $gte: startDate, $lte: endDate } })
         ]);
 
-        const totalListingsUsed = pUsed + sUsed + supUsed;
+        const totalListingsUsed = pUsed + sUsed;
         const totalFeaturedUsed = fpUsed + fsUsed;
 
         calculatedSubscription = { ...effectiveSub };
@@ -1955,156 +1949,7 @@ const getCategoryDetail = async (req, res) => {
   }
 };
 
-// BRANDS
-const getBrands = async (req, res) => {
-  try {
-    const { include_inactive } = req.query;
-    const query = include_inactive === 'true' ? {} : { is_active: true };
-    const brands = await Brand.find(query).sort({ name: 1 });
-    res.status(200).json({ success: true, count: brands.length, data: brands });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
 
-const getBrandById = async (req, res) => {
-  try {
-    const brand = await Brand.findById(req.params.id);
-    if (!brand) return res.status(404).json({ success: false, message: 'Brand not found' });
-
-    // Fetch associated product names
-    const productNames = await ProductName.find({ brand_id: req.params.id })
-      .populate('category_id', 'name')
-      .sort({ name: 1 });
-
-    res.status(200).json({
-      success: true,
-      data: {
-        ...brand.toObject(),
-        productNameCount: productNames.length,
-        productNames
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const createBrand = async (req, res) => {
-  try {
-    const brand = await Brand.create(req.body);
-    res.status(201).json({ success: true, data: brand });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const updateBrand = async (req, res) => {
-  try {
-    const brand = await Brand.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!brand) return res.status(404).json({ success: false, message: 'Brand not found' });
-    res.status(200).json({ success: true, data: brand });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const deleteBrand = async (req, res) => {
-  try {
-    const brand = await Brand.findByIdAndDelete(req.params.id);
-    if (!brand) return res.status(404).json({ success: false, message: 'Brand not found' });
-    res.status(200).json({ success: true, message: 'Brand removed from database' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// UNITS
-const getUnits = async (req, res) => {
-  try {
-    const { include_inactive } = req.query;
-    const query = include_inactive === 'true' ? {} : { is_active: true };
-    const units = await Unit.find(query).sort({ name: 1 });
-    res.status(200).json({ success: true, count: units.length, data: units });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const getUnitById = async (req, res) => {
-  try {
-    const unit = await Unit.findById(req.params.id);
-    if (!unit) return res.status(404).json({ success: false, message: 'Unit not found' });
-
-    // Count and fetch product names using this unit
-    const productNames = await ProductName.find({ unit_id: req.params.id })
-      .populate('category_id', 'name')
-      .sort({ name: 1 });
-
-    res.status(200).json({
-      success: true,
-      data: {
-        ...unit.toObject(),
-        productNameCount: productNames.length,
-        productNames
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const createUnit = async (req, res) => {
-  try {
-    const unit = await Unit.create(req.body);
-    res.status(201).json({ success: true, data: unit });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const updateUnit = async (req, res) => {
-  try {
-    const unit = await Unit.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-    if (!unit) return res.status(404).json({ success: false, message: 'Unit not found' });
-    res.status(200).json({ success: true, data: unit });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const deleteUnit = async (req, res) => {
-  try {
-    const unit = await Unit.findByIdAndDelete(req.params.id);
-    if (!unit) return res.status(404).json({ success: false, message: 'Unit not found' });
-    res.status(200).json({ success: true, message: 'Unit deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-
-// PRODUCT NAMES (Exact Hierarchy: Product Name > Brand > Category)
-const getProductNames = async (req, res) => {
-  try {
-    const names = await ProductName.find({ is_active: true })
-      .populate('category_id', 'name')
-      .populate('brand_id', 'name')
-      .sort({ name: 1 });
-    res.status(200).json({ success: true, data: names });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const createProductName = async (req, res) => {
-  try {
-    const name = await ProductName.create(req.body);
-    res.status(201).json({ success: true, data: name });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
 
 // BANNERS
 const getBanners = async (req, res) => {
@@ -2538,18 +2383,7 @@ module.exports = {
   updateListingStatus,
   updateListing,
   deleteListing,
-  getBrands,
-  getBrandById,
-  createBrand,
-  updateBrand,
-  deleteBrand,
-  getUnits,
-  getUnitById,
-  createUnit,
-  updateUnit,
-  deleteUnit,
-  getProductNames,
-  createProductName,
+
   getBanners,
   getBannerById,
   createBanner,

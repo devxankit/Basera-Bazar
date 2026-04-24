@@ -28,33 +28,6 @@ const categorySchema = new mongoose.Schema({
   is_active: { type: Boolean, default: true }
 }, { timestamps: true });
 
-const brandSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  logo: { type: String },
-  is_active: { type: Boolean, default: true }
-}, { timestamps: true });
-
-const unitSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true }, // e.g., 'Kilogram', 'Piece', 'Square Feet'
-  abbreviation: { type: String, required: true },        // e.g., 'kg', 'pc', 'sqft'
-  unit_type: {
-    type: String,
-    enum: ['Weight', 'Volume', 'Count', 'Length', 'Area', 'Other'],
-    default: 'Other'
-  },
-  description: { type: String, default: '' },
-  is_active: { type: Boolean, default: true }
-}, { timestamps: true });
-
-const productNameSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
-  subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
-  brand_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' },
-  unit_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
-  is_active: { type: Boolean, default: true }
-}, { timestamps: true });
-
 const bannerSchema = new mongoose.Schema({
   title: { type: String },
   image_url: { type: String, required: true },
@@ -96,9 +69,6 @@ const appConfigSchema = new mongoose.Schema({
 
 module.exports = {
   Category: mongoose.model('Category', categorySchema),
-  Brand: mongoose.model('Brand', brandSchema),
-  Unit: mongoose.model('Unit', unitSchema),
-  ProductName: mongoose.model('ProductName', productNameSchema),
   Banner: mongoose.model('Banner', bannerSchema),
   Location: mongoose.model('Location', locationSchema),
   Notification: mongoose.model('Notification', notificationSchema),

@@ -173,13 +173,7 @@ export default function AdminDashboard() {
       color: 'bg-emerald-100 text-emerald-600', 
       badge: { text: '0%', color: 'bg-slate-500 text-white', subtext: 'Since last month' } 
     },
-    { 
-      title: 'Products Listed', 
-      value: data.products || '0', 
-      icon: ShoppingBag, 
-      color: 'bg-cyan-100 text-cyan-600', 
-      badge: { text: 'Active', color: 'bg-slate-500 text-white', icon: Activity, subtext: 'Total count' } 
-    },
+
     { 
       title: 'Services Listed', 
       value: data.services || '0', 
@@ -219,7 +213,9 @@ export default function AdminDashboard() {
 
   const quickActions = [
     { title: 'Manage Users', desc: 'Add, edit, or remove user accounts', icon: UserCog, color: 'bg-slate-100 text-slate-900', path: '/admin/users' },
-    { title: 'Manage Properties', desc: 'Review and approve property listings', icon: Building2, color: 'bg-emerald-50 text-emerald-600', path: '/admin/properties' },
+    { title: 'Manage Suppliers', desc: 'Review and verify supplier profiles', icon: Briefcase, color: 'bg-indigo-50 text-indigo-600', path: '/admin/suppliers' },
+    { title: 'Mandi Bazar', desc: 'Manage mandi sellers and products', icon: ShoppingBag, color: 'bg-rose-50 text-rose-600', path: '/admin/mandi-bazar/sellers' },
+    { title: 'Properties', desc: 'Review and approve property listings', icon: Building2, color: 'bg-emerald-50 text-emerald-600', path: '/admin/properties' },
     { title: 'Subscription Plans', desc: 'Manage subscription packages', icon: Crown, color: 'bg-orange-50 text-orange-500', path: '/admin/subscriptions/plans' },
     { title: 'User Subscriptions', desc: 'Monitor active subscriptions', icon: CreditCard, color: 'bg-cyan-50 text-cyan-500', path: '/admin/subscriptions' },
   ];  const registrationData = data.analytics?.chartData || [];
@@ -247,7 +243,7 @@ export default function AdminDashboard() {
   // Map entity_type → icon for the activity table
   const ACTIVITY_ICON_MAP = {
     user: Users, partner: Users, property: Building2,
-    service: Briefcase, supplier: ShoppingBag, product: ShoppingBag,
+    service: Briefcase,
     enquiry: MessageSquare,
     category: MessageSquare, subcategory: MessageSquare,
     banner: Activity, subscription: CreditCard, system: Activity

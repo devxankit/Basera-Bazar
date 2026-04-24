@@ -31,7 +31,6 @@ import PartnerProfile from './pages/partner/PartnerProfile';
 import PartnerSubscription from './pages/partner/PartnerSubscription';
 import AddService from './pages/partner/AddService';
 import AddProperty from './pages/partner/AddProperty';
-import AddProduct from './pages/partner/AddProduct';
 import PartnerLayout from './components/layout/PartnerLayout';
 import PartnerServiceDetails from './pages/partner/PartnerServiceDetails';
 import PartnerHelp from './pages/partner/PartnerHelp';
@@ -52,7 +51,7 @@ import AdminPropertyDetails from './pages/admin/AdminPropertyDetails';
 import AdminServices from './pages/admin/AdminServices';
 import AdminServiceForm from './pages/admin/AdminServiceForm';
 import AdminServiceDetails from './pages/admin/AdminServiceDetails';
-import AdminProducts from './pages/admin/AdminProducts';
+
 import AdminLeads from './pages/admin/AdminLeads';
 import AdminLeadDetails from './pages/admin/AdminLeadDetails';
 import AdminEditProfile from './pages/admin/AdminEditProfile';
@@ -70,15 +69,7 @@ import AdminPropertySubcategories from './pages/admin/AdminPropertySubcategories
 import AdminServiceCategories from './pages/admin/AdminServiceCategories';
 import AdminServiceSubcategories from './pages/admin/AdminServiceSubcategories';
 import AdminSupplierCategories from './pages/admin/AdminSupplierCategories';
-import AdminProductCategories from './pages/admin/AdminProductCategories';
-import AdminProductSubcategories from './pages/admin/AdminProductSubcategories';
-import AdminProductUnits from './pages/admin/AdminProductUnits';
-import AdminUnitForm from './pages/admin/AdminUnitForm';
-import AdminUnitDetails from './pages/admin/AdminUnitDetails';
-import AdminBrands from './pages/admin/AdminBrands';
-import AdminBrandForm from './pages/admin/AdminBrandForm';
-import AdminBrandDetails from './pages/admin/AdminBrandDetails';
-import AdminProductNames from './pages/admin/AdminProductNames';
+
 import AdminBanners from './pages/admin/AdminBanners';
 import AdminBannerForm from './pages/admin/AdminBannerForm';
 import AdminBannerDetails from './pages/admin/AdminBannerDetails';
@@ -89,7 +80,7 @@ import AdminCategoryDetails from './pages/admin/AdminCategoryDetails';
 import AdminSubscriptionDetails from './pages/admin/AdminSubscriptionDetails';
 
 
-import AdminProductDetails from './pages/admin/AdminProductDetails';
+
 import AdminSuppliers from './pages/admin/AdminSuppliers';
 import AdminMandiSellers from './pages/admin/AdminMandiSellers';
 import AdminPartnerVerification from './pages/admin/AdminPartnerVerification';
@@ -260,11 +251,7 @@ function App() {
                 <PartnerInventory />
               </PartnerLayout>
             } />
-            <Route path="/partner/products" element={
-              <PartnerLayout>
-                <PartnerInventory />
-              </PartnerLayout>
-            } />
+
             <Route path="/partner/leads" element={
               <PartnerLayout>
                 <PartnerInquiries />
@@ -282,7 +269,7 @@ function App() {
             } />
             <Route path="/partner/add-service" element={<AddService />} />
             <Route path="/partner/add-property" element={<AddProperty />} />
-            <Route path="/partner/add-product" element={<AddProduct />} />
+
             <Route path="/partner/service-details/:id" element={<PartnerServiceDetails />} />
             <Route path="/partner/lead-details/:id" element={<PartnerLeadDetails />} />
             <Route path="/partner/help" element={<PartnerHelp />} />
@@ -458,21 +445,7 @@ function App() {
               </AdminRoute>
             } />
 
-            <Route path="/admin/products" element={
-              <AdminRoute>
-                <AdminLayout>
-                  <AdminProducts />
-                </AdminLayout>
-              </AdminRoute>
-            } />
 
-            <Route path="/admin/products/view/:id" element={
-              <AdminRoute>
-                <AdminLayout>
-                  <AdminProductDetails />
-                </AdminLayout>
-              </AdminRoute>
-            } />
 
             <Route path="/admin/suppliers" element={
               <AdminRoute>
@@ -597,48 +570,7 @@ function App() {
                 </AdminLayout>
               </AdminRoute>
             } />
-            <Route path="/admin/products/categories" element={
-              <AdminRoute>
-                <AdminLayout>
-                  <AdminProductCategories />
-                </AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/subcategories" element={
-              <AdminRoute>
-                <AdminLayout>
-                  <AdminProductSubcategories />
-                </AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/categories/view/:id" element={
-              <AdminRoute>
-                <AdminLayout>
-                  <AdminCategoryDetails />
-                </AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/subcategories/view/:id" element={
-              <AdminRoute>
-                <AdminLayout>
-                  <AdminCategoryDetails />
-                </AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/categories/add" element={
-              <AdminRoute>
-                <AdminLayout>
-                  <AdminCategoryForm />
-                </AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/categories/edit/:id" element={
-              <AdminRoute>
-                <AdminLayout>
-                  <AdminCategoryForm />
-                </AdminLayout>
-              </AdminRoute>
-            } />
+
             <Route path="/admin/suppliers/categories/add" element={
               <AdminRoute>
                 <AdminLayout>
@@ -660,53 +592,7 @@ function App() {
                 </AdminLayout>
               </AdminRoute>
             } />
-            <Route path="/admin/products/units" element={
-              <AdminRoute>
-                <AdminLayout><AdminProductUnits /></AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/units/add" element={
-              <AdminRoute>
-                <AdminLayout><AdminUnitForm /></AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/units/edit/:id" element={
-              <AdminRoute>
-                <AdminLayout><AdminUnitForm /></AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/units/view/:id" element={
-              <AdminRoute>
-                <AdminLayout><AdminUnitDetails /></AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/brands" element={
-              <AdminRoute>
-                <AdminLayout><AdminBrands /></AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/brands/add" element={
-              <AdminRoute>
-                <AdminLayout><AdminBrandForm /></AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/brands/edit/:id" element={
-              <AdminRoute>
-                <AdminLayout><AdminBrandForm /></AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/brands/view/:id" element={
-              <AdminRoute>
-                <AdminLayout><AdminBrandDetails /></AdminLayout>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/names" element={
-              <AdminRoute>
-                <AdminLayout>
-                  <AdminProductNames />
-                </AdminLayout>
-              </AdminRoute>
-            } />
+
 
             {/* Subscriptions & Reports */}
             <Route path="/admin/subscriptions" element={

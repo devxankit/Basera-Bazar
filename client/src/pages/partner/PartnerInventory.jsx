@@ -72,14 +72,7 @@ export default function PartnerInventory() {
         icon: <Briefcase size={120} className="text-slate-200" />
       };
     }
-    if (actualRole.includes('supplier')) {
-      return {
-        title: 'My Products',
-        item: 'product',
-        plural: 'products',
-        icon: <Package size={120} className="text-slate-200" />
-      };
-    }
+
     
     return {
       title: 'My Listings',
@@ -97,8 +90,6 @@ export default function PartnerInventory() {
       navigate('/partner/add-service');
     } else if (role.includes('agent') || role.includes('property')) {
       navigate('/partner/add-property');
-    } else if (role.includes('supplier')) {
-      navigate('/partner/add-product');
     } else if (role.includes('mandi')) {
       navigate('/partner/add-mandi-product');
     } else {
@@ -326,29 +317,31 @@ export default function PartnerInventory() {
         )}
       </main>
 
-      {/* Floating Action Button */}
-      <div className="fixed bottom-36 left-1/2 -translate-x-1/2 w-full max-w-md px-6 pointer-events-none z-[70]">
-        <div className="flex justify-end pointer-events-auto">
-          <button 
-            onClick={() => {
-              if (!partner.is_active) {
-                alert("Your account is disabled. Complete KYC to start listing.");
-                return;
-              }
-              handleAddAction();
-            }}
-            disabled={!partner.is_active}
-            className={`p-4 xs:p-5 rounded-xl xs:rounded-2xl shadow-2xl flex items-center gap-3 active:scale-90 transition-all font-bold uppercase tracking-widest ${
-              !partner.is_active 
-                ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' 
-                : 'bg-[#001b4e] text-white'
-            }`}
-          >
-            <Plus size={22} />
-            <span className="text-[13px] xs:text-[14px]">Add {labels.item}</span>
-          </button>
+      {/* Floating Action Button - Hidden for Suppliers */}
+      {!actualRole.includes('supplier') && (
+        <div className="fixed bottom-36 left-1/2 -translate-x-1/2 w-full max-w-md px-6 pointer-events-none z-[70]">
+          <div className="flex justify-end pointer-events-auto">
+            <button 
+              onClick={() => {
+                if (!partner.is_active) {
+                  alert("Your account is disabled. Complete KYC to start listing.");
+                  return;
+                }
+                handleAddAction();
+              }}
+              disabled={!partner.is_active}
+              className={`p-4 xs:p-5 rounded-xl xs:rounded-2xl shadow-2xl flex items-center gap-3 active:scale-90 transition-all font-bold uppercase tracking-widest ${
+                !partner.is_active 
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' 
+                  : 'bg-[#001b4e] text-white'
+              }`}
+            >
+              <Plus size={22} />
+              <span className="text-[13px] xs:text-[14px]">Add {labels.item}</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

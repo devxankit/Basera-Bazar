@@ -1,5 +1,5 @@
 const { Partner } = require('../models/Partner');
-const { ServiceListing, PropertyListing, SupplierListing } = require('../models/Listing');
+const { ServiceListing, PropertyListing } = require('../models/Listing');
 const { Enquiry } = require('../models/Enquiry');
 
 /**
@@ -119,7 +119,7 @@ const getPartnerStats = async (req, res) => {
     const modelMap = {
       'property_agent': PropertyListing,
       'service_provider': ServiceListing,
-      'supplier': SupplierListing
+      'supplier': null // Suppliers no longer have individual listings to track stats for
     };
 
     const partner = await Partner.findById(partnerId);
@@ -127,12 +127,16 @@ const getPartnerStats = async (req, res) => {
 
     const ListingModel = modelMap[partner.active_role || partner.partner_type] || PropertyListing;
 
-    const [total, active, pending, featured] = await Promise.all([
-      ListingModel.countDocuments({ partner_id: partnerId }),
-      ListingModel.countDocuments({ partner_id: partnerId, status: 'active' }),
-      ListingModel.countDocuments({ partner_id: partnerId, status: 'pending_approval' }),
-      ListingModel.countDocuments({ partner_id: partnerId, is_featured: true })
-    ]);
+    let total = 0, active = 0, pending = 0, featured = 0;
+    if (ListingModel) {
+      const stats = await Promise.all([
+        ListingModel.countDocuments({ partner_id: partnerId }),
+        ListingModel.countDocuments({ partner_id: partnerId, status: 'active' }),
+        ListingModel.countDocuments({ partner_id: partnerId, status: 'pending_approval' }),
+        ListingModel.countDocuments({ partner_id: partnerId, is_featured: true })
+      ]);
+      [total, active, pending, featured] = stats;
+    }
 
     // 2. Get Inquiry/Leads Stats
     const [totalLeads, unreadLeads] = await Promise.all([
@@ -373,11 +377,85 @@ const switchRole = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get public partner profiles for discovery
+ * @route   GET /api/partners/public
+ * @access  Public
+ */
+const getPublicPartners = async (req, res) => {
+  try {
+    const { category, search, district, state } = req.query;
+
+    const query = {
+      is_active: true,
+      onboarding_status: 'approved'
+    };
+
+    // Filter by role/type
+    if (category) {
+      // If we are looking for suppliers, check both roles array and partner_type
+      query.$or = [
+        { roles: category },
+        { partner_type: category }
+      ];
+    }
+
+    // Filter by location
+    if (district) query.district = new RegExp(district, 'i');
+    if (state) query.state = new RegExp(state, 'i');
+
+    // Search by name or business name
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      query.$or = [
+        ...(query.$or || []),
+        { name: searchRegex },
+        { 'profile.supplier_profile.business_name': searchRegex },
+        { 'profile.mandi_profile.business_name': searchRegex }
+      ];
+    }
+
+    const partners = await Partner.find(query).limit(50);
+
+    res.status(200).json({
+      success: true,
+      data: partners
+    });
+  } catch (error) {
+    console.error("Error fetching public partners:", error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+/**
+ * @desc    Get a single public partner profile
+ * @route   GET /api/partners/public/:id
+ * @access  Public
+ */
+const getPublicPartnerById = async (req, res) => {
+  try {
+    const partner = await Partner.findById(req.params.id);
+    if (!partner || !partner.is_active) {
+      return res.status(404).json({ success: false, message: 'Partner not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: partner
+    });
+  } catch (error) {
+    console.error("Error fetching public partner by id:", error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 module.exports = {
   onboardPartner,
   getMyPartnerProfile,
   getPartnerStats,
   addRole,
   switchRole,
-  deleteRole
+  deleteRole,
+  getPublicPartners,
+  getPublicPartnerById
 };

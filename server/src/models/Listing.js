@@ -119,35 +119,6 @@ const propertyListingSchema = new mongoose.Schema({
   deleted_at: { type: Date, default: null }
 }, baseListingSchemaConfig);
 
-const supplierListingSchema = new mongoose.Schema({
-  partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
-  title: { type: String, required: true },
-  description: { type: String },
-  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
-  subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
-  brand_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' },
-  pricing: {
-    unit_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
-    price_per_unit: { type: Number, required: true }, // Whole rupees
-    min_order_qty: { type: Number, required: true },
-    bulk_discount_available: { type: Boolean, default: false }
-  },
-  location: { type: pointSchema, required: true },
-  service_radius_km: { type: Number, required: true },
-  status: {
-    type: String,
-    enum: ['draft', 'pending_approval', 'active', 'out_of_stock', 'inactive', 'suspended', 'rejected', 'deleted'],
-    default: 'draft'
-  },
-  stats: {
-    views: { type: Number, default: 0 },
-    enquiries: { type: Number, default: 0 },
-    calls: { type: Number, default: 0 },
-    whatsapp_clicks: { type: Number, default: 0 }
-  },
-  deleted_at: { type: Date, default: null }
-}, baseListingSchemaConfig);
-
 const mandiListingSchema = new mongoose.Schema({
   partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
   category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
@@ -188,10 +159,6 @@ propertyListingSchema.index({ location: '2dsphere' });
 propertyListingSchema.index({ status: 1, createdAt: -1 });
 propertyListingSchema.index({ partner_id: 1, status: 1 });
 
-supplierListingSchema.index({ location: '2dsphere' });
-supplierListingSchema.index({ status: 1, createdAt: -1 });
-supplierListingSchema.index({ partner_id: 1, status: 1 });
-
 mandiListingSchema.index({ location: '2dsphere' });
 mandiListingSchema.index({ 'pricing.effective_date': -1 });
 mandiListingSchema.index({ status: 1, createdAt: -1 });
@@ -199,6 +166,5 @@ mandiListingSchema.index({ status: 1, createdAt: -1 });
 module.exports = {
   ServiceListing: mongoose.model('ServiceListing', serviceListingSchema),
   PropertyListing: mongoose.model('PropertyListing', propertyListingSchema),
-  SupplierListing: mongoose.model('SupplierListing', supplierListingSchema),
   MandiListing: mongoose.model('MandiListing', mandiListingSchema)
 };

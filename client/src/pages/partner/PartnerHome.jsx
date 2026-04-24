@@ -80,7 +80,8 @@ export default function PartnerHome() {
   const getAddActionLabel = () => {
     if (actualRole.includes('agent')) return 'Property';
     if (actualRole.includes('service')) return 'Service';
-    return 'Product';
+    if (actualRole.includes('mandi')) return 'Material';
+    return 'Listing';
   };
 
   const [recentActivities, setRecentActivities] = useState([]);
@@ -158,20 +159,22 @@ export default function PartnerHome() {
                 Account is active. Start listing now.
               </p>
               
-              <button 
-                onClick={() => {
-                  if (actualRole.includes('agent')) navigate('/partner/add-property');
-                  else if (actualRole.includes('supplier')) navigate('/partner/add-product');
-                  else if (actualRole.includes('mandi')) navigate('/partner/mandi/add-product');
-                  else navigate('/partner/add-service');
-                }}
-                className="mt-3 xs:mt-4 w-full bg-white text-emerald-700 py-2.5 xs:py-3 rounded-xl xs:rounded-2xl font-bold text-[11px] xs:text-[13px] uppercase tracking-widest flex items-center justify-center gap-1.5 xs:gap-2 shadow-lg active:scale-[0.98] transition-all"
-              >
-                Add Listing
-                <Plus size={12} strokeWidth={4} />
-              </button>
-            </div>
-          </motion.div>
+                {/* Only show Add Listing if NOT a supplier */}
+                {!actualRole.includes('supplier') && (
+                  <button 
+                    onClick={() => {
+                      if (actualRole.includes('agent')) navigate('/partner/add-property');
+                      else if (actualRole.includes('mandi')) navigate('/partner/mandi/add-product');
+                      else navigate('/partner/add-service');
+                    }}
+                    className="mt-3 xs:mt-4 w-full bg-white text-emerald-700 py-2.5 xs:py-3 rounded-xl xs:rounded-2xl font-bold text-[11px] xs:text-[13px] uppercase tracking-widest flex items-center justify-center gap-1.5 xs:gap-2 shadow-lg active:scale-[0.98] transition-all"
+                  >
+                    Add Listing
+                    <Plus size={12} strokeWidth={4} />
+                  </button>
+                )}
+              </div>
+            </motion.div>
         )}
 
         {/* KYC Rejected Banner */}
@@ -364,7 +367,14 @@ export default function PartnerHome() {
           <div className="space-y-4 xs:space-y-5">
             <h2 className="text-[15px] xs:text-[17px] font-bold text-[#001b4e] px-1 uppercase tracking-tight opacity-70">{getCategoryTheme()} Overview</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 xs:gap-4 mm:gap-5">
-              {overviewStats.map((stat, idx) => (
+              {overviewStats
+                .filter(stat => {
+                  if (actualRole.includes('supplier')) {
+                    return stat.label.toLowerCase().includes('lead') || stat.label.toLowerCase().includes('unread');
+                  }
+                  return true;
+                })
+                .map((stat, idx) => (
                 <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -386,28 +396,29 @@ export default function PartnerHome() {
         {/* Quick Actions */}
         <div className="space-y-3 xs:space-y-4">
           <h2 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] px-1 uppercase tracking-tight opacity-70">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-3 xs:gap-4">
-            <button
-              onClick={() => {
-                if (isApproved) {
-                  if (actualRole.includes('agent')) navigate('/partner/add-property');
-                  else if (actualRole.includes('supplier')) navigate('/partner/add-product');
-                  else if (actualRole.includes('mandi')) navigate('/partner/mandi/add-product');
-                  else navigate('/partner/add-service');
-                } else if (isPending) {
-                  alert("Your application is currently under review.");
-                } else {
-                  setShowKYCModal(true);
-                }
-              }}
-              className={`bg-white p-3.5 xs:p-4.5 rounded-2xl xs:rounded-[24px] shadow-sm border border-slate-50 flex flex-col items-start text-left group active:scale-95 transition-all w-full relative overflow-hidden ${isRestricted ? 'opacity-60' : ''}`}
-            >
-              <div className={`w-8 h-8 xs:w-9 xs:h-9 bg-blue-50 text-[#001b4e] rounded-xl flex items-center justify-center mb-2.5 xs:mb-3 shadow-inner`}>
-                <PlusCircle size={18} />
-              </div>
-              <h4 className="text-[12px] xs:text-[14px] font-bold text-[#001b4e] mb-0.5 uppercase tracking-tight leading-none">Add {getAddActionLabel()}</h4>
-              <p className="text-[7px] xs:text-[9px] font-medium text-slate-400 leading-none uppercase tracking-widest">{isIncomplete ? 'KYC Required' : 'Create new'}</p>
-            </button>
+          <div className={`grid ${actualRole.includes('supplier') ? 'grid-cols-1' : 'grid-cols-2'} gap-3 xs:gap-4`}>
+            {!actualRole.includes('supplier') && (
+              <button
+                onClick={() => {
+                  if (isApproved) {
+                    if (actualRole.includes('agent')) navigate('/partner/add-property');
+                    else if (actualRole.includes('mandi')) navigate('/partner/mandi/add-product');
+                    else navigate('/partner/add-service');
+                  } else if (isPending) {
+                    alert("Your application is currently under review.");
+                  } else {
+                    setShowKYCModal(true);
+                  }
+                }}
+                className={`bg-white p-3.5 xs:p-4.5 rounded-2xl xs:rounded-[24px] shadow-sm border border-slate-50 flex flex-col items-start text-left group active:scale-95 transition-all w-full relative overflow-hidden ${isRestricted ? 'opacity-60' : ''}`}
+              >
+                <div className={`w-8 h-8 xs:w-9 xs:h-9 bg-blue-50 text-[#001b4e] rounded-xl flex items-center justify-center mb-2.5 xs:mb-3 shadow-inner`}>
+                  <PlusCircle size={18} />
+                </div>
+                <h4 className="text-[12px] xs:text-[14px] font-bold text-[#001b4e] mb-0.5 uppercase tracking-tight leading-none">Add {getAddActionLabel()}</h4>
+                <p className="text-[7px] xs:text-[9px] font-medium text-slate-400 leading-none uppercase tracking-widest">{isIncomplete ? 'KYC Required' : 'Create new'}</p>
+              </button>
+            )}
             <button
               onClick={() => {
                 if (isApproved) {

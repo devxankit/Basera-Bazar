@@ -1,4 +1,4 @@
-const { ServiceListing, PropertyListing, SupplierListing, MandiListing } = require('../models/Listing');
+const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const { Category } = require('../models/System');
 const mongoose = require('mongoose');
 
@@ -282,60 +282,7 @@ const createServiceListing = async (req, res) => {
   }
 };
 
-/**
- * @desc    Partner creates a Draft Supplier Listing
- * @route   POST /api/listings/suppliers
- * @access  Private (Partner Token Required)
- */
-const createSupplierListing = async (req, res) => {
-  try {
-    const partnerId = req.user.id;
-    const { title, description, category, details, image, images, location_text, location, state, district, pincode, pricing } = req.body;
 
-    // Find the category ID by name
-    let category_id;
-    if (category) {
-      const catObj = await Category.findOne({ 
-        name: { $regex: new RegExp(`^${category}$`, 'i') },
-        type: { $in: ['supplier', 'material', 'product'] } 
-      });
-      category_id = catObj?._id;
-    }
-
-    const newSupplier = await SupplierListing.create({
-      partner_id: partnerId,
-      category_id: category_id || null,
-      title,
-      description,
-      details,
-      image,
-      images,
-      pricing: pricing || { price_per_unit: 0, min_order_qty: 1 },
-      address: {
-        state,
-        district,
-        full_address: location_text,
-        pincode
-      },
-      location: location || { type: 'Point', coordinates: [0, 0] },
-      service_radius_km: 100, // Default 100km for suppliers
-      status: 'active'
-    });
-
-    res.status(201).json({ success: true, message: 'Product listing created successfully.', data: newSupplier });
-  } catch (error) {
-    console.error("Error creating supplier listing:", error);
-    if (error.name === 'ValidationError') {
-      console.error("Validation Details:", error.errors);
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Validation failed.', 
-        error: Object.values(error.errors).map(e => e.message).join(', ') 
-      });
-    }
-    res.status(500).json({ success: false, message: 'Server error creating supplier listing.', error: error.message });
-  }
-};
 
 /**
  * @desc    Get Single Listing by ID (Any category)
@@ -353,7 +300,6 @@ const getListingById = async (req, res) => {
     
     const listing = await ServiceListing.findById(id).populate(populateOptions) ||
                     await PropertyListing.findById(id).populate(populateOptions) ||
-                    await SupplierListing.findById(id).populate(populateOptions) ||
                     await MandiListing.findById(id).populate(populateOptions);
 
     if (!listing) {
@@ -445,10 +391,7 @@ const getAllListings = async (req, res) => {
       results = [...results, ...services];
     }
 
-    if (!category || category === 'supplier') {
-      const suppliers = await fetchCategory(SupplierListing, 'SupplierListing');
-      results = [...results, ...suppliers];
-    }
+
 
     // Sort combined results by distance if location was provided
     if (hasLocation) {
@@ -506,7 +449,6 @@ const getPublicCategories = async (req, res) => {
     let ListingModel;
     if (type === 'property') ListingModel = PropertyListing;
     else if (type === 'service') ListingModel = ServiceListing;
-    else if (type === 'supplier') ListingModel = SupplierListing;
 
     const categoriesWithCounts = await Promise.all(categories.map(async (cat) => {
       let count = 0;
@@ -538,7 +480,7 @@ const getMyListings = async (req, res) => {
     
     // Fetch from all regular listing collections
     // FALLBACK: Also search by phone number in case the Admin assigned it using phone instead of ID
-    const [properties, services, suppliers, mandiItems] = await Promise.all([
+    const [properties, services, mandiItems] = await Promise.all([
       PropertyListing.find({ 
         $or: [
           { partner_id: partnerId },
@@ -552,7 +494,6 @@ const getMyListings = async (req, res) => {
           { phone: partnerPhone }
         ]
       }).sort({ createdAt: -1 }),
-      SupplierListing.find({ partner_id: partnerId }).sort({ createdAt: -1 }),
       MandiListing.find({ partner_id: partnerId }).sort({ createdAt: -1 })
     ]);
 
@@ -561,7 +502,6 @@ const getMyListings = async (req, res) => {
     const combined = [
        ...properties.map(i => ({ ...(i.toObject ? i.toObject() : i), type: 'property' })),
        ...services.map(i => ({ ...(i.toObject ? i.toObject() : i), type: 'service' })),
-       ...suppliers.map(i => ({ ...(i.toObject ? i.toObject() : i), type: 'product' })),
        ...mandiItems.map(i => ({ ...(i.toObject ? i.toObject() : i), type: 'mandi_product' }))
     ];
 
@@ -595,10 +535,7 @@ const updateListing = async (req, res) => {
       listing = await ServiceListing.findOne({ _id: id, partner_id: partnerId });
       Model = ServiceListing;
     }
-    if (!listing) {
-      listing = await SupplierListing.findOne({ _id: id, partner_id: partnerId });
-      Model = SupplierListing;
-    }
+
     if (!listing) {
       listing = await MandiListing.findOne({ _id: id, partner_id: partnerId });
       Model = MandiListing;
@@ -641,7 +578,6 @@ const deleteListing = async (req, res) => {
     const result = await Promise.all([
       PropertyListing.findOneAndDelete({ _id: id, partner_id: partnerId }),
       ServiceListing.findOneAndDelete({ _id: id, partner_id: partnerId }),
-      SupplierListing.findOneAndDelete({ _id: id, partner_id: partnerId }),
       MandiListing.findOneAndDelete({ _id: id, partner_id: partnerId })
     ]);
 
@@ -702,7 +638,6 @@ module.exports = {
   getMandiListings,
   createPropertyListing,
   createServiceListing,
-  createSupplierListing,
   createMandiListing,
   getListingById,
   getAllListings,

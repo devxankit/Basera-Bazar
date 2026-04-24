@@ -134,7 +134,8 @@ const BrowseCategory = () => {
         params.is_featured = true;
       }
 
-      let data = await db.getAll('listings', params);
+      const table = category === 'supplier' ? 'partners' : 'listings';
+      let data = await db.getAll(table, params);
       
       // Filter by search query
       if (searchQuery.trim() !== '') {

@@ -65,6 +65,15 @@ export default function AddProduct() {
       return;
     }
 
+    // Suppliers are no longer allowed to add products directly.
+    // They must use their partner profile for discovery.
+    const actualRole = (user.active_role || user.partner_type || '').toLowerCase();
+    if (actualRole.includes('supplier')) {
+      alert("Suppliers can no longer add products. Please update your profile details for discovery.");
+      navigate('/partner/home');
+      return;
+    }
+
     if (user.category) {
         setPartnerCategories(user.category.split(', '));
         // Set default category to first available if not editing
@@ -87,7 +96,7 @@ export default function AddProduct() {
         }));
       }
     }
-  }, [editId]);
+  }, [editId, user, navigate]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

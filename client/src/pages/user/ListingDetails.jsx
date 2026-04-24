@@ -27,12 +27,6 @@ const ListingDetails = () => {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
-  const [isCartViewOpen, setIsCartViewOpen] = useState(false);
-  const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
-  const [cart, setCart] = useState([]);
-  const [selectedCat, setSelectedCat] = useState(null);
-  const [selection, setSelection] = useState({ subtype: '', brand: '', quantity: 1 });
   const [enquiryData, setEnquiryData] = useState({ name: '', phone: '', email: '', message: '' });
   const [quotationData, setQuotationData] = useState({ name: '', phone: '', email: '', message: '' });
   
@@ -45,74 +39,8 @@ const ListingDetails = () => {
   const [otpTimer, setOtpTimer] = useState(0);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
 
-  const isSupplier = listing?.category === 'supplier';
-  const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+  const isSupplier = listing?.category === 'supplier' || listing?.isPartner;
 
-  const productMeta = {
-    'Bricks': {
-      subtypes: ['Standard Red', 'Fly Ash', 'Hollow Bricks', 'Solid Bricks'],
-      brands: ['Local Brand', 'JK Lakshmi', 'V-Next', 'Supreme']
-    },
-    'Aggregate': {
-      subtypes: ['10mm', '20mm', '40mm', 'Stone Dust'],
-      brands: ['Thakur Blue Metal', 'Local Quarry', 'High Grade']
-    },
-    'Hardware & Tools': {
-      subtypes: ['Power Tools', 'Hand Tools', 'Fasteners', 'Plumbing'],
-      brands: ['Bosch', 'Stanley', 'Taparia', 'Jaquar']
-    },
-    'Finishing Materials': {
-      subtypes: ['Tiles', 'Paints', 'Wall Putty', 'Adhesives'],
-      brands: ['Kajaria', 'Asian Paints', 'Birla White', 'Fevicol']
-    },
-    'Cement': {
-      subtypes: ['OPC 43', 'OPC 53', 'PPC', 'White Cement'],
-      brands: ['UltraTech', 'ACC', 'Ambuja', 'JK Lakshmi']
-    }
-  };
-
-  const openProductModal = (categoryName) => {
-    const cleanName = categoryName.split(' ')[0]; // Handle "bricks Products" -> "Bricks"
-    const meta = productMeta[cleanName] || productMeta['Bricks'];
-    setSelectedCat(categoryName);
-    setSelection({
-      subtype: meta.subtypes[0],
-      brand: meta.brands[0],
-      quantity: 1
-    });
-    setIsCartModalOpen(true);
-  };
-
-  const addToCart = () => {
-    const newItem = {
-      id: Date.now(),
-      category: selectedCat,
-      ...selection
-    };
-    setCart([...cart, newItem]);
-    setIsCartModalOpen(false);
-  };
-
-  const removeFromCart = (itemId) => {
-    setCart(cart.filter(item => item.id !== itemId));
-  };
-
-  const generateQuotationMessage = () => {
-    let msg = "I would like to request a quotation for the following products:\n\n";
-    cart.forEach((item, index) => {
-      const unit = (item.category.toLowerCase().includes('aggregate') || item.category.toLowerCase().includes('bricks')) ? 'cft' : 'Units';
-      msg += `${index + 1}. ${item.category}\n`;
-      msg += `   Quantity: ${item.quantity} ${unit}\n`;
-      msg += `   Category: ${item.category}\n`;
-      msg += `   SubType: ${item.subtype}\n\n`;
-    });
-    msg += "Please provide detailed quotation with:\n";
-    msg += "- Best price and any bulk discounts\n";
-    msg += "- Availability and delivery timeline\n";
-    msg += "- Payment terms\n";
-    msg += "- Any additional specifications";
-    return msg;
-  };
 
   useEffect(() => {
     let interval;
@@ -227,25 +155,34 @@ const ListingDetails = () => {
 
   useEffect(() => {
     const fetchListing = async () => {
-      const data = await db.getById('listings', id);
+      // Try listings first
+      let data = await db.getById('listings', id);
+      
+      // If not found as listing, or if we know it's a partner ID, try partners
+      if (!data) {
+        data = await db.getById('partners', id);
+      }
+      
       setListing(data);
       if (data) {
-        setEnquiryData(prev => ({
-          ...prev,
-          message: `Hi, I am interested in the ${data.category === 'supplier' ? 'supplier' : 'property'} "${data.title}". Please provide more details.`
-        }));
+        if (data.category === 'supplier' || data.isPartner) {
+          setEnquiryData(prev => ({
+            ...prev,
+            message: `I would like to request a quotation for the following products:\n\n\n\nPlease provide detailed quotation with:\n- Best price and any bulk discounts\n- Availability and delivery timeline\n- Payment terms\n- Any additional specifications`
+          }));
+        } else {
+          setEnquiryData(prev => ({
+            ...prev,
+            message: `Hi, I am interested in the ${data.category === 'service' ? 'service' : 'property'} "${data.title}". Please provide more details.`
+          }));
+        }
       }
       setLoading(false);
     };
     fetchListing();
   }, [id]);
 
-  useEffect(() => {
-    setQuotationData(prev => ({
-      ...prev,
-      message: generateQuotationMessage()
-    }));
-  }, [cart]);
+
 
   if (loading) return (
     <div className="pb-32 bg-slate-50 min-h-screen relative font-sans animate-in fade-in duration-700">
@@ -276,8 +213,8 @@ const ListingDetails = () => {
   if (!listing) return <div className="p-8 text-center text-slate-400 font-semibold pt-20">Listing Not Found</div>;
 
   const tabs = isSupplier ? [
-    { id: 'products', label: 'Product Categories' },
-    { id: 'about', label: 'About' }
+    { id: 'details', label: 'Details' },
+    { id: 'owner', label: 'Owner' }
   ] : [
     { id: 'details', label: 'Details' },
     { id: 'features', label: 'Features' },
@@ -448,18 +385,13 @@ const ListingDetails = () => {
               </div>
             </div>
 
-            {/* Stats Bar */}
-            <div className="mt-8 grid grid-cols-3 border-t border-white/20 pt-6">
-              <div className="flex flex-col items-center gap-0.5">
-                <span className="text-white font-bold text-[18px]">{listing.details?.skuCount || 0}</span>
-                <span className="text-white/70 text-[12px] font-medium uppercase tracking-wider">Products</span>
-              </div>
-              <div className="flex flex-col items-center gap-0.5 border-x border-white/20 px-4">
-                <span className="text-white font-bold text-[18px]">{listing.owner?.verificationStatus || 'Active'}</span>
+            <div className="mt-8 grid grid-cols-2 border-t border-white/20 pt-6">
+              <div className="flex flex-col items-center gap-0.5 border-r border-white/20 px-4">
+                <span className="text-white font-bold text-[18px]">{listing.owner?.verificationStatus || 'Verified'}</span>
                 <span className="text-white/70 text-[12px] font-medium uppercase tracking-wider">Status</span>
               </div>
               <div className="flex flex-col items-center gap-0.5">
-                <span className="text-white font-bold text-[18px]">{listing.owner?.experience || 'New'}</span>
+                <span className="text-white font-bold text-[18px]">{listing.owner?.experience || '5+ Years'}</span>
                 <span className="text-white/70 text-[12px] font-medium uppercase tracking-wider">Experience</span>
               </div>
             </div>
@@ -656,46 +588,7 @@ const ListingDetails = () => {
             </>
           ) : (
             <>
-              {activeTab === 'products' && (
-                <div className="space-y-4 pt-5">
-                  {[
-                    { name: `bricks Products`, count: listing.details?.skuCount || 0 },
-                    { name: 'Hardware & Tools', count: 12 },
-                    { name: 'Finishing Materials', count: 8 },
-                    { name: 'Aggregate Products', count: 5 }
-                  ].map((cat, idx) => {
-                    const inCartCount = cart.filter(item => item.category === cat.name).reduce((acc, i) => acc + i.quantity, 0);
-                    
-                    return (
-                      <div key={idx} className="bg-white border border-slate-100 rounded-[24px] p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-center gap-4">
-                          <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 relative">
-                            <ShoppingCart size={24} className="text-slate-300" />
-                            {inCartCount > 0 && (
-                              <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#34a853] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-                                {inCartCount}
-                              </div>
-                            )}
-                          </div>
-                          <div className="space-y-0.5">
-                            <h4 className="text-[16px] font-bold text-[#1f2355] capitalize">{cat.name}</h4>
-                            <p className="text-[13px] font-medium text-slate-400">{cat.count} products available</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => openProductModal(cat.name)}
-                            className="bg-[#4caf50] text-white px-6 py-2.5 rounded-xl text-[13px] font-bold shadow-sm active:scale-95 transition-all hover:bg-[#43a047]"
-                          >
-                            Add Product
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {activeTab === 'about' && (
+              {activeTab === 'details' && (
                 <div className="space-y-5 pt-5 pb-8">
                   <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-xl shadow-slate-200/20 space-y-4">
                     <h3 className="text-[17px] font-bold text-[#1f2355]">Business Information</h3>
@@ -703,7 +596,7 @@ const ListingDetails = () => {
                       {[
                         { label: 'Business Name', value: listing.title, icon: Building2 },
                         { label: 'Contact Person', value: listing.owner?.contactPerson || 'N/A', icon: UserIcon },
-                        { label: 'Category', value: `${listing.details?.propertyType} Supplier`, icon: Tag },
+                        { label: 'Category', value: `${listing.details?.propertyType || 'Supplier'}`, icon: Tag },
                         { label: 'Member Since', value: listing.owner?.memberSince || 'N/A', icon: Calendar }
                       ].map((info, i) => (
                         <div key={i} className="flex items-center justify-between">
@@ -751,24 +644,6 @@ const ListingDetails = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-xl shadow-slate-200/20 space-y-4">
-                    <h3 className="text-[17px] font-bold text-[#1f2355]">Statistics</h3>
-                    <div className="space-y-4">
-                      {[
-                        { label: 'Total Products', value: listing.details?.skuCount || 0, icon: Package },
-                        { label: 'Product Categories', value: 3, icon: LayoutGrid },
-                        { label: 'Verification Status', value: listing.owner?.verificationStatus || 'Active', icon: ShieldCheck }
-                      ].map((info, i) => (
-                        <div key={i} className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 text-slate-400">
-                            <info.icon size={18} />
-                            <span className="text-[14px] font-medium">{info.label}</span>
-                          </div>
-                          <span className={cn("text-[14px] font-bold", info.label === 'Verification Status' ? "text-[#34a853]" : "text-[#1f2355]")}>: {info.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                   <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-xl shadow-slate-200/20 space-y-5">
                     <h3 className="text-[17px] font-bold text-[#1f2355]">Quick Actions</h3>
                     <div className="grid grid-cols-3 gap-3">
@@ -811,36 +686,59 @@ const ListingDetails = () => {
                   </div>
                 </div>
               )}
+              {activeTab === 'owner' && (
+                <div className="space-y-4 pt-5">
+                  <div className="bg-white border border-[#eef2fc] rounded-[16px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
+                    <h3 className="text-[15px] font-semibold text-[#1f2355]">Business Representative</h3>
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-[#eef2fc] rounded-full flex items-center justify-center text-[#fa8639] text-xl font-bold border border-[#d2dcf3] overflow-hidden">
+                        {listing.owner?.profileImage ? (
+                          <img src={listing.owner.profileImage} alt={listing.owner.name} className="w-full h-full object-cover" />
+                        ) : (
+                          (listing.owner?.name || 'Basera Properties').charAt(0)
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="text-[15px] font-bold text-[#1f2355]">{listing.owner?.name || 'Basera Properties'}</h4>
+                        <p className="text-[12px] font-medium text-[#fa8639] -mt-0.5">
+                          {listing.owner?.display_name && listing.owner.display_name !== listing.owner.name ? `Rep: ${listing.owner.display_name}` : (listing.owner?.role || 'Verified Partner')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
       </div>
 
       {/* Floating Sticky Footer */}
-      {(!isSupplier || cartItemCount > 0) && (
-        <div className="fixed bottom-0 w-full max-w-md mx-auto border-t border-slate-100 bg-white/95 backdrop-blur-md z-[60] py-4 px-6 md:px-8">
-          <div className="flex gap-3">
-            {isSupplier ? (
-              <button 
-                onClick={() => setIsCartViewOpen(true)}
-                className="w-full bg-[#1f2355] text-white py-4 rounded-full font-bold text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-slate-200 active:scale-95 transition-all"
-              >
-                 <ShoppingCart size={18} strokeWidth={2.5} />
-                 Continue ({cartItemCount})
-              </button>
-            ) : (
+      <div className="fixed bottom-0 w-full max-w-md mx-auto border-t border-slate-100 bg-white/95 backdrop-blur-md z-[60] py-4 px-6 md:px-8">
+        <div className="flex gap-3">
+          {isSupplier ? (
+            <div className="flex w-full gap-3">
+
               <button 
                 onClick={() => setIsModalOpen(true)}
-                className={cn(
-                  "py-4 rounded-full font-bold text-[16px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg w-full bg-[#fa8639] text-white hover:bg-[#e0752d] shadow-orange-200/50"
-                )}
+                className="flex-[2] bg-[#1f2355] text-white py-4 rounded-full font-bold text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-slate-200 active:scale-95 transition-all"
               >
-                <Send size={18} className="-translate-y-0.5" strokeWidth={2.5} />
-                Send Enquiry
+                 <Send size={18} />
+                 Send Enquiry
               </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className={cn(
+                "py-4 rounded-full font-bold text-[16px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg w-full bg-[#fa8639] text-white hover:bg-[#e0752d] shadow-orange-200/50"
+              )}
+            >
+              <Send size={18} className="-translate-y-0.5" strokeWidth={2.5} />
+              Send Enquiry
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Enquiry Modal */}
       {isModalOpen && (
@@ -957,13 +855,13 @@ const ListingDetails = () => {
               </div>
               <div className="space-y-2">
                 <label className="text-[13px] font-medium text-[#1f2355]">Message</label>
-                <textarea 
-                  rows="3" 
-                  className="w-full p-4 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px] resize-none" 
-                  value={enquiryData.message}
-                  onChange={(e) => setEnquiryData({ ...enquiryData, message: e.target.value })}
-                  required 
-                />
+                  <textarea 
+                    rows={isSupplier ? 15 : 3} 
+                    className="w-full p-4 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px] resize-none" 
+                    value={enquiryData.message}
+                    onChange={(e) => setEnquiryData({ ...enquiryData, message: e.target.value })}
+                    required 
+                  />
               </div>
               <div className="pb-2">
                 <button 
@@ -1013,292 +911,7 @@ const ListingDetails = () => {
           </div>
         </div>
       )}
-      {/* Product Selection Modal */}
-      {isCartModalOpen && (
-        <div className="fixed inset-0 z-[120] flex items-end justify-center">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity" onClick={() => setIsCartModalOpen(false)} />
-          <div className="bg-white w-full max-w-md rounded-t-[40px] p-8 relative z-10 animate-in slide-in-from-bottom-full duration-300 shadow-2xl">
-            <div className="w-14 h-1.5 bg-slate-200 rounded-full mx-auto mb-8" />
-            
-            <div className="space-y-1 mb-8">
-              <h2 className="text-[22px] font-bold text-[#1f2355]">Add {selectedCat}</h2>
-              <p className="text-[14px] text-slate-400 font-medium">Configure your product requirements</p>
-            </div>
 
-            <div className="space-y-6">
-              {/* Dropdown: Subtype */}
-              <div className="space-y-2">
-                <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Select Sub-type</label>
-                <div className="relative group">
-                  <select 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-[20px] px-5 py-4 appearance-none outline-none focus:border-[#4a69bd] transition-all text-[#1f2355] font-semibold"
-                    value={selection.subtype}
-                    onChange={(e) => setSelection({...selection, subtype: e.target.value})}
-                  >
-                    {(productMeta[selectedCat?.split(' ')[0]] || productMeta['Bricks']).subtypes.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  <ChevronDown size={20} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Dropdown: Brand */}
-              <div className="space-y-2">
-                <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Choose Brand</label>
-                <div className="relative group">
-                  <select 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-[20px] px-5 py-4 appearance-none outline-none focus:border-[#4a69bd] transition-all text-[#1f2355] font-semibold"
-                    value={selection.brand}
-                    onChange={(e) => setSelection({...selection, brand: e.target.value})}
-                  >
-                    {(productMeta[selectedCat?.split(' ')[0]] || productMeta['Bricks']).brands.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                  <ChevronDown size={20} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Quantity Selector */}
-              <div className="space-y-2">
-                <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Quantity</label>
-                <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-[20px] p-2">
-                  <button 
-                    onClick={() => setSelection({...selection, quantity: Math.max(1, selection.quantity - 1)})}
-                    className="w-12 h-12 rounded-[14px] bg-white border border-slate-100 shadow-sm flex items-center justify-center text-[#1f2355] active:scale-95 transition-all"
-                  >
-                    <Minus size={20} strokeWidth={3} />
-                  </button>
-                  <span className="text-[20px] font-bold text-[#1f2355]">{selection.quantity}</span>
-                  <button 
-                    onClick={() => setSelection({...selection, quantity: selection.quantity + 1})}
-                    className="w-12 h-12 rounded-[14px] bg-white border border-slate-100 shadow-sm flex items-center justify-center text-[#1f2355] active:scale-95 transition-all"
-                  >
-                    <Plus size={20} strokeWidth={3} />
-                  </button>
-                </div>
-              </div>
-
-              <button 
-                onClick={addToCart}
-                className="w-full bg-[#1f2355] text-white py-5 rounded-[24px] font-bold text-[16px] shadow-xl shadow-[#1f2355]/20 active:scale-[0.98] transition-all mt-4 flex items-center justify-center gap-3"
-              >
-                <ShoppingCart size={20} strokeWidth={2.5} />
-                Add to Cart
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Detailed Cart View Modal */}
-      {isCartViewOpen && (
-        <div className="fixed inset-0 z-[130] flex items-end justify-center">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity" onClick={() => setIsCartViewOpen(false)} />
-          <div className="bg-white w-full max-w-md rounded-t-[40px] p-8 relative z-10 animate-in slide-in-from-bottom-full duration-300 shadow-2xl flex flex-col max-h-[85vh]">
-            <div className="w-14 h-1.5 bg-slate-200 rounded-full mx-auto mb-8 shrink-0" />
-            
-            <div className="flex items-center justify-between mb-8 shrink-0">
-              <div className="space-y-1">
-                <h2 className="text-[22px] font-bold text-[#1f2355]">Your Cart</h2>
-                <p className="text-[14px] text-slate-400 font-medium">{cart.length} product categories selected</p>
-              </div>
-              <button 
-                onClick={() => setIsCartViewOpen(false)}
-                className="w-10 h-10 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-4 pr-1 -mr-1 mb-8">
-              {cart.map((item) => (
-                <div key={item.id} className="bg-slate-50/50 border border-slate-100 rounded-[24px] p-4 flex items-center justify-between animate-in fade-in slide-in-from-left-4 duration-300">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm text-[#4a69bd]">
-                      <Package size={24} />
-                    </div>
-                    <div className="space-y-0.5">
-                      <h4 className="text-[15px] font-bold text-[#1f2355]">{item.category}</h4>
-                      <div className="flex items-center gap-2 text-[12px] text-slate-500 font-semibold">
-                        <span>{item.subtype}</span>
-                        <div className="w-1 h-1 rounded-full bg-slate-300" />
-                        <span>{item.brand}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="bg-white px-3 py-1.5 rounded-xl border border-slate-100 text-[13px] font-bold text-[#1f2355]">
-                       Qty: {item.quantity}
-                    </div>
-                    <button 
-                      onClick={() => removeFromCart(item.id)}
-                      className="w-10 h-10 text-[#ea4335] bg-[#ea4335]/5 rounded-xl flex items-center justify-center active:scale-90 transition-all"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              
-              {cart.length === 0 && (
-                <div className="py-20 text-center space-y-3">
-                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
-                    <ShoppingCart size={40} />
-                  </div>
-                  <p className="text-slate-400 font-bold">Your cart is empty</p>
-                  <button onClick={() => setIsCartViewOpen(false)} className="text-[#4a69bd] text-[14px] font-bold">Add some products</button>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 shrink-0 space-y-4">
-               <div className="flex items-center justify-between px-2">
-                 <span className="text-slate-400 font-bold text-[14px] uppercase tracking-wider">Total Quantity</span>
-                 <span className="text-[#1f2355] font-extrabold text-[20px]">{cartItemCount} Items</span>
-               </div>
-               <button 
-                onClick={() => {
-                  setIsCartViewOpen(false);
-                  setIsQuotationModalOpen(true);
-                }}
-                disabled={cartItemCount === 0}
-                className={cn(
-                  "w-full py-5 rounded-[24px] font-bold text-[16px] shadow-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]",
-                  cartItemCount === 0 
-                    ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none" 
-                    : "bg-[#1f2355] text-white shadow-[#1f2355]/20"
-                )}
-              >
-                Continue <ChevronRight size={20} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Request Quotation Modal */}
-      {isQuotationModalOpen && (
-        <div className="fixed inset-0 z-[140] flex items-end justify-center">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity" onClick={() => setIsQuotationModalOpen(false)} />
-          <div className="bg-white w-full max-w-md rounded-t-[40px] p-6 sm:p-8 relative z-10 animate-in slide-in-from-bottom-full duration-300 shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="w-14 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 shrink-0" />
-            
-            <div className="flex items-center justify-between mb-6 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 bg-[#1f2355] text-white rounded-xl flex items-center justify-center shadow-lg">
-                  <ShoppingCart size={22} />
-                </div>
-                <h2 className="text-[20px] font-extrabold text-[#1f2355]">Request Quotation</h2>
-              </div>
-              <button onClick={() => setIsQuotationModalOpen(false)} className="text-slate-400 hover:bg-slate-50 p-2 rounded-full transition-colors"><X size={24} /></button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto pr-1 -mr-1 space-y-6">
-               {/* Selected Products Card */}
-               <div className="bg-[#f4f6fc] border border-[#d2dcf3] rounded-[24px] p-5 space-y-3">
-                  <div className="flex items-center gap-2 text-[#1f2355]">
-                    <ShoppingCart size={18} strokeWidth={2.5} />
-                    <span className="font-bold text-[15px]">Selected Products ({cart.length})</span>
-                  </div>
-                  <div className="space-y-2 pl-2">
-                    {cart.map((item, i) => (
-                      <div key={i} className="flex items-center gap-2 text-[13px] font-semibold text-[#4a5578]">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#1f2355] shrink-0" />
-                        <span>{item.category} - {item.quantity} {(item.category.toLowerCase().includes('aggregate') || item.category.toLowerCase().includes('bricks')) ? 'cft' : 'units'}</span>
-                      </div>
-                    ))}
-                  </div>
-               </div>
-
-               <div className="space-y-6">
-                  <h3 className="text-[16px] font-bold text-[#1f2355] pl-1">Your Information</h3>
-                  
-                  <div className="space-y-2">
-                    <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Name</label>
-                    <div className="relative">
-                       <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400"><UserIcon size={20} /></div>
-                       <input 
-                        type="text" 
-                        placeholder="Enter your name" 
-                        className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-[20px] outline-none focus:border-[#1f2355] transition-all font-semibold text-[#1f2355]" 
-                        required 
-                        value={quotationData.name}
-                        onChange={(e) => setQuotationData({ ...quotationData, name: e.target.value })}
-                       />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Phone</label>
-                    <div className="relative">
-                       <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400"><Phone size={20} /></div>
-                       <input 
-                         type="tel" 
-                         placeholder="Enter 10-digit phone number" 
-                         className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-[20px] outline-none focus:border-[#1f2355] transition-all font-semibold text-[#1f2355]" 
-                         required 
-                         maxLength={10}
-                         value={quotationData.phone}
-                         onChange={(e) => setQuotationData({ ...quotationData, phone: e.target.value.replace(/\D/g, '') })}
-                       />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Email</label>
-                    <div className="relative">
-                       <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400"><Mail size={20} /></div>
-                       <input 
-                        type="email" 
-                        placeholder="Enter your email" 
-                        className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-[20px] outline-none focus:border-[#1f2355] transition-all font-semibold text-[#1f2355]" 
-                        required 
-                        value={quotationData.email}
-                        onChange={(e) => setQuotationData({ ...quotationData, email: e.target.value })}
-                       />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                     <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest pl-1">Message</label>
-                     <textarea 
-                       rows="8"
-                       className="w-full p-5 bg-white border border-slate-200 rounded-[24px] outline-none focus:border-[#1f2355] transition-all font-medium text-[#1f2355] text-[14px] leading-relaxed resize-none"
-                       value={quotationData.message}
-                       onChange={(e) => setQuotationData({ ...quotationData, message: e.target.value })}
-                       required
-                     />
-                  </div>
-                </div>
-            </div>
-
-            <div className="pt-6 shrink-0">
-               <button 
-                onClick={async () => {
-                  await db.create('leads', {
-                    ...quotationData,
-                    userId: user?.id || null, // Link to user if logged in
-                    items: cart,
-                    listingId: listing.id,
-                    listingTitle: listing.title,
-                    category: listing.category,
-                    type: 'quotation',
-                    date: new Date().toISOString()
-                  });
-                  setIsQuotationModalOpen(false);
-                  setCart([]); // Clear cart
-                  setTimeout(() => setShowSuccessModal(true), 150);
-                }}
-                disabled={!quotationData.name || quotationData.phone.length < 10 || !quotationData.email || !quotationData.message}
-                className={cn(
-                  "w-full py-5 rounded-[24px] font-bold text-[16px] shadow-xl transition-all flex items-center justify-center gap-2",
-                  (!quotationData.name || quotationData.phone.length < 10 || !quotationData.email || !quotationData.message)
-                  ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
-                  : "bg-[#1f2355] text-white shadow-[#1f2355]/20 active:scale-[0.98]"
-                )}
-              >
-                Submit Enquiry
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Lightbox Modal */}
       <AnimatePresence>
         {isLightboxOpen && (

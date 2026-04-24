@@ -37,18 +37,6 @@ const {
   createCategory,
   updateCategory,
   deleteCategory,
-  getBrands,
-  getBrandById,
-  createBrand,
-  updateBrand,
-  deleteBrand,
-  getUnits,
-  getUnitById,
-  createUnit,
-  updateUnit,
-  deleteUnit,
-  getProductNames,
-  createProductName,
   getBanners,
   getBannerById,
   createBanner,
@@ -112,20 +100,7 @@ router.post('/system/categories', createCategory);
 router.put('/system/categories/:id', updateCategory);
 router.delete('/system/categories/:id', deleteCategory);
 
-router.get('/system/brands', getBrands);
-router.get('/system/brands/:id', getBrandById);
-router.post('/system/brands', createBrand);
-router.put('/system/brands/:id', updateBrand);
-router.delete('/system/brands/:id', deleteBrand);
 
-router.get('/system/units', getUnits);
-router.get('/system/units/:id', getUnitById);
-router.post('/system/units', createUnit);
-router.put('/system/units/:id', updateUnit);
-router.delete('/system/units/:id', deleteUnit);
-
-router.get('/system/product-names', getProductNames);
-router.post('/system/product-names', createProductName);
 
 router.get('/system/banners', getBanners);
 router.get('/system/banners/:id', getBannerById);

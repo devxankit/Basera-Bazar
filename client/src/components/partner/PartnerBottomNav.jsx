@@ -35,10 +35,10 @@ export default function PartnerBottomNav({ role }) {
       };
     }
 
-    // SUPPLIER: Products/Inquiries
+    // SUPPLIER: Only Inquiries (discovery-based profile)
     if (isSupplier) {
       return {
-        category: { label: 'Products', icon: <Package size={24} />, path: '/partner/products' },
+        category: null,
         comm: { label: 'Inquiries', icon: <Users size={24} />, path: '/partner/leads' }
       };
     }
@@ -57,7 +57,7 @@ export default function PartnerBottomNav({ role }) {
     categoryTab,
     commTab,
     { label: 'Profile', icon: <UserCircle size={20} />, path: '/partner/profile' }
-  ];
+  ].filter(Boolean);
 
   return (
     <nav className="bg-white border-t border-slate-100 px-4 sm:px-6 py-1.5 sm:py-2 flex justify-between items-center pb-6 sm:pb-8 shadow-[0_-10px_30px_rgba(0,27,78,0.03)] rounded-t-[28px] sm:rounded-t-[32px]">

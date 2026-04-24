@@ -45,15 +45,11 @@ const navItems = [
   },
   { 
     id: 'products-suppliers', 
-    label: 'Products & Suppliers', 
+    label: 'Suppliers', 
     icon: ShoppingBag,
     children: [
       { label: 'All Suppliers', path: '/admin/suppliers' },
-      { label: 'All Products', path: '/admin/products' },
-      { label: 'Product Category', path: '/admin/suppliers/categories' },
-      { label: 'Product Sub-Categories', path: '/admin/products/subcategories' },
-      { label: 'Product Units', path: '/admin/products/units' },
-      { label: 'Brands', path: '/admin/products/brands' },
+      { label: 'Supplier Categories', path: '/admin/suppliers/categories' },
     ]
   },
   { 

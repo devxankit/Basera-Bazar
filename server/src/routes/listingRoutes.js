@@ -5,7 +5,6 @@ const {
   getMandiListings, 
   createPropertyListing, 
   createServiceListing,
-  createSupplierListing,
   createMandiListing,
   getListingById, 
   getAllListings, 
@@ -29,7 +28,6 @@ router.get('/categories', getPublicCategories);
 router.get('/my', protect, authorizeRoles('partner'), getMyListings);
 router.post('/properties', protect, authorizeRoles('partner'), createPropertyListing);
 router.post('/services', protect, authorizeRoles('partner'), createServiceListing);
-router.post('/suppliers', protect, authorizeRoles('partner'), createSupplierListing);
 router.post('/mandi', protect, authorizeRoles('partner'), createMandiListing);
 
 router.put('/:id', protect, authorizeRoles('partner'), updateListing);
