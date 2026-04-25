@@ -204,9 +204,9 @@ const ListingDetails = () => {
       </div>
 
       <div className="p-5 space-y-4">
-         <Skeleton className="h-32 w-full rounded-[32px]" />
-         <Skeleton className="h-32 w-full rounded-[32px]" />
-         <Skeleton className="h-16 w-full rounded-[24px]" />
+         <Skeleton className="h-32 w-full rounded-2xl" />
+         <Skeleton className="h-32 w-full rounded-2xl" />
+         <Skeleton className="h-16 w-full rounded-xl" />
       </div>
     </div>
   );
@@ -424,13 +424,13 @@ const ListingDetails = () => {
             <>
               {activeTab === 'details' && (
                 <div className="space-y-4 pt-5">
-                  <div className="bg-white border border-[#eef2fc] rounded-[16px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-3">
+                  <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-3">
                     <h3 className="text-[15px] font-semibold text-[#1f2355]">About This Property</h3>
                     <p className="text-[13px] text-[#4a5578] leading-relaxed font-medium">
                       {listing.details?.description || listing.description || 'No description available for this property.'}
                     </p>
                   </div>
-                  <div className="bg-white border border-[#eef2fc] rounded-[16px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
+                  <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
                     <h3 className="text-[15px] font-semibold text-[#1f2355]">Property Details</h3>
                     <div className="space-y-2">
                       {[
@@ -447,7 +447,7 @@ const ListingDetails = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="bg-white border border-[#eef2fc] rounded-[16px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
+                  <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
                     <h3 className="text-[15px] font-semibold text-[#1f2355]">Location Details</h3>
                     <div className="space-y-2">
                       {[
@@ -466,8 +466,8 @@ const ListingDetails = () => {
                   </div>
 
                   {/* Property Map Pinpoint */}
-                  <div className="bg-white border border-[#eef2fc] rounded-[24px] p-2 shadow-[0_4px_15px_-5px_rgba(0,0,0,0.08)] overflow-hidden">
-                    <div className="h-48 w-full rounded-[20px] overflow-hidden bg-slate-100 relative">
+                  <div className="bg-white border border-[#eef2fc] rounded-xl p-2 shadow-[0_4px_15px_-5px_rgba(0,0,0,0.08)] overflow-hidden">
+                    <div className="h-48 w-full rounded-xl overflow-hidden bg-slate-100 relative">
                       {listing.lat && listing.lng ? (
                         <iframe 
                           title="Property Location"
@@ -490,7 +490,7 @@ const ListingDetails = () => {
               )}
               {activeTab === 'features' && (
                 <div className="space-y-4 pt-5">
-                  <div className="bg-white border border-[#eef2fc] rounded-[16px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
+                  <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
                     <h3 className="text-[15px] font-semibold text-[#1f2355]">Property Features</h3>
                     <div className="grid grid-cols-2 gap-y-4 gap-x-2">
                       {(() => {
@@ -534,7 +534,7 @@ const ListingDetails = () => {
               )}
               {activeTab === 'owner' && (
                 <div className="space-y-4 pt-5">
-                  <div className="bg-white border border-[#eef2fc] rounded-[16px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
+                  <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
                     <h3 className="text-[15px] font-semibold text-[#1f2355]">Property Owner/Agent</h3>
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 bg-[#eef2fc] rounded-full flex items-center justify-center text-[#fa8639] text-xl font-bold border border-[#d2dcf3] overflow-hidden">
@@ -560,7 +560,7 @@ const ListingDetails = () => {
                       View All Property
                     </button>
                   </div>
-                  <div className="bg-white border border-[#eef2fc] rounded-[16px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-5">
+                  <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-5">
                     <h3 className="text-[15px] font-semibold text-[#1f2355]">Contact Information</h3>
                     <div className="space-y-5">
                       {[
@@ -590,7 +590,7 @@ const ListingDetails = () => {
             <>
               {activeTab === 'details' && (
                 <div className="space-y-5 pt-5 pb-8">
-                  <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-xl shadow-slate-200/20 space-y-4">
+                  <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xl shadow-slate-200/20 space-y-4">
                     <h3 className="text-[17px] font-bold text-[#1f2355]">Business Information</h3>
                     <div className="space-y-4">
                       {[
@@ -609,7 +609,7 @@ const ListingDetails = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-xl shadow-slate-200/20 space-y-4">
+                  <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xl shadow-slate-200/20 space-y-4">
                     <h3 className="text-[17px] font-bold text-[#1f2355]">Contact Information</h3>
                     <div className="space-y-4">
                       {[
@@ -626,7 +626,7 @@ const ListingDetails = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-xl shadow-slate-200/20 space-y-4">
+                  <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xl shadow-slate-200/20 space-y-4">
                     <h3 className="text-[17px] font-bold text-[#1f2355]">Location</h3>
                     <div className="space-y-4">
                       {[
@@ -644,7 +644,7 @@ const ListingDetails = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-xl shadow-slate-200/20 space-y-5">
+                  <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xl shadow-slate-200/20 space-y-5">
                     <h3 className="text-[17px] font-bold text-[#1f2355]">Quick Actions</h3>
                     <div className="grid grid-cols-3 gap-3">
                       <button 
@@ -688,7 +688,7 @@ const ListingDetails = () => {
               )}
               {activeTab === 'owner' && (
                 <div className="space-y-4 pt-5">
-                  <div className="bg-white border border-[#eef2fc] rounded-[16px] p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
+                  <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
                     <h3 className="text-[15px] font-semibold text-[#1f2355]">Business Representative</h3>
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 bg-[#eef2fc] rounded-full flex items-center justify-center text-[#fa8639] text-xl font-bold border border-[#d2dcf3] overflow-hidden">
@@ -885,7 +885,7 @@ const ListingDetails = () => {
       {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-fade-in font-sans">
-          <div className="bg-[#f2f4f8] w-full max-w-sm rounded-[32px] p-6 space-y-6 shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="bg-[#f2f4f8] w-full max-w-sm rounded-2xl p-6 space-y-6 shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-[#34a853] text-white flex items-center justify-center shrink-0"><CheckCircle2 size={20} strokeWidth={2.5} /></div>
               <h2 className="text-[22px] font-semibold text-[#1f2355]">Enquiry Sent!</h2>

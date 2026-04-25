@@ -19,7 +19,7 @@ function AlertModal({ icon: Icon, iconBg, iconColor, title, message, primaryText
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         style={{
-          backgroundColor: '#ffffff', borderRadius: '24px', padding: '32px',
+          backgroundColor: '#ffffff', borderRadius: '20px', padding: '32px',
           width: '100%', maxWidth: '360px', textAlign: 'center',
           boxShadow: '0 20px 40px rgba(0,0,0,0.12)'
         }}
@@ -30,11 +30,11 @@ function AlertModal({ icon: Icon, iconBg, iconColor, title, message, primaryText
         <div style={{ fontSize: '20px', fontWeight: '700', color: '#1b2c7a', marginBottom: '10px' }}>{title}</div>
         <div style={{ fontSize: '15px', color: '#5468b8', lineHeight: 1.6, marginBottom: '28px' }}>{message}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <button onClick={primaryAction} style={{ padding: '16px', backgroundColor: '#2334b2', color: '#fff', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 0 #182489' }}>
+          <button onClick={primaryAction} style={{ padding: '16px', backgroundColor: '#2334b2', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 0 #182489' }}>
             {primaryText}
           </button>
           {secondaryText && (
-            <button onClick={secondaryAction} style={{ padding: '16px', backgroundColor: '#f0f3ff', color: '#2334b2', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
+            <button onClick={secondaryAction} style={{ padding: '16px', backgroundColor: '#f0f3ff', color: '#2334b2', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
               {secondaryText}
             </button>
           )}
@@ -88,7 +88,7 @@ export default function SignUp() {
 
   const inputStyle = {
     width: '100%', boxSizing: 'border-box', backgroundColor: '#ffffff',
-    border: '1.5px solid #dde1f0', borderRadius: '14px',
+    border: '1.5px solid #dde1f0', borderRadius: '12px',
     padding: '18px 18px 18px 54px', fontSize: '16px',
     fontWeight: '500', color: '#1b2c7a', outline: 'none',
   };
@@ -365,7 +365,7 @@ export default function SignUp() {
                 onClick={() => setIsLocationModalOpen(true)}
                 style={{
                   width: '100%', padding: '16px 18px', backgroundColor: '#ffffff',
-                  border: '1.5px solid #dde1f0', borderRadius: '14px',
+                  border: '1.5px solid #dde1f0', borderRadius: '12px',
                   display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left'
                 }}
               >
@@ -485,7 +485,7 @@ export default function SignUp() {
               animate={{ translateY: 0 }}
               exit={{ translateY: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="relative w-full max-w-md bg-white rounded-t-[40px] shadow-2xl overflow-hidden" 
+              className="relative w-full max-w-md bg-white rounded-t-3xl shadow-2xl overflow-hidden" 
               style={{ height: '70vh' }}
             >
               <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 opacity-50" />

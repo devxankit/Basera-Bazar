@@ -186,8 +186,8 @@ const UserProfile = () => {
         </div>
 
         <div className="flex items-center gap-4 sm:gap-5 relative z-10">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[24px] sm:rounded-[28px] bg-gradient-to-br from-[#fa8639] to-orange-600 border-4 border-white/10 flex items-center justify-center p-0.5 shadow-xl">
-             <div className="w-full h-full rounded-[20px] sm:rounded-[24px] bg-white flex items-center justify-center text-[#1f2355]">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#fa8639] to-orange-600 border-4 border-white/10 flex items-center justify-center p-0.5 shadow-xl">
+             <div className="w-full h-full rounded-xl sm:rounded-xl bg-white flex items-center justify-center text-[#1f2355]">
                <User size={28} sm:size={36} strokeWidth={2.5} />
              </div>
           </div>
@@ -202,7 +202,7 @@ const UserProfile = () => {
       </div>
 
       <div className="px-6 -mt-10 sm:-mt-12 relative z-20">
-        <div className="bg-white rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 shadow-xl shadow-slate-200 border border-slate-100 space-y-5">
+        <div className="bg-white rounded-2xl sm:rounded-2xl p-5 sm:p-6 shadow-xl shadow-slate-200 border border-slate-100 space-y-5">
            <div className="grid grid-cols-2 gap-4">
              <div className="space-y-1">
                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Phone</span>
@@ -234,7 +234,7 @@ const UserProfile = () => {
         <div className="mt-8 px-4 xs:px-6">
           <div 
             onClick={() => navigate('/partner/register')}
-            className="bg-gradient-to-br from-orange-50 to-white border border-orange-100 rounded-[24px] p-3 sm:p-5 flex items-center justify-between group active:scale-[0.98] transition-all cursor-pointer shadow-sm hover:shadow-md hover:border-orange-200"
+            className="bg-gradient-to-br from-orange-50 to-white border border-orange-100 rounded-xl p-3 sm:p-5 flex items-center justify-between group active:scale-[0.98] transition-all cursor-pointer shadow-sm hover:shadow-md hover:border-orange-200"
           >
             <div className="flex items-center gap-2.5 sm:gap-4 overflow-hidden">
               <div className="w-10 h-10 sm:w-14 sm:h-14 bg-[#fa8639] rounded-[18px] flex items-center justify-center shadow-lg shadow-orange-200 shrink-0">
@@ -259,7 +259,7 @@ const UserProfile = () => {
               key={tab.name}
               onClick={() => setActiveTab(tab.name)}
               className={cn(
-                "flex-shrink-0 flex items-center justify-center gap-2.5 px-6 py-4 rounded-[20px] text-[12px] font-bold uppercase tracking-wider transition-all relative overflow-hidden",
+                "flex-shrink-0 flex items-center justify-center gap-2.5 px-6 py-4 rounded-xl text-[12px] font-bold uppercase tracking-wider transition-all relative overflow-hidden",
                 activeTab === tab.name 
                   ? "bg-[#1f2355] text-white shadow-lg shadow-slate-300" 
                   : "bg-white text-slate-400 border border-slate-100"
@@ -284,7 +284,7 @@ const UserProfile = () => {
             {activeTab === 'Marketplace Orders' ? (
               <motion.div key="market" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
                  {marketplaceOrders.map((order) => (
-                    <div key={order._id} className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 space-y-5">
+                    <div key={order._id} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-5">
                        <div className="flex justify-between items-start">
                           <div>
                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Order #{order._id.slice(-8)}</div>
@@ -362,7 +362,7 @@ const UserProfile = () => {
                 className="space-y-4"
               >
                 {(activeTab === 'Property Enquiries' ? propertyEnquiries : (activeTab === 'Product Enquiries' ? productEnquiries : serviceEnquiries)).map((enquiry, idx) => (
-                  <div key={idx} className="bg-white rounded-[24px] border border-slate-100 p-4 space-y-3 shadow-sm group relative overflow-hidden">
+                  <div key={idx} className="bg-white rounded-xl border border-slate-100 p-4 space-y-3 shadow-sm group relative overflow-hidden">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-[#1f2355] border border-slate-100 shrink-0">
                         {enquiry.type === 'quotation' ? <ShoppingCart size={18} /> : (enquiry.category === 'service' ? <Wrench size={18} /> : <Building2 size={18} />)}
@@ -423,9 +423,9 @@ const UserProfile = () => {
               initial={{ opacity: 0, y: 100, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 100, scale: 0.95 }}
-              className="bg-white w-full max-w-sm rounded-[32px] p-8 relative z-10 shadow-2xl border border-slate-100"
+              className="bg-white w-full max-w-sm rounded-2xl p-8 relative z-10 shadow-2xl border border-slate-100"
             >
-              <div className="w-20 h-20 bg-red-50 rounded-[28px] flex items-center justify-center text-red-500 mx-auto mb-6">
+              <div className="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mx-auto mb-6">
                 <LogOut size={36} strokeWidth={2.5} />
               </div>
               <div className="text-center space-y-2 mb-8">

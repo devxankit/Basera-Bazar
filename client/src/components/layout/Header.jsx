@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import logo from '../../assets/baseralogo.png';
-import { ChevronDown, MapPin, User, Bell, Building2 } from 'lucide-react';
+import { Menu, Bell, User, MapPin, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLocationContext } from '../../context/LocationContext';
@@ -19,9 +18,6 @@ const Header = () => {
   }, []);
 
   const handleLocationSelect = (loc) => {
-    // loc can be { coordinates: [lng, lat], isGPS: true } 
-    // or { name, district, state, isManual: true }
-    
     if (loc.isGPS) {
       setLocation(prev => ({
         ...prev,
@@ -36,7 +32,7 @@ const Header = () => {
         city: loc.name,
         district: loc.district,
         state: loc.state,
-        coords: null, // Will be geocoded by backend or utility
+        coords: null,
         formattedAddress: `${loc.name}, ${loc.state}`
       });
     }
@@ -45,42 +41,60 @@ const Header = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-gradient-to-b from-white to-slate-50/80 backdrop-blur-lg border-b border-slate-200/50 flex flex-col pt-6 pb-6 overflow-hidden font-sans shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)]">
-        {/* Integrated Top Bar */}
-        <div className="px-5 flex items-center justify-between gap-2">
-          {/* Logo Card */}
-          <div className="w-[52px] h-[52px] bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center p-1.5 overflow-hidden flex-shrink-0">
-             <img src={logo} alt="BaseraBazar" className="w-full h-full object-contain" />
+      <div className="relative bg-white pt-6 pb-4 overflow-hidden font-sans">
+        {/* Top Icons Bar */}
+        <div className="px-5 flex items-center justify-between relative z-20">
+          <button className="w-11 h-11 bg-white rounded-xl shadow-[0_2px_10px_-3px_rgba(0,0,0,0.08)] flex items-center justify-center text-slate-700 active:scale-95 transition-all">
+            <Menu size={22} strokeWidth={2.5} />
+          </button>
+          
+          <div className="flex items-center gap-3">
+            <button className="w-11 h-11 bg-white rounded-xl shadow-[0_2px_10px_-3px_rgba(0,0,0,0.08)] flex items-center justify-center text-slate-700 relative active:scale-95 transition-all">
+              <Bell size={22} strokeWidth={2.5} />
+              <span className="absolute top-3 right-3 w-2 h-2 bg-orange-500 rounded-full border-2 border-white shadow-sm" />
+            </button>
+            <button 
+              onClick={() => navigate(isAuthenticated ? '/profile' : '/login')}
+              className="w-11 h-11 bg-white rounded-xl shadow-[0_2px_10px_-3px_rgba(0,0,0,0.08)] flex items-center justify-center text-slate-700 active:scale-95 transition-all"
+            >
+              <User size={22} strokeWidth={2.5} />
+            </button>
           </div>
+        </div>
 
-          {/* Center Identity Section */}
-          <div className="flex-grow flex flex-col items-center justify-center min-w-0 px-1">
-            <h1 className="text-[clamp(18px,5.2vw,24px)] font-extrabold text-[#181d5f] tracking-tighter leading-none whitespace-nowrap overflow-hidden text-ellipsis mb-2">
-              Welcome to Basera
+        {/* Hero Section Container */}
+        <div className="relative mt-4 px-5 flex items-center min-h-[200px]">
+          {/* Left Text Content */}
+          <div className="relative z-10 w-[65%] pt-2">
+            <p className="text-[#181d5f] text-base font-bold tracking-tight">Welcome to</p>
+            <h1 className="text-[36px] font-black tracking-tighter leading-[1.05] mt-1">
+              <span className="text-orange-500">Basera</span> <br />
+              <span className="text-[#181d5f]">Bazar</span>
             </h1>
-
-            {/* Compact Location Pill nested under Title */}
+            <p className="text-slate-400 text-[10px] font-black mt-2 tracking-[0.15em] uppercase">Build better. Live better.</p>
+            
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="bg-emerald-50/50 border border-emerald-100/50 rounded-full px-3 py-1.5 flex items-center gap-1.5 active:scale-95 transition-all w-fit max-w-full"
+              className="mt-6 flex items-center gap-2 bg-white border border-slate-50 rounded-xl px-4 py-2.5 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.08)] active:scale-[0.98] transition-all"
             >
-              <MapPin size={12} className="text-[#34a853] shrink-0" strokeWidth={2.5} />
-              <span className="text-[11px] font-bold text-[#181d5f] truncate whitespace-nowrap">
-                {location.city || location.formattedAddress}
+              <MapPin size={16} className="text-[#181d5f]" strokeWidth={3} />
+              <span className="text-[13px] font-black text-[#181d5f]">
+                {location.city || location.district || 'Muzaffarpur, Bihar'}
               </span>
-              <ChevronDown size={12} className="text-slate-400 shrink-0" />
+              <ChevronDown size={14} className="text-slate-400" strokeWidth={3} />
             </button>
           </div>
 
-          {/* Profile Action */}
-          <button 
-            onClick={() => navigate(isAuthenticated ? '/profile' : '/login')}
-            className="h-[52px] w-[52px] bg-white flex items-center justify-center rounded-2xl text-[#181d5f] transition-all active:scale-95 border border-slate-200 shadow-sm flex-shrink-0"
-          >
-            <User size={24} strokeWidth={2} />
-          </button>
+          {/* Right House Image */}
+          <div className="absolute top-0 right-0 bottom-0 w-[55%] pointer-events-none">
+            <img 
+              src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop" 
+              alt="Hero House" 
+              className="w-full h-full object-contain object-right transform scale-125 translate-x-4"
+            />
+          </div>
         </div>
-      </header>
+      </div>
 
       {/* Location Bottom Sheet */}
       <div className={`fixed inset-0 z-[100] flex items-end justify-center transition-opacity duration-300 ${isModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>

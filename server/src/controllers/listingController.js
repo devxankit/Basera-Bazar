@@ -19,8 +19,10 @@ const buildProximityPipeline = (lat, lng, userDistrict, userState, radiusKm = 30
       $geoNear: {
         near: { type: "Point", coordinates: [longitude, latitude] },
         distanceField: "distance",
-        maxDistance: parseFloat(radiusKm) * 1000,
-        query: { status: 'active' },
+        maxDistance: (process.env.NODE_ENV === 'development' ? 20000 : parseFloat(radiusKm)) * 1000,
+        query: process.env.NODE_ENV === 'development' 
+          ? { status: { $in: ['active', 'pending_approval', 'draft'] } }
+          : { status: 'active' },
         spherical: true
       }
     },
@@ -61,7 +63,10 @@ const getNearbyServices = async (req, res) => {
 
     if (isNaN(latitude) || isNaN(longitude)) {
       // Fallback to basic find if no location provided
-      const services = await ServiceListing.find({ status: 'active' }).limit(20);
+      const query = process.env.NODE_ENV === 'development' 
+        ? { status: { $in: ['active', 'pending_approval'] } }
+        : { status: 'active' };
+      const services = await ServiceListing.find(query).limit(20);
       return res.status(200).json({ success: true, count: services.length, data: services });
     }
 
@@ -107,7 +112,10 @@ const getMandiListings = async (req, res) => {
     const longitude = parseFloat(lng);
 
     if (isNaN(latitude) || isNaN(longitude)) {
-      const mandiItems = await MandiListing.find({ status: 'active' }).select('-partner_id');
+      const query = process.env.NODE_ENV === 'development' 
+        ? { status: { $in: ['active', 'pending_approval'] } }
+        : { status: 'active' };
+      const mandiItems = await MandiListing.find(query).select('-partner_id');
       return res.status(200).json({ success: true, count: mandiItems.length, data: mandiItems });
     }
 
@@ -251,7 +259,7 @@ const createServiceListing = async (req, res) => {
       title,
       short_description: shortDescription || description?.slice(0, 200),
       full_description: detailedDescription || description,
-      experience,
+      years_of_experience: experience,
       details,
       image,
       thumbnail: image,
@@ -341,7 +349,10 @@ const getAllListings = async (req, res) => {
     const proximityRadius = 300;
 
     const fetchCategory = async (Model, modelName) => {
-      const query = { status: 'active' };
+      // In development mode, we also show pending_approval listings to help the developer see their data
+      const query = process.env.NODE_ENV === 'development' 
+        ? { status: { $in: ['active', 'pending_approval'] } }
+        : { status: 'active' };
       if (is_featured === 'true') {
         query.is_featured = true;
       }
@@ -349,7 +360,7 @@ const getAllListings = async (req, res) => {
         query.partner_id = partner_id;
       }
 
-      if (hasLocation) {
+      if (hasLocation && process.env.NODE_ENV !== 'development') {
         const pipeline = buildProximityPipeline(latitude, longitude, district, state, proximityRadius);
         // Add the extra filters to the aggregation pipeline
         const matchStage = { $match: query };
@@ -453,10 +464,11 @@ const getPublicCategories = async (req, res) => {
     const categoriesWithCounts = await Promise.all(categories.map(async (cat) => {
       let count = 0;
       if (ListingModel) {
-        count = await ListingModel.countDocuments({
-          $or: [{ category_id: cat._id }, { subcategory_id: cat._id }],
-          status: 'active'
-        });
+        const countQuery = process.env.NODE_ENV === 'development'
+          ? { $or: [{ category_id: cat._id }, { subcategory_id: cat._id }], status: { $in: ['active', 'pending_approval'] } }
+          : { $or: [{ category_id: cat._id }, { subcategory_id: cat._id }], status: 'active' };
+        
+        count = await ListingModel.countDocuments(countQuery);
       }
       return { ...cat.toObject(), listing_count: count };
     }));

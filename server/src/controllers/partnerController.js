@@ -386,10 +386,9 @@ const getPublicPartners = async (req, res) => {
   try {
     const { category, search, district, state } = req.query;
 
-    const query = {
-      is_active: true,
-      onboarding_status: 'approved'
-    };
+    const query = process.env.NODE_ENV === 'development'
+      ? { is_active: { $in: [true, false] }, onboarding_status: { $in: ['approved', 'pending_approval', 'incomplete'] } }
+      : { is_active: true, onboarding_status: 'approved' };
 
     // Filter by role/type
     if (category) {
@@ -400,9 +399,11 @@ const getPublicPartners = async (req, res) => {
       ];
     }
 
-    // Filter by location
-    if (district) query.district = new RegExp(district, 'i');
-    if (state) query.state = new RegExp(state, 'i');
+    // Filter by location (Skipped in development to show all data)
+    if (process.env.NODE_ENV !== 'development') {
+      if (district) query.district = new RegExp(district, 'i');
+      if (state) query.state = new RegExp(state, 'i');
+    }
 
     // Search by name or business name
     if (search) {

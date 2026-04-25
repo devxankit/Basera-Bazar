@@ -89,7 +89,7 @@ class DataEngine {
       } else if (item.listing_type || item.listing_intent || item.property_type) {
         normalized.category = 'property';
         normalized.serviceType = item.property_type || item.listing_type || 'Property';
-      } else if (item.service_type || item.portfolio_images || item.years_of_experience !== undefined) {
+      } else if (item.service_type || item.portfolio_images || item.years_of_experience !== undefined || item.experience !== undefined) {
         normalized.category = 'service';
       } else if (item.material_name || item.quality_grade) {
         normalized.category = 'mandi';
