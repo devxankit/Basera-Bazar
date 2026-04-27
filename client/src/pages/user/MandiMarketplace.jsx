@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { useLocationContext } from '../../context/LocationContext';
+import LocationPicker from '../../components/common/LocationPicker';
 
 const cn = (...inputs) => inputs.filter(Boolean).join(' ');
 
@@ -43,11 +44,13 @@ const getCategoryImage = (cat) => {
 export default function MandiMarketplace() {
    const navigate = useNavigate();
    const { cartCount } = useCart();
-   const { location } = useLocationContext();
+   const { location, setLocation } = useLocationContext();
 
    const [categories, setCategories] = useState([]);
    const [supplierCategories, setSupplierCategories] = useState([]);
    const [loadingCategories, setLoadingCategories] = useState(true);
+   const [searchQuery, setSearchQuery] = useState('');
+   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
    useEffect(() => {
       const fetchData = async () => {
@@ -127,13 +130,40 @@ export default function MandiMarketplace() {
 
    const locationDisplay = location?.formattedAddress || location?.city || 'Muzaffarpur, Bihar';
 
+   const handleSearch = (e) => {
+      if (e.key === 'Enter' && searchQuery.trim()) {
+         navigate(`/browse/mandi?search=${encodeURIComponent(searchQuery.trim())}`);
+      }
+   };
+
+   const handleLocationSelect = (loc) => {
+      if (loc.isGPS) {
+         setLocation(prev => ({
+            ...prev,
+            city: loc.name || (loc.isGPS ? 'Current Location' : prev.city),
+            state: loc.state || prev.state,
+            district: loc.district || prev.district,
+            coords: loc.coordinates,
+            formattedAddress: loc.name ? `${loc.name}, ${loc.state}` : 'Current GPS Location'
+         }));
+      } else {
+         setLocation({
+            city: loc.name,
+            district: loc.district,
+            state: loc.state,
+            coords: null,
+            formattedAddress: `${loc.name}, ${loc.state}`
+         });
+      }
+      setIsLocationModalOpen(false);
+   };
+
    return (
       <div className="bg-white pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
 
          {/* ── HEADER ── */}
          <div className="bg-white sticky top-0 z-50 px-4 py-2.5 flex items-center justify-between border-b border-slate-50 shadow-sm">
             <div className="flex items-center gap-2.5">
-               <Menu size={20} className="text-[#1f2355]" />
                <div className="flex flex-col leading-none">
                   <div className="flex items-center gap-0.5">
                      <span className="font-black text-[#f59e0b]" style={{ fontSize: 'clamp(15px, 5vw, 19px)' }}>बसेरा</span>
@@ -143,9 +173,6 @@ export default function MandiMarketplace() {
                </div>
             </div>
             <div className="flex items-center gap-2">
-               <button className="w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355]">
-                  <Search size={16} />
-               </button>
                <button className="relative w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355]" onClick={() => navigate('/cart')}>
                   <ShoppingCart size={16} />
                   {cartCount > 0 && (
@@ -158,12 +185,33 @@ export default function MandiMarketplace() {
          </div>
 
          {/* ── LOCATION BAR ── */}
-         <div className="px-4 py-1.5 flex justify-end">
-            <button className="flex items-center gap-1 text-slate-600 font-semibold" style={{ fontSize: 'clamp(10px, 3vw, 12px)' }}>
-               <MapPin size={12} className="text-orange-500" />
-               <span>{locationDisplay}</span>
-               <ChevronDown size={11} className="text-slate-400" />
+         <div className="px-4 py-2 flex items-center">
+            <button 
+               onClick={() => setIsLocationModalOpen(true)}
+               className="flex items-center gap-2 text-slate-600 font-bold w-full bg-slate-50/50 py-2 px-3 rounded-xl border border-slate-50 active:scale-[0.98] transition-all" 
+               style={{ fontSize: 'clamp(11px, 3.2vw, 13px)' }}
+            >
+               <MapPin size={14} className="text-orange-500 shrink-0" />
+               <span className="truncate flex-1 text-left">{locationDisplay}</span>
+               <ChevronDown size={12} className="text-slate-400 shrink-0" />
             </button>
+         </div>
+
+         {/* ── SEARCH BAR ── */}
+         <div className="px-4 mb-2 mt-1">
+            <div className="relative group">
+               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search size={18} className="text-slate-400 group-focus-within:text-[#1f2355] transition-colors" />
+               </div>
+               <input
+                  type="text"
+                  placeholder="Search building materials..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleSearch}
+                  className="w-full bg-slate-100/50 border border-slate-100 rounded-[20px] py-3.5 pl-12 pr-4 text-[13px] font-bold text-[#1f2355] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1f2355]/5 focus:bg-white transition-all shadow-sm"
+               />
+            </div>
          </div>
 
          {/* ── HERO BANNER ── */}
@@ -286,12 +334,6 @@ export default function MandiMarketplace() {
          <div className="mt-5 px-4">
             <div className="flex items-center justify-between mb-3">
                <h2 className="font-black text-[#1f2355]" style={{ fontSize: 'clamp(14px, 4.5vw, 18px)' }}>Shop by Category</h2>
-               <button 
-                  onClick={() => navigate('/categories')}
-                  className="font-black text-orange-500 flex items-center gap-1" style={{ fontSize: 'clamp(9px, 2.8vw, 11px)' }}
-               >
-                  VIEW ALL <ArrowRight size={12} strokeWidth={3} />
-               </button>
             </div>
             <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
                {loadingCategories ? (
@@ -369,30 +411,11 @@ export default function MandiMarketplace() {
             </div>
          </div>
 
-         {/* ── QUICK ACTIONS ── */}
-         <div className="mt-5 px-4 grid grid-cols-4 gap-2">
-            {quickActions.map((action, i) => (
-               <div key={i} className="bg-white border border-slate-100 rounded-2xl flex flex-col items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer text-center"
-                  style={{ padding: 'clamp(8px, 2.5vw, 12px) clamp(4px, 1.5vw, 8px)' }}
-               >
-                  <div className={cn('rounded-xl flex items-center justify-center', action.bg, action.color)}
-                     style={{ width: 'clamp(32px, 9vw, 40px)', height: 'clamp(32px, 9vw, 40px)' }}
-                  >
-                     <action.icon size={16} strokeWidth={2} />
-                  </div>
-                  <p className="font-bold text-[#1f2355] leading-tight" style={{ fontSize: 'clamp(7px, 2vw, 9px)' }}>{action.label}</p>
-                  <p className="font-medium text-slate-400 leading-tight" style={{ fontSize: 'clamp(6px, 1.8vw, 8px)' }}>{action.sub}</p>
-               </div>
-            ))}
-         </div>
 
          {/* ── TOP SELLING PRODUCTS ── */}
          <div className="mt-5 pb-4">
             <div className="px-4 flex items-center justify-between mb-3">
                <h2 className="font-black text-[#1f2355]" style={{ fontSize: 'clamp(14px, 4.5vw, 18px)' }}>Top Selling Products</h2>
-               <button className="font-black text-orange-500 flex items-center gap-1" style={{ fontSize: 'clamp(9px, 2.8vw, 11px)' }}>
-                  VIEW ALL <ArrowRight size={12} strokeWidth={3} />
-               </button>
             </div>
             <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-2">
                {topProducts.map((product) => (
@@ -432,6 +455,18 @@ export default function MandiMarketplace() {
             </div>
          </div>
 
+         {/* ── LOCATION MODAL ── */}
+         <div className={`fixed inset-0 z-[100] flex items-end justify-center transition-opacity duration-300 ${isLocationModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsLocationModalOpen(false)} />
+            <div className={`relative w-full max-w-md bg-white rounded-t-[40px] shadow-2xl transition-transform duration-500 transform ${isLocationModalOpen ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '75vh' }}>
+               <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 opacity-50" />
+               <LocationPicker 
+                  onClose={() => setIsLocationModalOpen(false)} 
+                  onSelect={handleLocationSelect}
+                  initialLocation={location}
+               />
+            </div>
+         </div>
       </div>
    );
 }

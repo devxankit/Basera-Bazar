@@ -101,13 +101,6 @@ const Home = () => {
       <div className="px-4 mb-6 xs:mb-8">
         <div className="flex items-center justify-between mb-3 xs:mb-4">
           <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Browse Categories</h2>
-          <button
-            onClick={() => navigate('/categories')}
-            className="font-black text-orange-500 flex items-center gap-1"
-            style={{ fontSize: 'clamp(11px, 3vw, 12px)' }}
-          >
-            VIEW ALL <ChevronRight size={14} strokeWidth={3} />
-          </button>
         </div>
 
         <Skeleton name="home-categories" loading={loading}>
