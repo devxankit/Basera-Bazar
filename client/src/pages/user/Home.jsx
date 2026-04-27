@@ -4,7 +4,7 @@ import { Skeleton } from '../../components/common/Skeleton';
 import {
   Search, Building2, Wrench, ArrowRight, ChevronRight,
   ShieldCheck, BadgePercent, Truck, Store,
-  CheckCircle2, Headphones, ShoppingBag
+  CheckCircle2, Headphones, ShoppingBag, HelpCircle, IndianRupee
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -91,124 +91,140 @@ const Home = () => {
     <div className="bg-white pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* ── SEARCH BAR ── */}
-      <Skeleton name="home-search" loading={loading}>
-        <div className="px-4 xs:px-5 pb-4 xs:pb-6 -mt-6 xs:-mt-8 relative z-30">
-          <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] flex items-center overflow-hidden p-1 xs:p-1.5 transition-all focus-within:ring-2 focus-within:ring-[#181d5f]/10">
-            <div className="flex-grow flex items-center px-2 xs:px-3.5">
-              <Search className="text-slate-400 shrink-0" size={16} />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && navigate(`/browse/all?q=${searchQuery}`)}
-                placeholder="Search products..."
-                className="w-full bg-transparent outline-none pl-2 xs:pl-3 py-2.5 xs:py-3 font-medium text-slate-700 placeholder:text-slate-400"
-                style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}
-              />
-            </div>
-            <button
-              onClick={() => navigate(`/browse/all?q=${searchQuery}`)}
-              className="bg-[#181d5f] text-white px-4 xs:px-7 py-2.5 xs:py-3 font-black rounded-xl active:scale-95 transition-all shadow-lg whitespace-nowrap"
-              style={{ fontSize: 'clamp(11px, 3vw, 13px)' }}
-            >
-              Search
-            </button>
+      <div className="px-4 xs:px-5 pb-4 xs:pb-6 -mt-6 xs:-mt-8 relative z-30">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] flex items-center overflow-hidden p-1 xs:p-1.5 transition-all focus-within:ring-2 focus-within:ring-[#181d5f]/10">
+          <div className="flex-grow flex items-center px-2 xs:px-3.5">
+            <Search className="text-slate-400 shrink-0" size={16} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && navigate(`/browse/all?q=${searchQuery}`)}
+              placeholder="Search products..."
+              className="w-full bg-transparent outline-none pl-2 xs:pl-3 py-2.5 xs:py-3 font-medium text-slate-700 placeholder:text-slate-400"
+              style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}
+            />
           </div>
+          <button
+            onClick={() => navigate(`/browse/all?q=${searchQuery}`)}
+            className="bg-[#181d5f] text-white px-4 xs:px-7 py-2.5 xs:py-3 font-black rounded-xl active:scale-95 transition-all shadow-lg whitespace-nowrap"
+            style={{ fontSize: 'clamp(11px, 3vw, 13px)' }}
+          >
+            Search
+          </button>
         </div>
-      </Skeleton>
-
-      {/* ── BROWSE CATEGORIES ── */}
-      <div className="px-4 mb-6 xs:mb-8">
-        <div className="flex items-center justify-between mb-3 xs:mb-4">
-          <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Browse Categories</h2>
-        </div>
-
-        <Skeleton name="home-categories" loading={loading}>
-          <div className="grid grid-cols-2 gap-3">
-            {categories.map((cat) => (
-              <div
-                key={cat.id}
-                onClick={() => navigate(cat.path)}
-                className="bg-white rounded-[20px] border border-slate-100 shadow-[0_8px_25px_rgb(0,0,0,0.04)] cursor-pointer active:scale-[0.98] transition-all relative flex flex-col overflow-hidden group h-[170px]"
-              >
-                {/* Icon Top Left Circle */}
-                <div className={cn('absolute top-2 left-2 w-7 h-7 xs:w-9 xs:h-9 rounded-full flex items-center justify-center shadow-sm z-10', cat.iconBg, cat.iconColor)}>
-                  <cat.icon size={12} className="scale-[1.1] xs:scale-[1.3]" strokeWidth={2.5} />
-                </div>
-
-                {/* Main Image Container */}
-                <div className="flex-1 flex items-center justify-center p-1 pt-7 overflow-hidden">
-                  <img
-                    src={cat.image}
-                    alt={cat.title}
-                    className="max-w-[95%] max-h-[95%] object-contain transform group-hover:scale-110 transition-transform duration-500"
-                  />
-                </div>
-
-                {/* Bottom Info */}
-                <div className="px-3 pb-4 pt-1 flex items-center justify-between gap-1 mt-auto">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[#181d5f] font-black uppercase tracking-tighter leading-[1.1] text-[13px]">
-                      {cat.title}
-                    </p>
-                    <p className="text-slate-400 font-bold text-[10px] hidden xs:block">{cat.count}</p>
-                  </div>
-
-                  <div className="bg-[#181d5f] w-5 h-5 rounded-full flex items-center justify-center text-white shadow-md group-hover:bg-orange-500 transition-colors shrink-0">
-                    <ArrowRight size={10} strokeWidth={3} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Skeleton>
       </div>
 
-      {/* ── MAIN BANNER (One Stop Solution) ── */}
-      <Skeleton name="home-banner" loading={loading}>
-        <div className="px-4 mb-6 xs:mb-8">
-          <div
-            onClick={() => navigate('/mandi-bazar')}
-            className="relative rounded-[24px] xs:rounded-[32px] overflow-hidden cursor-pointer active:scale-[0.99] transition-all shadow-2xl"
-            style={{ height: 'clamp(180px, 50vw, 220px)' }}
-          >
-            {/* Background Image Container with Split */}
-            <div className="absolute inset-0 flex">
-              {/* Left Navy Block */}
-              <div className="bg-[#0d1b3e] w-[55%] h-full relative z-10" />
-              {/* Right Image Block with Blend */}
-              <div className="relative flex-1 h-full">
-                <div className="absolute inset-0 z-10 bg-gradient-to-r from-[#0d1b3e] via-[#0d1b3e]/30 to-transparent w-[40%]" />
-                <img
-                  src="/basera-home-banner.jpeg"
-                  alt="Construction"
-                  className="w-full h-full object-cover object-left"
-                />
-              </div>
+      {loading ? (
+        <div className="px-4 space-y-8 animate-in fade-in duration-500">
+          {/* Skeleton Categories */}
+          <div>
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-[170px] w-full rounded-[20px]" />
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Skeleton Hero */}
+          <div className="mt-4">
+            <Skeleton className="h-[200px] w-full rounded-[32px]" />
+          </div>
+
+          {/* Skeleton Featured Section */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-6 w-40 rounded-lg" />
+              <Skeleton className="h-4 w-16 rounded-full" />
+            </div>
+            <div className="flex gap-4 overflow-hidden">
+              {[1, 2, 3].map(i => (
+                <Skeleton key={i} className="min-w-[200px] h-[220px] rounded-[24px]" />
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* ── BROWSE CATEGORIES ── */}
+          <div className="px-4 mb-6 xs:mb-8">
+            <div className="flex items-center justify-between mb-3 xs:mb-4">
+              <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Browse Categories</h2>
             </div>
 
-            <div className="absolute inset-0 p-4 xs:p-6 flex flex-col justify-center z-20">
-               <div className="max-w-[52%] xs:max-w-[200px]">
-                <p className="text-white/80 font-medium mb-0.5" style={{ fontSize: 'clamp(9px, 2.5vw, 11px)' }}>One Stop Solution for</p>
-                <h2 className="text-white font-black leading-[1.05] mb-2 xs:mb-4" style={{ fontSize: 'clamp(16px, 5.5vw, 22px)' }}>
+            <div className="grid grid-cols-2 gap-3">
+              {categories.map((cat) => (
+                <div
+                  key={cat.id}
+                  onClick={() => navigate(cat.path)}
+                  className="bg-white rounded-[20px] border border-slate-100 shadow-[0_8px_25px_rgb(0,0,0,0.04)] cursor-pointer active:scale-[0.98] transition-all relative flex flex-col overflow-hidden group h-[170px]"
+                >
+                  <div className={cn('absolute top-2 left-2 w-7 h-7 xs:w-9 xs:h-9 rounded-full flex items-center justify-center shadow-sm z-10', cat.iconBg, cat.iconColor)}>
+                    <cat.icon size={12} className="scale-[1.1] xs:scale-[1.3]" strokeWidth={2.5} />
+                  </div>
+                  <div className="flex-1 flex items-center justify-center p-1 pt-7 overflow-hidden">
+                    <img
+                      src={cat.image}
+                      alt={cat.title}
+                      className="max-w-[95%] max-h-[95%] object-contain transform group-hover:scale-110 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="px-3 pb-4 pt-1 flex items-center justify-between gap-1 mt-auto">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[#181d5f] font-black uppercase tracking-tighter leading-[1.1] text-[13px]">
+                        {cat.title}
+                      </p>
+                      <p className="text-slate-400 font-bold text-[10px] hidden xs:block">{cat.count}</p>
+                    </div>
+                    <div className="bg-[#181d5f] w-5 h-5 rounded-full flex items-center justify-center text-white shadow-md group-hover:bg-orange-500 transition-colors shrink-0">
+                      <ArrowRight size={10} strokeWidth={3} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── MAIN BANNER ── */}
+          <div className="px-4 mb-8">
+            <div 
+              onClick={() => navigate('/mandi-bazar')}
+              className="relative rounded-[32px] overflow-hidden bg-[#081229] shadow-xl group cursor-pointer active:scale-[0.98] transition-all"
+              style={{ height: 'clamp(180px, 55vw, 240px)' }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229]/60 to-transparent z-10" />
+              <img
+                src="/basera-home-hero.jpeg"
+                alt="Basera Bazar Hero"
+                className="absolute inset-0 w-full h-full object-cover z-0 group-hover:scale-105 transition-transform duration-700"
+              />
+
+              <div className="absolute inset-0 z-20 p-6 sm:p-8 flex flex-col justify-center max-w-[80%]">
+                <p className="text-white/80 font-bold mb-1 sm:mb-2 uppercase tracking-widest" style={{ fontSize: 'clamp(9px, 2.5vw, 12px)' }}>
+                  One Stop Solution for
+                </p>
+                <h1 className="text-white font-black leading-tight mb-4 sm:mb-6" style={{ fontSize: 'clamp(24px, 8vw, 36px)' }}>
                   Property & <br />
                   <span className="text-orange-500">Building Materials</span>
-                </h2>
+                </h1>
 
-                <div className="flex items-center gap-0 mb-3 xs:mb-5">
+                <div className="flex flex-wrap gap-x-4 gap-y-3 mb-6 sm:mb-8">
                   {[
                     { icon: ShieldCheck, label: 'Quality\nProducts' },
-                    { icon: BadgePercent, label: 'Lowest\nPrice' },
+                    { icon: IndianRupee, label: 'Lowest\nPrice' },
                     { icon: Truck, label: 'Fast\nDelivery' },
-                    { icon: Headphones, label: '24x7\nSupport' },
+                    { icon: HelpCircle, label: '24x7\nSupport' },
                   ].map((item, i) => (
-                    <React.Fragment key={i}>
-                      <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-                        <item.icon className="text-white" strokeWidth={1.5} style={{ width: 'clamp(12px, 3.5vw, 18px)', height: 'clamp(12px, 3.5vw, 18px)' }} />
-                        <span className="text-white font-bold text-center leading-tight whitespace-pre-line opacity-90 uppercase tracking-tighter" style={{ fontSize: 'clamp(5.5px, 2vw, 7.5px)' }}>{item.label}</span>
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-white/10 backdrop-blur-md flex items-center justify-center text-white">
+                        <item.icon size={12} strokeWidth={3} />
                       </div>
-                      {i < 3 && <div className="h-6 xs:h-8 w-[1px] bg-white/10 mx-0.5 xs:mx-1.5 shrink-0" />}
-                    </React.Fragment>
+                      <span className="text-[8px] sm:text-[9px] text-white/90 font-black uppercase tracking-wider leading-tight whitespace-pre-line">
+                        {item.label}
+                      </span>
+                    </div>
                   ))}
                 </div>
 
@@ -225,8 +241,8 @@ const Home = () => {
               </div>
             </div>
           </div>
-        </div>
-      </Skeleton>
+        </>
+      )}
 
       {/* ── FEATURED PROPERTIES ── */}
       <div className="mb-8">

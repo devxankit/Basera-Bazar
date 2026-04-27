@@ -9,11 +9,12 @@ import {
   User, Mail, Phone, Calendar, LogOut, ChevronRight, 
   Package, Wrench, Settings, ArrowLeft, Building2, MapPin, 
   ExternalLink, Clock, CheckCircle2, ShoppingCart, MessageSquare, Briefcase, Send,
-  ShoppingBag, Download, ArrowRight
+  ShoppingBag, Download, ArrowRight, Bell
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import Skeleton from '../../components/common/Skeleton';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -166,16 +167,46 @@ const UserProfile = () => {
     }
   };
 
-  if (loading) return null;
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-24">
+      <div className="bg-[#1f2355] pt-6 pb-20 px-6 relative overflow-hidden">
+        <div className="flex items-center justify-between mb-8">
+          <Skeleton className="w-10 h-10 rounded-xl" />
+          <Skeleton className="w-24 h-5 rounded-lg" />
+          <Skeleton className="w-10 h-10 rounded-xl" />
+        </div>
+        <div className="flex items-center gap-5">
+          <Skeleton className="w-20 h-20 rounded-2xl" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-7 w-48 rounded-lg" />
+            <Skeleton className="h-4 w-32 rounded-md" />
+          </div>
+        </div>
+      </div>
+      <div className="px-6 -mt-10 relative z-20">
+        <div className="bg-white rounded-2xl p-6 shadow-xl border border-slate-100 space-y-4">
+          <Skeleton className="h-16 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
+          <div className="flex justify-between pt-2">
+            <Skeleton className="h-4 w-32 rounded-md" />
+            <Skeleton className="h-8 w-24 rounded-xl" />
+          </div>
+        </div>
+      </div>
+      <div className="mt-8 px-6">
+        <Skeleton className="h-20 w-full rounded-xl" />
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-24">
       {/* Header Profile Section */}
-      <div className="bg-[#1f2355] pt-10 sm:pt-12 pb-20 sm:pb-24 px-6 relative overflow-hidden">
+      <div className="bg-[#1f2355] pt-0 pb-20 sm:pb-24 px-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl opacity-50" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#fa8639]/10 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl opacity-30" />
         
-        <div className="flex items-center justify-between mb-8 relative z-10">
+        <div className="flex items-center justify-between py-8 relative z-10">
           <button onClick={() => navigate('/')} className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all active:scale-95">
             <ArrowLeft size={22} />
           </button>
@@ -203,19 +234,19 @@ const UserProfile = () => {
 
       <div className="px-6 -mt-10 sm:-mt-12 relative z-20">
         <div className="bg-white rounded-2xl sm:rounded-2xl p-5 sm:p-6 shadow-xl shadow-slate-200 border border-slate-100 space-y-5">
-           <div className="grid grid-cols-2 gap-4">
+           <div className="flex flex-col gap-4">
              <div className="space-y-1">
                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Phone</span>
-               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 flex items-center gap-2.5 overflow-hidden">
-                 <Phone size={16} className="text-[#1f2355]/40" />
-                 <span className="text-[14px] font-bold text-[#1f2355] truncate">{user.phone || 'N/A'}</span>
+               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3 overflow-hidden">
+                 <Phone size={18} className="text-[#1f2355]/40" />
+                 <span className="text-[15px] font-bold text-[#1f2355] truncate">{user.phone || 'N/A'}</span>
                </div>
              </div>
              <div className="space-y-1">
                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Email</span>
-               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 flex items-center gap-2.5 overflow-hidden">
-                 <Mail size={16} className="text-[#1f2355]/40" />
-                 <span className="text-[14px] font-bold text-[#1f2355] truncate">{user.email || 'N/A'}</span>
+               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3 overflow-hidden">
+                 <Mail size={18} className="text-[#1f2355]/40" />
+                 <span className="text-[15px] font-bold text-[#1f2355] truncate">{user.email || 'N/A'}</span>
                </div>
              </div>
            </div>

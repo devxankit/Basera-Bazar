@@ -119,12 +119,13 @@ const UserLayout = ({ children }) => {
   const isDetail = location.pathname.startsWith('/listing/') || location.pathname.startsWith('/service/') || location.pathname.startsWith('/agent/');
   const isCart = location.pathname === '/cart';
   const isNotifications = location.pathname === '/notifications';
-  const showBottomNav = !isDetail && !isCart && !isNotifications;
+  const isProfile = location.pathname === '/profile';
+  const showBottomNav = !isDetail && !isCart && !isNotifications && !isProfile;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
       {isHome && <Header />}
-      <main className={`flex-grow ${showBottomNav ? 'pb-32' : 'pb-0'} ${(!isHome && !isAuth && !isCategory && !isBrowse && !isMandi && !isDetail && !isCart) ? 'pt-4' : ''}`}>
+      <main className={`flex-grow ${showBottomNav ? 'pb-32' : 'pb-0'} ${(!isHome && !isAuth && !isCategory && !isBrowse && !isMandi && !isDetail && !isCart && !isNotifications && !isProfile) ? 'pt-4' : ''}`}>
         {children}
       </main>
 

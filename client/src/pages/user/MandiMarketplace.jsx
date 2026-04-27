@@ -9,6 +9,7 @@ import api from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { useLocationContext } from '../../context/LocationContext';
 import LocationPicker from '../../components/common/LocationPicker';
+import Skeleton from '../../components/common/Skeleton';
 
 const cn = (...inputs) => inputs.filter(Boolean).join(' ');
 
@@ -143,6 +144,44 @@ export default function MandiMarketplace() {
       }
       setIsLocationModalOpen(false);
    };
+
+   if (loadingCategories) return (
+      <div className="bg-white min-h-screen pb-10">
+         {/* Skeleton Header */}
+         <div className="bg-white px-4 py-3 flex items-center justify-between border-b border-slate-50">
+            <Skeleton className="h-6 w-32 rounded-lg" />
+            <div className="flex gap-2">
+               <Skeleton className="w-8 h-8 rounded-full" />
+               <Skeleton className="w-8 h-8 rounded-full" />
+            </div>
+         </div>
+         {/* Skeleton Location & Search */}
+         <div className="px-4 py-3 space-y-3">
+            <Skeleton className="h-10 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-[20px]" />
+         </div>
+         {/* Skeleton Hero */}
+         <div className="px-4 mt-2">
+            <Skeleton className="h-[180px] w-full rounded-[18px]" />
+         </div>
+         {/* Skeleton Trust Badges */}
+         <div className="mt-6 px-4 flex justify-between">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="w-16 h-12 rounded-lg" />)}
+         </div>
+         {/* Skeleton Categories */}
+         <div className="px-4 mt-8">
+            <Skeleton className="h-6 w-40 mb-4 rounded-lg" />
+            <div className="grid grid-cols-4 gap-4">
+               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                  <div key={i} className="space-y-2">
+                     <Skeleton className="aspect-square w-full rounded-2xl" />
+                     <Skeleton className="h-3 w-3/4 mx-auto rounded" />
+                  </div>
+               ))}
+            </div>
+         </div>
+      </div>
+   );
 
    return (
       <div className="bg-white pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
