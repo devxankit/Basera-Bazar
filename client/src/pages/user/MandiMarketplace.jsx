@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
    ShoppingCart, Search, MapPin, ArrowRight, ChevronDown,
    Package, ShieldCheck, Truck, Plus, IndianRupee,
-   BadgePercent, HelpCircle, ShoppingBag, ClipboardList, Menu, Upload
+   BadgePercent, HelpCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -86,14 +86,6 @@ export default function MandiMarketplace() {
       fetchData();
    }, []);
 
-   const quickCategories = [
-      ...supplierCategories.slice(0, 4).map(cat => ({
-         id: cat._id,
-         name: cat.name,
-         image: getCategoryImage(cat)
-      })),
-      { id: 'all', name: 'View All', image: null, isViewAll: true },
-   ];
 
    const shopCategories = supplierCategories.map(cat => ({
       id: cat._id,
@@ -121,12 +113,6 @@ export default function MandiMarketplace() {
       { icon: HelpCircle, title: '24x7 Support', sub: 'We are here' },
    ];
 
-   const quickActions = [
-      { icon: Upload, label: 'Upload Requirement', sub: 'Get Best Quote', color: 'text-purple-500', bg: 'bg-purple-50' },
-      { icon: Truck, label: 'Track Order', sub: 'Track your order', color: 'text-emerald-500', bg: 'bg-emerald-50' },
-      { icon: ShoppingBag, label: 'My Orders', sub: 'View your orders', color: 'text-orange-500', bg: 'bg-orange-50' },
-      { icon: HelpCircle, label: 'Help Center', sub: 'Get Support', color: 'text-blue-500', bg: 'bg-blue-50' },
-   ];
 
    const locationDisplay = location?.formattedAddress || location?.city || 'Muzaffarpur, Bihar';
 
@@ -268,54 +254,6 @@ export default function MandiMarketplace() {
             </div>
          </div>
 
-         {/* ── QUICK CATEGORY CARDS ── */}
-         <div className="mt-4 px-4">
-            <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
-               {loadingCategories ? (
-                  [...Array(4)].map((_, i) => (
-                     <div key={i} className="flex-shrink-0 flex flex-col items-center gap-1.5 animate-pulse" style={{ width: 'clamp(68px, 20vw, 85px)', padding: 'clamp(8px, 2.5vw, 12px)' }}>
-                        <div className="w-full rounded-xl bg-slate-100 aspect-square" />
-                        <div className="w-10 h-2 bg-slate-100 rounded mt-2" />
-                     </div>
-                  ))
-               ) : quickCategories.map((cat) => (
-                  <div
-                     key={cat.id}
-                     onClick={() => navigate(cat.isViewAll ? '/categories' : `/browse/mandi?cat=${cat.id}`)}
-                     className="bg-white rounded-2xl border border-slate-100 shadow-sm flex-shrink-0 flex flex-col items-center active:scale-95 transition-all cursor-pointer"
-                     style={{ width: 'clamp(68px, 20vw, 85px)', padding: 'clamp(8px, 2.5vw, 12px)' }}
-                  >
-                     <div className="w-full rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center" style={{ aspectRatio: '1' }}>
-                        {cat.isViewAll ? (
-                           <div className="grid grid-cols-2 gap-0.5 p-2">
-                              {[...Array(4)].map((_, i) => (
-                                 <div key={i} className="w-2.5 h-2.5 bg-[#1f2355]/20 rounded-sm" />
-                              ))}
-                           </div>
-                        ) : (
-                           <img 
-                              src={cat.image} 
-                              alt={cat.name} 
-                              className="w-full h-full object-cover" 
-                              onError={(e) => { e.target.src = '/default-product-category-image.png'; }}
-                           />
-                        )}
-                     </div>
-                     <div className="text-center mt-1.5">
-                        <p className="font-bold text-[#1f2355] leading-none" style={{ fontSize: 'clamp(8.5px, 2.5vw, 10.5px)' }}>{cat.name}</p>
-                        <p className="font-black text-[#f59e0b] uppercase tracking-wider mt-0.5" style={{ fontSize: 'clamp(6px, 1.8vw, 8px)' }}>
-                           {cat.isViewAll ? 'CATEGORIES' : 'CHECK PRICE'}
-                        </p>
-                        <div className="bg-[#1f2355] rounded-full flex items-center justify-center text-white mx-auto mt-1.5 shadow"
-                           style={{ width: 'clamp(16px, 4.5vw, 20px)', height: 'clamp(16px, 4.5vw, 20px)' }}
-                        >
-                           <ArrowRight size={9} strokeWidth={3} />
-                        </div>
-                     </div>
-                  </div>
-               ))}
-            </div>
-         </div>
 
          {/* ── TRUST BADGE STRIP ── */}
          <div className="mt-4 bg-[#1f2355] py-3.5 px-2 grid grid-cols-4 gap-1">
@@ -335,34 +273,32 @@ export default function MandiMarketplace() {
             <div className="flex items-center justify-between mb-3">
                <h2 className="font-black text-[#1f2355]" style={{ fontSize: 'clamp(14px, 4.5vw, 18px)' }}>Shop by Category</h2>
             </div>
-            <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+            <div className="grid grid-cols-4 gap-y-6 gap-x-2 pb-2">
                {loadingCategories ? (
-                  [...Array(6)].map((_, i) => (
-                     <div key={i} className="flex-shrink-0 flex flex-col items-center gap-1.5 animate-pulse" style={{ width: 'clamp(58px, 17vw, 75px)' }}>
-                        <div className="w-full rounded-xl bg-slate-100" style={{ height: 'clamp(48px, 14vw, 62px)' }} />
+                  [...Array(8)].map((_, i) => (
+                     <div key={i} className="flex flex-col items-center gap-1.5 animate-pulse">
+                        <div className="w-full aspect-square rounded-2xl bg-slate-100" />
                         <div className="w-10 h-2 bg-slate-100 rounded" />
                      </div>
-                  ))
-               ) : shopCategories.map((cat) => (
+                   ))
+               ) : (
+                  shopCategories.map((cat) => (
                   <div
                      key={cat.id}
                      onClick={() => navigate(`/browse/mandi?cat=${cat.id}`)}
-                     className="flex-shrink-0 flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
-                     style={{ width: 'clamp(58px, 17vw, 75px)' }}
+                     className="flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-all group"
                   >
-                     <div className="w-full rounded-xl overflow-hidden bg-slate-100 border border-slate-100 shadow-sm"
-                        style={{ height: 'clamp(48px, 14vw, 62px)' }}
-                     >
+                     <div className="w-full aspect-square rounded-2xl overflow-hidden bg-[#fffbeb] border border-orange-50/50 flex items-center justify-center p-2.5 group-hover:shadow-md transition-shadow">
                         <img 
                            src={cat.image} 
                            alt={cat.name} 
-                           className="w-full h-full object-cover" 
+                           className="w-full h-full object-contain mix-blend-multiply" 
                            onError={(e) => { e.target.src = '/default-product-category-image.png'; }}
                         />
                      </div>
-                     <span className="font-semibold text-slate-600 text-center leading-tight" style={{ fontSize: 'clamp(8px, 2.5vw, 10px)' }}>{cat.name}</span>
+                     <span className="font-bold text-[#1f2355] text-center leading-tight px-0.5" style={{ fontSize: '11px' }}>{cat.name}</span>
                   </div>
-               ))}
+               )))}
             </div>
          </div>
 
@@ -437,7 +373,7 @@ export default function MandiMarketplace() {
                         />
                      </div>
                      <div className="p-2.5">
-                        <p className="font-bold text-[#1f2355] line-clamp-1" style={{ fontSize: 'clamp(10px, 3vw, 12px)' }}>{product.title}</p>
+                        <p className="font-bold text-[#1f2355] line-clamp-1" style={{ fontSize: 'clamp(12px, 3.8vw, 15px)' }}>{product.title}</p>
                         <div className="flex items-center justify-between mt-1.5">
                            <div>
                               <span className="font-black text-[#1f2355]" style={{ fontSize: 'clamp(12px, 3.5vw, 15px)' }}>₹{product.price}</span>

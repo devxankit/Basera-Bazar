@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '../../components/common/Skeleton';
 import {
   Search, Building2, Wrench, ArrowRight, ChevronRight,
-  ClipboardList, HelpCircle, ShieldCheck, BadgePercent, Truck, ShoppingBag, Package, Store,
-  CheckCircle2, Star, Timer, Headphones
+  ShieldCheck, BadgePercent, Truck, Store,
+  CheckCircle2, Headphones, ShoppingBag
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
-import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Heart, Tag, Home, Ruler, Send, ArrowRightSquare, LayoutGrid, Mail, User as UserIcon, X, Info, ShoppingCart, Building2, Calendar, Award, ShieldCheck, Map as MapIcon, Package, Plus, Minus, ChevronDown, Trash2 } from 'lucide-react';
+import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
