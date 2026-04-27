@@ -416,7 +416,9 @@ const getPublicPartners = async (req, res) => {
       ];
     }
 
-    const partners = await Partner.find(query).limit(50);
+    const partners = await Partner.find(query)
+      .populate('profile.service_profile.category_id')
+      .limit(50);
 
     res.status(200).json({
       success: true,

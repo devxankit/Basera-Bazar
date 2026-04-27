@@ -7,8 +7,10 @@ const connectDB = async () => {
       socketTimeoutMS: 45000,
     });
     console.log(`🚀 MongoDB Connected: ${conn.connection.host}`);
+    console.log(`📡 Database Name: ${conn.connection.db.databaseName}`);
   } catch (error) {
-    console.error(`❌ Error connecting to MongoDB: ${error.message}`);
+    console.error(`❌ MongoDB Connection Error: ${error.message}`);
+    console.error(`🔍 Full Error Context:`, error);
     console.log('Retrying connection in 5 seconds...');
     setTimeout(connectDB, 5000);
   }

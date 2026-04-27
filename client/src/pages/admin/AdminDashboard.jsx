@@ -13,6 +13,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
 import api from '../../services/api';
+import { Skeleton } from '../../components/common/Skeleton';
 
 const StatCard = ({ title, value, icon: Icon, color, trend, badge }) => (
   <motion.div
@@ -134,16 +135,8 @@ export default function AdminDashboard() {
     fetchDashboardData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="h-[80vh] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="animate-spin text-indigo-600" size={48} />
-        <p className="text-slate-400 font-semibold uppercase tracking-[0.2em] text-xs">Synchronizing Analytics...</p>
-      </div>
-    );
-  }
 
-  if (error || !data) {
+  if (error || (!data && !loading)) {
     return (
       <div className="h-[80vh] flex flex-col items-center justify-center gap-4">
         <AlertCircle className="text-rose-500" size={48} />
@@ -161,14 +154,14 @@ export default function AdminDashboard() {
   const statCardsData = [
     { 
       title: 'Total Users', 
-      value: data.users || '0', 
+      value: data?.users || '0', 
       icon: Users, 
       color: 'bg-slate-100 text-slate-900', 
       trend: { value: '57.1', up: false } 
     },
     { 
       title: 'Properties Listed', 
-      value: data.properties || '0', 
+      value: data?.properties || '0', 
       icon: Building2, 
       color: 'bg-emerald-100 text-emerald-600', 
       badge: { text: '0%', color: 'bg-slate-500 text-white', subtext: 'Since last month' } 
@@ -176,21 +169,28 @@ export default function AdminDashboard() {
 
     { 
       title: 'Services Listed', 
-      value: data.services || '0', 
+      value: data?.services || '0', 
       icon: Briefcase, 
       color: 'bg-slate-100 text-slate-900', 
       badge: { text: 'Active', color: 'bg-slate-500 text-white', icon: Activity, subtext: 'Total count' } 
     },
     { 
+      title: 'Products Listed', 
+      value: data?.products || '0', 
+      icon: ShoppingBag, 
+      color: 'bg-rose-100 text-rose-600', 
+      badge: { text: 'Mandi', color: 'bg-rose-500 text-white', icon: ShoppingBag, subtext: 'Live products' } 
+    },
+    { 
       title: 'Total Revenue', 
-      value: `₹${(data.revenue || 0).toLocaleString()}`, 
+      value: `₹${(data?.revenue || 0).toLocaleString()}`, 
       icon: IndianRupee, 
       color: 'bg-orange-100 text-orange-600', 
       trend: { value: '100', up: false } 
     },
     { 
       title: 'Pending Requests', 
-      value: (data.pending?.properties?.length || 0), 
+      value: (data?.pending?.properties?.length || 0), 
       icon: Clock, 
       color: 'bg-rose-100 text-rose-600', 
       badge: { text: 'Attention', color: 'bg-rose-500 text-white', icon: AlertCircle, subtext: 'Require Review' } 
@@ -218,7 +218,7 @@ export default function AdminDashboard() {
     { title: 'Properties', desc: 'Review and approve property listings', icon: Building2, color: 'bg-emerald-50 text-emerald-600', path: '/admin/properties' },
     { title: 'Subscription Plans', desc: 'Manage subscription packages', icon: Crown, color: 'bg-orange-50 text-orange-500', path: '/admin/subscriptions/plans' },
     { title: 'User Subscriptions', desc: 'Monitor active subscriptions', icon: CreditCard, color: 'bg-cyan-50 text-cyan-500', path: '/admin/subscriptions' },
-  ];  const registrationData = data.analytics?.chartData || [];
+  ];  const registrationData = data?.analytics?.chartData || [];
   
   const roleColors = {
     'Admin': '#3b82f6',
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
     'Supplier': '#6366f1'
   };
 
-  const distributionData = data.analytics?.distribution?.map(item => ({
+  const distributionData = data?.analytics?.distribution?.map(item => ({
     name: item.name,
     value: item.value,
     color: roleColors[item.name] || '#cbd5e1'
@@ -264,24 +264,28 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCardsData.map((stat, i) => (
-          <StatCard key={i} {...stat} />
-        ))}
-      </div>
-
-      {/* Quick Actions Section */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <Zap size={20} className="text-slate-900 fill-slate-900" />
-          <h2 className="text-lg font-black text-slate-900 tracking-tight">Quick Actions</h2>
-        </div>
+      <Skeleton name="admin-stats-grid" loading={loading}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {quickActions.map((action, i) => (
-            <QuickActionCard key={i} {...action} />
+          {statCardsData.map((stat, i) => (
+            <StatCard key={i} {...stat} />
           ))}
         </div>
-      </div>
+      </Skeleton>
+
+      {/* Quick Actions Section */}
+      <Skeleton name="admin-quick-actions" loading={loading}>
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <Zap size={20} className="text-slate-900 fill-slate-900" />
+            <h2 className="text-lg font-black text-slate-900 tracking-tight">Quick Actions</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {quickActions.map((action, i) => (
+              <QuickActionCard key={i} {...action} />
+            ))}
+          </div>
+        </div>
+      </Skeleton>
 
       {/* Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -385,7 +389,7 @@ export default function AdminDashboard() {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-3xl font-black text-slate-900 tracking-tight">{data.users || '0'}</span>
+              <span className="text-3xl font-black text-slate-900 tracking-tight">{data?.users || '0'}</span>
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Total Active</span>
             </div>
           </div>
@@ -407,162 +411,166 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent Activities Section */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-        <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Activity className="text-orange-500" size={20} />
-            <h2 className="text-lg font-black text-slate-900 tracking-tight">Recent Activities</h2>
-          </div>
-          <button 
-            onClick={() => navigate('/admin/dashboard/activities')}
-            className="px-5 py-2.5 rounded-lg border border-orange-200 text-orange-500 text-[11px] font-black uppercase tracking-widest hover:bg-orange-50 transition-colors"
-          >
-            View All
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-10 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Activity</th>
-                <th className="px-10 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Type</th>
-                <th className="px-10 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Date & Time</th>
-                <th className="px-10 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {recentActivities.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-16 text-center">
-                    <Activity size={32} className="text-slate-200 mx-auto mb-3" />
-                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">No activities yet — start adding data</p>
-                  </td>
-                </tr>
-              ) : (
-              recentActivities.map((act, i) => (
-                <tr key={i} className="hover:bg-slate-50/30 transition-colors group">
-                  <td className="px-10 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2.5 bg-slate-50 rounded-lg text-slate-600 group-hover:bg-white group-hover:shadow-sm transition-all">
-                        <act.icon size={18} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-slate-700 tracking-tight">{act.description || act.activity}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                          {new Date(act.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-10 py-5">
-                    <span className="px-3 py-1 rounded-md bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest">
-                      {act.entity_type || act.type}
-                    </span>
-                  </td>
-                  <td className="px-10 py-5">
-                    <span className="text-[12px] font-bold text-slate-500">
-                       {new Date(act.createdAt).toLocaleString()}
-                    </span>
-                  </td>
-                  <td className="px-10 py-5 text-right">
-                    <span className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${
-                      act.status === 'COMPLETED' ? 'bg-emerald-500 text-white' : 'bg-amber-400 text-white'
-                    }`}>
-                      {act.status || 'COMPLETED'}
-                    </span>
-                  </td>
-                </tr>
-              ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pending Approvals Section */}
-      <div className="grid grid-cols-1 gap-8">
-        {/* Pending Property Approvals */}
+      <Skeleton name="admin-recent-activities" loading={loading}>
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
           <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Home className="text-slate-900" size={20} />
-              <h2 className="text-lg font-black text-slate-900 tracking-tight">Pending Property Approvals</h2>
+              <Activity className="text-orange-500" size={20} />
+              <h2 className="text-lg font-black text-slate-900 tracking-tight">Recent Activities</h2>
             </div>
-              <button 
-                onClick={() => navigate('/admin/dashboard/pending/properties')}
-                className="px-5 py-2.5 rounded-lg border border-orange-200 text-orange-500 text-[11px] font-black uppercase tracking-widest hover:bg-orange-50 transition-colors"
-              >
-                View All
-              </button>
+            <button 
+              onClick={() => navigate('/admin/dashboard/activities')}
+              className="px-5 py-2.5 rounded-lg border border-orange-200 text-orange-500 text-[11px] font-black uppercase tracking-widest hover:bg-orange-50 transition-colors"
+            >
+              View All
+            </button>
           </div>
-          <div className="p-0">
-            {data.pending?.properties?.length > 0 ? (
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-slate-50/50">
-                    <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Property</th>
-                    <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Agent</th>
-                    <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Submitted</th>
-                    <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50/50">
+                  <th className="px-10 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Activity</th>
+                  <th className="px-10 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Type</th>
+                  <th className="px-10 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Date & Time</th>
+                  <th className="px-10 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {recentActivities.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-16 text-center">
+                      <Activity size={32} className="text-slate-200 mx-auto mb-3" />
+                      <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">No activities yet — start adding data</p>
+                    </td>
                   </tr>
-                </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {data.pending.properties.map((prop, i) => (
-                      <tr key={i} className="hover:bg-slate-50/30 transition-colors group">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
-                              {prop.images?.[0] ? <img src={prop.images[0]} className="w-full h-full object-cover" /> : <Building2 size={18} className="text-slate-300" />}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-black text-slate-700 tracking-tight truncate">{prop.title}</p>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{prop.property_type}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-[11px] font-bold text-slate-500 truncate">{prop.partner_id?.name || 'N/A'}</p>
-                        </td>
-                        <td className="px-6 py-4 text-[11px] font-bold text-slate-500 whitespace-nowrap">
-                          {new Date(prop.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                             <button 
-                               onClick={() => navigate(`/admin/properties/view/${prop._id}`)} 
-                               className="p-2 rounded-full border border-orange-100 text-orange-500 hover:bg-orange-50 transition-colors"
-                             >
-                               <Eye size={15} />
-                             </button>
-                             <button 
-                               onClick={() => handleStatusUpdate(prop._id, 'active')}
-                               disabled={isProcessing}
-                               className="p-2 rounded-full border border-emerald-100 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-50"
-                             >
-                               <CheckCircle2 size={15} />
-                             </button>
-                             <button 
-                               onClick={() => handleStatusUpdate(prop._id, 'rejected')}
-                               disabled={isProcessing}
-                               className="p-2 rounded-full border border-rose-100 text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50"
-                             >
-                               <XCircle size={15} />
-                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-20">
-                <CheckCircle2 size={48} className="text-slate-200 mb-4" />
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-[11px]">No pending properties</p>
-              </div>
-            )}
+                ) : (
+                recentActivities.map((act, i) => (
+                  <tr key={i} className="hover:bg-slate-50/30 transition-colors group">
+                    <td className="px-10 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-slate-50 rounded-lg text-slate-600 group-hover:bg-white group-hover:shadow-sm transition-all">
+                          <act.icon size={18} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-slate-700 tracking-tight">{act.description || act.activity}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                            {act.createdAt ? new Date(act.createdAt).toLocaleDateString() : 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-10 py-5">
+                      <span className="px-3 py-1 rounded-md bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest">
+                        {act.entity_type || act.type}
+                      </span>
+                    </td>
+                    <td className="px-10 py-5">
+                      <span className="text-[12px] font-bold text-slate-500">
+                         {act.createdAt ? new Date(act.createdAt).toLocaleString() : 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-10 py-5 text-right">
+                      <span className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${
+                        act.status === 'COMPLETED' ? 'bg-emerald-500 text-white' : 'bg-amber-400 text-white'
+                      }`}>
+                        {act.status || 'COMPLETED'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
+      </Skeleton>
+
+      {/* Pending Approvals Section */}
+      <Skeleton name="admin-pending-approvals" loading={loading}>
+        <div className="grid grid-cols-1 gap-8">
+          {/* Pending Property Approvals */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+            <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Home className="text-slate-900" size={20} />
+                <h2 className="text-lg font-black text-slate-900 tracking-tight">Pending Property Approvals</h2>
+              </div>
+                <button 
+                  onClick={() => navigate('/admin/dashboard/pending/properties')}
+                  className="px-5 py-2.5 rounded-lg border border-orange-200 text-orange-500 text-[11px] font-black uppercase tracking-widest hover:bg-orange-50 transition-colors"
+                >
+                  View All
+                </button>
+            </div>
+            <div className="p-0">
+              {data?.pending?.properties?.length > 0 ? (
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-slate-50/50">
+                      <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Property</th>
+                      <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Agent</th>
+                      <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Submitted</th>
+                      <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                  </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {data.pending.properties.map((prop, i) => (
+                        <tr key={i} className="hover:bg-slate-50/30 transition-colors group">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                                {prop.images?.[0] ? <img src={prop.images[0]} className="w-full h-full object-cover" /> : <Building2 size={18} className="text-slate-300" />}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-black text-slate-700 tracking-tight truncate">{prop.title}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{prop.property_type}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className="text-[11px] font-bold text-slate-500 truncate">{prop.partner_id?.name || 'N/A'}</p>
+                          </td>
+                          <td className="px-6 py-4 text-[11px] font-bold text-slate-500 whitespace-nowrap">
+                            {prop.createdAt ? new Date(prop.createdAt).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                               <button 
+                                 onClick={() => navigate(`/admin/properties/view/${prop._id}`)} 
+                                 className="p-2 rounded-full border border-orange-100 text-orange-500 hover:bg-orange-50 transition-colors"
+                               >
+                                 <Eye size={15} />
+                               </button>
+                               <button 
+                                 onClick={() => handleStatusUpdate(prop._id, 'active')}
+                                 disabled={isProcessing}
+                                 className="p-2 rounded-full border border-emerald-100 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-50"
+                               >
+                                 <CheckCircle2 size={15} />
+                               </button>
+                               <button 
+                                 onClick={() => handleStatusUpdate(prop._id, 'rejected')}
+                                 disabled={isProcessing}
+                                 className="p-2 rounded-full border border-rose-100 text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50"
+                               >
+                                 <XCircle size={15} />
+                               </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <CheckCircle2 size={48} className="text-slate-200 mb-4" />
+                  <p className="text-slate-400 font-bold uppercase tracking-widest text-[11px]">No pending properties</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </Skeleton>
     </div>
   );
 }

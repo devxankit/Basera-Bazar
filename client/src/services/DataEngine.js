@@ -61,9 +61,12 @@ class DataEngine {
       normalized.location = normalized.owner.location;
       
       const materials = profile.supplier_profile?.material_categories;
+      const serviceCat = profile.service_profile?.category_id;
       normalized.details = {
         skuCount: 0, 
-        propertyType: (materials && materials.length > 0) ? materials.join(', ') : 'Building Materials'
+        propertyType: (materials && materials.length > 0) ? materials.join(', ') : 
+                     (serviceCat && typeof serviceCat === 'object' ? serviceCat.name : 
+                     (item.category || 'Building Materials'))
       };
     } else {
       // Normalize Pricing for listings
@@ -79,11 +82,18 @@ class DataEngine {
 
       // Normalize Images
       if (!normalized.image) {
-        normalized.image = item.thumbnail || (item.images && item.images[0]) || (item.portfolio_images && item.portfolio_images[0]);
+        normalized.image = (item.thumbnail && item.thumbnail.trim() !== '') ? item.thumbnail : 
+                          ((item.images && item.images.length > 0) ? item.images[0] : 
+                          ((item.portfolio_images && item.portfolio_images.length > 0) ? item.portfolio_images[0] : null));
       }
 
       // Normalize Category (CRITICAL FOR ENQUIRIES)
       // Identify category based on unique structural markers in the document
+      normalized.category_id = (item.category_id && typeof item.category_id === 'object' ? item.category_id._id : item.category_id);
+      normalized.subcategory_id = (item.subcategory_id && typeof item.subcategory_id === 'object' ? item.subcategory_id._id : item.subcategory_id);
+      normalized.category_name = (item.category_id && typeof item.category_id === 'object' ? item.category_id.name : item.category);
+      normalized.subcategory_name = (item.subcategory_id && typeof item.subcategory_id === 'object' ? item.subcategory_id.name : item.subcategory);
+
       if (item.category) {
         normalized.category = item.category;
       } else if (item.listing_type || item.listing_intent || item.property_type) {
@@ -91,6 +101,7 @@ class DataEngine {
         normalized.serviceType = item.property_type || item.listing_type || 'Property';
       } else if (item.service_type || item.portfolio_images || item.years_of_experience !== undefined || item.experience !== undefined) {
         normalized.category = 'service';
+        normalized.serviceType = item.service_type || 'Service';
       } else if (item.material_name || item.quality_grade) {
         normalized.category = 'mandi';
       } else if (item.pricing?.min_order_qty || item.brand_id) {
@@ -178,6 +189,18 @@ class DataEngine {
   // -----------------------------------------------------
   // READ OPERATIONS
   // -----------------------------------------------------
+
+  async getCategories(type, parentId = null) {
+    try {
+      const response = await api.get('/listings/categories', {
+        params: { type, parent_id: parentId }
+      });
+      return response.data.data || [];
+    } catch (error) {
+      console.error(`Error fetching categories:`, error);
+      return [];
+    }
+  }
 
   async getAll(table, params = {}) {
     try {

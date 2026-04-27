@@ -10,7 +10,7 @@ import {
 import { useLocationContext } from '../../context/LocationContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import Skeleton from '../../components/common/Skeleton';
+import { Skeleton } from '../../components/common/Skeleton';
 
 import { INDIAN_STATES_DISTRICTS, INDIAN_STATES } from '../../constants/indiaGeoData';
 
@@ -295,334 +295,330 @@ const BrowseCategory = () => {
       </div>
 
       {/* Results List */}
-      <div className={`pt-4 pb-10 ${isGridView ? 'px-3 grid grid-cols-2 gap-3' : 'px-3 space-y-3'}`}>
-        {loading ? (
-          /* Premium Skeleton Grid */
-          [...Array(6)].map((_, i) => (
-            isService ? (
-              <div key={i} className="bg-white rounded-[32px] border border-slate-100 p-4 flex gap-4 animate-in fade-in duration-500 shadow-sm">
-                <Skeleton className="w-32 h-32 rounded-2xl shrink-0" />
-                <div className="flex-grow space-y-3 py-1">
-                  <div className="space-y-1.5">
-                    <Skeleton className="h-5 w-[70%] rounded-lg" />
-                    <Skeleton className="h-3.5 w-[30%] rounded-md" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="w-6 h-6 rounded-full" />
-                    <Skeleton className="h-3 w-24 rounded-md" />
-                  </div>
-                  <div className="pt-2 flex justify-between items-end">
-                    <Skeleton className="h-8 w-32 rounded-xl" />
-                    <Skeleton className="h-10 w-24 rounded-xl" />
-                  </div>
-                </div>
-              </div>
-            ) : isSupplier ? (
-              <div key={i} className="bg-white rounded-[40px] border border-slate-100 p-4 flex items-center gap-4 animate-in fade-in duration-500">
-                <Skeleton className={cn("shrink-0 rounded-[24px]", isGridView ? "w-20 h-20" : "w-24 h-24")} />
-                <div className="flex-grow space-y-3">
-                  <Skeleton className="h-5 w-[80%] rounded-lg" />
-                  <Skeleton className="h-3 w-[50%] rounded-lg" />
-                  <div className="flex flex-col gap-2 pt-1">
-                     <Skeleton className="h-2.5 w-[60%] rounded-lg" />
-                     <Skeleton className="h-7 w-14 rounded-xl" />
-                  </div>
-                </div>
-              </div>
-            ) : (
-               <div key={i} className={cn(
-                 "bg-white border border-slate-100 overflow-hidden",
-                 isGridView ? "rounded-[24px]" : "rounded-[32px]"
-               )}>
-                 <Skeleton className={cn("w-full", isGridView ? "h-32" : "h-48")} />
-                 <div className="p-5 space-y-3">
-                   <div className="space-y-1.5">
-                     <Skeleton className="h-5 w-[85%] rounded-lg" />
-                     <Skeleton className="h-3 w-[40%] rounded-lg" />
-                   </div>
-                   <div className="flex gap-2 border-t border-slate-50 pt-4">
-                     <Skeleton className="h-8 w-24 rounded-xl" />
-                     <Skeleton className="h-8 w-24 rounded-xl" />
-                   </div>
-                 </div>
-               </div>
-            )
-          ))
-        ) : items.length > 0 ? (
-          items.map((item) => (
-            isService ? (
-              /* Service Card — Grid/List Responsive */
-              <div
-                key={item.id}
-                onClick={() => navigate(`/service/${item.id}`)}
-                className={cn(
-                  "bg-white border border-slate-100 shadow-sm overflow-hidden group active:scale-[0.99] transition-all cursor-pointer",
-                  isGridView ? "rounded-2xl flex flex-col" : "rounded-2xl flex"
-                )}
-              >
-                {/* Image Section */}
-                <div className={cn(
-                  "relative shrink-0 overflow-hidden bg-slate-100",
-                  isGridView ? "w-full aspect-[4/3]" : "w-[105px] xs:w-[120px] sm:w-[130px]"
-                )}>
-                  <img
-                    src={item.image || 'https://images.unsplash.com/photo-1581578731522-745d4b45a07e?q=80&w=400&auto=format&fit=crop'}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    alt={item.title}
-                    onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1581578731522-745d4b45a07e?q=80&w=400&auto=format&fit=crop'; }}
-                  />
-                  {/* Status Badge overlay */}
-                  <div className={cn(
-                    "absolute bottom-2 left-2 flex items-center gap-1 bg-[#4f46e5] text-white font-black uppercase rounded-lg shadow-md",
-                    isGridView ? "px-1.5 py-1 text-[7px]" : "px-2 py-1.5 text-[9px]"
-                  )}>
-                    <CheckCircle2 size={isGridView ? 8 : 10} strokeWidth={3} />
-                    <span>Professional</span>
-                  </div>
-                  {/* Heart on top right in Grid View */}
-                  {isGridView && (
-                    <button className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-slate-400 hover:text-red-500 transition-colors">
-                      <Heart size={14} />
-                    </button>
+      <Skeleton name="browse-results-grid" loading={loading}>
+        <div className={`pt-4 pb-10 ${isGridView ? 'px-3 grid grid-cols-2 gap-3' : 'px-3 space-y-3'}`}>
+          {items.length > 0 ? (
+            items.map((item) => (
+              isService ? (
+                /* Service Card — Grid/List Responsive */
+                <div
+                  key={item.id}
+                  onClick={() => navigate(`/service/${item.id}`)}
+                  className={cn(
+                    "bg-white border border-slate-100 shadow-sm overflow-hidden group active:scale-[0.99] transition-all cursor-pointer",
+                    isGridView ? "rounded-2xl flex flex-col" : "rounded-2xl flex"
                   )}
-                </div>
-
-                {/* Content Section */}
-                <div className={cn(
-                  "flex-1 flex flex-col justify-between min-w-0",
-                  isGridView ? "p-3 space-y-1" : "p-3 xs:p-4"
-                )}>
-                  <div className="space-y-1">
-                    <div className="flex items-start justify-between gap-1">
-                      <h3 className={cn(
-                        "font-bold text-[#1f2355] leading-snug line-clamp-2 flex-1",
-                        isGridView ? "text-[12px]" : "text-[15px]"
-                      )}>
-                        {item.title}
-                      </h3>
-                      {!isGridView && (
-                        <button className="shrink-0 text-slate-300 hover:text-red-400 transition-colors mt-0.5 ml-1">
-                          <Heart size={18} />
-                        </button>
-                      )}
-                    </div>
-
-                    <span className={cn(
-                      "inline-block px-2 py-0.5 bg-[#eef2ff] text-[#4f46e5] rounded-full font-semibold",
-                      isGridView ? "text-[8px]" : "text-[10px]"
-                    )}>
-                      {item.subCategory || 'Service'}
-                    </span>
-                  </div>
-
-                  <div className="space-y-1">
-                    {/* Partner Row */}
-                    <div className="flex items-center gap-1.5">
-                      <div className={cn(
-                        "rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[#1f2355] font-bold shrink-0",
-                        isGridView ? "w-5 h-5 text-[7px]" : "w-6 h-6 text-[9px]"
-                      )}>
-                        {String(item.businessName || item.title || 'BP').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                      </div>
-                      <span className={cn(
-                        "font-semibold text-[#1f2355] truncate",
-                        isGridView ? "text-[10px]" : "text-[12px]"
-                      )}>{item.businessName || 'Verified Partner'}</span>
-                      <div className="rounded-full bg-[#3b82f6] flex items-center justify-center shrink-0 w-3 h-3">
-                        <Check size={7} className="text-white" strokeWidth={3.5} />
-                      </div>
-                    </div>
-
-                    {/* Location Row */}
-                    <div className="flex items-center gap-1">
-                      <MapPin size={isGridView ? 10 : 12} className="text-[#1f2355] shrink-0" />
-                      <span className={cn(
-                        "font-medium text-slate-500 truncate",
-                        isGridView ? "text-[9px]" : "text-[11px]"
-                      )}>{item.location || 'Muzaffarpur, Bihar'}</span>
-                    </div>
-
-                    {/* Rating Row */}
-                    <div className="flex items-center gap-0.5">
-                      {[...Array(5)].map((_, i) => <Star key={i} size={isGridView ? 9 : 12} fill="currentColor" className="text-orange-400" />)}
-                      <span className={cn("font-bold text-[#1f2355] ml-0.5", isGridView ? "text-[10px]" : "text-[12px]")}>5.0</span>
-                    </div>
-                  </div>
-
-                  {/* Footer Row — Optimized for List View Width */}
+                >
+                  {/* Image Section */}
                   <div className={cn(
-                    "flex items-center justify-between gap-1.5",
-                    isGridView ? "mt-1" : "mt-2.5 sm:mt-3"
+                    "relative shrink-0 overflow-hidden bg-slate-100",
+                    isGridView ? "w-full aspect-[4/3]" : "w-[105px] xs:w-[120px] sm:w-[130px]"
                   )}>
+                    <img
+                      src={item.image || 'https://images.unsplash.com/photo-1581578731522-745d4b45a07e?q=80&w=400&auto=format&fit=crop'}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      alt={item.title}
+                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1581578731522-745d4b45a07e?q=80&w=400&auto=format&fit=crop'; }}
+                    />
+                    {/* Status Badge overlay */}
                     <div className={cn(
-                      "bg-[#fff8ed] border border-[#fde8b8] rounded-xl flex items-center gap-1 shrink-0",
-                      isGridView ? "px-1.5 py-0.5" : "px-2 py-1 xs:px-2.5 xs:py-1.5"
+                      "absolute bottom-2 left-2 flex items-center gap-1 bg-[#4f46e5] text-white font-black uppercase rounded-lg shadow-md",
+                      isGridView ? "px-1.5 py-1 text-[7px]" : "px-2 py-1.5 text-[9px]"
                     )}>
-                      <Briefcase size={isGridView ? 9 : 10} className="text-[#b45309]" strokeWidth={2.5} />
-                      <span className={cn("font-bold text-[#b45309] whitespace-nowrap", isGridView ? "text-[8px]" : "text-[9px] xs:text-[10px]")}>
-                        {isGridView ? `${item.experience || '8'} Yrs` : `Exp: ${item.experience || '8'} Yrs`}
-                      </span>
+                      <CheckCircle2 size={isGridView ? 8 : 10} strokeWidth={3} />
+                      <span>{item.category_id?.name || item.category_name || 'Service'}</span>
                     </div>
-                    {!isGridView && (
-                      <button
-                        className="bg-[#1f2355] text-white rounded-xl font-bold whitespace-nowrap active:scale-95 transition-all shadow-md shrink-0"
-                        style={{ 
-                          fontSize: 'clamp(9px, 2.8vw, 11px)', 
-                          padding: 'clamp(6px, 2vw, 9px) clamp(10px, 3vw, 16px)' 
-                        }}
-                      >
-                        View Profile
+                    {/* Heart on top right in Grid View */}
+                    {isGridView && (
+                      <button className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-slate-400 hover:text-red-500 transition-colors">
+                        <Heart size={14} />
                       </button>
                     )}
                   </div>
-                </div>
-              </div>
-            ) : isSupplier ? (
-              /* Supplier Card — Grid/List Responsive */
-              <button
-                key={item.id}
-                onClick={() => navigate(`/listing/${item.id}`)}
-                className={cn(
-                  "bg-white border border-slate-100 shadow-sm overflow-hidden active:scale-[0.98] transition-all w-full",
-                  isGridView ? "rounded-2xl flex flex-col p-3" : "rounded-2xl flex items-center px-3.5 py-3 gap-4"
-                )}
-              >
-                <div className={cn(
-                  "rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100 shrink-0 overflow-hidden",
-                  isGridView ? "w-full aspect-square mb-3" : "w-24 h-24"
-                )}>
-                  <img src={item.image} className="w-full h-full object-cover" alt={item.title} />
-                </div>
-                <div className={cn(
-                  "flex-grow text-left min-w-0",
-                  isGridView ? "space-y-0.5" : "space-y-1"
-                )}>
-                  <h3 className={cn(
-                    "font-bold text-[#1f2355] truncate",
-                    isGridView ? "text-[14px]" : "text-[16px]"
-                  )}>{item.title}</h3>
-                  <p className={cn(
-                    "font-medium text-slate-400",
-                    isGridView ? "text-[10px]" : "text-[12px]"
-                  )}>{item.details?.propertyType}</p>
-                </div>
-              </button>
-            ) : (
-              /* Reimaged Property Card (Premium) */
-              <div
-                key={item.id}
-                onClick={() => navigate(`/listing/${item.id}`)}
-                className={cn(
-                  "bg-white border border-slate-100 shadow-[0_5px_15px_rgba(0,0,0,0.03)] overflow-hidden active:scale-[0.98] transition-all group cursor-pointer",
-                  isGridView ? "rounded-2xl h-auto flex flex-col" : "rounded-2xl flex h-40 sm:h-44"
-                )}
-              >
-                {/* Image Section */}
-                <div className={cn(
-                  "relative overflow-hidden shrink-0",
-                  isGridView ? "h-26 xs:h-32 w-full" : "w-36 xs:w-44 h-full"
-                )}>
-                  <img 
-                    src={item.image || item.images?.[0]} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                    alt={item.title} 
-                  />
-                  
-                  {/* Badges Stack */}
-                  <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 items-start">
-                    {/* Intent Badge */}
-                    <div className={cn(
-                      "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-sm border",
-                      (item.listing_intent || item.type || 'sell').toLowerCase() === 'sell' && "bg-emerald-500/90 text-white border-emerald-400/50",
-                      (item.listing_intent || item.type || 'sell').toLowerCase() === 'rent' && "bg-[#124db5]/90 text-white border-blue-400/50",
-                      (item.listing_intent || item.type || 'sell').toLowerCase() === 'lease' && "bg-purple-500/90 text-white border-purple-400/50"
-                    )}>
-                      {item.listing_intent || item.type || 'Buy'}
-                    </div>
 
-                    {/* Featured Badge */}
-                    {(item.featured || item.is_featured) && (
-                      <span className="bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full text-[8px] font-black uppercase text-emerald-600 border border-emerald-100 shadow-sm whitespace-nowrap">
-                        ★ Featured
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Content Section */}
-                <div className={cn(
-                  "flex flex-col justify-between min-w-0 flex-grow",
-                  isGridView ? "p-2.5 space-y-1.5" : "p-3 xs:p-4"
-                )}>
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-start gap-2">
-                       <h3 className={cn(
-                         "font-bold text-[#1f2355] leading-tight tracking-tight",
-                         isGridView ? "text-[13px] line-clamp-1" : "text-[14px] xs:text-[16px] sm:text-[18px] line-clamp-1"
-                       )}>
-                         {item.title}
-                       </h3>
-                    </div>
-                    
-                    <div className="flex items-center gap-1 font-semibold text-slate-400" style={{ fontSize: isGridView ? '9px' : '11px' }}>
-                      <MapPin size={isGridView ? 10 : 12} className="text-emerald-500 shrink-0" />
-                      <span className="truncate">{item.location || item.address?.district || 'Bihar'}</span>
-                    </div>
-                  </div>
-
-                  {/* Specs Chips Row */}
-                  <div className={cn("flex flex-wrap gap-1", isGridView ? "py-0.5" : "py-1")}>
-                    {item.details?.bhk && (
-                      <div className="bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-lg flex items-center gap-1 font-bold text-slate-500 whitespace-nowrap" style={{ fontSize: isGridView ? '8px' : '9px' }}>
-                        <Bed size={isGridView ? 8 : 9} className="text-[#124db5]" /> {item.details.bhk} BHK
-                      </div>
-                    )}
-                    {(item.details?.area || item.details?.area?.value) && (
-                      <div className="bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-lg flex items-center gap-1 font-bold text-slate-500 whitespace-nowrap" style={{ fontSize: isGridView ? '8px' : '9px' }}>
-                        <LayoutGrid size={isGridView ? 8 : 9} className="text-[#124db5]" /> 
-                        {item.details.area?.value || item.details.area} {item.details.area?.unit || 'sqft'}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Pricing Footer */}
+                  {/* Content Section */}
                   <div className={cn(
-                    "flex items-center justify-between border-t border-slate-50 pt-1.5",
-                    isGridView ? "mt-0.5" : "mt-1"
+                    "flex-1 flex flex-col justify-between min-w-0",
+                    isGridView ? "p-3 space-y-1" : "p-3 xs:p-4"
                   )}>
-                    <div className="flex flex-col min-w-0">
-                      <p className={cn(
-                        "font-black text-[#124db5] leading-none truncate",
-                        isGridView ? "text-[14px]" : "text-[18px] xs:text-[20px]"
-                      )}>
-                        ₹{(() => {
-                          const val = item.pricing?.amount || item.price?.value || 0;
-                          if (val >= 10000000) return `${(val / 10000000).toFixed(1)} Cr`;
-                          if (val >= 100000) return `${(val / 100000).toFixed(1)} Lac`;
-                          return val.toLocaleString('en-IN');
-                        })()}
-                        {(item.listing_intent?.toLowerCase() === 'rent' || item.type?.toLowerCase() === 'rent') && (
-                          <span className="font-bold text-slate-400 uppercase tracking-tighter ml-0.5" style={{ fontSize: isGridView ? '7px' : '9px' }}>/mo</span>
+                    <div className="space-y-1">
+                      <div className="flex items-start justify-between gap-1">
+                        <h3 className={cn(
+                          "font-bold text-[#1f2355] leading-snug line-clamp-2 flex-1",
+                          isGridView ? "text-[12px]" : "text-[15px]"
+                        )}>
+                          {item.title}
+                        </h3>
+                        {!isGridView && (
+                          <button className="shrink-0 text-slate-300 hover:text-red-400 transition-colors mt-0.5 ml-1">
+                            <Heart size={18} />
+                          </button>
                         )}
-                      </p>
+                      </div>
+
+                      <span className={cn(
+                        "inline-block px-2 py-0.5 bg-[#eef2ff] text-[#4f46e5] rounded-full font-semibold tracking-tight",
+                        isGridView ? "text-[8px]" : "text-[10px]"
+                      )}>
+                        {item.subcategory_name || item.category_name || item.serviceType || 'Service'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      {/* Partner Row */}
+                      <div className="flex items-center gap-1.5">
+                        <div className={cn(
+                          "rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[#1f2355] font-bold shrink-0",
+                          isGridView ? "w-5 h-5 text-[7px]" : "w-6 h-6 text-[9px]"
+                        )}>
+                          {String(item.businessName || item.title || 'BP').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className={cn(
+                          "font-semibold text-[#1f2355] truncate",
+                          isGridView ? "text-[10px]" : "text-[12px]"
+                        )}>{item.businessName || 'Verified Partner'}</span>
+                        <div className="rounded-full bg-[#3b82f6] flex items-center justify-center shrink-0 w-3 h-3">
+                          <Check size={7} className="text-white" strokeWidth={3.5} />
+                        </div>
+                      </div>
+
+                      {/* Location Row */}
+                      <div className="flex items-center gap-1">
+                        <MapPin size={isGridView ? 10 : 12} className="text-[#1f2355] shrink-0" />
+                        <span className={cn(
+                          "font-medium text-slate-500 truncate",
+                          isGridView ? "text-[9px]" : "text-[11px]"
+                        )}>{item.location || 'Muzaffarpur, Bihar'}</span>
+                      </div>
+
+                      {/* Rating Row */}
+                      <div className="flex items-center gap-0.5">
+                        {[...Array(5)].map((_, i) => <Star key={i} size={isGridView ? 9 : 12} fill="currentColor" className="text-orange-400" />)}
+                        <span className={cn("font-bold text-[#1f2355] ml-0.5", isGridView ? "text-[10px]" : "text-[12px]")}>5.0</span>
+                      </div>
+                    </div>
+
+                    {/* Footer Row — Optimized for List View Width */}
+                    <div className={cn(
+                      "flex items-center justify-between gap-1.5",
+                      isGridView ? "mt-1" : "mt-2.5 sm:mt-3"
+                    )}>
+                      <div className={cn(
+                        "bg-[#fff8ed] border border-[#fde8b8] rounded-xl flex items-center gap-1 shrink-0",
+                        isGridView ? "px-1.5 py-0.5" : "px-2 py-1 xs:px-2.5 xs:py-1.5"
+                      )}>
+                        <Briefcase size={isGridView ? 9 : 10} className="text-[#b45309]" strokeWidth={2.5} />
+                        <span className={cn("font-bold text-[#b45309] whitespace-nowrap", isGridView ? "text-[8px]" : "text-[9px] xs:text-[10px]")}>
+                          {isGridView ? `${item.experience || '8'} Yrs` : `Exp: ${item.experience || '8'} Yrs`}
+                        </span>
+                      </div>
+                      {!isGridView && (
+                        <button
+                          className="bg-[#1f2355] text-white rounded-xl font-bold whitespace-nowrap active:scale-95 transition-all shadow-md shrink-0"
+                          style={{ 
+                            fontSize: 'clamp(9px, 2.8vw, 11px)', 
+                            padding: 'clamp(6px, 2vw, 9px) clamp(10px, 3vw, 16px)' 
+                          }}
+                        >
+                          View Profile
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
+              ) : isSupplier ? (
+                /* Redesigned Supplier Card — Premium Business Profile */
+                <div
+                  key={item.id}
+                  onClick={() => navigate(`/listing/${item.id}`)}
+                  className={cn(
+                    "bg-white border border-slate-100 shadow-[0_4px_12px_rgba(0,0,0,0.03)] overflow-hidden active:scale-[0.99] transition-all group cursor-pointer",
+                    isGridView ? "rounded-2xl flex flex-col h-full" : "rounded-2xl flex h-36 xs:h-40"
+                  )}
+                >
+                  {/* Branding/Image Area */}
+                  <div className={cn(
+                    "relative overflow-hidden shrink-0 bg-slate-50",
+                    isGridView ? "w-full aspect-[4/3]" : "w-32 xs:w-40 h-full"
+                  )}>
+                    <img 
+                      src={item.image || 'https://images.unsplash.com/photo-1586864387917-f579ae5259fb?q=80&w=400&auto=format&fit=crop'} 
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                      alt={item.title} 
+                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1586864387917-f579ae5259fb?q=80&w=400&auto=format&fit=crop'; }}
+                    />
+                    
+                    {/* Trust Badge */}
+                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg border border-slate-100 shadow-sm">
+                      <Award size={10} className="text-amber-500" />
+                      <span className="text-[8px] font-black uppercase text-[#1f2355]">Verified</span>
+                    </div>
+                  </div>
+
+                  {/* Info Area */}
+                  <div className={cn(
+                    "flex flex-col justify-between flex-grow min-w-0",
+                    isGridView ? "p-3 space-y-2" : "p-3 xs:p-4"
+                  )}>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full font-bold uppercase tracking-wider" style={{ fontSize: '7px' }}>
+                          {item.subCategory || item.details?.propertyType || 'Building Material'}
+                        </span>
+                      </div>
+                      
+                      <h3 className={cn(
+                        "font-black text-[#1f2355] leading-tight line-clamp-1",
+                        isGridView ? "text-[14px]" : "text-[16px] xs:text-[18px]"
+                      )}>
+                        {item.title}
+                      </h3>
+
+                      <div className="flex items-center gap-1 font-semibold text-slate-400" style={{ fontSize: isGridView ? '9px' : '11px' }}>
+                        <MapPin size={isGridView ? 10 : 12} className="text-slate-300 shrink-0" />
+                        <span className="truncate">{item.location || item.address?.district || 'Muzaffarpur, Bihar'}</span>
+                      </div>
+                    </div>
+
+                    <div className={cn(
+                      "flex items-center justify-between border-t border-slate-50 pt-2",
+                      isGridView ? "mt-1" : "mt-2"
+                    )}>
+                      <div className="flex items-center gap-1">
+                        <div className="flex -space-x-1.5">
+                          {[1,2,3].map(i => (
+                            <div key={i} className="w-5 h-5 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center overflow-hidden">
+                              <img src={`https://i.pravatar.cc/100?img=${i+10}`} alt="client" />
+                            </div>
+                          ))}
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-400 ml-1">50+ Projects</span>
+                      </div>
+
+                      <button className="bg-[#1f2355] text-white p-2 rounded-xl active:scale-90 transition-all shadow-lg shadow-indigo-100">
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Reimaged Property Card (Premium) */
+                <div
+                  key={item.id}
+                  onClick={() => navigate(`/listing/${item.id}`)}
+                  className={cn(
+                    "bg-white border border-slate-100 shadow-[0_5px_15px_rgba(0,0,0,0.03)] overflow-hidden active:scale-[0.98] transition-all group cursor-pointer",
+                    isGridView ? "rounded-2xl h-auto flex flex-col" : "rounded-2xl flex h-40 sm:h-44"
+                  )}
+                >
+                  {/* Image Section */}
+                  <div className={cn(
+                    "relative overflow-hidden shrink-0",
+                    isGridView ? "h-26 xs:h-32 w-full" : "w-36 xs:w-44 h-full"
+                  )}>
+                    <img 
+                      src={item.image || item.images?.[0]} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                      alt={item.title} 
+                    />
+                    
+                    {/* Badges Stack */}
+                    <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 items-start">
+                      {/* Intent Badge */}
+                      <div className={cn(
+                        "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-sm border",
+                        (item.listing_intent || item.type || 'sell').toLowerCase() === 'sell' && "bg-emerald-500/90 text-white border-emerald-400/50",
+                        (item.listing_intent || item.type || 'sell').toLowerCase() === 'rent' && "bg-[#124db5]/90 text-white border-blue-400/50",
+                        (item.listing_intent || item.type || 'sell').toLowerCase() === 'lease' && "bg-purple-500/90 text-white border-purple-400/50"
+                      )}>
+                        {item.listing_intent || item.type || 'Buy'}
+                      </div>
+
+                      {/* Featured Badge */}
+                      {(item.featured || item.is_featured) && (
+                        <span className="bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full text-[8px] font-black uppercase text-emerald-600 border border-emerald-100 shadow-sm whitespace-nowrap">
+                          ★ Featured
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Content Section */}
+                  <div className={cn(
+                    "flex flex-col justify-between min-w-0 flex-grow",
+                    isGridView ? "p-2.5 space-y-1.5" : "p-3 xs:p-4"
+                  )}>
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-start gap-2">
+                         <h3 className={cn(
+                           "font-bold text-[#1f2355] leading-tight tracking-tight",
+                           isGridView ? "text-[13px] line-clamp-1" : "text-[14px] xs:text-[16px] sm:text-[18px] line-clamp-1"
+                         )}>
+                           {item.title}
+                         </h3>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 font-semibold text-slate-400" style={{ fontSize: isGridView ? '9px' : '11px' }}>
+                        <MapPin size={isGridView ? 10 : 12} className="text-emerald-500 shrink-0" />
+                        <span className="truncate">{item.location || item.address?.district || 'Bihar'}</span>
+                      </div>
+                    </div>
+
+                    {/* Specs Chips Row */}
+                    <div className={cn("flex flex-wrap gap-1", isGridView ? "py-0.5" : "py-1")}>
+                      {item.details?.bhk && (
+                        <div className="bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-lg flex items-center gap-1 font-bold text-slate-500 whitespace-nowrap" style={{ fontSize: isGridView ? '8px' : '9px' }}>
+                          <Bed size={isGridView ? 8 : 9} className="text-[#124db5]" /> {item.details.bhk} BHK
+                        </div>
+                      )}
+                      {(item.details?.area || item.details?.area?.value) && (
+                        <div className="bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-lg flex items-center gap-1 font-bold text-slate-500 whitespace-nowrap" style={{ fontSize: isGridView ? '8px' : '9px' }}>
+                          <LayoutGrid size={isGridView ? 8 : 9} className="text-[#124db5]" /> 
+                          {item.details.area?.value || item.details.area} {item.details.area?.unit || 'sqft'}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Pricing Footer */}
+                    <div className={cn(
+                      "flex items-center justify-between border-t border-slate-50 pt-1.5",
+                      isGridView ? "mt-0.5" : "mt-1"
+                    )}>
+                      <div className="flex flex-col min-w-0">
+                        <p className={cn(
+                          "font-black text-[#124db5] leading-none truncate",
+                          isGridView ? "text-[14px]" : "text-[18px] xs:text-[20px]"
+                        )}>
+                          ₹{(() => {
+                            const val = item.pricing?.amount || item.price?.value || 0;
+                            if (val >= 10000000) return `${(val / 10000000).toFixed(1)} Cr`;
+                            if (val >= 100000) return `${(val / 100000).toFixed(1)} Lac`;
+                            return val.toLocaleString('en-IN');
+                          })()}
+                          {(item.listing_intent?.toLowerCase() === 'rent' || item.type?.toLowerCase() === 'rent') && (
+                            <span className="font-bold text-slate-400 uppercase tracking-tighter ml-0.5" style={{ fontSize: isGridView ? '7px' : '9px' }}>/mo</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            ))
+          ) : (
+            <div className="py-20 text-center space-y-4 col-span-full">
+              <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
+                <Search size={32} className="text-slate-300" />
               </div>
-               )))
-        ) : (
-          <div className="py-20 text-center space-y-4 col-span-full">
-            <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
-              <Search size={32} className="text-slate-300" />
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-primary-900 uppercase tracking-widest">No listings found</h3>
+                <p className="text-[10px] font-medium text-slate-400 uppercase">Try selecting a different category or location</p>
+              </div>
+              <button onClick={() => navigate(-1)} className="text-primary-600 font-semibold text-xs underline uppercase tracking-widest">Go Back</button>
             </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-primary-900 uppercase tracking-widest">No listings found</h3>
-              <p className="text-[10px] font-medium text-slate-400 uppercase">Try selecting a different category or location</p>
-            </div>
-            <button onClick={() => navigate(-1)} className="text-primary-600 font-semibold text-xs underline uppercase tracking-widest">Go Back</button>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </Skeleton>
 
       {/* CTA Banner — Removed as per user request */}
 

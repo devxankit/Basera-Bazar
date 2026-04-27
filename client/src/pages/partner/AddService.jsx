@@ -29,7 +29,12 @@ export default function AddService() {
   const thumbnailRef = useRef(null);
   const portfolioRef = useRef(null);
 
+  const [topCategories, setTopCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
+
   const [formData, setFormData] = useState({
+    category_id: '',
+    subcategory_id: '',
     category: '',
     subCategory: '',
     serviceName: '',
@@ -53,6 +58,18 @@ export default function AddService() {
   const editId = searchParams.get('edit');
 
   useEffect(() => {
+    const fetchTopCats = async () => {
+      try {
+        const cats = await db.getCategories('service');
+        setTopCategories(cats);
+      } catch (err) {
+        console.error("Failed to load categories:", err);
+      }
+    };
+    fetchTopCats();
+  }, []);
+
+  useEffect(() => {
     if (!user) {
       navigate('/partner/login');
       return;
@@ -63,40 +80,45 @@ export default function AddService() {
       const found = services.find(s => s.id.toString() === editId);
       if (found) {
         setFormData(found);
-        console.log('Edit Mode: Found and loaded service data:', found);
-      } else {
-        console.warn('Edit Mode: Service not found for ID:', editId);
+        if (found.category_id) {
+          db.getCategories('service', found.category_id).then(setSubCategories);
+        }
       }
     }
 
-    // Pre-populate business name from user context if not in edit mode
-    if (!editId) {
-      if (user.businessName) {
-        setFormData(prev => ({ ...prev, businessName: user.businessName }));
-      }
+    if (!editId && user.businessName) {
+      setFormData(prev => ({ ...prev, businessName: user.businessName }));
     }
   }, [editId, user, navigate]);
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, value } = e.target;
     if (name === 'shortDescription' && value.length > 500) return;
     
-    if (name === 'state') {
-      // Normalize state name
+    if (name === 'category_id') {
+      const selected = topCategories.find(c => c._id === value);
+      setFormData(prev => ({ 
+        ...prev, 
+        category_id: value, 
+        category: selected?.name || '',
+        subcategory_id: '',
+        subCategory: ''
+      }));
+      if (value) {
+        const subs = await db.getCategories('service', value);
+        setSubCategories(subs);
+      } else {
+        setSubCategories([]);
+      }
+    } else if (name === 'subcategory_id') {
+      const selected = subCategories.find(s => s._id === value);
+      setFormData(prev => ({ ...prev, subcategory_id: value, subCategory: selected?.name || '' }));
+    } else if (name === 'state') {
       const INDIAN_STATES = Object.keys(INDIAN_STATES_DISTRICTS);
       const normalizedState = INDIAN_STATES.find(s => s.toLowerCase() === value.toLowerCase()) || value;
-      setFormData(prev => ({ 
-        ...prev, 
-        state: normalizedState,
-        district: '',
-        city: ''
-      }));
+      setFormData(prev => ({ ...prev, state: normalizedState, district: '', city: '' }));
     } else if (name === 'district') {
-      setFormData(prev => ({ 
-        ...prev, 
-        district: value,
-        city: prev.city || value // Fallback city to district
-      }));
+      setFormData(prev => ({ ...prev, district: value, city: prev.city || value }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -170,6 +192,11 @@ export default function AddService() {
     if (e) e.preventDefault();
     if (isSubmitting) return;
 
+    if (!formData.category_id) {
+      alert("Please select a service category.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       
@@ -195,8 +222,10 @@ export default function AddService() {
       // 2. Prepare Payload
       const payload = {
         ...formData,
-        listing_type: 'service', // Use a different field for internal type
-        category: formData.category, // Keep the actual service category name
+        listing_type: 'service',
+        category_id: formData.category_id,
+        subcategory_id: formData.subcategory_id || null,
+        category: formData.category, // name fallback
         image: thumbnailUrl,
         images: portfolioUrls,
         title: formData.serviceName,
@@ -311,11 +340,24 @@ export default function AddService() {
             <SelectField 
               icon={<LayoutGrid size={18} />}
               label="Service Category *"
-              name="category"
-              value={formData.category}
-              options={SERVICE_CATEGORIES}
+              name="category_id"
+              value={formData.category_id}
+              options={topCategories}
               onChange={handleChange}
+              placeholder="Select Top Category"
             />
+
+            {subCategories.length > 0 && (
+              <SelectField 
+                icon={<LayoutGrid size={18} />}
+                label="Sub Category (Optional)"
+                name="subcategory_id"
+                value={formData.subcategory_id}
+                options={subCategories}
+                onChange={handleChange}
+                placeholder="Select Subcategory"
+              />
+            )}
           </div>
         </section>
 
@@ -676,7 +718,12 @@ function SelectField({ icon, label, options, name, value, onChange, placeholder,
         className="w-full bg-white border border-slate-200 rounded-2xl py-4.5 pl-12 pr-10 text-[15px] font-medium text-[#001b4e] outline-none appearance-none focus:border-[#001b4e] transition-all"
       >
         <option value="">{placeholder || 'Select Option'}</option>
-        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+        {options.map(opt => {
+          const isObj = typeof opt === 'object' && opt !== null;
+          const val = isObj ? opt._id : opt;
+          const label = isObj ? opt.name : opt;
+          return <option key={val} value={val}>{label}</option>;
+        })}
       </select>
       <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
         <ChevronDown size={20} />

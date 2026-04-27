@@ -239,23 +239,30 @@ const createServiceListing = async (req, res) => {
   try {
     const partnerId = req.user.id;
     const partnerPhone = req.user.phone;
-    const { title, description, category, shortDescription, detailedDescription, experience, details, image, images, location_text, location, state, district, pincode } = req.body;
+    const { 
+      title, description, category, category_id, subcategory_id,
+      shortDescription, detailedDescription, experience, details, 
+      image, images, location_text, location, state, district, pincode 
+    } = req.body;
 
-    // Find the category ID by name
-    let category_id;
-    if (category) {
-      console.log(`Searching for category: "${category}" (type: service)`);
+    // Find the category ID by name if category_id is not provided
+    let final_category_id = category_id;
+    if (!final_category_id && category) {
       const catObj = await Category.findOne({ 
         name: { $regex: new RegExp(`^${category}$`, 'i') },
         type: 'service' 
       });
-      category_id = catObj?._id;
-      console.log(`Found category_id: ${category_id}`);
+      final_category_id = catObj?._id;
+    }
+
+    if (!final_category_id) {
+       return res.status(400).json({ success: false, message: 'Top category is mandatory for service registration.' });
     }
 
     const newService = await ServiceListing.create({
       partner_id: partnerId,
-      category_id: category_id || null, // Will fail if required: true and null, so we handle it
+      category_id: final_category_id,
+      subcategory_id: subcategory_id || null,
       title,
       short_description: shortDescription || description?.slice(0, 200),
       full_description: detailedDescription || description,
@@ -377,6 +384,26 @@ const getAllListings = async (req, res) => {
         });
         pipeline.push({ $unwind: { path: '$partner_id', preserveNullAndEmptyArrays: true } });
         pipeline.push({
+          $lookup: {
+            from: 'categories',
+            localField: 'category_id',
+            foreignField: '_id',
+            as: 'category_id'
+          }
+        });
+        pipeline.push({ $unwind: { path: '$category_id', preserveNullAndEmptyArrays: true } });
+
+        pipeline.push({
+          $lookup: {
+            from: 'categories',
+            localField: 'subcategory_id',
+            foreignField: '_id',
+            as: 'subcategory_id'
+          }
+        });
+        pipeline.push({ $unwind: { path: '$subcategory_id', preserveNullAndEmptyArrays: true } });
+
+        pipeline.push({
           $project: {
             'partner_id.password': 0,
             'partner_id.kyc': 0
@@ -388,6 +415,8 @@ const getAllListings = async (req, res) => {
       } else {
         return await Model.find(query)
           .populate({ path: 'partner_id', select: 'name phone email role default_location profile createdAt' })
+          .populate('category_id')
+          .populate('subcategory_id')
           .limit(parseInt(limit));
       }
     };
@@ -400,6 +429,11 @@ const getAllListings = async (req, res) => {
     if (!category || category === 'service') {
       const services = await fetchCategory(ServiceListing, 'ServiceListing');
       results = [...results, ...services];
+    }
+
+    if (!category || category === 'mandi') {
+      const mandiItems = await fetchCategory(MandiListing, 'MandiListing');
+      results = [...results, ...mandiItems];
     }
 
 

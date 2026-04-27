@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Skeleton } from '../../components/common/Skeleton';
 import {
   Search, Building2, Wrench, ArrowRight, ChevronRight,
   ClipboardList, HelpCircle, ShieldCheck, BadgePercent, Truck, ShoppingBag, Package, Store,
@@ -15,6 +16,13 @@ function cn(...inputs) {
 const Home = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  // Simulated loading for boneyard demonstration
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const categories = [
     {
@@ -60,94 +68,98 @@ const Home = () => {
   ];
 
   return (
-    <div className="bg-white pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="bg-white pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* ── SEARCH BAR ── */}
-      <div className="px-4 xs:px-5 pb-4 xs:pb-6 -mt-6 xs:-mt-8 relative z-30">
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] flex items-center overflow-hidden p-1 xs:p-1.5 transition-all focus-within:ring-2 focus-within:ring-[#181d5f]/10">
-          <div className="flex-grow flex items-center px-2 xs:px-3.5">
-            <Search className="text-slate-400 shrink-0" size={16} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && navigate(`/browse/all?q=${searchQuery}`)}
-              placeholder="Search products..."
-              className="w-full bg-transparent outline-none pl-2 xs:pl-3 py-2.5 xs:py-3 font-medium text-slate-700 placeholder:text-slate-400"
-              style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}
-            />
-          </div>
-          <button
-            onClick={() => navigate(`/browse/all?q=${searchQuery}`)}
-            className="bg-[#181d5f] text-white px-4 xs:px-7 py-2.5 xs:py-3 font-black rounded-xl active:scale-95 transition-all shadow-lg whitespace-nowrap"
-            style={{ fontSize: 'clamp(11px, 3vw, 13px)' }}
-          >
-            Search
-          </button>
-        </div>
-      </div>
-
-      {/* ── MAIN BANNER (One Stop Solution) ── */}
-      <div className="px-4 mb-6 xs:mb-8">
-        <div
-          onClick={() => navigate('/mandi-bazar')}
-          className="relative rounded-[24px] xs:rounded-[32px] overflow-hidden cursor-pointer active:scale-[0.99] transition-all shadow-2xl"
-          style={{ height: 'clamp(180px, 50vw, 220px)' }}
-        >
-          {/* Background Image Container with Split */}
-          <div className="absolute inset-0 flex">
-            {/* Left Navy Block */}
-            <div className="bg-[#0d1b3e] w-[45%] h-full relative z-10" />
-            {/* Right Image Block with Blend */}
-            <div className="relative flex-1 h-full">
-              <div className="absolute inset-0 z-10 bg-gradient-to-r from-[#0d1b3e] via-[#0d1b3e]/30 to-transparent w-[40%]" />
-              <img
-                src="/basera-home-banner.jpeg"
-                alt="Construction"
-                className="w-full h-full object-cover object-left"
+      <Skeleton name="home-search" loading={loading}>
+        <div className="px-4 xs:px-5 pb-4 xs:pb-6 -mt-6 xs:-mt-8 relative z-30">
+          <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] flex items-center overflow-hidden p-1 xs:p-1.5 transition-all focus-within:ring-2 focus-within:ring-[#181d5f]/10">
+            <div className="flex-grow flex items-center px-2 xs:px-3.5">
+              <Search className="text-slate-400 shrink-0" size={16} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && navigate(`/browse/all?q=${searchQuery}`)}
+                placeholder="Search products..."
+                className="w-full bg-transparent outline-none pl-2 xs:pl-3 py-2.5 xs:py-3 font-medium text-slate-700 placeholder:text-slate-400"
+                style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}
               />
             </div>
+            <button
+              onClick={() => navigate(`/browse/all?q=${searchQuery}`)}
+              className="bg-[#181d5f] text-white px-4 xs:px-7 py-2.5 xs:py-3 font-black rounded-xl active:scale-95 transition-all shadow-lg whitespace-nowrap"
+              style={{ fontSize: 'clamp(11px, 3vw, 13px)' }}
+            >
+              Search
+            </button>
           </div>
+        </div>
+      </Skeleton>
 
-          <div className="absolute inset-0 p-4 xs:p-6 flex flex-col justify-center z-20">
-            <div className="max-w-[85%] xs:max-w-[300px]">
-              <p className="text-white/80 font-medium mb-0.5" style={{ fontSize: 'clamp(9px, 2.5vw, 11px)' }}>One Stop Solution for</p>
-              <h2 className="text-white font-black leading-[1.05] mb-2 xs:mb-4" style={{ fontSize: 'clamp(18px, 6vw, 26px)' }}>
-                Property & <br />
-                <span className="text-orange-500">Building Materials</span>
-              </h2>
-
-              <div className="flex items-center gap-0 mb-3 xs:mb-5">
-                {[
-                  { icon: ShieldCheck, label: 'Best Quality\nProducts' },
-                  { icon: BadgePercent, label: 'Lowest\nPrice' },
-                  { icon: Truck, label: 'Fast\nDelivery' },
-                  { icon: Headphones, label: '24x7\nSupport' },
-                ].map((item, i) => (
-                  <React.Fragment key={i}>
-                    <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-                      <item.icon className="text-white" strokeWidth={1.5} style={{ width: 'clamp(16px, 5vw, 22px)', height: 'clamp(16px, 5vw, 22px)' }} />
-                      <span className="text-white font-bold text-center leading-tight whitespace-pre-line opacity-90 uppercase tracking-tighter" style={{ fontSize: 'clamp(6px, 2vw, 8px)' }}>{item.label}</span>
-                    </div>
-                    {i < 3 && <div className="h-6 xs:h-8 w-[1px] bg-white/10 mx-0.5 xs:mx-1.5 shrink-0" />}
-                  </React.Fragment>
-                ))}
+      {/* ── MAIN BANNER (One Stop Solution) ── */}
+      <Skeleton name="home-banner" loading={loading}>
+        <div className="px-4 mb-6 xs:mb-8">
+          <div
+            onClick={() => navigate('/mandi-bazar')}
+            className="relative rounded-[24px] xs:rounded-[32px] overflow-hidden cursor-pointer active:scale-[0.99] transition-all shadow-2xl"
+            style={{ height: 'clamp(180px, 50vw, 220px)' }}
+          >
+            {/* Background Image Container with Split */}
+            <div className="absolute inset-0 flex">
+              {/* Left Navy Block */}
+              <div className="bg-[#0d1b3e] w-[45%] h-full relative z-10" />
+              {/* Right Image Block with Blend */}
+              <div className="relative flex-1 h-full">
+                <div className="absolute inset-0 z-10 bg-gradient-to-r from-[#0d1b3e] via-[#0d1b3e]/30 to-transparent w-[40%]" />
+                <img
+                  src="/basera-home-banner.jpeg"
+                  alt="Construction"
+                  className="w-full h-full object-cover object-left"
+                />
               </div>
+            </div>
 
-              <button
-                className="w-fit bg-orange-500 text-white rounded-[12px] xs:rounded-[14px] font-black flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-orange-500/20"
-                style={{
-                  padding: 'clamp(6px, 2.5vw, 12px) clamp(16px, 5vw, 32px)',
-                  fontSize: 'clamp(11px, 3.5vw, 14px)'
-                }}
-              >
-                Explore Now
-                <ChevronRight strokeWidth={3} style={{ width: 'clamp(14px, 4vw, 16px)', height: 'clamp(14px, 4vw, 16px)' }} />
-              </button>
+            <div className="absolute inset-0 p-4 xs:p-6 flex flex-col justify-center z-20">
+              <div className="max-w-[85%] xs:max-w-[300px]">
+                <p className="text-white/80 font-medium mb-0.5" style={{ fontSize: 'clamp(9px, 2.5vw, 11px)' }}>One Stop Solution for</p>
+                <h2 className="text-white font-black leading-[1.05] mb-2 xs:mb-4" style={{ fontSize: 'clamp(18px, 6vw, 26px)' }}>
+                  Property & <br />
+                  <span className="text-orange-500">Building Materials</span>
+                </h2>
+
+                <div className="flex items-center gap-0 mb-3 xs:mb-5">
+                  {[
+                    { icon: ShieldCheck, label: 'Best Quality\nProducts' },
+                    { icon: BadgePercent, label: 'Lowest\nPrice' },
+                    { icon: Truck, label: 'Fast\nDelivery' },
+                    { icon: Headphones, label: '24x7\nSupport' },
+                  ].map((item, i) => (
+                    <React.Fragment key={i}>
+                      <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+                        <item.icon className="text-white" strokeWidth={1.5} style={{ width: 'clamp(16px, 5vw, 22px)', height: 'clamp(16px, 5vw, 22px)' }} />
+                        <span className="text-white font-bold text-center leading-tight whitespace-pre-line opacity-90 uppercase tracking-tighter" style={{ fontSize: 'clamp(6px, 2vw, 8px)' }}>{item.label}</span>
+                      </div>
+                      {i < 3 && <div className="h-6 xs:h-8 w-[1px] bg-white/10 mx-0.5 xs:mx-1.5 shrink-0" />}
+                    </React.Fragment>
+                  ))}
+                </div>
+
+                <button
+                  className="w-fit bg-orange-500 text-white rounded-[12px] xs:rounded-[14px] font-black flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-orange-500/20"
+                  style={{
+                    padding: 'clamp(6px, 2.5vw, 12px) clamp(16px, 5vw, 32px)',
+                    fontSize: 'clamp(11px, 3.5vw, 14px)'
+                  }}
+                >
+                  Explore Now
+                  <ChevronRight strokeWidth={3} style={{ width: 'clamp(14px, 4vw, 16px)', height: 'clamp(14px, 4vw, 16px)' }} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Skeleton>
 
       {/* ── BROWSE CATEGORIES ── */}
       <div className="px-4 mb-6 xs:mb-8">
@@ -162,43 +174,45 @@ const Home = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 xs:grid-cols-4 gap-3 xs:gap-2">
-          {categories.map((cat) => (
-            <div
-              key={cat.id}
-              onClick={() => navigate(cat.path)}
-              className="bg-white rounded-[20px] xs:rounded-[24px] border border-slate-100 shadow-[0_8px_25px_rgb(0,0,0,0.04)] cursor-pointer active:scale-[0.98] transition-all relative flex flex-col overflow-hidden group h-[170px] xs:h-[135px]"
-            >
-              {/* Icon Top Left Circle */}
-              <div className={cn('absolute top-2 left-2 w-6 h-6 xs:w-5 xs:h-5 rounded-full flex items-center justify-center shadow-sm z-10', cat.iconBg, cat.iconColor)}>
-                <cat.icon size={12} strokeWidth={2.5} />
-              </div>
-
-              {/* Main Image Container */}
-              <div className="flex-1 flex items-center justify-center p-2 pt-8 xs:p-2 xs:pt-6 overflow-hidden">
-                <img
-                  src={cat.image}
-                  alt={cat.title}
-                  className="max-w-[85%] max-h-[85%] object-contain transform group-hover:scale-110 transition-transform duration-500"
-                />
-              </div>
-
-              {/* Bottom Info */}
-              <div className="px-3 pb-4 pt-1 xs:px-1.5 xs:pb-2 flex items-center justify-between gap-1 mt-auto">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[#181d5f] font-black uppercase tracking-tighter leading-[1.1] text-[13px]">
-                    {cat.title}
-                  </p>
-                  <p className="text-slate-400 font-bold text-[10px] xs:hidden">{cat.count}</p>
+        <Skeleton name="home-categories" loading={loading}>
+          <div className="grid grid-cols-2 xs:grid-cols-4 gap-3 xs:gap-2">
+            {categories.map((cat) => (
+              <div
+                key={cat.id}
+                onClick={() => navigate(cat.path)}
+                className="bg-white rounded-[20px] xs:rounded-[24px] border border-slate-100 shadow-[0_8px_25px_rgb(0,0,0,0.04)] cursor-pointer active:scale-[0.98] transition-all relative flex flex-col overflow-hidden group h-[170px] xs:h-[135px]"
+              >
+                {/* Icon Top Left Circle */}
+                <div className={cn('absolute top-2 left-2 w-6 h-6 xs:w-5 xs:h-5 rounded-full flex items-center justify-center shadow-sm z-10', cat.iconBg, cat.iconColor)}>
+                  <cat.icon size={12} strokeWidth={2.5} />
                 </div>
 
-                <div className="bg-[#181d5f] w-5 h-5 xs:hidden rounded-full flex items-center justify-center text-white shadow-md group-hover:bg-orange-500 transition-colors shrink-0">
-                  <ArrowRight size={10} strokeWidth={3} />
+                {/* Main Image Container */}
+                <div className="flex-1 flex items-center justify-center p-2 pt-8 xs:p-2 xs:pt-6 overflow-hidden">
+                  <img
+                    src={cat.image}
+                    alt={cat.title}
+                    className="max-w-[85%] max-h-[85%] object-contain transform group-hover:scale-110 transition-transform duration-500"
+                  />
+                </div>
+
+                {/* Bottom Info */}
+                <div className="px-3 pb-4 pt-1 xs:px-1.5 xs:pb-2 flex items-center justify-between gap-1 mt-auto">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[#181d5f] font-black uppercase tracking-tighter leading-[1.1] text-[13px]">
+                      {cat.title}
+                    </p>
+                    <p className="text-slate-400 font-bold text-[10px] xs:hidden">{cat.count}</p>
+                  </div>
+
+                  <div className="bg-[#181d5f] w-5 h-5 xs:hidden rounded-full flex items-center justify-center text-white shadow-md group-hover:bg-orange-500 transition-colors shrink-0">
+                    <ArrowRight size={10} strokeWidth={3} />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </Skeleton>
       </div>
 
       {/* ── BULK ORDER BANNER ── */}

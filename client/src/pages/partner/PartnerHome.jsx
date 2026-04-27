@@ -24,11 +24,19 @@ import logo from '../../assets/baseralogo.png';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import KYCModal from '../../components/partner/KYCModal';
+import { Skeleton } from '../../components/common/Skeleton';
 
 export default function PartnerHome() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
   const [showKYCModal, setShowKYCModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading for boneyard
+    const timer = setTimeout(() => setLoading(false), 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!user) return null;
   const partner = user;
@@ -366,30 +374,32 @@ export default function PartnerHome() {
         ) : (
           <div className="space-y-4 xs:space-y-5">
             <h2 className="text-[15px] xs:text-[17px] font-bold text-[#001b4e] px-1 uppercase tracking-tight opacity-70">{getCategoryTheme()} Overview</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 xs:gap-4 mm:gap-5">
-              {overviewStats
-                .filter(stat => {
-                  if (actualRole.includes('supplier')) {
-                    return stat.label.toLowerCase().includes('lead') || stat.label.toLowerCase().includes('unread');
-                  }
-                  return true;
-                })
-                .map((stat, idx) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="bg-white p-2.5 xs:p-4 rounded-xl xs:rounded-2xl shadow-sm border border-slate-50 flex flex-col items-center text-center group active:scale-95 transition-all"
-                >
-                  <div className={`w-7 h-7 xs:w-9 xs:h-9 ${stat.bgColor} ${stat.color} rounded-full flex items-center justify-center mb-1.5 xs:mb-2 shadow-inner`}>
-                    {React.cloneElement(stat.icon, { size: 14 })}
-                  </div>
-                  <div className="text-[13px] xs:text-[17px] font-bold text-[#001b4e] mb-0.5 leading-none">{stat.value}</div>
-                  <div className="text-[7px] xs:text-[9px] font-medium text-slate-400 uppercase tracking-widest leading-none">{stat.label}</div>
-                </motion.div>
-              ))}
-            </div>
+            <Skeleton name="partner-overview-stats" loading={loading}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 xs:gap-4 mm:gap-5">
+                {overviewStats
+                  .filter(stat => {
+                    if (actualRole.includes('supplier')) {
+                      return stat.label.toLowerCase().includes('lead') || stat.label.toLowerCase().includes('unread');
+                    }
+                    return true;
+                  })
+                  .map((stat, idx) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="bg-white p-2.5 xs:p-4 rounded-xl xs:rounded-2xl shadow-sm border border-slate-50 flex flex-col items-center text-center group active:scale-95 transition-all"
+                  >
+                    <div className={`w-7 h-7 xs:w-9 xs:h-9 ${stat.bgColor} ${stat.color} rounded-full flex items-center justify-center mb-1.5 xs:mb-2 shadow-inner`}>
+                      {React.cloneElement(stat.icon, { size: 14 })}
+                    </div>
+                    <div className="text-[13px] xs:text-[17px] font-bold text-[#001b4e] mb-0.5 leading-none">{stat.value}</div>
+                    <div className="text-[7px] xs:text-[9px] font-medium text-slate-400 uppercase tracking-widest leading-none">{stat.label}</div>
+                  </motion.div>
+                ))}
+              </div>
+            </Skeleton>
           </div>
         )}
 
@@ -446,26 +456,28 @@ export default function PartnerHome() {
             <History size={16} className="text-[#001b4e]" />
             Recent Activity
           </h2>
-          <div className="bg-white rounded-[24px] xs:rounded-[28px] p-4 xs:p-5 shadow-sm border border-slate-50 space-y-4 xs:space-y-5">
-            {recentActivities.length > 0 ? (
-              recentActivities.map((activity, idx) => (
-                <div key={idx} className={`flex items-start gap-3 xs:gap-4 ${idx !== recentActivities.length - 1 ? 'border-b border-slate-50 pb-4 xs:pb-5' : ''}`}>
-                  <div className="w-8 h-8 xs:w-9 xs:h-9 bg-slate-50 rounded-lg xs:rounded-xl flex items-center justify-center shrink-0">
-                    {getActivityIcon(activity.type)}
+          <Skeleton name="partner-recent-activity" loading={loading}>
+            <div className="bg-white rounded-[24px] xs:rounded-[28px] p-4 xs:p-5 shadow-sm border border-slate-50 space-y-4 xs:space-y-5">
+              {recentActivities.length > 0 ? (
+                recentActivities.map((activity, idx) => (
+                  <div key={idx} className={`flex items-start gap-3 xs:gap-4 ${idx !== recentActivities.length - 1 ? 'border-b border-slate-50 pb-4 xs:pb-5' : ''}`}>
+                    <div className="w-8 h-8 xs:w-9 xs:h-9 bg-slate-50 rounded-lg xs:rounded-xl flex items-center justify-center shrink-0">
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div className="flex-grow min-w-0">
+                      <div className="text-[13px] xs:text-[14px] font-bold text-[#001b4e] leading-tight truncate pr-2">{activity.title}</div>
+                      <div className="text-[10px] xs:text-[11px] font-medium text-slate-400 mt-0.5 xs:mt-1 uppercase tracking-wider">{activity.time}</div>
+                    </div>
                   </div>
-                  <div className="flex-grow min-w-0">
-                    <div className="text-[13px] xs:text-[14px] font-bold text-[#001b4e] leading-tight truncate pr-2">{activity.title}</div>
-                    <div className="text-[10px] xs:text-[11px] font-medium text-slate-400 mt-0.5 xs:mt-1 uppercase tracking-wider">{activity.time}</div>
-                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center py-10 text-slate-300">
+                  <History size={48} className="mb-4 opacity-10" />
+                  <span className="text-[15px] font-bold">No recent activity</span>
                 </div>
-              ))
-            ) : (
-              <div className="flex flex-col items-center py-10 text-slate-300">
-                <History size={48} className="mb-4 opacity-10" />
-                <span className="text-[15px] font-bold">No recent activity</span>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </Skeleton>
         </div>
       </div>
       <KYCModal
@@ -597,21 +609,23 @@ function MandiOverview({ partner, isRestricted }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        {mandiStats.map((stat) => (
-          <button
-            key={stat.label}
-            onClick={() => navigate(stat.path)}
-            className="bg-white p-4 rounded-[24px] border border-slate-100 flex flex-col items-center text-center active:scale-95 transition-all"
-          >
-            <div className={`w-10 h-10 ${stat.bgColor} ${stat.color} rounded-full flex items-center justify-center mb-2`}>
-              {stat.icon}
-            </div>
-            <div className="text-[16px] font-bold text-[#001b4e]">{stat.value}</div>
-            <div className="text-[10px] font-medium text-slate-400 uppercase leading-tight">{stat.label}</div>
-          </button>
-        ))}
-      </div>
+      <Skeleton name="mandi-overview-stats" loading={loading}>
+        <div className="grid grid-cols-3 gap-4">
+          {mandiStats.map((stat) => (
+            <button
+              key={stat.label}
+              onClick={() => navigate(stat.path)}
+              className="bg-white p-4 rounded-[24px] border border-slate-100 flex flex-col items-center text-center active:scale-95 transition-all"
+            >
+              <div className={`w-10 h-10 ${stat.bgColor} ${stat.color} rounded-full flex items-center justify-center mb-2`}>
+                {stat.icon}
+              </div>
+              <div className="text-[16px] font-bold text-[#001b4e]">{stat.value}</div>
+              <div className="text-[10px] font-medium text-slate-400 uppercase leading-tight">{stat.label}</div>
+            </button>
+          ))}
+        </div>
+      </Skeleton>
 
       {/* Mandi Quick Actions */}
       <div className="space-y-4">

@@ -198,12 +198,21 @@ export default function AdminServiceForm() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className={labelClass}>Category</label>
+                    <label className={labelClass}>Top Category <span className="text-rose-500">*</span></label>
                     <select name="category_id" required value={formData.category_id} onChange={handleInputChange} className={inputClass}>
-                      <option value="">Select Category</option>
+                      <option value="">Select Top Category</option>
                       {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                     </select>
                   </div>
+                  {subcategories.length > 0 && (
+                    <div>
+                      <label className={labelClass}>Sub Category</label>
+                      <select name="subcategory_id" value={formData.subcategory_id} onChange={handleInputChange} className={inputClass}>
+                        <option value="">Select Subcategory (Optional)</option>
+                        {subcategories.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className={labelClass}>Assigned Provider</label>
                     <select name="partner_id" required value={formData.partner_id} onChange={handleInputChange} className={inputClass}>

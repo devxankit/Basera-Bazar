@@ -146,6 +146,7 @@ const getDashboardStats = async (req, res) => {
       adminCollectionCounts,
       totalProperties,
       totalServices,
+      totalProducts,
       totalRevenueData,
       registrationTrendsUser,
       registrationTrendsPartner,
@@ -162,6 +163,7 @@ const getDashboardStats = async (req, res) => {
       AdminUser.countDocuments(),
       PropertyListing.countDocuments({ status: 'active' }),
       ServiceListing.countDocuments({ status: 'active' }),
+      MandiListing.countDocuments({ status: 'active' }),
       Transaction.aggregate([
         { $match: { status: 'success' } },
         { $group: { _id: null, total: { $sum: "$amount" } } }
@@ -2097,6 +2099,10 @@ const createServiceListing = async (req, res) => {
       thumbnail, portfolio_images, video_link,
       status, location, address, service_radius_km, is_featured
     } = req.body;
+
+    if (!category_id) {
+       return res.status(400).json({ success: false, message: 'Top category is mandatory for service registry entry.' });
+    }
 
     const newService = await ServiceListing.create({
       partner_id: partner_id || null,
