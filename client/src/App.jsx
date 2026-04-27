@@ -21,6 +21,7 @@ import SignUp from './pages/auth/SignUp';
 import ServiceProfile from './pages/user/ServiceProfile';
 import UserProfile from './pages/user/UserProfile';
 import EditProfile from './pages/user/EditProfile';
+import Notifications from './pages/user/Notifications';
 import PartnerLogin from './pages/partner/PartnerLogin';
 import PartnerRegistration from './pages/partner/PartnerRegistration';
 import PartnerHome from './pages/partner/PartnerHome';
@@ -117,7 +118,8 @@ const UserLayout = ({ children }) => {
   const isMandi = location.pathname.startsWith('/mandi');
   const isDetail = location.pathname.startsWith('/listing/') || location.pathname.startsWith('/service/') || location.pathname.startsWith('/agent/');
   const isCart = location.pathname === '/cart';
-  const showBottomNav = !isDetail && !isCart;
+  const isNotifications = location.pathname === '/notifications';
+  const showBottomNav = !isDetail && !isCart && !isNotifications;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
@@ -187,6 +189,11 @@ function App() {
             <Route path="/category/supplier" element={<UserLayout><SupplierCategories /></UserLayout>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/notifications" element={
+              <UserLayout>
+                <Notifications />
+              </UserLayout>
+            } />
 
             <Route path="/browse/:category" element={
               <UserLayout>

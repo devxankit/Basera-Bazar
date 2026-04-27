@@ -59,19 +59,21 @@ const Header = () => {
         </div>
 
         {/* Top Icons Bar (Overlay) */}
-        <div className="relative z-20 px-5 pt-6 flex items-center justify-end">
-          <div className="flex items-center gap-3">
-            <button className="w-10 h-10 bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex items-center justify-center text-slate-700 relative active:scale-95 transition-all">
-              <Bell size={20} strokeWidth={2.5} />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
-            </button>
-            <button 
-              onClick={() => navigate(isAuthenticated ? '/profile' : '/login')}
-              className="w-10 h-10 bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex items-center justify-center text-slate-700 active:scale-95 transition-all"
-            >
-              <User size={20} strokeWidth={2.5} />
-            </button>
-          </div>
+        <div className="relative z-20 px-5 pt-6 flex items-center justify-between">
+          <button 
+            onClick={() => navigate(isAuthenticated ? '/profile' : '/login')}
+            className="w-10 h-10 bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex items-center justify-center text-slate-700 active:scale-95 transition-all"
+          >
+            <User size={20} strokeWidth={2.5} />
+          </button>
+
+          <button 
+            onClick={() => navigate('/notifications')}
+            className="w-10 h-10 bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex items-center justify-center text-slate-700 relative active:scale-95 transition-all"
+          >
+            <Bell size={20} strokeWidth={2.5} />
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
+          </button>
         </div>
 
         {/* Hero Content (Overlay) */}

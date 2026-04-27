@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
    ShoppingCart, Search, MapPin, ArrowRight, ChevronDown,
    Package, ShieldCheck, Truck, Plus, IndianRupee,
-   BadgePercent, HelpCircle
+   BadgePercent, HelpCircle, Bell
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -159,6 +159,13 @@ export default function MandiMarketplace() {
                </div>
             </div>
             <div className="flex items-center gap-2">
+               <button 
+                  onClick={() => navigate('/notifications')}
+                  className="relative w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355] active:scale-95 transition-all"
+               >
+                  <Bell size={16} />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
+               </button>
                <button className="relative w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355]" onClick={() => navigate('/cart')}>
                   <ShoppingCart size={16} />
                   {cartCount > 0 && (

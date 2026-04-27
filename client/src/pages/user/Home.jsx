@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { db } from '../../services/DataEngine';
+import { Star, MapPin as Pin, Heart } from 'lucide-react';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -17,11 +19,29 @@ const Home = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [featuredProperties, setFeaturedProperties] = useState([]);
+  const [featuredServices, setFeaturedServices] = useState([]);
+  const [featuredSuppliers, setFeaturedSuppliers] = useState([]);
 
-  // Simulated loading for boneyard demonstration
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 2000);
-    return () => clearTimeout(timer);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [props, servs, supps] = await Promise.all([
+          db.getAll('listings', { category: 'property', limit: 6 }),
+          db.getAll('listings', { category: 'service', limit: 6 }),
+          db.getAll('partners', { active_role: 'supplier', limit: 6 })
+        ]);
+        setFeaturedProperties(props);
+        setFeaturedServices(servs);
+        setFeaturedSuppliers(supps);
+      } catch (err) {
+        console.error("Error fetching homepage data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   const categories = [
@@ -208,34 +228,143 @@ const Home = () => {
         </div>
       </Skeleton>
 
-      {/* ── BULK ORDER BANNER ── */}
-      <div className="px-4 mb-10 xs:mb-12">
-        <div className="bg-[#f8fafc] rounded-[24px] xs:rounded-[32px] overflow-hidden flex items-center border border-slate-100 shadow-sm relative min-h-[100px] xs:min-h-[120px]">
-          {/* Left Text */}
-          <div className="flex-1 p-4 xs:p-6 z-10">
-            <h3 className="text-[#181d5f] font-black leading-tight" style={{ fontSize: 'clamp(16px, 5vw, 20px)' }}>Bulk Order?</h3>
-            <p className="text-slate-500 font-bold mt-1 tracking-tight" style={{ fontSize: 'clamp(9px, 2.8vw, 11px)' }}>Get extra discount on <br />building materials</p>
-          </div>
-
-          <div className="absolute inset-0 z-0">
-            <img
-              src="/basera-home-banner.jpeg"
-              alt="Cement"
-              className="h-full w-full object-cover opacity-5"
-            />
-          </div>
-
-          {/* Right Action Block */}
-          <div className="bg-[#181d5f] rounded-l-[30px] xs:rounded-l-[40px] p-4 xs:p-6 flex flex-col items-center justify-center min-w-[120px] xs:min-w-[150px] h-full shadow-[-10px_0_30px_rgba(0,0,0,0.1)] z-10 relative">
-            <div className="text-white/60 font-bold uppercase mb-0.5 xs:mb-1" style={{ fontSize: 'clamp(7px, 2vw, 9px)' }}>Save More with</div>
-            <div className="text-white font-black leading-tight mb-2 xs:mb-3" style={{ fontSize: 'clamp(12px, 4vw, 16px)' }}>Basera Bazar</div>
-
-            <button className="bg-orange-500 text-white px-3 xs:px-5 py-1.5 xs:py-2 rounded-xl font-black flex items-center gap-1.5 shadow-lg shadow-orange-500/20 active:scale-95 transition-all" style={{ fontSize: 'clamp(9px, 2.5vw, 11px)' }}>
-              Order Now <ArrowRight size={12} strokeWidth={3} />
-            </button>
-          </div>
+      {/* ── FEATURED PROPERTIES ── */}
+      <div className="mb-8">
+        <div className="px-4 flex items-center justify-between mb-4">
+          <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Featured Properties</h2>
+          <button onClick={() => navigate('/category/property')} className="text-orange-500 font-black text-[11px] uppercase tracking-widest">View All</button>
+        </div>
+        <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar">
+          {featuredProperties.length > 0 ? featuredProperties.map((item) => (
+            <div 
+              key={item.id}
+              onClick={() => navigate(`/listing/${item.id}`)}
+              className="min-w-[200px] bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden active:scale-95 transition-all"
+            >
+              <div className="h-[120px] relative">
+                <img src={item.image || '/basera-home-hero.jpeg'} className="w-full h-full object-cover" alt={item.title} />
+                <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md rounded-full w-7 h-7 flex items-center justify-center text-slate-400">
+                  <Heart size={14} />
+                </div>
+                <div className="absolute bottom-2 left-2 bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
+                  {item.serviceType || 'Property'}
+                </div>
+              </div>
+              <div className="p-3">
+                <h3 className="font-black text-[#181d5f] text-[13px] truncate uppercase">{item.title}</h3>
+                <div className="flex items-center gap-1 text-slate-400 mt-1">
+                  <Pin size={10} />
+                  <span className="text-[10px] font-bold truncate">{item.display_location}</span>
+                </div>
+                <div className="mt-2 pt-2 border-t border-slate-50 flex items-center justify-between">
+                  <span className="text-[#181d5f] font-black text-[13px]">₹{item.price?.value || 'Price on request'}</span>
+                  {item.price?.unit && <span className="text-slate-400 text-[9px] font-bold uppercase">{item.price.unit}</span>}
+                </div>
+              </div>
+            </div>
+          )) : (
+            [1,2,3].map(i => (
+              <div key={i} className="min-w-[200px] h-[200px] bg-slate-50 rounded-2xl animate-pulse" />
+            ))
+          )}
         </div>
       </div>
+
+      {/* ── TOP RATED SERVICES ── */}
+      <div className="mb-10">
+        <div className="px-4 flex items-center justify-between mb-5">
+          <div className="flex flex-col leading-none">
+            <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Top Rated Services</h2>
+            <p className="text-slate-400 font-bold text-[10px] mt-1 uppercase tracking-wider">Expert Help at your doorstep</p>
+          </div>
+          <button onClick={() => navigate('/category/service')} className="text-orange-500 font-black text-[10px] uppercase tracking-widest bg-orange-50 px-3 py-1.5 rounded-full">View All</button>
+        </div>
+        <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar">
+          {featuredServices.length > 0 ? featuredServices.map((item) => (
+            <div 
+              key={item.id}
+              onClick={() => navigate(`/service/${item.id}`)}
+              className="min-w-[150px] bg-white rounded-[24px] border border-slate-100 shadow-[0_8px_20px_rgb(0,0,0,0.03)] p-1.5 active:scale-95 transition-all"
+            >
+              <div className="h-[120px] rounded-[20px] overflow-hidden relative group">
+                <img src={item.image || '/basera-home-hero.jpeg'} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={item.title} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <div className="p-2.5">
+                <h3 className="font-black text-[#181d5f] text-[12px] uppercase leading-tight line-clamp-1">{item.title}</h3>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <div className="flex items-center gap-0.5 text-orange-500">
+                    <Star size={8} fill="currentColor" />
+                    <span className="text-[10px] font-black">4.9</span>
+                  </div>
+                  <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                  <span className="text-slate-400 text-[9px] font-bold uppercase truncate">{item.serviceType || 'Expert'}</span>
+                </div>
+              </div>
+            </div>
+          )) : (
+            [1,2,3].map(i => (
+              <div key={i} className="min-w-[150px] h-[180px] bg-slate-50 rounded-[24px] animate-pulse" />
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* ── VERIFIED SUPPLIERS ── */}
+      <div className="mb-10">
+        <div className="px-4 flex items-center justify-between mb-5">
+          <div className="flex flex-col leading-none">
+            <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Verified Suppliers</h2>
+            <p className="text-slate-400 font-bold text-[10px] mt-1 uppercase tracking-wider">Trusted Industry Partners</p>
+          </div>
+          <button onClick={() => navigate('/category/supplier')} className="text-orange-500 font-black text-[10px] uppercase tracking-widest bg-orange-50 px-3 py-1.5 rounded-full">View All</button>
+        </div>
+        <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar">
+          {featuredSuppliers.length > 0 ? featuredSuppliers.map((item) => (
+            <div 
+              key={item.id}
+              onClick={() => navigate(`/category/supplier`)}
+              className="min-w-[240px] bg-white rounded-[28px] border border-slate-100 shadow-[0_12px_25px_rgb(0,0,0,0.04)] p-4 active:scale-95 transition-all flex flex-col gap-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center p-2 shrink-0">
+                  <img src={item.image} className="max-w-full max-h-full object-contain" alt={item.title} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-[#181d5f] font-black text-[14px] truncate uppercase leading-tight">{item.title}</h3>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <ShieldCheck size={10} className="text-emerald-500" strokeWidth={3} />
+                    <span className="text-emerald-500 text-[9px] font-bold uppercase tracking-tight">Verified Partner</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-1.5">
+                {['Premium Materials', 'On-Time Delivery'].map((tag, i) => (
+                  <span key={i} className="bg-slate-50 text-slate-500 text-[8px] font-black uppercase px-2 py-1 rounded-md border border-slate-100">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-1 pt-3 border-t border-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-1 text-slate-400">
+                  <Pin size={10} />
+                  <span className="text-[10px] font-bold truncate max-w-[140px]">{item.display_location}</span>
+                </div>
+                <div className="w-8 h-8 bg-[#181d5f] rounded-xl flex items-center justify-center text-white shadow-lg active:scale-90 transition-all">
+                  <ArrowRight size={14} strokeWidth={3} />
+                </div>
+              </div>
+            </div>
+          )) : (
+            [1,2].map(i => (
+              <div key={i} className="min-w-[240px] h-[160px] bg-slate-50 rounded-[28px] animate-pulse" />
+            ))
+          )}
+        </div>
+      </div>
+
 
     </div>
   );
