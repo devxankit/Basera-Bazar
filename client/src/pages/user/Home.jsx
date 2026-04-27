@@ -194,19 +194,19 @@ const Home = () => {
               className="relative rounded-[32px] overflow-hidden bg-[#081229] shadow-2xl group cursor-pointer active:scale-[0.98] transition-all"
               style={{ height: 'clamp(280px, 75vw, 360px)' }}
             >
-              {/* Image Container - Positioned Right */}
-              <div className="absolute inset-y-0 right-0 w-[65%] z-0">
+              {/* Image Container - Full Width with Narrow Fade */}
+              <div className="absolute inset-0 z-0">
                 <img
-                  src="/basera-home-hero.jpeg"
+                  src="/basera-home-banner.jpeg"
                   alt="Basera Bazar Hero"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
-                {/* Horizontal Fade Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229]/60 to-transparent z-10" />
+                {/* Narrower Horizontal Fade Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229] to-transparent w-[60%] z-10" />
               </div>
 
-              {/* Content Container - Positioned Left/Full */}
-              <div className="absolute inset-0 z-20 p-6 sm:p-8 flex flex-col justify-center max-w-[95%]">
+              {/* Content Container - Positioned Left */}
+              <div className="absolute inset-0 z-20 p-5 sm:p-8 flex flex-col justify-center max-w-[65%] sm:max-w-[55%]">
                 <p className="text-white font-bold mb-1 uppercase tracking-widest opacity-80" style={{ fontSize: 'clamp(8px, 2vw, 10px)' }}>
                   One Stop Solution for
                 </p>

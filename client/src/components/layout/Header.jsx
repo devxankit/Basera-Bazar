@@ -47,9 +47,9 @@ const Header = () => {
           {/* House Image - Shifted Right */}
           <div className="absolute top-0 right-0 bottom-0 w-[85%] pointer-events-none">
             <img 
-              src="/basera-home-hero.jpeg" 
+              src="/basera-home-banner.jpeg" 
               alt="Hero House" 
-              className="w-full h-full object-cover object-[70%_center] opacity-100"
+              className="w-full h-full object-cover object-[70%_center] opacity-100 mix-blend-multiply"
             />
             {/* Smooth Mask/Fade from Left */}
             <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent w-[60%]" />

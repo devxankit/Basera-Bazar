@@ -251,18 +251,18 @@ export default function MandiMarketplace() {
                style={{ height: 'clamp(200px, 60vw, 260px)' }}
                onClick={() => navigate('/browse/mandi')}
             >
-               {/* Image Container - Positioned Right */}
-               <div className="absolute inset-y-0 right-0 w-[60%] z-0">
+               {/* Image Container - Full Width with Narrow Fade */}
+               <div className="absolute inset-0 z-0">
                   <img
                      src="/basera-mandi-hero.jpeg"
                      alt="Mandi Marketplace"
-                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
-                  {/* Horizontal Fade Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229]/40 to-transparent z-10" />
+                  {/* Narrower Horizontal Fade Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229] to-transparent w-[60%] z-10" />
                </div>
 
-               <div className="absolute inset-0 z-20 p-4 sm:p-6 flex flex-col justify-center">
+               <div className="absolute inset-0 z-20 p-4 sm:p-6 flex flex-col justify-center max-w-[70%] sm:max-w-[55%]">
                   <p className="text-[#f59e0b] font-bold mb-0.5 uppercase tracking-widest opacity-90" style={{ fontSize: 'clamp(7.5px, 2vw, 9px)' }}>खदान मंडी से सीधे</p>
                   <h1 className="text-[#f59e0b] font-black leading-tight mb-3" style={{ fontSize: 'clamp(16px, 5.5vw, 22px)' }}>
                      आपके घर तक!
