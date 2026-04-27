@@ -16,13 +16,15 @@ const {
 } = require('../controllers/listingController');
 
 const { protect, authorizeRoles, optionalProtect } = require('../middlewares/authMiddleware');
+const cacheMiddleware = require('../middlewares/cacheMiddleware');
+const debounceMiddleware = require('../middlewares/debounceMiddleware');
 
 // public routes (No authentication needed to view)
-router.get('/', getAllListings);
-router.get('/banners', getPublicBanners);
-router.get('/services', getNearbyServices);
-router.get('/mandi', getMandiListings);
-router.get('/categories', getPublicCategories);
+router.get('/', debounceMiddleware, cacheMiddleware(2), getAllListings);
+router.get('/banners', debounceMiddleware, cacheMiddleware(60), getPublicBanners); // Banners change rarely
+router.get('/services', debounceMiddleware, cacheMiddleware(5), getNearbyServices);
+router.get('/mandi', debounceMiddleware, cacheMiddleware(5), getMandiListings);
+router.get('/categories', debounceMiddleware, cacheMiddleware(60), getPublicCategories); // Categories change rarely
 
 // private routes (Partner specific) — MUST be before /:id catch-all!
 router.get('/my', protect, authorizeRoles('partner'), getMyListings);

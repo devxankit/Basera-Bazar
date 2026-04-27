@@ -14,21 +14,21 @@ import Skeleton from '../../components/common/Skeleton';
 const cn = (...inputs) => inputs.filter(Boolean).join(' ');
 
 const MATERIAL_IMAGES = {
-  aggregate: 'https://images.unsplash.com/photo-1574360523441-2166f49c8dfb?auto=format&fit=crop&q=80&w=300',
-  sand: 'https://images.unsplash.com/photo-1574621100236-d25b64cfd647?auto=format&fit=crop&q=80&w=300',
-  brick: 'https://images.unsplash.com/photo-1590069230005-db393739175c?auto=format&fit=crop&q=80&w=300',
-  cement: 'https://images.unsplash.com/photo-1518709368027-e455497fba30?auto=format&fit=crop&q=80&w=300',
-  steel: 'https://images.unsplash.com/photo-1621905252507-b35242f9a0c7?auto=format&fit=crop&q=80&w=300',
-  tiles: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&q=80&w=300',
-  saria: 'https://images.unsplash.com/photo-1621905252507-b35242f9a0c7?auto=format&fit=crop&q=80&w=300',
-  plumbing: 'https://images.unsplash.com/photo-1585704032915-c3400ca1f965?auto=format&fit=crop&q=80&w=300',
-  hardware: 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=300'
+   aggregate: 'https://images.unsplash.com/photo-1574360523441-2166f49c8dfb?auto=format&fit=crop&q=80&w=300',
+   sand: 'https://images.unsplash.com/photo-1574621100236-d25b64cfd647?auto=format&fit=crop&q=80&w=300',
+   brick: 'https://images.unsplash.com/photo-1590069230005-db393739175c?auto=format&fit=crop&q=80&w=300',
+   cement: 'https://images.unsplash.com/photo-1518709368027-e455497fba30?auto=format&fit=crop&q=80&w=300',
+   steel: 'https://images.unsplash.com/photo-1621905252507-b35242f9a0c7?auto=format&fit=crop&q=80&w=300',
+   tiles: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&q=80&w=300',
+   saria: 'https://images.unsplash.com/photo-1621905252507-b35242f9a0c7?auto=format&fit=crop&q=80&w=300',
+   plumbing: 'https://images.unsplash.com/photo-1585704032915-c3400ca1f965?auto=format&fit=crop&q=80&w=300',
+   hardware: 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=300'
 };
 
 const getCategoryImage = (cat) => {
    if (cat.mandi_icon && cat.mandi_icon.startsWith('http')) return cat.mandi_icon;
    if (cat.icon && cat.icon.startsWith('http')) return cat.icon;
-   
+
    const slug = cat.slug?.toLowerCase() || '';
    if (slug.includes('brick')) return MATERIAL_IMAGES.brick;
    if (slug.includes('cement')) return MATERIAL_IMAGES.cement;
@@ -38,7 +38,7 @@ const getCategoryImage = (cat) => {
    if (slug.includes('tile')) return MATERIAL_IMAGES.tiles;
    if (slug.includes('plumb')) return MATERIAL_IMAGES.plumbing;
    if (slug.includes('hard')) return MATERIAL_IMAGES.hardware;
-   
+
    return '/default-product-category-image.png'; // Global fallback
 };
 
@@ -198,7 +198,7 @@ export default function MandiMarketplace() {
                </div>
             </div>
             <div className="flex items-center gap-2">
-               <button 
+               <button
                   onClick={() => navigate('/notifications')}
                   className="relative w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355] active:scale-95 transition-all"
                >
@@ -218,9 +218,9 @@ export default function MandiMarketplace() {
 
          {/* ── LOCATION BAR ── */}
          <div className="px-4 py-2 flex items-center">
-            <button 
+            <button
                onClick={() => setIsLocationModalOpen(true)}
-               className="flex items-center gap-2 text-slate-600 font-bold w-full bg-slate-50/50 py-2 px-3 rounded-xl border border-slate-50 active:scale-[0.98] transition-all" 
+               className="flex items-center gap-2 text-slate-600 font-bold w-full bg-slate-50/50 py-2 px-3 rounded-xl border border-slate-50 active:scale-[0.98] transition-all"
                style={{ fontSize: 'clamp(11px, 3.2vw, 13px)' }}
             >
                <MapPin size={14} className="text-orange-500 shrink-0" />
@@ -321,34 +321,34 @@ export default function MandiMarketplace() {
                         <div className="w-full aspect-square rounded-2xl bg-slate-100" />
                         <div className="w-10 h-2 bg-slate-100 rounded" />
                      </div>
-                   ))
+                  ))
                ) : (
                   shopCategories.map((cat) => (
-                  <div
-                     key={cat.id}
-                     onClick={() => navigate(`/browse/mandi?cat=${cat.id}`)}
-                     className="flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-all group"
-                  >
-                     <div className="w-full aspect-square rounded-2xl overflow-hidden bg-[#fffbeb] border border-orange-50/50 flex items-center justify-center p-2.5 group-hover:shadow-md transition-shadow">
-                        <img 
-                           src={cat.image} 
-                           alt={cat.name} 
-                           className="w-full h-full object-contain mix-blend-multiply" 
-                           onError={(e) => { e.target.src = '/default-product-category-image.png'; }}
-                        />
+                     <div
+                        key={cat.id}
+                        onClick={() => navigate(`/browse/mandi?cat=${cat.id}`)}
+                        className="flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-all group"
+                     >
+                        <div className="w-full aspect-square rounded-2xl overflow-hidden bg-[#fffbeb] border border-orange-50/50 flex items-center justify-center p-2.5 group-hover:shadow-md transition-shadow">
+                           <img
+                              src={cat.image}
+                              alt={cat.name}
+                              className="w-full h-full object-contain mix-blend-multiply"
+                              onError={(e) => { e.target.src = '/default-product-category-image.png'; }}
+                           />
+                        </div>
+                        <span className="font-bold text-[#1f2355] text-center leading-tight px-0.5" style={{ fontSize: '11px' }}>{cat.name}</span>
                      </div>
-                     <span className="font-bold text-[#1f2355] text-center leading-tight px-0.5" style={{ fontSize: '11px' }}>{cat.name}</span>
-                  </div>
-               )))}
+                  )))}
             </div>
          </div>
 
          {/* ── BULK ORDER BANNER ── */}
-         <div className="mt-5 px-4">
-            <div 
+         <div className="mt-5">
+            <div
                onClick={() => navigate('/browse/mandi')}
-               className="relative rounded-[18px] overflow-hidden shadow-md bg-white active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center"
-               style={{ height: 'clamp(120px, 35vw, 160px)' }}
+               className="relative overflow-hidden bg-white active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center"
+               style={{ height: 'clamp(120px, 35vw, 180px)' }}
             >
                <img
                   src="/mandi-bottom-banner.jpeg"
@@ -407,8 +407,8 @@ export default function MandiMarketplace() {
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsLocationModalOpen(false)} />
             <div className={`relative w-full max-w-md bg-white rounded-t-[40px] shadow-2xl transition-transform duration-500 transform ${isLocationModalOpen ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '75vh' }}>
                <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 opacity-50" />
-               <LocationPicker 
-                  onClose={() => setIsLocationModalOpen(false)} 
+               <LocationPicker
+                  onClose={() => setIsLocationModalOpen(false)}
                   onSelect={handleLocationSelect}
                   initialLocation={location}
                />

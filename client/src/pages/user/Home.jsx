@@ -210,7 +210,7 @@ const Home = () => {
                 <p className="text-white font-bold mb-1 uppercase tracking-widest opacity-80" style={{ fontSize: 'clamp(8px, 2vw, 10px)' }}>
                   One Stop Solution for
                 </p>
-                <h1 className="text-white font-black leading-[1.1] mb-4" style={{ fontSize: 'clamp(18px, 6vw, 28px)' }}>
+                <h1 className="text-white font-black leading-[1.1] mb-5" style={{ fontSize: 'clamp(18px, 6vw, 28px)' }}>
                   Property & <br />
                   <span className="text-orange-500">Building Materials</span>
                 </h1>
@@ -243,6 +243,41 @@ const Home = () => {
                   Explore Now
                   <ChevronRight strokeWidth={4} size={14} />
                 </button>
+              </div>
+            </div>
+          </div>
+
+          <style>
+            {`
+              @keyframes marquee {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(-50%); }
+              }
+            `}
+          </style>
+
+          {/* ── SCROLLING ANNOUNCEMENT ── */}
+          <div className="mb-8 overflow-hidden bg-white py-3 shadow-sm border-y border-slate-100">
+            <div className="flex whitespace-nowrap">
+              <div className="flex animate-[marquee_30s_linear_infinite] whitespace-nowrap">
+                {[1, 2, 3, 4, 5].map((_, i) => (
+                  <div key={i} className="flex items-center">
+                    <span className="text-[#081229] font-black uppercase tracking-wider mx-10" style={{ fontSize: 'clamp(10px, 3.2vw, 12.5px)' }}>
+                      घर खरीदना हो या घर बनवाना, सब कुछ मिलेगा यही पर
+                    </span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                  </div>
+                ))}
+              </div>
+              <div className="flex animate-[marquee_30s_linear_infinite] whitespace-nowrap" aria-hidden="true">
+                {[1, 2, 3, 4, 5].map((_, i) => (
+                  <div key={i} className="flex items-center">
+                    <span className="text-[#081229] font-black uppercase tracking-wider mx-10" style={{ fontSize: 'clamp(10px, 3.2vw, 12.5px)' }}>
+                      घर खरीदना हो या घर बनवाना, सब कुछ मिलेगा यही पर
+                    </span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
