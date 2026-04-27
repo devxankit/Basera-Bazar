@@ -97,6 +97,60 @@ const Home = () => {
         </div>
       </Skeleton>
 
+      {/* ── BROWSE CATEGORIES ── */}
+      <div className="px-4 mb-6 xs:mb-8">
+        <div className="flex items-center justify-between mb-3 xs:mb-4">
+          <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Browse Categories</h2>
+          <button
+            onClick={() => navigate('/categories')}
+            className="font-black text-orange-500 flex items-center gap-1"
+            style={{ fontSize: 'clamp(11px, 3vw, 12px)' }}
+          >
+            VIEW ALL <ChevronRight size={14} strokeWidth={3} />
+          </button>
+        </div>
+
+        <Skeleton name="home-categories" loading={loading}>
+          <div className="grid grid-cols-2 gap-3">
+            {categories.map((cat) => (
+              <div
+                key={cat.id}
+                onClick={() => navigate(cat.path)}
+                className="bg-white rounded-[20px] border border-slate-100 shadow-[0_8px_25px_rgb(0,0,0,0.04)] cursor-pointer active:scale-[0.98] transition-all relative flex flex-col overflow-hidden group h-[170px]"
+              >
+                {/* Icon Top Left Circle */}
+                <div className={cn('absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center shadow-sm z-10', cat.iconBg, cat.iconColor)}>
+                  <cat.icon size={12} strokeWidth={2.5} />
+                </div>
+
+                {/* Main Image Container */}
+                <div className="flex-1 flex items-center justify-center p-1 pt-7 overflow-hidden">
+                  <img
+                    src={cat.image}
+                    alt={cat.title}
+                    className="max-w-[95%] max-h-[95%] object-contain transform group-hover:scale-110 transition-transform duration-500"
+                  />
+                </div>
+
+                {/* Bottom Info */}
+                <div className="px-3 pb-4 pt-1 flex items-center justify-between gap-1 mt-auto">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[#181d5f] font-black uppercase tracking-tighter leading-[1.1] text-[13px]">
+                      {cat.title}
+                    </p>
+                    <p className="text-slate-400 font-bold text-[10px] hidden xs:block">{cat.count}</p>
+                  </div>
+
+                  <div className="bg-[#181d5f] w-5 h-5 rounded-full flex items-center justify-center text-white shadow-md group-hover:bg-orange-500 transition-colors shrink-0">
+                    <ArrowRight size={10} strokeWidth={3} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Skeleton>
+      </div>
+
       {/* ── MAIN BANNER (One Stop Solution) ── */}
       <Skeleton name="home-banner" loading={loading}>
         <div className="px-4 mb-6 xs:mb-8">
@@ -160,60 +214,6 @@ const Home = () => {
           </div>
         </div>
       </Skeleton>
-
-      {/* ── BROWSE CATEGORIES ── */}
-      <div className="px-4 mb-6 xs:mb-8">
-        <div className="flex items-center justify-between mb-3 xs:mb-4">
-          <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Browse Categories</h2>
-          <button
-            onClick={() => navigate('/categories')}
-            className="font-black text-orange-500 flex items-center gap-1"
-            style={{ fontSize: 'clamp(11px, 3vw, 12px)' }}
-          >
-            VIEW ALL <ChevronRight size={14} strokeWidth={3} />
-          </button>
-        </div>
-
-        <Skeleton name="home-categories" loading={loading}>
-          <div className="grid grid-cols-2 xs:grid-cols-4 gap-3 xs:gap-2">
-            {categories.map((cat) => (
-              <div
-                key={cat.id}
-                onClick={() => navigate(cat.path)}
-                className="bg-white rounded-[20px] xs:rounded-[24px] border border-slate-100 shadow-[0_8px_25px_rgb(0,0,0,0.04)] cursor-pointer active:scale-[0.98] transition-all relative flex flex-col overflow-hidden group h-[170px] xs:h-[135px]"
-              >
-                {/* Icon Top Left Circle */}
-                <div className={cn('absolute top-2 left-2 w-6 h-6 xs:w-5 xs:h-5 rounded-full flex items-center justify-center shadow-sm z-10', cat.iconBg, cat.iconColor)}>
-                  <cat.icon size={12} strokeWidth={2.5} />
-                </div>
-
-                {/* Main Image Container */}
-                <div className="flex-1 flex items-center justify-center p-2 pt-8 xs:p-2 xs:pt-6 overflow-hidden">
-                  <img
-                    src={cat.image}
-                    alt={cat.title}
-                    className="max-w-[85%] max-h-[85%] object-contain transform group-hover:scale-110 transition-transform duration-500"
-                  />
-                </div>
-
-                {/* Bottom Info */}
-                <div className="px-3 pb-4 pt-1 xs:px-1.5 xs:pb-2 flex items-center justify-between gap-1 mt-auto">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[#181d5f] font-black uppercase tracking-tighter leading-[1.1] text-[13px]">
-                      {cat.title}
-                    </p>
-                    <p className="text-slate-400 font-bold text-[10px] xs:hidden">{cat.count}</p>
-                  </div>
-
-                  <div className="bg-[#181d5f] w-5 h-5 xs:hidden rounded-full flex items-center justify-center text-white shadow-md group-hover:bg-orange-500 transition-colors shrink-0">
-                    <ArrowRight size={10} strokeWidth={3} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Skeleton>
-      </div>
 
       {/* ── BULK ORDER BANNER ── */}
       <div className="px-4 mb-10 xs:mb-12">
