@@ -76,9 +76,9 @@ const Header = () => {
 
         {/* Hero Content (Overlay) */}
         <div className="relative z-20 mt-2 px-4 xs:px-5 flex flex-col justify-center min-h-[160px] xs:min-h-[180px]">
-          <div className="max-w-[75%] xs:max-w-[65%]">
+          <div className="max-w-[65%] xs:max-w-[55%]">
             <p className="text-[#181d5f] font-bold tracking-tight opacity-90" style={{ fontSize: 'clamp(10px, 3vw, 13px)' }}>Welcome to</p>
-            <h1 className="font-black tracking-tighter leading-none mt-1 flex flex-wrap gap-x-2" style={{ fontSize: 'clamp(24px, 9vw, 40px)' }}>
+            <h1 className="font-black tracking-tighter leading-none mt-1 flex flex-wrap gap-x-2" style={{ fontSize: 'clamp(20px, 7.5vw, 34px)' }}>
               <span className="text-orange-500">Basera</span> 
               <span className="text-[#181d5f]">Bazar</span>
             </h1>

@@ -119,8 +119,8 @@ const Home = () => {
                 className="bg-white rounded-[20px] border border-slate-100 shadow-[0_8px_25px_rgb(0,0,0,0.04)] cursor-pointer active:scale-[0.98] transition-all relative flex flex-col overflow-hidden group h-[170px]"
               >
                 {/* Icon Top Left Circle */}
-                <div className={cn('absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center shadow-sm z-10', cat.iconBg, cat.iconColor)}>
-                  <cat.icon size={12} strokeWidth={2.5} />
+                <div className={cn('absolute top-2 left-2 w-7 h-7 xs:w-9 xs:h-9 rounded-full flex items-center justify-center shadow-sm z-10', cat.iconBg, cat.iconColor)}>
+                  <cat.icon size={12} className="scale-[1.1] xs:scale-[1.3]" strokeWidth={2.5} />
                 </div>
 
                 {/* Main Image Container */}
@@ -162,7 +162,7 @@ const Home = () => {
             {/* Background Image Container with Split */}
             <div className="absolute inset-0 flex">
               {/* Left Navy Block */}
-              <div className="bg-[#0d1b3e] w-[45%] h-full relative z-10" />
+              <div className="bg-[#0d1b3e] w-[55%] h-full relative z-10" />
               {/* Right Image Block with Blend */}
               <div className="relative flex-1 h-full">
                 <div className="absolute inset-0 z-10 bg-gradient-to-r from-[#0d1b3e] via-[#0d1b3e]/30 to-transparent w-[40%]" />
@@ -175,24 +175,24 @@ const Home = () => {
             </div>
 
             <div className="absolute inset-0 p-4 xs:p-6 flex flex-col justify-center z-20">
-              <div className="max-w-[85%] xs:max-w-[300px]">
+               <div className="max-w-[52%] xs:max-w-[200px]">
                 <p className="text-white/80 font-medium mb-0.5" style={{ fontSize: 'clamp(9px, 2.5vw, 11px)' }}>One Stop Solution for</p>
-                <h2 className="text-white font-black leading-[1.05] mb-2 xs:mb-4" style={{ fontSize: 'clamp(18px, 6vw, 26px)' }}>
+                <h2 className="text-white font-black leading-[1.05] mb-2 xs:mb-4" style={{ fontSize: 'clamp(16px, 5.5vw, 22px)' }}>
                   Property & <br />
                   <span className="text-orange-500">Building Materials</span>
                 </h2>
 
                 <div className="flex items-center gap-0 mb-3 xs:mb-5">
                   {[
-                    { icon: ShieldCheck, label: 'Best Quality\nProducts' },
+                    { icon: ShieldCheck, label: 'Quality\nProducts' },
                     { icon: BadgePercent, label: 'Lowest\nPrice' },
                     { icon: Truck, label: 'Fast\nDelivery' },
                     { icon: Headphones, label: '24x7\nSupport' },
                   ].map((item, i) => (
                     <React.Fragment key={i}>
                       <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-                        <item.icon className="text-white" strokeWidth={1.5} style={{ width: 'clamp(16px, 5vw, 22px)', height: 'clamp(16px, 5vw, 22px)' }} />
-                        <span className="text-white font-bold text-center leading-tight whitespace-pre-line opacity-90 uppercase tracking-tighter" style={{ fontSize: 'clamp(6px, 2vw, 8px)' }}>{item.label}</span>
+                        <item.icon className="text-white" strokeWidth={1.5} style={{ width: 'clamp(12px, 3.5vw, 18px)', height: 'clamp(12px, 3.5vw, 18px)' }} />
+                        <span className="text-white font-bold text-center leading-tight whitespace-pre-line opacity-90 uppercase tracking-tighter" style={{ fontSize: 'clamp(5.5px, 2vw, 7.5px)' }}>{item.label}</span>
                       </div>
                       {i < 3 && <div className="h-6 xs:h-8 w-[1px] bg-white/10 mx-0.5 xs:mx-1.5 shrink-0" />}
                     </React.Fragment>
