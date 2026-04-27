@@ -91,7 +91,7 @@ const Home = () => {
     <div className="bg-white pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* ── SEARCH BAR ── */}
-      <div className="px-4 xs:px-5 pb-4 xs:pb-6 -mt-6 xs:-mt-8 relative z-30">
+      <div className="px-4 xs:px-5 pb-4 xs:pb-6 -mt-4 xs:-mt-5 relative z-30">
         <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] flex items-center overflow-hidden p-1 xs:p-1.5 transition-all focus-within:ring-2 focus-within:ring-[#181d5f]/10">
           <div className="flex-grow flex items-center px-2 xs:px-3.5">
             <Search className="text-slate-400 shrink-0" size={16} />
@@ -191,37 +191,42 @@ const Home = () => {
           <div className="px-4 mb-8">
             <div 
               onClick={() => navigate('/mandi-bazar')}
-              className="relative rounded-[32px] overflow-hidden bg-[#081229] shadow-xl group cursor-pointer active:scale-[0.98] transition-all"
-              style={{ height: 'clamp(180px, 55vw, 240px)' }}
+              className="relative rounded-[32px] overflow-hidden bg-[#081229] shadow-2xl group cursor-pointer active:scale-[0.98] transition-all"
+              style={{ height: 'clamp(280px, 75vw, 360px)' }}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229]/60 to-transparent z-10" />
-              <img
-                src="/basera-home-hero.jpeg"
-                alt="Basera Bazar Hero"
-                className="absolute inset-0 w-full h-full object-cover z-0 group-hover:scale-105 transition-transform duration-700"
-              />
+              {/* Image Container - Positioned Right */}
+              <div className="absolute inset-y-0 right-0 w-[65%] z-0">
+                <img
+                  src="/basera-home-hero.jpeg"
+                  alt="Basera Bazar Hero"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+                {/* Horizontal Fade Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229]/60 to-transparent z-10" />
+              </div>
 
-              <div className="absolute inset-0 z-20 p-6 sm:p-8 flex flex-col justify-center max-w-[80%]">
-                <p className="text-white/80 font-bold mb-1 sm:mb-2 uppercase tracking-widest" style={{ fontSize: 'clamp(9px, 2.5vw, 12px)' }}>
+              {/* Content Container - Positioned Left/Full */}
+              <div className="absolute inset-0 z-20 p-6 sm:p-8 flex flex-col justify-center max-w-[95%]">
+                <p className="text-white font-bold mb-1 uppercase tracking-widest opacity-80" style={{ fontSize: 'clamp(8px, 2vw, 10px)' }}>
                   One Stop Solution for
                 </p>
-                <h1 className="text-white font-black leading-tight mb-4 sm:mb-6" style={{ fontSize: 'clamp(24px, 8vw, 36px)' }}>
+                <h1 className="text-white font-black leading-[1.1] mb-4" style={{ fontSize: 'clamp(18px, 6vw, 28px)' }}>
                   Property & <br />
                   <span className="text-orange-500">Building Materials</span>
                 </h1>
 
-                <div className="flex flex-wrap gap-x-4 gap-y-3 mb-6 sm:mb-8">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-3 mb-5 w-fit">
                   {[
-                    { icon: ShieldCheck, label: 'Quality\nProducts' },
-                    { icon: IndianRupee, label: 'Lowest\nPrice' },
-                    { icon: Truck, label: 'Fast\nDelivery' },
-                    { icon: HelpCircle, label: '24x7\nSupport' },
+                    { icon: ShieldCheck, label: 'BEST QUALITY\nPRODUCTS' },
+                    { icon: IndianRupee, label: 'LOWEST\nPRICE' },
+                    { icon: Truck, label: 'FAST\nDELIVERY' },
+                    { icon: Headphones, label: '24X7\nSUPPORT' },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-white/10 backdrop-blur-md flex items-center justify-center text-white">
-                        <item.icon size={12} strokeWidth={3} />
+                      <div className="w-7 h-7 rounded-lg bg-white/10 backdrop-blur-sm flex items-center justify-center text-white border border-white/5">
+                        <item.icon size={12} strokeWidth={2.5} />
                       </div>
-                      <span className="text-[8px] sm:text-[9px] text-white/90 font-black uppercase tracking-wider leading-tight whitespace-pre-line">
+                      <span className="text-white font-black uppercase leading-tight tracking-wider" style={{ fontSize: 'clamp(6.5px, 1.5vw, 8.5px)' }}>
                         {item.label}
                       </span>
                     </div>
@@ -229,14 +234,14 @@ const Home = () => {
                 </div>
 
                 <button
-                  className="w-fit bg-orange-500 text-white rounded-[12px] xs:rounded-[14px] font-black flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-orange-500/20"
+                  className="w-fit bg-[#fa8639] text-white rounded-xl font-black flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-orange-500/20"
                   style={{
-                    padding: 'clamp(6px, 2.5vw, 12px) clamp(16px, 5vw, 32px)',
-                    fontSize: 'clamp(11px, 3.5vw, 14px)'
+                    padding: 'clamp(8px, 2.5vw, 11px) clamp(18px, 4.5vw, 30px)',
+                    fontSize: 'clamp(11px, 3.2vw, 13px)'
                   }}
                 >
                   Explore Now
-                  <ChevronRight strokeWidth={3} style={{ width: 'clamp(14px, 4vw, 16px)', height: 'clamp(14px, 4vw, 16px)' }} />
+                  <ChevronRight strokeWidth={4} size={14} />
                 </button>
               </div>
             </div>

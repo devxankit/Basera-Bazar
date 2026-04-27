@@ -246,57 +246,51 @@ export default function MandiMarketplace() {
             </div>
          </div>
 
-         {/* ── HERO BANNER ── */}
-         <div className="px-4 mt-1">
-            <div className="relative rounded-[18px] overflow-hidden bg-[#081229] shadow-lg"
-               style={{ height: 'clamp(175px, 50vw, 220px)' }}
+         <div className="px-4 mt-2">
+            <div className="relative rounded-[24px] overflow-hidden bg-[#081229] shadow-xl group cursor-pointer active:scale-[0.98] transition-all"
+               style={{ height: 'clamp(200px, 60vw, 260px)' }}
+               onClick={() => navigate('/browse/mandi')}
             >
-               {/* Improved Gradient for Blending */}
-               <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229]/60 to-transparent z-10" />
-               <img
-                  src="/basera-mandi-hero.jpeg"
-                  alt="Mandi Marketplace"
-                  className="absolute inset-0 w-full h-full object-cover z-0"
-               />
+               {/* Image Container - Positioned Right */}
+               <div className="absolute inset-y-0 right-0 w-[60%] z-0">
+                  <img
+                     src="/basera-mandi-hero.jpeg"
+                     alt="Mandi Marketplace"
+                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  {/* Horizontal Fade Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229]/40 to-transparent z-10" />
+               </div>
 
-               <div className="absolute inset-0 z-20 p-4 flex flex-col justify-center">
-                  <p className="text-[#f59e0b] font-semibold mb-1" style={{ fontSize: 'clamp(10px, 3vw, 13px)' }}>खदान मंडी से सीधे</p>
-                  <h1 className="text-[#f59e0b] font-black leading-tight mb-3" style={{ fontSize: 'clamp(20px, 6.5vw, 28px)' }}>
+               <div className="absolute inset-0 z-20 p-4 sm:p-6 flex flex-col justify-center">
+                  <p className="text-[#f59e0b] font-bold mb-0.5 uppercase tracking-widest opacity-90" style={{ fontSize: 'clamp(7.5px, 2vw, 9px)' }}>खदान मंडी से सीधे</p>
+                  <h1 className="text-[#f59e0b] font-black leading-tight mb-3" style={{ fontSize: 'clamp(16px, 5.5vw, 22px)' }}>
                      आपके घर तक!
                   </h1>
 
-                  <div className="flex gap-3 mb-3">
+                  <div className="flex gap-2.5 mb-4">
                      {[
                         { icon: Package, label: 'FRESH\nMATERIAL' },
                         { icon: Truck, label: 'FAST\nDELIVERY' },
                         { icon: IndianRupee, label: 'LOWEST\nPRICE' },
                      ].map((item, i) => (
                         <div key={i} className="flex flex-col items-center gap-1">
-                           <div className="rounded-full bg-[#f59e0b] flex items-center justify-center text-white shadow-md"
-                              style={{ width: 'clamp(26px, 7.5vw, 34px)', height: 'clamp(26px, 7.5vw, 34px)' }}
+                           <div className="rounded-lg bg-[#f59e0b] flex items-center justify-center text-white shadow-lg border border-white/10"
+                              style={{ width: 'clamp(26px, 7vw, 32px)', height: 'clamp(26px, 7vw, 32px)' }}
                            >
                               <item.icon size={13} strokeWidth={2.5} />
                            </div>
-                           <span className="text-[#f59e0b] font-black uppercase text-center leading-tight whitespace-pre-line" style={{ fontSize: '6.5px' }}>{item.label}</span>
+                           <span className="text-[#f59e0b] font-black uppercase text-center leading-tight tracking-wider" style={{ fontSize: '6px' }}>{item.label}</span>
                         </div>
                      ))}
                   </div>
 
                   <button
-                     onClick={() => navigate('/browse/mandi')}
-                     className="bg-white text-[#1f2355] rounded-full font-black uppercase flex items-center gap-1.5 w-fit active:scale-95 transition-all shadow-md"
-                     style={{ fontSize: 'clamp(8px, 2.5vw, 10px)', padding: 'clamp(6px, 1.8vw, 9px) clamp(12px, 3.5vw, 18px)' }}
+                     className="bg-white text-[#1f2355] rounded-lg font-black uppercase flex items-center gap-1.5 w-fit active:scale-95 transition-all shadow-lg"
+                     style={{ fontSize: 'clamp(7.5px, 2.2vw, 9px)', padding: 'clamp(6px, 1.8vw, 8px) clamp(12px, 3vw, 18px)' }}
                   >
                      SHOP NOW <ArrowRight size={11} strokeWidth={3} />
                   </button>
-               </div>
-
-               {/* Slide dots */}
-               <div className="absolute bottom-2.5 left-0 right-0 flex justify-center gap-1.5 z-30">
-                  <div className="h-1.5 w-4 rounded-full bg-orange-500" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/40" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/40" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/40" />
                </div>
             </div>
          </div>
