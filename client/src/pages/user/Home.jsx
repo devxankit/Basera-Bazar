@@ -186,10 +186,10 @@ const Home = () => {
               {/* Bottom Info */}
               <div className="px-3 pb-4 pt-1 xs:px-1.5 xs:pb-2 flex items-center justify-between gap-1 mt-auto">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[#181d5f] font-black uppercase tracking-tighter truncate" style={{ fontSize: 'clamp(9px, 2.5vw, 11px)' }}>
+                  <p className="text-[#181d5f] font-black uppercase tracking-tighter leading-[1.1] text-[13px]">
                     {cat.title}
                   </p>
-                  <p className="text-slate-400 font-bold text-[8px] xs:hidden">{cat.count}</p>
+                  <p className="text-slate-400 font-bold text-[10px] xs:hidden">{cat.count}</p>
                 </div>
 
                 <div className="bg-[#181d5f] w-5 h-5 xs:hidden rounded-full flex items-center justify-center text-white shadow-md group-hover:bg-orange-500 transition-colors shrink-0">
