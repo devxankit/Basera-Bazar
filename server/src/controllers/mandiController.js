@@ -97,6 +97,7 @@ const getMarketplaceHome = async (req, res) => {
       return {
         category: cat.name,
         category_id: cat._id,
+        slug: cat.slug, // Include slug for frontend image mapping
         icon: cat.icon,
         mandi_icon: cat.mandi_icon, // NEW: Specific image for Mandi
         deal: bestPrice

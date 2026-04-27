@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
    ShoppingCart, Search, MapPin, ArrowRight, ChevronDown,
    Package, ShieldCheck, Truck, Plus, IndianRupee,
@@ -12,12 +12,32 @@ import { useLocationContext } from '../../context/LocationContext';
 const cn = (...inputs) => inputs.filter(Boolean).join(' ');
 
 const MATERIAL_IMAGES = {
-  aggregate: 'https://images.unsplash.com/photo-1618090584126-129cd1f3fbae?q=80&w=200&auto=format&fit=crop',
-  sand: 'https://images.unsplash.com/photo-1574621100236-d25b64cfd647?q=80&w=200&auto=format&fit=crop',
-  brick: 'https://images.unsplash.com/photo-1590059516348-df8407481e4b?q=80&w=200&auto=format&fit=crop',
-  cement: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=200&auto=format&fit=crop',
-  steel: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=200&auto=format&fit=crop',
-  tiles: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=200&auto=format&fit=crop',
+  aggregate: 'https://images.unsplash.com/photo-1574360523441-2166f49c8dfb?auto=format&fit=crop&q=80&w=300',
+  sand: 'https://images.unsplash.com/photo-1574621100236-d25b64cfd647?auto=format&fit=crop&q=80&w=300',
+  brick: 'https://images.unsplash.com/photo-1590069230005-db393739175c?auto=format&fit=crop&q=80&w=300',
+  cement: 'https://images.unsplash.com/photo-1518709368027-e455497fba30?auto=format&fit=crop&q=80&w=300',
+  steel: 'https://images.unsplash.com/photo-1621905252507-b35242f9a0c7?auto=format&fit=crop&q=80&w=300',
+  tiles: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&q=80&w=300',
+  saria: 'https://images.unsplash.com/photo-1621905252507-b35242f9a0c7?auto=format&fit=crop&q=80&w=300',
+  plumbing: 'https://images.unsplash.com/photo-1585704032915-c3400ca1f965?auto=format&fit=crop&q=80&w=300',
+  hardware: 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=300'
+};
+
+const getCategoryImage = (cat) => {
+   if (cat.mandi_icon && cat.mandi_icon.startsWith('http')) return cat.mandi_icon;
+   if (cat.icon && cat.icon.startsWith('http')) return cat.icon;
+   
+   const slug = cat.slug?.toLowerCase() || '';
+   if (slug.includes('brick')) return MATERIAL_IMAGES.brick;
+   if (slug.includes('cement')) return MATERIAL_IMAGES.cement;
+   if (slug.includes('sand')) return MATERIAL_IMAGES.sand;
+   if (slug.includes('saria') || slug.includes('steel')) return MATERIAL_IMAGES.saria;
+   if (slug.includes('aggregate')) return MATERIAL_IMAGES.aggregate;
+   if (slug.includes('tile')) return MATERIAL_IMAGES.tiles;
+   if (slug.includes('plumb')) return MATERIAL_IMAGES.plumbing;
+   if (slug.includes('hard')) return MATERIAL_IMAGES.hardware;
+   
+   return '/default-product-category-image.png'; // Global fallback
 };
 
 export default function MandiMarketplace() {
@@ -25,29 +45,71 @@ export default function MandiMarketplace() {
    const { cartCount } = useCart();
    const { location } = useLocationContext();
 
+   const [categories, setCategories] = useState([]);
+   const [supplierCategories, setSupplierCategories] = useState([]);
+   const [loadingCategories, setLoadingCategories] = useState(true);
+
+   useEffect(() => {
+      const fetchData = async () => {
+         try {
+            setLoadingCategories(true);
+            // Fetch specialized marketplace home data (for deals)
+            // and supplier categories for the shop section
+            const [mandiRes, supplierRes] = await Promise.all([
+               api.get('/mandi/marketplace/home'),
+               api.get('/listings/categories?type=supplier')
+            ]);
+
+            if (mandiRes.data.success) {
+               setCategories(mandiRes.data.data.map(item => ({
+                  _id: item.category_id,
+                  name: item.category,
+                  slug: item.slug,
+                  icon: item.icon,
+                  mandi_icon: item.mandi_icon,
+                  deal: item.deal
+               })));
+            }
+
+            if (supplierRes.data.success) {
+               setSupplierCategories(supplierRes.data.data);
+            }
+         } catch (error) {
+            console.error("Error fetching Mandi marketplace data:", error);
+         } finally {
+            setLoadingCategories(false);
+         }
+      };
+      fetchData();
+   }, []);
+
    const quickCategories = [
-      { id: 'agg', name: 'Aggregate', image: MATERIAL_IMAGES.aggregate },
-      { id: 'sand', name: 'Sand', image: MATERIAL_IMAGES.sand },
-      { id: 'brick', name: 'Brick', image: MATERIAL_IMAGES.brick },
-      { id: 'cement', name: 'Cement', image: MATERIAL_IMAGES.cement },
+      ...supplierCategories.slice(0, 4).map(cat => ({
+         id: cat._id,
+         name: cat.name,
+         image: getCategoryImage(cat)
+      })),
       { id: 'all', name: 'View All', image: null, isViewAll: true },
    ];
 
-   const shopCategories = [
-      { id: 'steel', name: 'Steel', image: MATERIAL_IMAGES.steel },
-      { id: 'sand', name: 'Sand & Aggregate', image: MATERIAL_IMAGES.sand },
-      { id: 'cement', name: 'Cement', image: MATERIAL_IMAGES.cement },
-      { id: 'hardware', name: 'Hardware', image: 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?q=80&w=200&auto=format&fit=crop' },
-      { id: 'tiles', name: 'Tiles', image: MATERIAL_IMAGES.tiles },
-      { id: 'plumbing', name: 'Plumbing', image: 'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?q=80&w=200&auto=format&fit=crop' },
-   ];
+   const shopCategories = supplierCategories.map(cat => ({
+      id: cat._id,
+      name: cat.name,
+      image: getCategoryImage(cat)
+   }));
 
-   const topProducts = [
-      { id: 1, title: 'Cement 53 Grade', price: 420, unit: 'Bag', image: MATERIAL_IMAGES.cement, label: 'BEST SELLER', labelColor: 'bg-red-500' },
-      { id: 2, title: 'TMT Steel 12mm', price: 55, unit: 'Kg', image: MATERIAL_IMAGES.steel, label: 'POPULAR', labelColor: 'bg-emerald-500' },
-      { id: 3, title: 'Red Brick', price: 7.50, unit: 'Pcs', image: MATERIAL_IMAGES.brick, label: 'TOP RATED', labelColor: 'bg-[#f59e0b]' },
-      { id: 4, title: 'Sand (Fine)', price: 1250, unit: 'Tons', image: MATERIAL_IMAGES.sand, label: 'BEST VALUE', labelColor: 'bg-blue-500' },
-   ];
+   const topProducts = categories
+      .filter(c => c.deal)
+      .map(c => ({
+         id: c.deal._id,
+         title: c.deal.title,
+         price: c.deal.pricing.price_per_unit,
+         unit: c.deal.pricing.unit,
+         image: c.deal.thumbnail || getCategoryImage(c),
+         label: 'BEST DEAL',
+         labelColor: 'bg-red-500'
+      }))
+      .slice(0, 4);
 
    const trustBadges = [
       { icon: ShieldCheck, title: '100% Quality', sub: 'Guaranteed' },
@@ -66,7 +128,7 @@ export default function MandiMarketplace() {
    const locationDisplay = location?.formattedAddress || location?.city || 'Muzaffarpur, Bihar';
 
    return (
-      <div className="min-h-screen bg-white pb-28" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="bg-white pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
 
          {/* ── HEADER ── */}
          <div className="bg-white sticky top-0 z-50 px-4 py-2.5 flex items-center justify-between border-b border-slate-50 shadow-sm">
@@ -161,7 +223,14 @@ export default function MandiMarketplace() {
          {/* ── QUICK CATEGORY CARDS ── */}
          <div className="mt-4 px-4">
             <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
-               {quickCategories.map((cat) => (
+               {loadingCategories ? (
+                  [...Array(4)].map((_, i) => (
+                     <div key={i} className="flex-shrink-0 flex flex-col items-center gap-1.5 animate-pulse" style={{ width: 'clamp(68px, 20vw, 85px)', padding: 'clamp(8px, 2.5vw, 12px)' }}>
+                        <div className="w-full rounded-xl bg-slate-100 aspect-square" />
+                        <div className="w-10 h-2 bg-slate-100 rounded mt-2" />
+                     </div>
+                  ))
+               ) : quickCategories.map((cat) => (
                   <div
                      key={cat.id}
                      onClick={() => navigate(cat.isViewAll ? '/categories' : `/browse/mandi?cat=${cat.id}`)}
@@ -176,7 +245,12 @@ export default function MandiMarketplace() {
                               ))}
                            </div>
                         ) : (
-                           <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+                           <img 
+                              src={cat.image} 
+                              alt={cat.name} 
+                              className="w-full h-full object-cover" 
+                              onError={(e) => { e.target.src = '/default-product-category-image.png'; }}
+                           />
                         )}
                      </div>
                      <div className="text-center mt-1.5">
@@ -212,12 +286,22 @@ export default function MandiMarketplace() {
          <div className="mt-5 px-4">
             <div className="flex items-center justify-between mb-3">
                <h2 className="font-black text-[#1f2355]" style={{ fontSize: 'clamp(14px, 4.5vw, 18px)' }}>Shop by Category</h2>
-               <button className="font-black text-orange-500 flex items-center gap-1" style={{ fontSize: 'clamp(9px, 2.8vw, 11px)' }}>
+               <button 
+                  onClick={() => navigate('/categories')}
+                  className="font-black text-orange-500 flex items-center gap-1" style={{ fontSize: 'clamp(9px, 2.8vw, 11px)' }}
+               >
                   VIEW ALL <ArrowRight size={12} strokeWidth={3} />
                </button>
             </div>
             <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
-               {shopCategories.map((cat) => (
+               {loadingCategories ? (
+                  [...Array(6)].map((_, i) => (
+                     <div key={i} className="flex-shrink-0 flex flex-col items-center gap-1.5 animate-pulse" style={{ width: 'clamp(58px, 17vw, 75px)' }}>
+                        <div className="w-full rounded-xl bg-slate-100" style={{ height: 'clamp(48px, 14vw, 62px)' }} />
+                        <div className="w-10 h-2 bg-slate-100 rounded" />
+                     </div>
+                  ))
+               ) : shopCategories.map((cat) => (
                   <div
                      key={cat.id}
                      onClick={() => navigate(`/browse/mandi?cat=${cat.id}`)}
@@ -227,7 +311,12 @@ export default function MandiMarketplace() {
                      <div className="w-full rounded-xl overflow-hidden bg-slate-100 border border-slate-100 shadow-sm"
                         style={{ height: 'clamp(48px, 14vw, 62px)' }}
                      >
-                        <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+                        <img 
+                           src={cat.image} 
+                           alt={cat.name} 
+                           className="w-full h-full object-cover" 
+                           onError={(e) => { e.target.src = '/default-product-category-image.png'; }}
+                        />
                      </div>
                      <span className="font-semibold text-slate-600 text-center leading-tight" style={{ fontSize: 'clamp(8px, 2.5vw, 10px)' }}>{cat.name}</span>
                   </div>
@@ -254,16 +343,18 @@ export default function MandiMarketplace() {
                {/* Product images */}
                <div className="absolute right-0 top-0 bottom-0" style={{ width: '48%' }}>
                   <img
-                     src="https://images.unsplash.com/photo-1590059516348-df8407481e4b?q=80&w=300&auto=format&fit=crop"
+                     src={MATERIAL_IMAGES.brick}
                      alt="Bricks"
                      className="absolute bottom-0 right-3 object-contain drop-shadow-lg"
                      style={{ width: 'clamp(80px, 23vw, 110px)', height: 'clamp(80px, 23vw, 110px)' }}
+                     onError={(e) => { e.target.src = '/default-product-category-image.png'; }}
                   />
                   <img
                      src={MATERIAL_IMAGES.cement}
                      alt="Cement"
                      className="absolute top-3 right-8 object-contain drop-shadow-md"
                      style={{ width: 'clamp(55px, 16vw, 75px)', height: 'clamp(55px, 16vw, 75px)' }}
+                     onError={(e) => { e.target.src = '/default-product-category-image.png'; }}
                   />
                </div>
 

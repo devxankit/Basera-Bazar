@@ -27,7 +27,7 @@ const SupplierCategories = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+    <div className="bg-slate-50 flex flex-col font-sans">
       {/* Header */}
       <div className="bg-white border-b border-slate-100 px-6 py-5 flex items-center justify-between sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-4">
@@ -52,7 +52,7 @@ const SupplierCategories = () => {
       </div>
 
       {/* List */}
-      <div className="p-5 space-y-4 pb-32">
+      <div className="p-5 space-y-4 pb-10">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Loader2 className="animate-spin text-primary-500" size={32} />

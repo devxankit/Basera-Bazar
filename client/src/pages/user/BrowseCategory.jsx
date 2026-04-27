@@ -218,7 +218,7 @@ const BrowseCategory = () => {
   const isProperty = category === 'property';
 
   return (
-    <div className="min-h-screen bg-white flex flex-col pb-32" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="bg-white flex flex-col pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* Header */}
       <div className="bg-white sticky top-0 z-50 shadow-sm">
         {/* Back + title row */}
@@ -289,7 +289,7 @@ const BrowseCategory = () => {
       </div>
 
       {/* Results List */}
-      <div className={`pt-4 pb-32 ${isGridView ? 'px-3 grid grid-cols-2 gap-3' : 'px-3 space-y-3'}`}>
+      <div className={`pt-4 pb-10 ${isGridView ? 'px-3 grid grid-cols-2 gap-3' : 'px-3 space-y-3'}`}>
         {loading ? (
           /* Premium Skeleton Grid */
           [...Array(6)].map((_, i) => (
@@ -618,32 +618,7 @@ const BrowseCategory = () => {
         )}
       </div>
 
-      {/* CTA Banner — Reference Match */}
-      {isService && !loading && items.length > 0 && (
-        <div className="px-4 pb-32">
-          <div className="bg-[#f0f5ff] rounded-[32px] border border-[#e0e8ff] p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-5 shadow-sm">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center text-[#1f2355] shadow-sm border border-slate-50 shrink-0">
-                <MessageSquare size={28} />
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-[17px] font-black text-[#1f2355] leading-tight tracking-tight">Can't find the right service?</h4>
-                <p className="text-[12px] font-bold text-slate-400 leading-snug">Post your requirement and get best quotes from verified partners</p>
-              </div>
-            </div>
-            
-            <button 
-              onClick={() => navigate('/categories')}
-              className="w-full sm:w-auto bg-white rounded-[24px] px-6 py-4 flex items-center justify-between sm:justify-center gap-3 border border-slate-100 shadow-md active:scale-95 transition-all group shrink-0"
-            >
-              <span className="font-black text-[#1f2355] text-[15px] tracking-tight">Post Requirement</span>
-              <div className="w-8 h-8 rounded-full bg-[#1f2355] flex items-center justify-center text-white group-hover:translate-x-1 transition-transform">
-                <ArrowRight size={18} strokeWidth={3} />
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* CTA Banner — Removed as per user request */}
 
       {/* Filter Modal */}
       {isFilterOpen && (

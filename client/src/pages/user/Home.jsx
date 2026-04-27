@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, Building2, Wrench, ArrowRight,
-  ClipboardList, HelpCircle, ShieldCheck, BadgePercent, Truck, ShoppingBag, Package
+  ClipboardList, HelpCircle, ShieldCheck, BadgePercent, Truck, ShoppingBag, Package, Store
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -21,8 +21,8 @@ const Home = () => {
       title: 'PROPERTIES',
       count: '1.2K+ Listings',
       icon: Building2,
-      badgeColor: 'bg-[#124db5]',
-      image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=400&auto=format&fit=crop',
+      badgeColor: 'bg-blue-600',
+      image: '/properties.jpg',
       path: '/browse/property',
     },
     {
@@ -31,16 +31,16 @@ const Home = () => {
       count: '800+ Listings',
       icon: Wrench,
       badgeColor: 'bg-orange-500',
-      image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?q=80&w=400&auto=format&fit=crop',
+      image: '/service.jpg',
       path: '/browse/service',
     },
     {
       id: 'supplier',
       title: 'SUPPLIERS',
       count: 'Verified Sellers',
-      icon: ShieldCheck,
+      icon: Store,
       badgeColor: 'bg-emerald-500',
-      image: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?q=80&w=400&auto=format&fit=crop',
+      image: '/supplier.jpg',
       path: '/browse/supplier',
     },
     {
@@ -49,7 +49,7 @@ const Home = () => {
       count: 'Direct Order',
       icon: ShoppingBag,
       badgeColor: 'bg-purple-600',
-      image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=400&auto=format&fit=crop',
+      image: '/mandi.jpg',
       path: '/mandi-bazar',
     },
   ];
@@ -62,7 +62,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="bg-white min-h-screen pb-28" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="bg-white pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* ── SEARCH BAR ── */}
       <div className="px-4 pt-2 pb-4">
@@ -166,36 +166,43 @@ const Home = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-4">
           {categories.map((cat) => (
             <div
               key={cat.id}
               onClick={() => navigate(cat.path)}
-              className="relative rounded-xl overflow-hidden cursor-pointer active:scale-95 transition-all group shadow-sm"
-              style={{ paddingBottom: '135%' }}
+              className="bg-white rounded-2xl border border-slate-100 shadow-sm cursor-pointer active:scale-95 transition-all relative flex flex-col overflow-hidden group hover:shadow-md hover:-translate-y-1 duration-300"
+              style={{ minHeight: '180px' }}
             >
-              <img
-                src={cat.image}
-                alt={cat.title}
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1f2355]/95 via-[#1f2355]/30 to-transparent" />
-
-              {/* Icon top-left */}
-              <div className={cn('absolute top-1.5 left-1.5 rounded-lg flex items-center justify-center text-white shadow-sm', cat.badgeColor)}
-                style={{ width: 'clamp(24px, 7vw, 30px)', height: 'clamp(24px, 7vw, 30px)' }}
+              {/* Icon Top Left */}
+              <div className={cn('absolute top-3 left-3 rounded-xl flex items-center justify-center text-white shadow-sm z-10 transition-all group-hover:scale-110 duration-300', cat.badgeColor)}
+                style={{ width: 'clamp(32px, 10vw, 38px)', height: 'clamp(32px, 10vw, 38px)' }}
               >
-                <cat.icon size={12} strokeWidth={2.5} />
+                <cat.icon className="w-4 h-4 md:w-5 md:h-5" strokeWidth={2.5} />
               </div>
 
-              {/* Bottom info */}
-              <div className="absolute bottom-2 left-2 right-2">
-                <p className="text-white font-black uppercase leading-tight tracking-tight mb-0.5" style={{ fontSize: 'clamp(7.5px, 2.5vw, 10px)' }}>{cat.title}</p>
-                <p className="text-white/80 font-bold leading-none" style={{ fontSize: 'clamp(6px, 1.8vw, 8px)' }}>{cat.count}</p>
-                <div className="mt-1.5 bg-white rounded-full flex items-center justify-center text-[#1f2355] shadow-md"
-                  style={{ width: 'clamp(20px, 6vw, 26px)', height: 'clamp(20px, 6vw, 26px)' }}
+              {/* Image Container */}
+              <div className="flex-1 flex items-center justify-center p-3 pt-12 transition-transform duration-500 group-hover:scale-105">
+                <img
+                  src={cat.image}
+                  alt={cat.title}
+                  className="w-full h-full object-contain max-h-[95px] lg:max-h-[125px] drop-shadow-md"
+                />
+              </div>
+
+              {/* Bottom Info Container - Using Flex to prevent overlap */}
+              <div className="px-3.5 pb-4 pt-1 flex items-end justify-between gap-2 mt-auto">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[#1f2355] font-black uppercase leading-[1.1] tracking-tight text-[11px] sm:text-[12px] group-hover:text-orange-500 transition-colors duration-300">
+                    {cat.title}
+                  </p>
+                  <p className="text-slate-400 font-bold leading-none mt-1 text-[9px] sm:text-[10px]">{cat.count}</p>
+                </div>
+                
+                <div className="bg-[#1f2355] rounded-full flex items-center justify-center text-white shadow-md shrink-0 transition-all duration-300 group-hover:bg-orange-500 group-hover:translate-x-1"
+                  style={{ width: '28px', height: '28px' }}
                 >
-                  <ArrowRight size={10} strokeWidth={3} />
+                  <ArrowRight size={14} strokeWidth={3} />
                 </div>
               </div>
             </div>

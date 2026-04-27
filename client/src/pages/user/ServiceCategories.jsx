@@ -55,7 +55,7 @@ const ServiceCategories = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+    <div className="bg-slate-50 flex flex-col font-sans">
       {/* Premium Subtle Header Section */}
       <div className="bg-white border-b border-slate-100 px-6 pt-5 pb-5 space-y-4 relative z-50 shadow-sm">
         <div className="flex items-center justify-between">
@@ -73,7 +73,7 @@ const ServiceCategories = () => {
       </div>
 
       {/* 2-Column Grid */}
-      <div className="p-5 flex-grow pb-24">
+      <div className="p-5 flex-grow pb-10">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Loader2 className="animate-spin text-primary-500" size={32} />
