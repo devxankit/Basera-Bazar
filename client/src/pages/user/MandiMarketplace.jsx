@@ -155,7 +155,7 @@ export default function MandiMarketplace() {
                      <span className="font-black text-[#f59e0b]" style={{ fontSize: 'clamp(15px, 5vw, 19px)' }}>बसेरा</span>
                      <span className="font-black text-[#1f2355] uppercase ml-0.5" style={{ fontSize: 'clamp(15px, 5vw, 19px)' }}>BAZAR</span>
                   </div>
-                  <p className="font-semibold text-slate-400 tracking-tight" style={{ fontSize: 'clamp(7px, 2vw, 9px)' }}>Building better, together</p>
+                  <p className="font-semibold text-[#f59e0b] tracking-tight" style={{ fontSize: 'clamp(7px, 2vw, 9px)' }}>Building better, together</p>
                </div>
             </div>
             <div className="flex items-center gap-2">
@@ -202,18 +202,19 @@ export default function MandiMarketplace() {
 
          {/* ── HERO BANNER ── */}
          <div className="px-4 mt-1">
-            <div className="relative rounded-[18px] overflow-hidden bg-[#0d1b3e] shadow-lg"
+            <div className="relative rounded-[18px] overflow-hidden bg-[#081229] shadow-lg"
                style={{ height: 'clamp(175px, 50vw, 220px)' }}
             >
-               <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229]/85 to-transparent z-10" />
+               {/* Improved Gradient for Blending */}
+               <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229]/60 to-transparent z-10" />
                <img
-                  src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=800&auto=format&fit=crop"
-                  alt="Construction Excavator"
-                  className="absolute right-0 top-0 h-full w-[62%] object-cover"
+                  src="/basera-mandi-hero.jpeg"
+                  alt="Mandi Marketplace"
+                  className="absolute inset-0 w-full h-full object-cover z-0"
                />
 
                <div className="absolute inset-0 z-20 p-4 flex flex-col justify-center">
-                  <p className="text-white font-semibold mb-1 opacity-90" style={{ fontSize: 'clamp(10px, 3vw, 13px)' }}>खदान मंडी से सीधे</p>
+                  <p className="text-[#f59e0b] font-semibold mb-1" style={{ fontSize: 'clamp(10px, 3vw, 13px)' }}>खदान मंडी से सीधे</p>
                   <h1 className="text-[#f59e0b] font-black leading-tight mb-3" style={{ fontSize: 'clamp(20px, 6.5vw, 28px)' }}>
                      आपके घर तक!
                   </h1>
@@ -230,7 +231,7 @@ export default function MandiMarketplace() {
                            >
                               <item.icon size={13} strokeWidth={2.5} />
                            </div>
-                           <span className="text-white font-black uppercase text-center leading-tight whitespace-pre-line opacity-90" style={{ fontSize: '6.5px' }}>{item.label}</span>
+                           <span className="text-[#f59e0b] font-black uppercase text-center leading-tight whitespace-pre-line" style={{ fontSize: '6.5px' }}>{item.label}</span>
                         </div>
                      ))}
                   </div>
@@ -304,46 +305,16 @@ export default function MandiMarketplace() {
 
          {/* ── BULK ORDER BANNER ── */}
          <div className="mt-5 px-4">
-            <div className="relative bg-[#fdf0e8] rounded-[18px] overflow-hidden shadow-sm">
-               <div className="py-4 pl-4" style={{ maxWidth: '58%' }}>
-                  <p className="text-orange-600 font-black uppercase tracking-widest" style={{ fontSize: 'clamp(8px, 2.5vw, 11px)' }}>Best Deals on</p>
-                  <h2 className="text-[#1f2355] font-black leading-tight mt-0.5" style={{ fontSize: 'clamp(20px, 6.5vw, 28px)' }}>Bulk Orders</h2>
-                  <p className="text-slate-500 font-medium mt-1 leading-snug" style={{ fontSize: 'clamp(8px, 2.5vw, 11px)' }}>Get extra discounts on<br />bulk purchases.</p>
-                  <button
-                     onClick={() => navigate('/browse/mandi')}
-                     className="mt-3 bg-orange-500 text-white rounded-xl font-black uppercase flex items-center gap-1.5 active:scale-95 transition-all shadow-md"
-                     style={{ fontSize: 'clamp(8px, 2.5vw, 11px)', padding: 'clamp(7px, 2vw, 10px) clamp(12px, 3.5vw, 18px)' }}
-                  >
-                     ORDER NOW <ArrowRight size={11} strokeWidth={3} />
-                  </button>
-               </div>
-
-               {/* Product images */}
-               <div className="absolute right-0 top-0 bottom-0" style={{ width: '48%' }}>
-                  <img
-                     src={MATERIAL_IMAGES.brick}
-                     alt="Bricks"
-                     className="absolute bottom-0 right-3 object-contain drop-shadow-lg"
-                     style={{ width: 'clamp(80px, 23vw, 110px)', height: 'clamp(80px, 23vw, 110px)' }}
-                     onError={(e) => { e.target.src = '/default-product-category-image.png'; }}
-                  />
-                  <img
-                     src={MATERIAL_IMAGES.cement}
-                     alt="Cement"
-                     className="absolute top-3 right-8 object-contain drop-shadow-md"
-                     style={{ width: 'clamp(55px, 16vw, 75px)', height: 'clamp(55px, 16vw, 75px)' }}
-                     onError={(e) => { e.target.src = '/default-product-category-image.png'; }}
-                  />
-               </div>
-
-               {/* Discount Badge */}
-               <div className="absolute right-2 bottom-2 bg-[#1f2355] rounded-full flex flex-col items-center justify-center text-white shadow-xl rotate-6 z-10"
-                  style={{ width: 'clamp(52px, 14vw, 64px)', height: 'clamp(52px, 14vw, 64px)' }}
-               >
-                  <p className="font-black uppercase opacity-70" style={{ fontSize: 'clamp(5.5px, 1.6vw, 7px)' }}>UP TO</p>
-                  <p className="font-black leading-none" style={{ fontSize: 'clamp(13px, 4vw, 17px)' }}>20%</p>
-                  <p className="font-black uppercase opacity-70" style={{ fontSize: 'clamp(5.5px, 1.6vw, 7px)' }}>OFF</p>
-               </div>
+            <div 
+               onClick={() => navigate('/browse/mandi')}
+               className="relative rounded-[18px] overflow-hidden shadow-md bg-white active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center"
+               style={{ height: 'clamp(120px, 35vw, 160px)' }}
+            >
+               <img
+                  src="/mandi-bottom-banner.jpeg"
+                  alt="Bulk Orders"
+                  className="w-full h-full object-cover"
+               />
             </div>
          </div>
 
