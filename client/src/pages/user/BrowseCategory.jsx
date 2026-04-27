@@ -64,7 +64,13 @@ const BrowseCategory = () => {
     if (featured !== activeFilters.featuredOnly) {
       setActiveFilters(prev => ({ ...prev, featuredOnly: featured }));
     }
-  }, [searchParams, activeFilters.featuredOnly]);
+    
+    // Read search query from URL
+    const queryFromUrl = searchParams.get('q');
+    if (queryFromUrl) {
+      setSearchQuery(queryFromUrl);
+    }
+  }, [searchParams]);
 
   const toggleFilter = (key, value) => {
     setActiveFilters(prev => ({

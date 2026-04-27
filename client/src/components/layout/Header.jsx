@@ -41,57 +41,59 @@ const Header = () => {
 
   return (
     <>
-      <div className="relative bg-white pt-6 pb-4 overflow-hidden font-sans">
-        {/* Top Icons Bar */}
-        <div className="px-5 flex items-center justify-between relative z-20">
-          <button className="w-11 h-11 bg-white rounded-xl shadow-[0_2px_10px_-3px_rgba(0,0,0,0.08)] flex items-center justify-center text-slate-700 active:scale-95 transition-all">
-            <Menu size={22} strokeWidth={2.5} />
-          </button>
-          
+      <div className="relative bg-white overflow-hidden font-sans min-h-[280px]">
+        {/* Full Header Background Container */}
+        <div className="absolute inset-0 z-0">
+          {/* House Image - Shifted Right */}
+          <div className="absolute top-0 right-0 bottom-0 w-[85%] pointer-events-none">
+            <img 
+              src="/basera-home-hero.jpeg" 
+              alt="Hero House" 
+              className="w-full h-full object-cover object-[70%_center] opacity-100"
+            />
+            {/* Smooth Mask/Fade from Left */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent w-[60%]" />
+            {/* Fade from Top for status bar area */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-transparent h-[20%]" />
+          </div>
+        </div>
+
+        {/* Top Icons Bar (Overlay) */}
+        <div className="relative z-20 px-5 pt-6 flex items-center justify-end">
           <div className="flex items-center gap-3">
-            <button className="w-11 h-11 bg-white rounded-xl shadow-[0_2px_10px_-3px_rgba(0,0,0,0.08)] flex items-center justify-center text-slate-700 relative active:scale-95 transition-all">
-              <Bell size={22} strokeWidth={2.5} />
-              <span className="absolute top-3 right-3 w-2 h-2 bg-orange-500 rounded-full border-2 border-white shadow-sm" />
+            <button className="w-10 h-10 bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex items-center justify-center text-slate-700 relative active:scale-95 transition-all">
+              <Bell size={20} strokeWidth={2.5} />
+              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
             </button>
             <button 
               onClick={() => navigate(isAuthenticated ? '/profile' : '/login')}
-              className="w-11 h-11 bg-white rounded-xl shadow-[0_2px_10px_-3px_rgba(0,0,0,0.08)] flex items-center justify-center text-slate-700 active:scale-95 transition-all"
+              className="w-10 h-10 bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex items-center justify-center text-slate-700 active:scale-95 transition-all"
             >
-              <User size={22} strokeWidth={2.5} />
+              <User size={20} strokeWidth={2.5} />
             </button>
           </div>
         </div>
 
-        {/* Hero Section Container */}
-        <div className="relative mt-4 px-5 flex items-center min-h-[200px]">
-          {/* Left Text Content */}
-          <div className="relative z-10 w-[65%] pt-2">
-            <p className="text-[#181d5f] text-base font-bold tracking-tight">Welcome to</p>
-            <h1 className="text-[36px] font-black tracking-tighter leading-[1.05] mt-1">
-              <span className="text-orange-500">Basera</span> <br />
+        {/* Hero Content (Overlay) */}
+        <div className="relative z-20 mt-2 px-4 xs:px-5 flex flex-col justify-center min-h-[160px] xs:min-h-[180px]">
+          <div className="max-w-[75%] xs:max-w-[65%]">
+            <p className="text-[#181d5f] font-bold tracking-tight opacity-90" style={{ fontSize: 'clamp(10px, 3vw, 13px)' }}>Welcome to</p>
+            <h1 className="font-black tracking-tighter leading-none mt-1 flex flex-wrap gap-x-2" style={{ fontSize: 'clamp(24px, 9vw, 40px)' }}>
+              <span className="text-orange-500">Basera</span> 
               <span className="text-[#181d5f]">Bazar</span>
             </h1>
-            <p className="text-slate-400 text-[10px] font-black mt-2 tracking-[0.15em] uppercase">Build better. Live better.</p>
+            <p className="text-slate-400 font-bold mt-2 tracking-tight" style={{ fontSize: 'clamp(8px, 2.5vw, 11px)' }}>Build better. Live better.</p>
             
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="mt-6 flex items-center gap-2 bg-white border border-slate-50 rounded-xl px-4 py-2.5 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.08)] active:scale-[0.98] transition-all"
+              className="mt-4 xs:mt-6 flex items-center gap-1.5 xs:gap-2 bg-white border border-slate-100 rounded-xl px-3 xs:px-4 py-2 xs:py-2.5 shadow-[0_12px_30px_-5px_rgba(0,0,0,0.12)] active:scale-[0.98] transition-all w-fit"
             >
-              <MapPin size={16} className="text-[#181d5f]" strokeWidth={3} />
-              <span className="text-[13px] font-black text-[#181d5f]">
+              <MapPin size={12} className="text-[#181d5f] shrink-0" strokeWidth={3} />
+              <span className="font-black text-[#181d5f] truncate max-w-[120px] xs:max-w-none" style={{ fontSize: 'clamp(9px, 3vw, 12px)' }}>
                 {location.city || location.district || 'Muzaffarpur, Bihar'}
               </span>
-              <ChevronDown size={14} className="text-slate-400" strokeWidth={3} />
+              <ChevronDown size={10} className="text-slate-400 shrink-0" strokeWidth={3} />
             </button>
-          </div>
-
-          {/* Right House Image */}
-          <div className="absolute top-0 right-0 bottom-0 w-[55%] pointer-events-none">
-            <img 
-              src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop" 
-              alt="Hero House" 
-              className="w-full h-full object-contain object-right transform scale-125 translate-x-4"
-            />
           </div>
         </div>
       </div>
