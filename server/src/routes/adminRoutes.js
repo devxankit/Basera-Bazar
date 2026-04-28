@@ -54,6 +54,9 @@ const {
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
+// TEST ROUTE NO AUTH
+router.get('/test-listings/:type', getListings);
+
 // ALL Admin routes must be protected and restricted solely to 'super_admin' roles
 router.use(protect);
 router.use(authorizeRoles('super_admin'));

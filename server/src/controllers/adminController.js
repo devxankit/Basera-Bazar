@@ -1057,11 +1057,13 @@ const getUsers = async (req, res) => {
  */
 const getListings = async (req, res) => {
   try {
+    require('fs').writeFileSync('/Users/ujjawalmahawar/Desktop/Appzeto/BaseraBazar/server/debug_route_listings.txt', `Hit getListings with type: ${req.params.type}`);
     const { type } = req.params;
-    const { category, subcategory, listing_intent, status, state, district, price_range, search } = req.query;
+    const { category, category_id, subcategory, listing_intent, status, state, district, price_range, search } = req.query;
 
     let query = {};
     if (category) query.category_id = category;
+    if (category_id) query.category_id = category_id;
     if (subcategory) query.subcategory_id = subcategory;
     if (status) query.status = status;
 
@@ -1142,6 +1144,8 @@ const getListings = async (req, res) => {
         .sort({ createdAt: -1 });
     }
     else return res.status(400).json({ success: false, message: 'Invalid listing type.' });
+
+    require('fs').writeFileSync('/Users/ujjawalmahawar/Desktop/Appzeto/BaseraBazar/server/debug_listings.txt', `Type: ${type}, Count: ${listings.length}, Query: ${JSON.stringify(query)}`);
 
     res.status(200).json({ success: true, count: listings.length, data: listings });
   } catch (error) {
@@ -1746,6 +1750,7 @@ const deleteSubscriptionPlan = async (req, res) => {
  */
 const getSystemCategories = async (req, res) => {
   try {
+    require('fs').writeFileSync('/Users/ujjawalmahawar/Desktop/Appzeto/BaseraBazar/server/debug_route_categories.txt', `Hit getSystemCategories with type: ${req.query.type}`);
     const { type, parent_id, include_inactive } = req.query;
 
     // Only filter for active if not explicitly requested by admin
@@ -1810,8 +1815,8 @@ const getSystemCategories = async (req, res) => {
 
         // 2. Update Partner Supplier Profiles
         await Partner.updateMany(
-          { 'profile.supplier_profile.categories': cat._id },
-          { $set: { 'profile.supplier_profile.categories.$[elem]': master._id } },
+          { 'profile.supplier_profile.material_categories': cat._id },
+          { $set: { 'profile.supplier_profile.material_categories.$[elem]': master._id } },
           { arrayFilters: [{ 'elem': cat._id }] }
         );
 
@@ -1861,9 +1866,11 @@ const getSystemCategories = async (req, res) => {
       return catObj;
     }));
 
-    res.status(200).json({ success: true, data: processedCategories });
+    require('fs').writeFileSync('/Users/ujjawalmahawar/Desktop/Appzeto/BaseraBazar/server/debug_cat_end.txt', `Processed ${processedCategories.length}`);
+    res.status(200).json({ success: true, count: processedCategories.length, data: processedCategories });
   } catch (error) {
-    console.error("Error fetching categories:", error);
+    console.error('getSystemCategories ERROR:', error);
+    require('fs').writeFileSync('/Users/ujjawalmahawar/Desktop/Appzeto/BaseraBazar/server/debug_cat_error.txt', error.stack || error.toString());
     res.status(500).json({ success: false, message: 'Error fetching categories.' });
   }
 };

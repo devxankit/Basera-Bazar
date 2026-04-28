@@ -26,9 +26,9 @@ const BannerCarousel = () => {
         ...b,
         imageUrl: b.image_url || b.imageUrl
       }));
-      
-      const activeBanners = normalizedData.filter(b => 
-        b.is_active !== false && 
+
+      const activeBanners = normalizedData.filter(b =>
+        b.is_active !== false &&
         !b.imageUrl?.includes('mandi_home_banner.png')
       );
       if (activeBanners.length > 0) {
@@ -36,7 +36,7 @@ const BannerCarousel = () => {
       } else {
         setBanners(defaultBanners);
       }
-    } catch (err) { 
+    } catch (err) {
       console.error("Banner fetch error:", err);
       setBanners(defaultBanners);
     }
@@ -73,7 +73,7 @@ const BannerCarousel = () => {
   const handleImageError = (id) => setImageErrors(prev => ({ ...prev, [id]: true }));
 
   return (
-    <div 
+    <div
       className="relative w-full overflow-hidden rounded-2xl group bg-slate-100 border border-white"
       style={{ aspectRatio: '21/10' }}
     >
@@ -86,7 +86,7 @@ const BannerCarousel = () => {
           initial={{ x: '100%' }}
           animate={{ x: 0 }}
           exit={{ x: '-100%' }}
-          transition={{ 
+          transition={{
             x: { type: "spring", stiffness: 300, damping: 30 },
             opacity: { duration: 0.2 }
           }}
@@ -94,7 +94,7 @@ const BannerCarousel = () => {
         >
           {imageErrors[banners[currentIndex].id] ? (
             <div className={`w-full h-full bg-gradient-to-br ${banners[currentIndex].fallback || 'from-indigo-900 to-slate-900'} flex items-center justify-center`}>
-               <ImageOff size={48} className="text-white/10" />
+              <ImageOff size={48} className="text-white/10" />
             </div>
           ) : (
             <img
@@ -108,16 +108,15 @@ const BannerCarousel = () => {
           {/* Internal gradient removed per user request */}
         </motion.div>
       </AnimatePresence>
-      
+
       {/* Navigation Indicators */}
       <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2.5 z-10">
         {banners.map((_, i) => (
           <button
             key={i}
             onClick={() => { setCurrentIndex(i); resetTimer(); }}
-            className={`h-1.5 rounded-full transition-all duration-500 shadow-sm ${
-              i === currentIndex ? 'w-8 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/60'
-            }`}
+            className={`h-1.5 rounded-full transition-all duration-500 shadow-sm ${i === currentIndex ? 'w-8 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/60'
+              }`}
           />
         ))}
       </div>

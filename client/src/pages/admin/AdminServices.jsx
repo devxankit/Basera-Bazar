@@ -271,9 +271,9 @@ export default function AdminServices() {
       <AdminTable 
         columns={columns} 
         data={services.filter(s => 
-          s.title.toLowerCase().includes(search.toLowerCase()) || 
-          s.partner_id?.name?.toLowerCase().includes(search.toLowerCase()) ||
-          s._id.includes(search)
+          s?.title?.toLowerCase()?.includes(search.toLowerCase()) || 
+          s?.partner_id?.name?.toLowerCase()?.includes(search.toLowerCase()) ||
+          s?._id?.includes(search)
         )} 
         loading={loading} 
         searchPlaceholder="Filter result by keywords..."
