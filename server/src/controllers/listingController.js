@@ -246,7 +246,8 @@ const createServiceListing = async (req, res) => {
       title, description, category, category_id, subcategory_id,
       shortDescription, detailedDescription, experience, details, 
       image, images, location_text, location, state, district, pincode,
-      is_featured 
+      is_featured, video_link, service_radius_km, service_type,
+      short_description, full_description, years_of_experience, thumbnail, portfolio_images, address
     } = req.body;
 
     // Find the category ID by name if category_id is not provided
@@ -282,21 +283,22 @@ const createServiceListing = async (req, res) => {
       category_id: final_category_id,
       subcategory_id: subcategory_id || null,
       title,
-      short_description: shortDescription || description?.slice(0, 200),
-      full_description: detailedDescription || description,
-      years_of_experience: experience,
-      details,
-      image,
-      thumbnail: image,
-      portfolio_images: images || [],
-      address: {
+      service_type: service_type || details?.serviceType,
+      short_description: short_description || shortDescription || description?.slice(0, 200),
+      full_description: full_description || detailedDescription || description,
+      years_of_experience: years_of_experience || experience || details?.experience || 0,
+      video_link,
+      image: thumbnail || image,
+      thumbnail: thumbnail || image,
+      portfolio_images: portfolio_images || images || [],
+      address: address || {
         state,
         district,
         full_address: location_text,
         pincode
       },
       location: location || { type: 'Point', coordinates: [0, 0] },
-      service_radius_km: 50, // Default 50km radius for services
+      service_radius_km: Number(service_radius_km) || 50, // Use provided radius or default to 50
       status: 'active',
       is_featured: !!is_featured
     });

@@ -49,6 +49,10 @@ export default function AddService() {
     businessName: '',
     thumbnail: null,
     portfolio: [],
+    videoLink: '',
+    serviceRadiusKm: 10,
+    latitude: 28.7041,
+    longitude: 77.1025,
     is_featured: false
   });
 
@@ -98,6 +102,10 @@ export default function AddService() {
               businessName: res.details?.businessName || user.businessName || '',
               thumbnail: res.thumbnail || '',
               portfolio: res.portfolio_images || [],
+              videoLink: res.video_link || '',
+              serviceRadiusKm: res.service_radius_km || 10,
+              latitude: res.location?.coordinates?.[1] || 28.7041,
+              longitude: res.location?.coordinates?.[0] || 77.1025,
               is_featured: res.is_featured || false
             }));
             
@@ -255,24 +263,35 @@ export default function AddService() {
         }
       }
 
-      // 2. Prepare Payload
+      // 2. Prepare Payload natively matching the Mongoose schema
       const payload = {
-        ...formData,
         listing_type: 'service',
         category_id: formData.category_id,
         subcategory_id: formData.subcategory_id || null,
-        category: formData.category, // name fallback
-        image: thumbnailUrl,
-        images: portfolioUrls,
         title: formData.serviceName,
-        details: {
-          serviceType: formData.serviceType,
-          experience: formData.experience,
-          description: formData.detailedDescription || formData.shortDescription,
-          businessName: formData.businessName
+        service_type: formData.serviceType,
+        short_description: formData.shortDescription,
+        full_description: formData.detailedDescription,
+        years_of_experience: formData.experience,
+        video_link: formData.videoLink,
+        thumbnail: thumbnailUrl,
+        portfolio_images: portfolioUrls,
+        service_radius_km: formData.serviceRadiusKm,
+        is_featured: formData.is_featured,
+        address: {
+          state: formData.state,
+          district: formData.district,
+          full_address: formData.businessAddress,
+          city: formData.city
         },
-        location_text: `${formData.businessAddress}, ${formData.district}, ${formData.state}`,
-        is_featured: formData.is_featured
+        location: {
+          type: 'Point',
+          coordinates: [parseFloat(formData.longitude || 0), parseFloat(formData.latitude || 0)]
+        },
+        // Legacy mapping support for fallback in DataEngine/create
+        details: {
+          businessName: formData.businessName
+        }
       };
 
       // 3. Submit to API
@@ -329,7 +348,9 @@ export default function AddService() {
               state: normalizedState,
               district: matchedDistrict,
               city: cityName === 'Unknown' ? (matchedDistrict || rawDistrict) : cityName,
-              businessAddress: adr.road || prev.businessAddress
+              businessAddress: adr.road || prev.businessAddress,
+              latitude,
+              longitude
             }));
             alert("Location detected successfully!");
           }
@@ -546,14 +567,46 @@ export default function AddService() {
                 className="w-full bg-white border border-slate-200 rounded-2xl py-4.5 px-5 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all resize-none"
               ></textarea>
             </div>
+            
+            <InputField 
+              icon={<Navigation size={18} />}
+              label="Service Radius (KM) *"
+              name="serviceRadiusKm"
+              type="number"
+              value={formData.serviceRadiusKm}
+              placeholder="e.g. 10"
+              onChange={handleChange}
+            />
+
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
+               <div className="flex items-center gap-3">
+                  <MapPin size={14} className="text-rose-500" />
+                  <span className="text-xs font-black text-slate-700 uppercase tracking-widest">GPS Center</span>
+               </div>
+               <div className="flex gap-3">
+                  <input type="number" step="any" name="latitude" className="w-24 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono" value={formData.latitude} onChange={handleChange} placeholder="Lat" />
+                  <input type="number" step="any" name="longitude" className="w-24 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono" value={formData.longitude} onChange={handleChange} placeholder="Long" />
+               </div>
+            </div>
         </section>
 
         {/* Images Section */}
         <section className="space-y-4">
           <SectionHeader icon={<ImageIcon size={18} />} title="Images" />
           
+          <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm mb-6">
+            <InputField 
+              icon={<ImageIcon size={18} />}
+              label="Video Showcase (YouTube Link)"
+              name="videoLink"
+              value={formData.videoLink}
+              placeholder="https://youtube.com/watch?v=..."
+              onChange={handleChange}
+            />
+          </div>
+
           {/* Thumbnail Upload */}
-          <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm">
+          <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm mb-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
                 <ImageIcon size={20} />

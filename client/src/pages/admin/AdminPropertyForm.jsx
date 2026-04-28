@@ -66,7 +66,11 @@ export default function AdminPropertyForm() {
 
         if (catRes.data.success) setCategories(catRes.data.data);
         if (partnerRes.data.success) {
-          setPartners(partnerRes.data.data.filter(u => u.role === 'Agent' || u.source === 'Partner'));
+          setPartners(partnerRes.data.data.filter(u => 
+            u.role === 'Agent' || 
+            u.partner_type === 'property_agent' || 
+            (u.roles && u.roles.includes('property_agent'))
+          ));
         }
 
         if (isEdit) {
@@ -355,7 +359,7 @@ export default function AdminPropertyForm() {
                       </div>
                    </div>
                    <div className="flex gap-3">
-                      <input type="number" step="any" step={0.000001} className="w-24 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono" value={formData.location.coordinates[1]} onChange={e => { const c = [...formData.location.coordinates]; c[1] = parseFloat(e.target.value); setFormData(p => ({...p, location: {...p.location, coordinates: c}})) }} placeholder="Lat" />
+                      <input type="number" step="any" className="w-24 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono" value={formData.location.coordinates[1]} onChange={e => { const c = [...formData.location.coordinates]; c[1] = parseFloat(e.target.value); setFormData(p => ({...p, location: {...p.location, coordinates: c}})) }} placeholder="Lat" />
                       <input type="number" step="any" className="w-24 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono" value={formData.location.coordinates[0]} onChange={e => { const c = [...formData.location.coordinates]; c[0] = parseFloat(e.target.value); setFormData(p => ({...p, location: {...p.location, coordinates: c}})) }} placeholder="Long" />
                    </div>
                 </div>

@@ -11,13 +11,9 @@ import MediaDropZone from '../../components/common/MediaDropZone';
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "block text-sm font-bold text-slate-600 mb-1.5";
 
-const INDIAN_STATES = {
-  "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Bikaner", "Ajmer", "Kota", "Bhilwara", "Alwar"],
-  "Uttar Pradesh": ["Lucknow", "Kanpur", "Varanasi", "Agra", "Meerut", "Noida", "Ghaziabad", "Prayagraj"],
-  "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad", "Solapur", "Amravati"],
-  "Delhi": ["New Delhi", "North Delhi", "South Delhi", "West Delhi", "East Delhi"],
-  "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar", "Gandhinagar"]
-};
+import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
+
+const INDIAN_STATES = INDIAN_STATES_DISTRICTS;
 
 export default function AdminServiceForm() {
   const { id } = useParams();
@@ -52,7 +48,11 @@ export default function AdminServiceForm() {
 
         if (catRes.data.success) setCategories(catRes.data.data);
         if (partnerRes.data.success) {
-            setPartners(partnerRes.data.data.filter(u => u.role === 'Service Provider' || u.source === 'Partner'));
+            setPartners(partnerRes.data.data.filter(u => 
+              u.role === 'Service Provider' || 
+              u.partner_type === 'service_provider' || 
+              (u.roles && u.roles.includes('service_provider'))
+            ));
         }
 
         if (isEdit) {
@@ -230,10 +230,10 @@ export default function AdminServiceForm() {
                       <label className={labelClass}>Service Type</label>
                       <select name="service_type" value={formData.service_type} onChange={handleInputChange} className={inputClass}>
                         <option value="">Select Type</option>
+                        <option value="Hourly Rate">Hourly Rate</option>
+                        <option value="Fixed Price">Fixed Price</option>
+                        <option value="Project Based">Project Based</option>
                         <option value="Consultation">Consultation</option>
-                        <option value="Maintenance">Maintenance</option>
-                        <option value="Repair">Repair</option>
-                        <option value="Installation">Installation</option>
                       </select>
                    </div>
                 </div>
@@ -259,7 +259,7 @@ export default function AdminServiceForm() {
                     <label className={labelClass}>District</label>
                     <select required value={formData.address.district} onChange={e => handleInputChange(e, 'address.district')} disabled={!formData.address.state} className={inputClass}>
                       <option value="">Select District</option>
-                      {formData.address.state && INDIAN_STATES[formData.address.state].map(d => <option key={d} value={d}>{d}</option>)}
+                      {formData.address.state && INDIAN_STATES[formData.address.state]?.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>
                 </div>
@@ -297,9 +297,15 @@ export default function AdminServiceForm() {
                   <label className={labelClass}>Video Showcase (YouTube Link)</label>
                   <input name="video_link" value={formData.video_link} onChange={handleInputChange} className={inputClass} placeholder="https://youtube.com/watch?v=..." />
                 </div>
-                <div>
-                  <label className={labelClass}>Full Description</label>
-                  <textarea rows={4} name="full_description" value={formData.full_description} onChange={handleInputChange} className={`${inputClass} resize-none`} placeholder="Detailed explanation of services offered..." />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className={labelClass}>Short Description</label>
+                    <textarea rows={2} name="short_description" value={formData.short_description} onChange={handleInputChange} className={`${inputClass} resize-none`} placeholder="Brief summary of the service..." />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Detailed Description</label>
+                    <textarea rows={2} name="full_description" value={formData.full_description} onChange={handleInputChange} className={`${inputClass} resize-none`} placeholder="Detailed explanation of services offered..." />
+                  </div>
                 </div>
                 <MediaDropZone value={formData.portfolio_images} onChange={handleImageChange} label="Portfolio Gallery" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
