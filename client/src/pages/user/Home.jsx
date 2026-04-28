@@ -30,7 +30,7 @@ const Home = () => {
         const [props, servs, supps] = await Promise.all([
           db.getAll('listings', { category: 'property', limit: 6 }),
           db.getAll('listings', { category: 'service', limit: 6 }),
-          db.getAll('partners', { active_role: 'supplier', limit: 6 })
+          db.getAll('partners', { active_role: 'supplier', is_featured: 'true', limit: 6 })
         ]);
         setFeaturedProperties(props);
         setFeaturedServices(servs);
@@ -370,8 +370,8 @@ const Home = () => {
       <div className="mb-10">
         <div className="px-4 flex items-center justify-between mb-5">
           <div className="flex flex-col leading-none">
-            <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Verified Suppliers</h2>
-            <p className="text-slate-400 font-bold text-[10px] mt-1 uppercase tracking-wider">Trusted Industry Partners</p>
+            <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Featured Suppliers</h2>
+            <p className="text-slate-400 font-bold text-[10px] mt-1 uppercase tracking-wider">Top Industry Partners</p>
           </div>
           <button onClick={() => navigate('/category/supplier')} className="text-orange-500 font-black text-[10px] uppercase tracking-widest bg-orange-50 px-3 py-1.5 rounded-full">View All</button>
         </div>
@@ -379,7 +379,7 @@ const Home = () => {
           {featuredSuppliers.length > 0 ? featuredSuppliers.map((item) => (
             <div 
               key={item.id}
-              onClick={() => navigate(`/category/supplier`)}
+              onClick={() => navigate(`/listing/${item._id || item.id}`)}
               className="min-w-[240px] bg-white rounded-[28px] border border-slate-100 shadow-[0_12px_25px_rgb(0,0,0,0.04)] p-4 active:scale-95 transition-all flex flex-col gap-4"
             >
               <div className="flex items-center gap-3">

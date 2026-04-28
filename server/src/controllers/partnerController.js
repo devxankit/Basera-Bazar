@@ -357,11 +357,15 @@ const switchRole = async (req, res) => {
  */
 const getPublicPartners = async (req, res) => {
   try {
-    const { category, search, district, state } = req.query;
+    const { category, search, district, state, is_featured } = req.query;
 
     const query = process.env.NODE_ENV === 'development'
       ? { is_active: { $in: [true, false] }, onboarding_status: { $in: ['approved', 'pending_approval', 'incomplete'] } }
       : { is_active: true, onboarding_status: 'approved' };
+
+    if (is_featured === 'true') {
+      query.is_featured = true;
+    }
 
     // Filter by role/type
     if (category) {
@@ -440,6 +444,35 @@ const getPartnerSubscriptionPlans = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Toggle partner featured status
+ * @route   PUT /api/partners/toggle-feature
+ * @access  Private (Partner)
+ */
+const toggleFeature = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    const partner = await Partner.findById(partnerId);
+    
+    if (!partner) {
+      return res.status(404).json({ success: false, message: 'Partner not found' });
+    }
+
+    // Toggle featured status
+    partner.is_featured = !partner.is_featured;
+    await partner.save();
+
+    res.status(200).json({
+      success: true,
+      message: partner.is_featured ? 'You are now featured!' : 'Feature disabled.',
+      is_featured: partner.is_featured
+    });
+  } catch (error) {
+    console.error("Error toggling feature:", error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 module.exports = {
   onboardPartner,
   getMyPartnerProfile,
@@ -449,5 +482,6 @@ module.exports = {
   deleteRole,
   getPublicPartners,
   getPublicPartnerById,
-  getPartnerSubscriptionPlans
+  getPartnerSubscriptionPlans,
+  toggleFeature
 };

@@ -1,1 +1,1 @@
-Hit getListings with type: service
+Hit getListings with type: property

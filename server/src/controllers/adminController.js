@@ -484,7 +484,7 @@ const getUserDetail = async (req, res) => {
  */
 const createUser = async (req, res) => {
   try {
-    const { name, email, phone, role, password, partner_type } = req.body;
+    const { name, email, phone, role, password, partner_type, image, business_logo } = req.body;
 
     // 1. Validation
     if (!name || !phone || !role || !password) {
@@ -516,7 +516,7 @@ const createUser = async (req, res) => {
     // 3. Create Account
     let newAccount;
     if (role === 'Customer' || role === 'user') {
-      newAccount = await User.create({ name, phone, email: email?.toLowerCase(), password, role: 'Customer' });
+      newAccount = await User.create({ name, phone, email: email?.toLowerCase(), password, role: 'Customer', image });
     } else if (role === 'Admin') {
       newAccount = await AdminUser.create({ name, phone, email: email?.toLowerCase(), password, role: 'Admin' });
     } else if (['Agent', 'Supplier', 'Service Provider', 'Mandi Seller'].includes(role)) {
@@ -541,6 +541,7 @@ const createUser = async (req, res) => {
       } else if (role === 'Mandi Seller') {
         profile.mandi_profile = {
           business_name: req.body.business_name || '',
+          business_logo: business_logo || '',
           business_description: req.body.business_description || ''
         };
       }
@@ -554,6 +555,8 @@ const createUser = async (req, res) => {
         state: req.body.state,
         district: req.body.district,
         address: req.body.address,
+        image,
+        business_logo,
         active_subscription_id: req.body.active_subscription_id || req.body.subscription_id || null,
         profile,
         onboarding_status: 'approved'
@@ -610,7 +613,9 @@ const updateUser = async (req, res) => {
       roles,
       active_role,
       onboarding_status,
-      rejection_reason
+      rejection_reason,
+      image,
+      business_logo
     } = req.body;
 
     // Detect Model
@@ -626,6 +631,8 @@ const updateUser = async (req, res) => {
     if (email !== undefined) updateData.email = email?.toLowerCase() || null;
     if (phone !== undefined) updateData.phone = phone;
     if (is_active !== undefined) updateData.is_active = is_active;
+    if (image !== undefined) updateData.image = image;
+    if (business_logo !== undefined) updateData.business_logo = business_logo;
 
     // Handle session closing if deactivating
     if (is_active === false && account.is_active !== false) {
@@ -680,6 +687,9 @@ const updateUser = async (req, res) => {
       }
       if (business_description !== undefined) {
         updateData['profile.mandi_profile.business_description'] = business_description;
+      }
+      if (business_logo !== undefined) {
+        updateData['profile.mandi_profile.business_logo'] = business_logo;
       }
     }
 

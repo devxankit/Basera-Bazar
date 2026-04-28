@@ -84,7 +84,11 @@ export default function PartnerRegistration() {
 
     setIsSubmitting(true);
     try {
-      // 3. Handle Image Uploads for Profile/Business Logo
+      // 1. Ensure token is set for all subsequent API calls (including uploads)
+      const { token, user: userData } = authState;
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // 2. Handle Image Uploads for Profile/Business Logo
       let profileUrl = formData.profileImage;
       if (formData.profileImage && formData.profileImage.startsWith('data:')) {
          const res = await db.uploadFile(await fetch(formData.profileImage).then(r => r.blob()));
@@ -121,11 +125,7 @@ export default function PartnerRegistration() {
          gstUrl = res.url;
       }
 
-      // 4. Temporarily save token to api instance for the profile update
-      const { token, user: userData } = authState;
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-      // 5. Update Profile with full details
+      // 3. Update Profile with full details
       const roleMapping = {
         'agent': 'property_agent',
         'service': 'service_provider',

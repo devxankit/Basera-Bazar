@@ -91,8 +91,12 @@ export default function AdminPartnerVerification() {
       header: 'PARTNER',
       render: (row) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold overflow-hidden border border-slate-200">
-            <img src={`https://ui-avatars.com/api/?name=${row.name}&background=random&color=555`} alt="" className="w-full h-full object-cover" />
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 font-bold overflow-hidden border border-slate-200">
+            <img 
+              src={row.image || row.profileImage || row.profile?.business_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(row.name)}&background=f1f5f9&color=64748b`} 
+              alt="" 
+              className="w-full h-full object-cover" 
+            />
           </div>
           <div>
             <p className="font-bold text-slate-900 text-[15px]">{row.name}</p>
@@ -350,13 +354,11 @@ export default function AdminPartnerVerification() {
                         title="Aadhar Back"
                         image={selectedPartner.kyc?.aadhar_back_image}
                       />
-                      {selectedPartner.kyc?.gst_number && (
-                        <DocumentCard
-                          title="GST Certificate"
-                          number={selectedPartner.kyc?.gst_number}
-                          image={selectedPartner.kyc?.gst_image}
-                        />
-                      )}
+                      <DocumentCard
+                        title="GST Certificate"
+                        number={selectedPartner.kyc?.gst_number}
+                        image={selectedPartner.kyc?.gst_image}
+                      />
                     </div>
                   </div>
                 </div>

@@ -1,1 +1,1 @@
-Hit getSystemCategories with type: supplier
+Hit getSystemCategories with type: service

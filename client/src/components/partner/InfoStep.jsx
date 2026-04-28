@@ -224,7 +224,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
         <p className="text-slate-500 text-[15px]">Please fill in your details</p>
       </div>
 
-      {/* Profile Photo Upload */}
+      {/* Business Profile Photo Upload */}
       <div className="flex flex-col items-center mb-10">
         <div className="relative">
           <input 
@@ -234,29 +234,36 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
             accept="image/*"
             onChange={(e) => handleFileChange(e, 'profileImage')}
           />
-          <div className="w-28 h-28 bg-slate-100 rounded-full flex items-center justify-center border-4 border-white shadow-md overflow-hidden relative group">
+          <div className="w-32 h-32 bg-slate-100 rounded-[32px] flex items-center justify-center border-4 border-white shadow-xl overflow-hidden relative group">
             {formData.profileImage ? (
               <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <User size={48} className="text-slate-300" />
+              <div className="text-center px-4">
+                <ImageIcon size={40} className="text-slate-300 mx-auto mb-1" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Add Photo</span>
+              </div>
             )}
             <button 
               type="button"
               onClick={() => profileInputRef.current.click()}
-              className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute inset-0 bg-[#001b4e]/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]"
             >
-              <Camera size={24} className="text-white" />
+              <Camera size={24} className="text-white mb-1" />
+              <span className="text-[10px] font-bold text-white uppercase tracking-wider">Change</span>
             </button>
           </div>
           <button 
             type="button"
             onClick={() => profileInputRef.current.click()}
-            className="absolute bottom-1 right-1 w-9 h-9 bg-[#001b4e] rounded-full flex items-center justify-center border-2 border-white text-white shadow-lg active:scale-90 transition-all"
+            className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#3b82f6] rounded-2xl flex items-center justify-center border-2 border-white text-white shadow-lg active:scale-90 transition-all"
           >
-            <Camera size={18} />
+            <Camera size={20} />
           </button>
         </div>
-        <span className="text-[12px] font-medium text-slate-400 mt-2">Profile Photo (Optional)</span>
+        <div className="text-center mt-3">
+          <span className="text-[13px] font-bold text-[#001b4e]">Business / Profile Photo</span>
+          <p className="text-[11px] text-slate-400 font-medium">This will be shown to your customers</p>
+        </div>
       </div>
 
       <div className="space-y-6">

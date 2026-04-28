@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import ConfirmationModal from '../components/common/ConfirmationModal';
 
 const AuthContext = createContext();
 
@@ -21,18 +22,42 @@ export const AuthProvider = ({ children }) => {
     }
   });
   const [loading, setLoading] = useState(true);
+  const [accountDeleted, setAccountDeleted] = useState(false);
 
   // -----------------------------------------------------
   // SESSION RESTORATION
   // -----------------------------------------------------
   // When the app first loads, we check if there's a token.
   // if yes, we fetch the real profile from the backend.
+   // Monitor global API errors for account deletion
+  useEffect(() => {
+    const interceptor = api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 401) {
+          const message = error.response.data?.message;
+          if (message === 'User no longer exists.' || message === 'Account deleted') {
+            setAccountDeleted(true);
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => api.interceptors.response.eject(interceptor);
+  }, []);
+
+  const handleAccountDeletedConfirm = () => {
+    setAccountDeleted(false);
+    logout();
+    window.location.href = '/login';
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('baserabazar_token');
       const savedUser = localStorage.getItem('baserabazar_user');
       
-      // If we have both, we trust the cache for initial UI
       if (token && savedUser) {
         try {
           const response = await api.get('/auth/me');
@@ -43,13 +68,16 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (error) {
           console.error("Session sync failed:", error.response?.status);
-          // Only force logout if the token is explicitly INVALID/EXPIRED (401)
           if (error.response?.status === 401) {
-            logout();
+            const message = error.response.data?.message;
+            if (message === 'User no longer exists.') {
+              setAccountDeleted(true);
+            } else {
+              logout();
+            }
           }
         }
       } else if (!token) {
-        // No token, ensure state is clean
         setUser(null);
       }
       
@@ -105,6 +133,17 @@ export const AuthProvider = ({ children }) => {
       loading 
     }}>
       {!loading && children}
+
+      <ConfirmationModal
+        isOpen={accountDeleted}
+        onClose={handleAccountDeletedConfirm}
+        onConfirm={handleAccountDeletedConfirm}
+        title="Account Not Found"
+        message="Your account no longer exists or has been removed. You will be redirected to the login page."
+        confirmText="Okay"
+        cancelText="Close"
+        type="warning"
+      />
     </AuthContext.Provider>
   );
 };

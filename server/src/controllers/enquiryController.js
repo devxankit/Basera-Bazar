@@ -1,5 +1,6 @@
 const { Enquiry } = require('../models/Enquiry');
-const { ServiceListing, PropertyListing, SupplierListing, MandiListing } = require('../models/Listing');
+const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
+const { Partner } = require('../models/Partner');
 const { Notification } = require('../models/System');
 
 /**
@@ -24,8 +25,8 @@ const createEnquiry = async (req, res) => {
       targetListing = await PropertyListing.findById(listing_id);
       partnerId = targetListing ? targetListing.partner_id : null;
     } else if (enquiry_type === 'supplier') {
-      targetListing = await SupplierListing.findById(listing_id);
-      partnerId = targetListing ? targetListing.partner_id : null;
+      targetListing = await Partner.findById(listing_id);
+      partnerId = targetListing ? targetListing._id : null;
     } else if (enquiry_type === 'mandi') {
       targetListing = await MandiListing.findById(listing_id);
       // BIG DIFFERENCE: For Mandi, we intentionally DO NOT map the partnerID right now. 
@@ -69,7 +70,7 @@ const createEnquiry = async (req, res) => {
         'partner',
         partnerId,
         'New Lead Received!',
-        `You have a new ${enquiry_type} inquiry for "${targetListing.title || targetListing.serviceName}" from ${req.user.name}.`,
+        `You have a new ${enquiry_type} inquiry for "${targetListing.title || targetListing.serviceName || targetListing.name || 'your business'}" from ${req.user.name}.`,
         {
           type: 'enquiry',
           enquiry_id: newEnquiry._id,
@@ -185,7 +186,16 @@ const updateInquiryStatus = async (req, res) => {
     }
 
     inquiry.status = status;
-    if (status === 'contacted') inquiry.contact_status = 'contacted';
+    if (status === 'contacted') {
+      inquiry.contact_status = 'contacted';
+      inquiry.is_read = true;
+    } else if (status === 'read') {
+      inquiry.contact_status = 'not_contacted';
+      inquiry.is_read = true;
+    } else if (status === 'new') {
+      inquiry.contact_status = 'not_contacted';
+      inquiry.is_read = false;
+    }
     
     await inquiry.save();
 

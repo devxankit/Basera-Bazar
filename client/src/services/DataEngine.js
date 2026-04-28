@@ -39,7 +39,12 @@ class DataEngine {
       normalized.title = businessName;
       normalized.businessName = businessName;
       normalized.category = 'supplier';
-      normalized.image = profile.business_logo || item.profileImage || "https://cdn-icons-png.flaticon.com/512/3119/3119338.png";
+      // Clear out the old flaticon bell icon if it exists in the DB
+      const imageFallback = "https://images.unsplash.com/photo-1586864387917-f579ae5259fb?q=80&w=400&auto=format&fit=crop";
+      let rawImage = profile.business_logo || item.profileImage || item.image;
+      if (rawImage && rawImage.includes('3119338.png')) rawImage = null;
+      
+      normalized.image = rawImage || imageFallback;
       normalized.price = { value: 0, unit: 'Contact for Quote', currency: 'INR' };
       normalized.isPartner = true;
 
@@ -118,6 +123,9 @@ class DataEngine {
     normalized.display_location = district && state 
       ? `${district}, ${state}` 
       : (district || state || item.location_text || 'Muzaffarpur, Bihar');
+    
+    // Crucial: Overwrite root location with string to prevent React rendering crashes
+    normalized.location = normalized.display_location;
     
     // Normalize Area (PREVENTS OBJECT RENDERING CRASH)
     if (normalized.details && typeof normalized.details.area === 'object' && normalized.details.area !== null) {

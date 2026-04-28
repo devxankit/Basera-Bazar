@@ -6,6 +6,7 @@ import {
   CheckCircle2, Save, X, Loader2, AlertCircle, ArrowLeft
 } from 'lucide-react';
 import api from '../../services/api';
+import { db } from '../../services/DataEngine';
 
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "block text-sm font-bold text-slate-600 mb-1.5";
@@ -36,8 +37,11 @@ export default function AdminUserForm() {
     is_active: true, partner_type: 'property_agent', active_subscription_id: '',
     state: '', district: '', address: '', material_categories: [],
     service_category_id: '', delivery_radius_km: 10,
-    business_name: '', business_description: ''
+    business_name: '', business_description: '',
+    image: '', business_logo: ''
   });
+  const [imageFiles, setImageFiles] = useState({ profile: null, logo: null });
+  const [previews, setPreviews] = useState({ profile: '', logo: '' });
 
   const [subscriptions, setSubscriptions] = useState([]);
   const [serviceCategories, setServiceCategories] = useState([]);
@@ -101,7 +105,13 @@ export default function AdminUserForm() {
                 profile.service_profile?.category_id || '',
               delivery_radius_km: profile.supplier_profile?.delivery_radius_km || 10,
               business_name: profile.mandi_profile?.business_name || '',
-              business_description: profile.mandi_profile?.business_description || ''
+              business_description: profile.mandi_profile?.business_description || '',
+              image: u.image || u.profileImage || '',
+              business_logo: profile.mandi_profile?.business_logo || profile.business_logo || ''
+            });
+            setPreviews({
+              profile: u.image || u.profileImage || '',
+              logo: profile.mandi_profile?.business_logo || profile.business_logo || ''
             });
           }
         }
@@ -122,11 +132,25 @@ export default function AdminUserForm() {
     setSuccess(null);
 
     try {
+      // Handle Image Uploads first
+      const updatedData = { ...formData };
+      
+      if (imageFiles.profile) {
+        const res = await db.uploadFile(imageFiles.profile);
+        updatedData.image = res.url;
+        updatedData.profileImage = res.url;
+      }
+      
+      if (imageFiles.logo) {
+        const res = await db.uploadFile(imageFiles.logo);
+        updatedData.business_logo = res.url;
+      }
+
       let response;
       if (isEdit) {
-        response = await api.put(`/admin/users/${id}`, formData);
+        response = await api.put(`/admin/users/${id}`, updatedData);
       } else {
-        response = await api.post('/admin/users', formData);
+        response = await api.post('/admin/users', updatedData);
       }
 
       if (response.data.success) {
@@ -259,6 +283,35 @@ export default function AdminUserForm() {
             </div>
 
             <div className="p-6 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className={labelClass}>Profile / Avatar Photo</label>
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0">
+                      {previews.profile ? (
+                        <img src={previews.profile} className="w-full h-full object-cover" alt="Preview" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                          <User size={24} />
+                        </div>
+                      )}
+                    </div>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setImageFiles(prev => ({ ...prev, profile: file }));
+                          setPreviews(prev => ({ ...prev, profile: URL.createObjectURL(file) }));
+                        }
+                      }}
+                      className="text-xs file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 cursor-pointer" 
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className={labelClass}>Full Name <span className="text-rose-500">*</span></label>
@@ -408,6 +461,34 @@ export default function AdminUserForm() {
 
                 {isMandiSeller && (
                   <div className="space-y-5 pt-2 animate-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                      <div>
+                        <label className={labelClass}>Business Logo / Storefront Image</label>
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0">
+                            {previews.logo ? (
+                              <img src={previews.logo} className="w-full h-full object-cover" alt="Logo Preview" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                <Package size={24} />
+                              </div>
+                            )}
+                          </div>
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                setImageFiles(prev => ({ ...prev, logo: file }));
+                                setPreviews(prev => ({ ...prev, logo: URL.createObjectURL(file) }));
+                              }
+                            }}
+                            className="text-xs file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-amber-50 file:text-amber-600 hover:file:bg-amber-100 cursor-pointer" 
+                          />
+                        </div>
+                      </div>
+                    </div>
                     <div>
                       <label className={labelClass}>Business/Store Name</label>
                       <input name="business_name" value={formData.business_name} onChange={handleChange} className={inputClass} placeholder="e.g. Sharma Bricks & Cement" />

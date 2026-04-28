@@ -61,6 +61,14 @@ const partnerSchema = new mongoose.Schema({
     lowercase: true,
     default: null
   },
+  image: {
+    type: String,
+    default: null
+  },
+  business_logo: {
+    type: String,
+    default: null
+  },
   partner_type: {
     type: String,
     enum: ['service_provider', 'property_agent', 'supplier', 'mandi_seller'],
@@ -144,6 +152,10 @@ const partnerSchema = new mongoose.Schema({
     default: null
   },
   is_active: {
+    type: Boolean,
+    default: false
+  },
+  is_featured: {
     type: Boolean,
     default: false
   },

@@ -8,10 +8,11 @@ import {
   Bed, Bath, ArrowRight, Heart
 } from 'lucide-react';
 import { useLocationContext } from '../../context/LocationContext';
-import { clsx } from 'clsx';
+import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Skeleton } from '../../components/common/Skeleton';
 
+import { motion } from 'framer-motion';
 import { INDIAN_STATES_DISTRICTS, INDIAN_STATES } from '../../constants/indiaGeoData';
 
 const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
@@ -427,56 +428,60 @@ const BrowseCategory = () => {
                   </div>
                 </div>
               ) : isSupplier ? (
-                /* Redesigned Supplier Card — Premium Business Profile */
-                <div
-                  key={item.id}
-                  onClick={() => navigate(`/listing/${item.id}`)}
+                /* Redesigned Supplier Card — Midnight Industrial Premium */
+                <motion.div
+                  key={item._id || item.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={() => navigate(`/listing/${item._id || item.id}`)}
                   className={cn(
-                    "bg-white border border-slate-100 shadow-[0_4px_12px_rgba(0,0,0,0.03)] overflow-hidden active:scale-[0.99] transition-all group cursor-pointer",
-                    isGridView ? "rounded-2xl flex flex-col h-full" : "rounded-2xl flex h-36 xs:h-40"
+                    "bg-white border border-slate-100 shadow-sm overflow-hidden group cursor-pointer transition-all active:scale-[0.98] relative",
+                    isGridView ? "rounded-[32px] flex flex-col" : "rounded-[28px] flex h-36 xs:h-44"
                   )}
                 >
-                  {/* Branding/Image Area */}
+                  {/* Image Area */}
                   <div className={cn(
-                    "relative overflow-hidden shrink-0 bg-slate-50",
-                    isGridView ? "w-full aspect-[4/3]" : "w-32 xs:w-40 h-full"
+                    "relative overflow-hidden shrink-0",
+                    isGridView ? "w-full aspect-[4/3]" : "w-32 xs:w-44 h-full"
                   )}>
                     <img 
-                      src={item.image || 'https://images.unsplash.com/photo-1586864387917-f579ae5259fb?q=80&w=400&auto=format&fit=crop'} 
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                      alt={item.title} 
+                      src={item.image} 
+                      alt={item.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1586864387917-f579ae5259fb?q=80&w=400&auto=format&fit=crop'; }}
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-40" />
                     
-                    {/* Trust Badge */}
-                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg border border-slate-100 shadow-sm">
-                      <Award size={10} className="text-amber-500" />
-                      <span className="text-[8px] font-black uppercase text-[#1f2355]">Verified</span>
+                    {/* Floating Status Badge */}
+                    <div className="absolute top-2.5 left-2.5">
+                      <span className="bg-white/90 backdrop-blur-md text-[#001b4e] px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm">
+                        Verified
+                      </span>
                     </div>
                   </div>
 
                   {/* Info Area */}
                   <div className={cn(
                     "flex flex-col justify-between flex-grow min-w-0",
-                    isGridView ? "p-3 space-y-2" : "p-3 xs:p-4"
+                    isGridView ? "p-4 space-y-2.5" : "p-3 xs:p-5"
                   )}>
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full font-bold uppercase tracking-wider" style={{ fontSize: '7px' }}>
-                          {item.subCategory || item.details?.propertyType || 'Building Material'}
+                        <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-lg font-black uppercase tracking-tighter" style={{ fontSize: '8px' }}>
+                          {item.subCategory || 'Building Materials'}
                         </span>
                       </div>
                       
                       <h3 className={cn(
-                        "font-black text-[#1f2355] leading-tight line-clamp-1",
-                        isGridView ? "text-[14px]" : "text-[16px] xs:text-[18px]"
+                        "font-black text-[#001b4e] leading-tight line-clamp-1 group-hover:text-[#3b82f6] transition-colors",
+                        isGridView ? "text-[15px]" : "text-[16px] xs:text-[20px]"
                       )}>
                         {item.title}
                       </h3>
 
-                      <div className="flex items-center gap-1 font-semibold text-slate-400" style={{ fontSize: isGridView ? '9px' : '11px' }}>
-                        <MapPin size={isGridView ? 10 : 12} className="text-slate-300 shrink-0" />
-                        <span className="truncate">{item.location || item.address?.district || 'Muzaffarpur, Bihar'}</span>
+                      <div className="flex items-center gap-1.5 font-bold text-slate-400" style={{ fontSize: isGridView ? '10px' : '12px' }}>
+                        <MapPin size={isGridView ? 12 : 14} className="text-slate-300 shrink-0" />
+                        <span className="truncate">{item.location?.city || item.location || 'Muzaffarpur, Bihar'}</span>
                       </div>
                     </div>
 
@@ -484,23 +489,21 @@ const BrowseCategory = () => {
                       "flex items-center justify-between border-t border-slate-50 pt-2",
                       isGridView ? "mt-1" : "mt-2"
                     )}>
-                      <div className="flex items-center gap-1">
-                        <div className="flex -space-x-1.5">
-                          {[1,2,3].map(i => (
-                            <div key={i} className="w-5 h-5 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center overflow-hidden">
-                              <img src={`https://i.pravatar.cc/100?img=${i+10}`} alt="client" />
-                            </div>
-                          ))}
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-0.5">
+                          <Star size={isGridView ? 10 : 12} className="fill-amber-400 text-amber-400" />
+                          <span className="font-black text-[#001b4e]" style={{ fontSize: isGridView ? '11px' : '13px' }}>4.8</span>
                         </div>
-                        <span className="text-[9px] font-bold text-slate-400 ml-1">50+ Projects</span>
+                        <span className="text-slate-300">|</span>
+                        <span className="font-bold text-slate-400" style={{ fontSize: isGridView ? '10px' : '12px' }}>150+ Pros</span>
                       </div>
 
-                      <button className="bg-[#1f2355] text-white p-2 rounded-xl active:scale-90 transition-all shadow-lg shadow-indigo-100">
-                        <ArrowRight size={14} />
+                      <button className="bg-[#001b4e] text-white p-2 xs:p-2.5 rounded-2xl active:scale-90 transition-all shadow-lg shadow-indigo-100/50">
+                        <ArrowRight size={isGridView ? 14 : 18} />
                       </button>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ) : (
                 /* Reimaged Property Card (Premium) */
                 <div

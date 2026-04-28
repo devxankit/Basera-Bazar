@@ -1,1 +1,1 @@
-Type: service, Count: 5, Query: {}
+Type: property, Count: 10, Query: {}

@@ -164,39 +164,47 @@ export default function PartnerLeadDetails() {
              </div>
           </div>
 
-          {/* Listing Reference */}
-          <div className="bg-white rounded-2xl xs:rounded-[24px] p-3.5 xs:p-5 border border-slate-100 shadow-sm">
-             <div className="flex items-center justify-between mb-2.5 xs:mb-3.5">
-                <div className="flex items-center gap-2 xs:gap-3">
-                   <div className="w-8 h-8 xs:w-9 xs:h-9 bg-indigo-50 text-indigo-600 rounded-lg xs:rounded-xl flex items-center justify-center shrink-0">
-                      <Building2 size={16} />
-                   </div>
-                   <h3 className="text-[14px] xs:text-[15px] font-bold text-[#001b4e] uppercase tracking-tight opacity-70">Reference</h3>
+          {/* Premium Listing Reference Card */}
+          <div className="bg-[#001b4e] rounded-2xl xs:rounded-[24px] p-4 xs:p-5 shadow-xl shadow-blue-900/10 relative overflow-hidden group">
+             {/* Background glow effects */}
+             <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/20 rounded-full blur-[40px] pointer-events-none" />
+             <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-[40px] pointer-events-none" />
+
+             <div className="flex items-center gap-2 xs:gap-3 mb-4 relative z-10">
+                <div className="w-8 h-8 xs:w-9 xs:h-9 bg-white/10 text-white rounded-lg xs:rounded-xl flex items-center justify-center shrink-0 backdrop-blur-md border border-white/10">
+                   <Building2 size={16} />
                 </div>
-                <button 
-                  onClick={() => navigate(`/partner/service-details/${lead.listing_id}`)}
-                  className="text-blue-600 text-[11px] xs:text-[12px] font-bold uppercase tracking-tight flex items-center gap-1"
-                >
-                   View <ExternalLink size={10} />
-                </button>
+                <h3 className="text-[14px] xs:text-[15px] font-black text-white uppercase tracking-tight opacity-90">Lead Reference</h3>
              </div>
              
-             <div className="flex gap-2.5 xs:gap-3.5 p-2 xs:p-2.5 bg-slate-50 rounded-xl xs:rounded-2xl border border-slate-100">
-                <div className="w-14 h-14 xs:w-16 xs:h-16 rounded-lg xs:rounded-xl overflow-hidden shrink-0 bg-slate-200">
+             <div className="flex gap-3 xs:gap-4 p-3 xs:p-3.5 bg-white/5 backdrop-blur-md rounded-xl xs:rounded-2xl border border-white/10 relative z-10">
+                <div className="w-16 h-16 xs:w-20 xs:h-20 rounded-xl xs:rounded-[18px] overflow-hidden shrink-0 bg-[#0f172a] border-2 border-white/10 relative shadow-inner">
                    {listing?.image ? (
                       <img src={listing.image} className="w-full h-full object-cover" alt="" />
                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-300">
-                         <Package size={18} />
+                      <div className="w-full h-full flex items-center justify-center text-white/20">
+                         <Package size={20} />
                       </div>
                    )}
+                   {/* Shine overlay */}
+                   <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none" />
                 </div>
-                <div className="flex flex-col justify-center min-w-0">
-                   <h4 className="text-[13px] xs:text-[14px] font-bold text-[#001b4e] line-clamp-1 leading-tight uppercase tracking-tight">{listing?.title || listing?.serviceName || 'Untitled Listing'}</h4>
-                   <p className="text-[9px] xs:text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 opacity-50">{listing?.serviceType || listing?.category || 'Category'}</p>
-                   <div className="text-[14px] xs:text-[15px] font-bold text-blue-600 mt-0.5 tracking-tighter">
-                      ₹{listing?.price?.value ? listing.price.value.toLocaleString() : 'N/A'}
+                
+                <div className="flex flex-col justify-center min-w-0 flex-1">
+                   <h4 className="text-[14px] xs:text-[16px] font-black text-white line-clamp-1 leading-tight uppercase tracking-tight mb-1.5">
+                     {listing?.title || listing?.serviceName || listing?.name || 'Partner Profile'}
+                   </h4>
+                   <div className="flex items-center gap-2">
+                     <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded-md text-[9px] xs:text-[10px] font-black uppercase tracking-widest border border-blue-500/20">
+                       {listing?.serviceType || listing?.category || 'Category'}
+                     </span>
                    </div>
+                   
+                   {Boolean(listing?.price?.value) && (
+                     <div className="mt-2 text-[15px] xs:text-[17px] font-black text-emerald-400 tracking-tighter">
+                        ₹{listing.price.value.toLocaleString()}
+                     </div>
+                   )}
                 </div>
              </div>
           </div>

@@ -36,6 +36,10 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     default: null
   },
+  image: {
+    type: String,
+    default: null
+  },
   default_location: {
     type: pointSchema,
     required: true

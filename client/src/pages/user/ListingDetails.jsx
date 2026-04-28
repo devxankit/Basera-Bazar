@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
-import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown } from 'lucide-react';
+import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -365,40 +365,63 @@ const ListingDetails = () => {
         </>
       ) : (
         <>
-          {/* Supplier Header (Blue Layout) */}
-          <div className="bg-[#4a69bd] pt-6 pb-8 px-5 relative">
-            <div className="flex items-center justify-between mb-6">
+          {/* Premium Midnight Supplier Header */}
+          <div className="bg-[#0f172a] pt-12 pb-16 px-5 relative overflow-hidden border-b border-white/5">
+            {/* Animated Mesh Gradients */}
+            <div className="absolute top-[-40%] right-[-20%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
+            <div className="absolute bottom-[-30%] left-[-10%] w-[400px] h-[400px] bg-orange-500/10 rounded-full blur-[100px] pointer-events-none mix-blend-overlay" />
+            
+            <div className="flex items-center justify-between mb-10 relative z-20">
               <button 
                 onClick={() => navigate(-1)}
-                className="p-1 text-white hover:bg-white/10 rounded-full transition-all"
+                className="p-2.5 bg-white/5 backdrop-blur-2xl text-white hover:bg-white/10 rounded-2xl transition-all border border-white/10 shadow-xl group"
               >
-                <ArrowLeft size={24} />
+                <ArrowLeft size={22} className="group-active:-translate-x-1 transition-transform" />
               </button>
-              <button className="p-1 text-white hover:bg-white/10 rounded-full transition-all">
-                <Share2 size={24} />
+              <button className="p-2.5 bg-white/5 backdrop-blur-2xl text-white hover:bg-white/10 rounded-2xl transition-all border border-white/10 shadow-xl">
+                <Share2 size={22} />
               </button>
             </div>
 
-            <div className="flex flex-col items-center text-center">
-              <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center shadow-lg mb-4">
-                <Building2 size={48} className="text-[#4a69bd]" />
-              </div>
-              <h1 className="text-2xl font-bold text-white mb-1">{listing.title}</h1>
-              <div className="flex items-center gap-1.5 text-white/90 font-medium">
-                <MapPin size={16} />
-                <span className="text-[15px]">{listing.location}</span>
-              </div>
+            <div className="flex flex-col items-center text-center relative z-20 mb-8">
+               <div className="relative group mb-6">
+                  <motion.div 
+                     animate={{ rotate: 360 }}
+                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                     className="absolute inset-[-12px] rounded-[36px] border border-dashed border-white/20 opacity-30 pointer-events-none"
+                  />
+                  <div className="w-24 h-24 bg-white rounded-[28px] flex items-center justify-center shadow-[0_20px_50px_rgba(0,0,0,0.4)] border-[6px] border-white/10 p-2 relative z-10">
+                    <img 
+                      src={listing.image || '/default-supplier.png'} 
+                      className="w-full h-full object-contain" 
+                      alt={listing.title} 
+                      onError={(e) => { e.target.src = '/default-supplier.png'; }}
+                    />
+                    <div className="absolute -bottom-2 -right-2 bg-[#10b981] text-white p-1.5 rounded-xl shadow-lg border-2 border-[#0f172a]">
+                      <CheckCircle2 size={16} fill="currentColor" className="text-white" />
+                    </div>
+                  </div>
+               </div>
+               
+               <h1 className="text-3xl font-black text-white mb-2 tracking-tighter leading-tight uppercase">{listing.title}</h1>
+               <div className="flex items-center gap-2 px-4 py-1.5 bg-white/5 backdrop-blur-3xl rounded-2xl text-orange-400 font-black text-[11px] uppercase tracking-[0.2em] border border-white/10">
+                 <MapPin size={14} fill="currentColor" className="opacity-80" />
+                 <span>{listing.location || 'Location not provided'}</span>
+               </div>
             </div>
 
-            <div className="mt-8 grid grid-cols-2 border-t border-white/20 pt-6">
-              <div className="flex flex-col items-center gap-0.5 border-r border-white/20 px-4">
-                <span className="text-white font-bold text-[18px]">{listing.owner?.verificationStatus || 'Verified'}</span>
-                <span className="text-white/70 text-[12px] font-medium uppercase tracking-wider">Status</span>
-              </div>
-              <div className="flex flex-col items-center gap-0.5">
-                <span className="text-white font-bold text-[18px]">{listing.owner?.experience || '5+ Years'}</span>
-                <span className="text-white/70 text-[12px] font-medium uppercase tracking-wider">Experience</span>
-              </div>
+            {/* Glass Stats Grid */}
+            <div className="grid grid-cols-3 gap-3 relative z-20">
+              {[
+                { label: 'Status', value: listing.owner?.verificationStatus || 'Verified', color: 'text-emerald-400', icon: ShieldCheck },
+                { label: 'Experience', value: listing.owner?.experience || '5+ Years', color: 'text-white', icon: Navigation },
+                { label: 'Rating', value: listing.rating?.toFixed(1) || '4.8', color: 'text-orange-400', icon: Star }
+              ].map((stat, i) => (
+                <div key={i} className="flex flex-col items-center justify-center py-4 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[24px] shadow-2xl">
+                  <span className={cn("font-black text-[14px] xs:text-[16px] leading-none mb-1.5", stat.color)}>{stat.value}</span>
+                  <span className="text-white/40 text-[9px] font-black uppercase tracking-widest">{stat.label}</span>
+                </div>
+              ))}
             </div>
           </div>
         </>

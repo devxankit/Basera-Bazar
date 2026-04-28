@@ -429,8 +429,8 @@ export default function PartnerHome() {
         {/* Quick Actions */}
         <div className="space-y-3 xs:space-y-4">
           <h2 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] px-1 uppercase tracking-tight opacity-70">Quick Actions</h2>
-          <div className={`grid ${actualRole.includes('supplier') ? 'grid-cols-1' : 'grid-cols-2'} gap-3 xs:gap-4`}>
-            {!actualRole.includes('supplier') && (
+          <div className="grid grid-cols-2 gap-3 xs:gap-4">
+            {!actualRole.includes('supplier') ? (
               <button
                 onClick={() => {
                   if (isApproved) {
@@ -451,7 +451,43 @@ export default function PartnerHome() {
                 <h4 className="text-[12px] xs:text-[14px] font-bold text-[#001b4e] mb-0.5 uppercase tracking-tight leading-none">Add {getAddActionLabel()}</h4>
                 <p className="text-[7px] xs:text-[9px] font-medium text-slate-400 leading-none uppercase tracking-widest">{isIncomplete ? 'KYC Required' : 'Create new'}</p>
               </button>
+            ) : (
+              /* Feature Yourself button for Suppliers */
+              <button
+                onClick={async () => {
+                  if (!isApproved) {
+                    alert("Please complete verification to use this feature.");
+                    return;
+                  }
+                  try {
+                    const res = await api.put('/partners/toggle-feature');
+                    if (res.data.success) {
+                      await refreshUser();
+                      alert(res.data.message);
+                    }
+                  } catch (err) {
+                    console.error("Feature toggle error:", err);
+                  }
+                }}
+                className={`bg-white p-3.5 xs:p-4.5 rounded-2xl xs:rounded-[24px] shadow-sm border border-slate-50 flex flex-col items-start text-left group active:scale-95 transition-all w-full relative overflow-hidden ${isRestricted ? 'opacity-60' : ''}`}
+              >
+                <div className={`w-8 h-8 xs:w-9 xs:h-9 ${partner.is_featured ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-500'} rounded-xl flex items-center justify-center mb-2.5 xs:mb-3 shadow-inner transition-colors`}>
+                  <Star size={18} fill={partner.is_featured ? "currentColor" : "none"} />
+                </div>
+                <h4 className="text-[12px] xs:text-[14px] font-bold text-[#001b4e] mb-0.5 uppercase tracking-tight leading-none">
+                  {partner.is_featured ? 'Featured' : 'Feature Self'}
+                </h4>
+                <p className="text-[7px] xs:text-[9px] font-medium text-slate-400 leading-none uppercase tracking-widest">
+                  {partner.is_featured ? 'Listing active' : 'Get showcased'}
+                </p>
+                {partner.is_featured && (
+                   <div className="absolute top-0 right-0 p-2">
+                     <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
+                   </div>
+                )}
+              </button>
             )}
+
             <button
               onClick={() => {
                 if (isApproved) {
@@ -462,7 +498,7 @@ export default function PartnerHome() {
                   setShowKYCModal(true);
                 }
               }}
-              className={`bg-white p-3.5 xs:p-4.5 rounded-2xl xs:rounded-[24px] shadow-sm border border-slate-50 flex flex-col items-start text-left group active:scale-95 transition-all ${isRestricted ? 'opacity-60' : ''}`}
+              className={`bg-white p-3.5 xs:p-4.5 rounded-2xl xs:rounded-[24px] shadow-sm border border-slate-100 flex flex-col items-start text-left group active:scale-95 transition-all ${isRestricted ? 'opacity-60' : ''}`}
             >
               <div className={`w-8 h-8 xs:w-9 xs:h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-2.5 xs:mb-3 shadow-inner`}>
                 <Mail size={18} />
