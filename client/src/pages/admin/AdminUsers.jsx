@@ -90,6 +90,28 @@ export default function AdminUsers() {
       header: 'ROLE', 
       render: (row) => {
         const displayRole = row.displayRole || (row.role === 'user' ? 'Customer' : row.role);
+        
+        if (row.displayRoles && row.displayRoles.length > 1) {
+          return (
+            <div className="flex gap-1.5">
+              {row.displayRoles.map((r, i) => {
+                const initial = r.split(' ').map(w => w[0]).join('');
+                const colorClass = 
+                  r === 'Agent' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                  r === 'Supplier' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                  r === 'Service Provider' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                  'bg-slate-50 text-slate-600 border-slate-200';
+                  
+                return (
+                  <span key={i} title={r} className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-black uppercase tracking-widest border shadow-sm ${colorClass}`}>
+                    {initial}
+                  </span>
+                )
+              })}
+            </div>
+          )
+        }
+
         return (
           <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm whitespace-nowrap inline-block ${
             displayRole === 'Admin' ? 'bg-rose-50 text-rose-600 border-rose-100' : 
@@ -220,11 +242,26 @@ export default function AdminUsers() {
                     </button>
                     <div className="h-[1px] bg-slate-50 my-2 mx-5" />
                     <button 
-                      onClick={() => {
+                      onClick={async () => {
                         setActiveMenu(null);
+                        
+                        let hasListings = false;
+                        let listingsCount = 0;
+                        if (row.role !== 'Customer' && row.role !== 'Admin') {
+                          try {
+                            const res = await api.get(`/listings?partner_id=${row._id}`);
+                            listingsCount = res.data?.data?.length || res.data?.length || 0;
+                            hasListings = listingsCount > 0;
+                          } catch (err) {
+                            console.error("Failed to check listings", err);
+                          }
+                        }
+
                         setModalConfig({
                           title: 'Permanent Deletion',
-                          message: `CRITICAL: Are you sure you want to erase ${row.name} from the database? This action is irreversible and will remove all associated data.`,
+                          message: hasListings 
+                            ? `CRITICAL: ${row.name} has ${listingsCount} active property/service listing(s). Deleting this partner will also permanently delete all their listings from the database. This action is irreversible.`
+                            : `CRITICAL: Are you sure you want to erase ${row.name} from the database? This action is irreversible and will remove all associated data.`,
                           type: 'danger',
                           onConfirm: async () => {
                             setIsActionLoading(true);

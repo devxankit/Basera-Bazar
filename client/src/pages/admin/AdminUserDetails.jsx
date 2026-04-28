@@ -5,7 +5,7 @@ import {
   MapPin, Clock, Edit2, ArrowLeft, MoreVertical,
   CreditCard, Activity, CheckCircle2, AlertCircle,
   Briefcase, TrendingUp, ChevronRight, BarChart3,
-  Package, Store, ShieldCheck, Globe, Zap
+  Package, Store, ShieldCheck, Globe, Zap, FileText, ExternalLink
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -53,7 +53,7 @@ export default function AdminUserDetails() {
   );
 
   const displayRole = user.displayRole || (user.role === 'user' ? 'Customer' : user.role);
-  const isPartner = ['Agent', 'Supplier', 'Service Provider'].includes(user.role);
+  const isPartner = user.source === 'Partner' || user.partner_type || (user.roles && user.roles.length > 0) || ['Agent', 'Supplier', 'Service Provider'].includes(user.role);
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
@@ -259,8 +259,82 @@ export default function AdminUserDetails() {
                    </button>
                 </div>
              </div>
+
+             {/* Identity & KYC Documents Section */}
+             {isPartner && (
+               <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden mt-8">
+                 <div className="px-8 py-6 border-b border-slate-50 flex items-center gap-3 bg-slate-50/30">
+                   <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 shadow-inner">
+                     <FileText size={16} />
+                   </div>
+                   <h3 className="text-[12px] font-semibold text-blue-600 uppercase tracking-[0.2em] mt-0.5">Identity & Role Documents</h3>
+                 </div>
+                 
+                 <div className="p-8">
+                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                     {/* Core KYC */}
+                     <DocumentCard 
+                       title="PAN Card" 
+                       number={user.kyc?.pan_number} 
+                       image={user.kyc?.pan_image} 
+                     />
+                     <DocumentCard 
+                       title="Aadhar Front" 
+                       number={user.kyc?.aadhar_number} 
+                       image={user.kyc?.aadhar_front_image} 
+                     />
+                     <DocumentCard 
+                       title="Aadhar Back" 
+                       image={user.kyc?.aadhar_back_image} 
+                     />
+                     
+                     {/* Business KYC */}
+                     <DocumentCard 
+                       title="GST Certificate" 
+                       number={user.kyc?.gst_number || user.role_requests?.[0]?.gst_number} 
+                       image={user.kyc?.gst_image || user.role_requests?.[0]?.gst_image} 
+                     />
+
+                     {/* Role Specific Documents */}
+                     <DocumentCard 
+                       title="RERA Certificate" 
+                       number={user.profile?.property_profile?.rera_number} 
+                       image={user.profile?.property_profile?.rera_certificate_image} 
+                     />
+                   </div>
+                 </div>
+               </div>
+             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DocumentCard({ title, number, image }) {
+  return (
+    <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col h-full">
+      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
+        <div>
+          <h5 className="text-[13px] font-black text-slate-900">{title}</h5>
+          {number && <p className="text-[10px] font-black text-indigo-600 uppercase mt-0.5">{number}</p>}
+        </div>
+        {image && (
+          <a href={image} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-indigo-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+            <ExternalLink size={16} />
+          </a>
+        )}
+      </div>
+      <div className="flex-grow aspect-[3/2] bg-slate-50 relative overflow-hidden flex items-center justify-center">
+        {image ? (
+          <img src={image} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        ) : (
+          <div className="text-center p-6 opacity-60">
+            <AlertCircle size={24} className="text-slate-300 mx-auto mb-2" />
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Not Provided</p>
+          </div>
+        )}
       </div>
     </div>
   );

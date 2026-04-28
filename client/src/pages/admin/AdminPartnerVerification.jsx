@@ -61,6 +61,7 @@ export default function AdminPartnerVerification() {
         rejection_reason: reason
       });
       fetchPartners();
+      window.dispatchEvent(new Event('refreshAdminBadges'));
       setIsModalOpen(false);
       setShowKYCView(false);
       setIsRejecting(false);

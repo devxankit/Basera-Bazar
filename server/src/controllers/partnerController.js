@@ -19,7 +19,7 @@ const onboardPartner = async (req, res) => {
       name, email, partner_type, 
       id_type, id_number, id_front_url, id_back_url,
       // Profile data:
-      category_id, rera_number, agency_name,
+      category_id, rera_number, rera_certificate_image, agency_name,
       material_categories, delivery_radius_km
     } = req.body;
 
@@ -54,7 +54,7 @@ const onboardPartner = async (req, res) => {
       partner.profile.service_profile = { category_id };
     } 
     else if (partner.partner_type === 'property_agent') {
-      partner.profile.property_profile = { rera_number, agency_name };
+      partner.profile.property_profile = { rera_number, rera_certificate_image, agency_name };
     }
     else if (partner.partner_type === 'supplier') {
       partner.profile.supplier_profile = { material_categories, delivery_radius_km };
@@ -167,7 +167,7 @@ const getPartnerStats = async (req, res) => {
 const addRole = async (req, res) => {
   try {
     const partnerId = req.user.id;
-    const { new_role, profile_data, gst_number, gst_image } = req.body;
+    const { new_role, profile_data, gst_number, gst_image, rera_number, rera_certificate_image } = req.body;
 
     const validRoles = ['service_provider', 'property_agent', 'supplier', 'mandi_seller'];
     if (!new_role || !validRoles.includes(new_role)) {
@@ -185,86 +185,58 @@ const addRole = async (req, res) => {
       return res.status(400).json({ success: false, message: 'You already have this role active.' });
     }
 
-    // Roles requiring GST and admin approval
-    const gstRequiredRoles = ['supplier', 'mandi_seller'];
-    
-    if (gstRequiredRoles.includes(new_role)) {
-      // Check if there's already a pending request for this role
-      const existingRequest = partner.role_requests?.find(r => r.role === new_role && r.status === 'pending');
-      if (existingRequest) {
-        return res.status(400).json({ success: false, message: 'A request for this role is already pending approval.' });
-      }
+    // Check if there's already a pending request for this role
+    const existingRequest = partner.role_requests?.find(r => r.role === new_role && r.status === 'pending');
+    if (existingRequest) {
+      return res.status(400).json({ success: false, message: 'A request for this role is already pending approval.' });
+    }
 
+    // Roles requiring GST validation
+    const gstRequiredRoles = ['supplier', 'mandi_seller'];
+    if (gstRequiredRoles.includes(new_role)) {
       if (!gst_number || !gst_image) {
         return res.status(400).json({ success: false, message: 'GST details and certificate image are required for this role.' });
       }
-
-      // Add to role_requests
-      if (!partner.role_requests) partner.role_requests = [];
-      partner.role_requests.push({
-        role: new_role,
-        status: 'pending',
-        gst_number,
-        gst_image,
-        submitted_at: new Date()
-      });
-
-      // Update profile data even if pending
-      if (profile_data) {
-        if (new_role === 'supplier') {
-          partner.profile.supplier_profile = { ...(partner.profile.supplier_profile || {}), ...profile_data };
-        } else if (new_role === 'mandi_seller') {
-          partner.profile.mandi_profile = { ...(partner.profile.mandi_profile || {}), ...profile_data };
-        }
-      }
-
-      await partner.save();
-
-      return res.status(200).json({
-        success: true,
-        message: `Request for "${new_role}" submitted for approval.`,
-        data: {
-          role_requests: partner.role_requests,
-          status: 'pending'
-        }
-      });
     }
 
-    // For other roles (service_provider, property_agent), add immediately
-    if (!partner.roles || partner.roles.length === 0) {
-      partner.roles = partner.partner_type ? [partner.partner_type] : [];
-    }
-    
-    if (!partner.roles.includes(new_role)) {
-      partner.roles.push(new_role);
-    }
+    // Add to role_requests as ALL role upgrades now require admin approval
+    if (!partner.role_requests) partner.role_requests = [];
+    partner.role_requests.push({
+      role: new_role,
+      status: 'pending',
+      gst_number: gst_number || undefined,
+      gst_image: gst_image || undefined,
+      rera_number: rera_number || undefined,
+      rera_certificate_image: rera_certificate_image || undefined,
+      submitted_at: new Date()
+    });
 
-    // Remove from deleted_roles if it was there
+    // Remove from deleted_roles if it was there to allow fresh re-application
     if (partner.deleted_roles) {
       partner.deleted_roles = partner.deleted_roles.filter(r => r !== new_role);
     }
 
-    // Populate role-specific profile data
+    // Temporarily save profile data; it will become active once approved
     if (profile_data) {
-      if (new_role === 'property_agent') {
+      if (new_role === 'supplier') {
+        partner.profile.supplier_profile = { ...(partner.profile.supplier_profile || {}), ...profile_data };
+      } else if (new_role === 'mandi_seller') {
+        partner.profile.mandi_profile = { ...(partner.profile.mandi_profile || {}), ...profile_data };
+      } else if (new_role === 'property_agent') {
         partner.profile.property_profile = { ...(partner.profile.property_profile || {}), ...profile_data };
       } else if (new_role === 'service_provider') {
         partner.profile.service_profile = { ...(partner.profile.service_profile || {}), ...profile_data };
       }
     }
 
-    // Auto-switch to the new role
-    partner.active_role = new_role;
-
     await partner.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: `Role "${new_role}" added successfully!`,
+      message: `Request for "${new_role.replace('_', ' ')}" submitted for admin approval.`,
       data: {
-        roles: partner.roles,
-        active_role: partner.active_role,
-        partner_type: partner.partner_type
+        role_requests: partner.role_requests,
+        status: 'pending'
       }
     });
 

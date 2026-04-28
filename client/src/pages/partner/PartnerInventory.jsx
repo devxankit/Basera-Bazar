@@ -102,8 +102,11 @@ export default function PartnerInventory() {
     if (window.confirm("Are you sure you want to delete this listing?")) {
       try {
         await api.delete(`/listings/${id}`);
-        // Update local state
-        setItems(prevItems => prevItems.filter(item => item.id.toString() !== id.toString()));
+        // Update local state by checking both id and _id
+        setItems(prevItems => prevItems.filter(item => {
+          const itemId = item.id || item._id;
+          return itemId && itemId.toString() !== id.toString();
+        }));
 
         // Log Activity
         const uid = partner?._id || partner?.id;
@@ -298,8 +301,8 @@ export default function PartnerInventory() {
                           <Edit size={10} xs:size={12} />
                        </button>
                        <button 
-                          onClick={(e) => handleDelete(e, item.id)}
-                          className="h-6 w-6 xs:h-7 xs:w-7 mm:h-9 mm:w-9 flex items-center justify-center bg-rose-50 text-rose-500 rounded-lg mm:rounded-xl hover:bg-red-500 hover:text-white transition-all transform active:scale-90 border border-rose-100/30"
+                          onClick={(e) => handleDelete(e, item.id || item._id)}
+                          className="h-6 w-6 xs:h-7 xs:w-7 mm:h-9 mm:w-9 flex items-center justify-center bg-rose-50 text-rose-500 rounded-lg mm:rounded-xl hover:bg-rose-500 hover:text-white transition-all transform active:scale-90 border border-rose-100/30"
                        >
                           <Trash2 size={10} xs:size={12} />
                        </button>

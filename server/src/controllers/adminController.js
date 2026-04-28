@@ -740,11 +740,24 @@ const deleteUser = async (req, res) => {
     }
 
     // 2. Cleanup (Optional but recommended: delete their listings)
-    // For now, we'll just return success as requested
+    let listingsDeleted = 0;
+    if (partnerResult || userResult) {
+       const objectId = new mongoose.Types.ObjectId(id);
+       const propResult = await PropertyListing.deleteMany({ partner_id: objectId });
+       const servResult = await ServiceListing.deleteMany({ partner_id: objectId });
+       const mandiResult = await MandiListing.deleteMany({ partner_id: objectId });
+       
+       listingsDeleted = (propResult?.deletedCount || 0) + (servResult?.deletedCount || 0) + (mandiResult?.deletedCount || 0);
+    }
+
     const deletedName = userResult?.name || partnerResult?.name || 'Unknown';
     const deletedType = userResult ? 'user' : 'partner';
 
-    res.status(200).json({ success: true, message: 'User account permanently deleted from database.' });
+    res.status(200).json({ 
+       success: true, 
+       message: 'User account permanently deleted from database.',
+       listingsDeleted
+    });
 
     // Log the activity
     const actorName = req.user?.name || 'Admin';
@@ -1021,13 +1034,30 @@ const getUsers = async (req, res) => {
         displayRole: u.role === 'user' ? 'Customer' : u.role,
         source: 'User'
       })),
-      ...partners.map(p => ({
-        ...p.toObject(),
-        displayRole: p.role || (p.partner_type === 'property_agent' ? 'Agent' :
-          p.partner_type === 'supplier' || p.partner_type === 'mandi_seller' ? 'Supplier' :
-            'Service Provider'),
-        source: 'Partner'
-      })),
+      ...partners.map(p => {
+        let displayRoles = [];
+        if (p.roles && p.roles.length > 0) {
+          const roleMap = {
+            'property_agent': 'Agent',
+            'supplier': 'Supplier',
+            'mandi_seller': 'Supplier', // Or 'Mandi Seller'
+            'service_provider': 'Service Provider'
+          };
+          displayRoles = [...new Set(p.roles.map(r => roleMap[r]).filter(Boolean))];
+        } else {
+          const fallbackRole = p.role || (p.partner_type === 'property_agent' ? 'Agent' :
+            p.partner_type === 'supplier' || p.partner_type === 'mandi_seller' ? 'Supplier' :
+              'Service Provider');
+          displayRoles = [fallbackRole];
+        }
+
+        return {
+          ...p.toObject(),
+          displayRoles,
+          displayRole: displayRoles.length === 1 ? displayRoles[0] : displayRoles.map(r => r.split(' ').map(w => w[0]).join('')).join(', '),
+          source: 'Partner'
+        };
+      }),
       ...allAdmins.map(a => {
         const obj = a.toObject();
         const role = (obj.role || '').toLowerCase();

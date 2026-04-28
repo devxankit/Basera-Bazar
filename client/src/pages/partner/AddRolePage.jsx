@@ -78,7 +78,9 @@ export default function AddRolePage() {
   const [profileData, setProfileData] = useState({
     business_name: '',
     business_description: '',
-    rera_number: ''
+    rera_number: '',
+    rera_certificate_image: '',
+    uploading: false
   });
   const [gstData, setGstData] = useState({
     number: '',
@@ -128,11 +130,16 @@ export default function AddRolePage() {
     }
   };
 
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = async (e, type = 'gst') => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setGstData(prev => ({ ...prev, uploading: true }));
+    if (type === 'rera') {
+      setProfileData(prev => ({ ...prev, uploading: true }));
+    } else {
+      setGstData(prev => ({ ...prev, uploading: true }));
+    }
+
     try {
       const formData = new FormData();
       formData.append('image', file); // Use 'image' key as expected by server
@@ -144,7 +151,11 @@ export default function AddRolePage() {
       });
       
       if (res.data.success) {
-        setGstData(prev => ({ ...prev, image: res.data.url }));
+        if (type === 'rera') {
+          setProfileData(prev => ({ ...prev, rera_certificate_image: res.data.url }));
+        } else {
+          setGstData(prev => ({ ...prev, image: res.data.url }));
+        }
       } else {
         throw new Error(res.data.message || "Upload failed");
       }
@@ -152,7 +163,11 @@ export default function AddRolePage() {
       console.error("Upload error:", err);
       alert(err.response?.data?.message || "Failed to upload certificate. Ensure it is a valid image (jpg/png).");
     } finally {
-      setGstData(prev => ({ ...prev, uploading: false }));
+      if (type === 'rera') {
+        setProfileData(prev => ({ ...prev, uploading: false }));
+      } else {
+        setGstData(prev => ({ ...prev, uploading: false }));
+      }
     }
   };
 
@@ -164,10 +179,12 @@ export default function AddRolePage() {
         profile_data: selectedRole === 'mandi_seller' 
           ? { business_name: profileData.business_name, business_description: profileData.business_description }
           : selectedRole === 'property_agent'
-          ? { rera_number: profileData.rera_number }
+          ? { rera_number: profileData.rera_number, rera_certificate_image: profileData.rera_certificate_image }
           : {},
         gst_number: gstData.number,
-        gst_image: gstData.image
+        gst_image: gstData.image,
+        rera_number: selectedRole === 'property_agent' ? profileData.rera_number : undefined,
+        rera_certificate_image: selectedRole === 'property_agent' ? profileData.rera_certificate_image : undefined
       };
 
       const res = await api.post('/partners/add-role', payload);
@@ -382,15 +399,43 @@ export default function AddRolePage() {
               )}
 
               {selectedRole === 'property_agent' && (
-                <div className="space-y-2">
-                  <label className="text-[13px] font-medium text-slate-700 ml-1 uppercase tracking-tight">RERA Number (Optional)</label>
-                  <input
-                    type="text"
-                    value={profileData.rera_number}
-                    onChange={(e) => setProfileData({ ...profileData, rera_number: e.target.value })}
-                    placeholder="e.g. BR-12345-67890"
-                    className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 text-[15px] font-medium outline-none ring-2 ring-transparent focus:ring-blue-500/10 transition-all uppercase tracking-tight"
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[13px] font-medium text-slate-700 ml-1 uppercase tracking-tight">RERA Number (Optional)</label>
+                    <input
+                      type="text"
+                      value={profileData.rera_number}
+                      onChange={(e) => setProfileData({ ...profileData, rera_number: e.target.value })}
+                      placeholder="e.g. BR-12345-67890"
+                      className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 text-[15px] font-medium outline-none ring-2 ring-transparent focus:ring-blue-500/10 transition-all uppercase tracking-tight"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[13px] font-medium text-slate-700 ml-1 uppercase tracking-tight">RERA Certificate (Optional)</label>
+                    <div className="relative">
+                      <input
+                        type="file"
+                        onChange={(e) => handleFileUpload(e, 'rera')}
+                        accept="image/*"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className={`w-full border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center transition-all ${profileData.rera_certificate_image ? 'border-green-200 bg-green-50' : 'border-slate-100 bg-slate-50'}`}>
+                        {profileData.uploading ? (
+                          <Loader2 size={24} className="text-blue-500 animate-spin" />
+                        ) : profileData.rera_certificate_image ? (
+                          <>
+                            <CheckCircle2 size={24} className="text-green-500 mb-2" />
+                            <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Uploaded</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={24} className="text-slate-300 mb-2" />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center px-4">Upload Certificate</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 

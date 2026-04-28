@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 
 import baseraLogo from '../../assets/baseralogo.png';
 
@@ -104,13 +105,18 @@ const CollapsibleItem = ({ item, isOpen, onToggle, location, setSidebarOpen }) =
           <item.icon size={20} className={isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500 transition-colors'} />
           <span className={`text-[15px] text-left ${isActive ? 'font-black' : 'font-bold'}`}>{item.label}</span>
         </div>
-        <motion.div
-          animate={{ rotate: isOpen ? 90 : 0 }}
-          transition={{ duration: 0.2 }}
-          className="text-slate-300"
-        >
-          <ChevronRight size={16} />
-        </motion.div>
+        <div className="flex items-center gap-2">
+          {item.badge > 0 && !isOpen && (
+            <div className="w-2 h-2 rounded-full bg-rose-500" />
+          )}
+          <motion.div
+            animate={{ rotate: isOpen ? 90 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="text-slate-300"
+          >
+            <ChevronRight size={16} />
+          </motion.div>
+        </div>
       </button>
 
       <AnimatePresence initial={false}>
@@ -132,14 +138,21 @@ const CollapsibleItem = ({ item, isOpen, onToggle, location, setSidebarOpen }) =
                   to={child.path}
                   end
                   className={({ isActive: childActive }) => `
-                    flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-[14px]
+                    flex items-center justify-between px-4 py-2.5 rounded-xl transition-all text-[14px]
                     ${childActive 
                       ? 'bg-indigo-50 text-indigo-600 font-black shadow-sm' 
                       : 'text-slate-400 font-bold hover:bg-slate-50 hover:text-slate-900'}
                   `}
                   onClick={() => setSidebarOpen(false)}
                 >
-                  {child.label}
+                  <div className="flex items-center gap-3">
+                    {child.label}
+                  </div>
+                  {child.badge > 0 && (
+                    <div className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                      {child.badge}
+                    </div>
+                  )}
                 </NavLink>
               )
             ))}
@@ -162,6 +175,45 @@ export default function AdminLayout({ children }) {
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [badges, setBadges] = useState({ verification: 0, upgrades: 0 });
+
+  React.useEffect(() => {
+    const fetchBadges = async () => {
+      try {
+        const [usersRes, upgradesRes] = await Promise.all([
+          api.get('/admin/users'),
+          api.get('/admin/partners/role-requests')
+        ]);
+        
+        let verificationCount = 0;
+        if (usersRes.data?.success) {
+          verificationCount = usersRes.data.data.filter(u => 
+            (['Agent', 'Supplier', 'Service Provider', 'mandi_seller'].includes(u.role) || u.partner_type || (u.roles && u.roles.length > 0)) && 
+            (u.onboarding_status === 'pending_approval' || u.onboarding_status === 'incomplete')
+          ).length;
+        }
+
+        let upgradesCount = 0;
+        if (upgradesRes.data?.success) {
+          upgradesCount = upgradesRes.data.data.filter(r => r.status === 'pending').length;
+        }
+
+        setBadges({ verification: verificationCount, upgrades: upgradesCount });
+      } catch (err) {
+        console.error("Failed to fetch sidebar badges:", err);
+      }
+    };
+    
+    // Fetch immediately and then poll every 60 seconds
+    fetchBadges();
+    const interval = setInterval(fetchBadges, 60000);
+    window.addEventListener('refreshAdminBadges', fetchBadges);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('refreshAdminBadges', fetchBadges);
+    };
+  }, []);
 
   React.useEffect(() => {
     const activeSection = navItems.find(item => 
@@ -229,15 +281,26 @@ export default function AdminLayout({ children }) {
           {/* Navigation */}
           <nav className="flex-grow overflow-y-auto py-8 px-5 space-y-1.5 custom-scrollbar">
             {navItems.map((item) => {
-              if (item.children) {
+              // Inject badges dynamically
+              const itemWithBadges = { ...item };
+              if (itemWithBadges.id === 'user-management') {
+                itemWithBadges.children = itemWithBadges.children.map(child => {
+                  if (child.label === 'Partner Verification') return { ...child, badge: badges.verification };
+                  if (child.label === 'Upgrade Requests') return { ...child, badge: badges.upgrades };
+                  return child;
+                });
+                itemWithBadges.badge = badges.verification + badges.upgrades;
+              }
+
+              if (itemWithBadges.children) {
                 return (
                   <CollapsibleItem 
-                    key={item.id} 
-                    item={item} 
+                    key={itemWithBadges.id} 
+                    item={itemWithBadges} 
                     location={location} 
                     setSidebarOpen={setSidebarOpen}
-                    isOpen={openSectionId === item.id}
-                    onToggle={() => handleToggleSection(item.id)}
+                    isOpen={openSectionId === itemWithBadges.id}
+                    onToggle={() => handleToggleSection(itemWithBadges.id)}
                   />
                 );
               }

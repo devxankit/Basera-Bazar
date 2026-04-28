@@ -55,6 +55,7 @@ export default function AdminRoleRequests() {
         rejectionReason: reason
       });
       fetchRequests();
+      window.dispatchEvent(new Event('refreshAdminBadges'));
       setSelectedRequest(null);
       setShowRejectModal(false);
       setRejectingReq(null);
@@ -177,23 +178,35 @@ export default function AdminRoleRequests() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-slate-600">
-                        <Clock size={14} />
-                        <span className="text-sm font-medium">{new Date(req.requested_at).toLocaleDateString()}</span>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Clock size={14} />
+                          <span className="text-sm font-medium">{new Date(req.submitted_at).toLocaleDateString('en-GB')}</span>
+                        </div>
+                        <span className="text-xs text-slate-400 ml-5.5 mt-0.5">{new Date(req.submitted_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
                         {req.gst_image && (
                           <button 
-                            onClick={() => setSelectedRequest({ ...req, activeDoc: req.gst_image })}
+                            onClick={() => setSelectedRequest({ ...req, activeDoc: req.gst_image, activeDocTitle: 'GST Certificate' })}
                             className="p-2 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors border border-slate-100"
                             title="View GST Certificate"
                           >
                             <FileText size={18} />
                           </button>
                         )}
-                        {!req.gst_image && <span className="text-xs text-slate-400 font-medium italic">None</span>}
+                        {req.rera_certificate_image && (
+                          <button 
+                            onClick={() => setSelectedRequest({ ...req, activeDoc: req.rera_certificate_image, activeDocTitle: 'RERA Certificate' })}
+                            className="p-2 bg-slate-50 hover:bg-purple-50 text-slate-400 hover:text-purple-600 rounded-lg transition-colors border border-slate-100"
+                            title="View RERA Certificate"
+                          >
+                            <FileText size={18} />
+                          </button>
+                        )}
+                        {!req.gst_image && !req.rera_certificate_image && <span className="text-xs text-slate-400 font-medium italic">None</span>}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -316,22 +329,33 @@ export default function AdminRoleRequests() {
                           <p className="text-sm font-black text-slate-800 tracking-wider font-mono">{selectedRequest.gst_number}</p>
                         </div>
                       )}
+                      {selectedRequest.rera_number && (
+                        <div className="mt-4 pt-4 border-t border-slate-200/50">
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">RERA Number</p>
+                          <p className="text-sm font-black text-slate-800 tracking-wider font-mono">{selectedRequest.rera_number}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* Right Side: Document Preview */}
                 <div className="space-y-4">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Supporting Documents</p>
-                  {selectedRequest.activeDoc || selectedRequest.gst_image ? (
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Supporting Document</p>
+                    {selectedRequest.activeDocTitle && (
+                      <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{selectedRequest.activeDocTitle}</span>
+                    )}
+                  </div>
+                  {selectedRequest.activeDoc || selectedRequest.gst_image || selectedRequest.rera_certificate_image ? (
                     <div className="relative group aspect-[4/5] bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
                       <img 
-                        src={selectedRequest.activeDoc || selectedRequest.gst_image} 
-                        alt="GST Certificate"
-                        className="w-full h-full object-contain"
+                        src={selectedRequest.activeDoc || selectedRequest.rera_certificate_image || selectedRequest.gst_image} 
+                        alt="Document Preview"
+                        className="w-full h-full object-contain bg-white"
                       />
                       <a 
-                        href={selectedRequest.activeDoc || selectedRequest.gst_image} 
+                        href={selectedRequest.activeDoc || selectedRequest.rera_certificate_image || selectedRequest.gst_image} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="absolute bottom-4 right-4 p-3 bg-white/90 backdrop-blur shadow-xl rounded-full text-slate-800 hover:scale-110 transition-all opacity-0 group-hover:opacity-100"
@@ -343,6 +367,24 @@ export default function AdminRoleRequests() {
                     <div className="aspect-[4/5] bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-6 text-center">
                       <AlertCircle size={40} className="text-slate-300 mb-2" />
                       <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No Document Provided</p>
+                    </div>
+                  )}
+                  
+                  {/* Thumbnail selection if multiple exist */}
+                  {(selectedRequest.gst_image && selectedRequest.rera_certificate_image) && (
+                    <div className="flex gap-2 mt-2">
+                       <button 
+                         onClick={() => setSelectedRequest({...selectedRequest, activeDoc: selectedRequest.gst_image, activeDocTitle: 'GST Certificate'})}
+                         className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-colors ${selectedRequest.activeDoc === selectedRequest.gst_image ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                       >
+                         GST Certificate
+                       </button>
+                       <button 
+                         onClick={() => setSelectedRequest({...selectedRequest, activeDoc: selectedRequest.rera_certificate_image, activeDocTitle: 'RERA Certificate'})}
+                         className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-colors ${selectedRequest.activeDoc === selectedRequest.rera_certificate_image ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                       >
+                         RERA Certificate
+                       </button>
                     </div>
                   )}
                 </div>

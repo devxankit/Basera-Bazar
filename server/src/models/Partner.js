@@ -24,6 +24,7 @@ const partnerProfileSchema = new mongoose.Schema({
   },
   property_profile: {
     rera_number: { type: String },
+    rera_certificate_image: { type: String },
     agency_name: { type: String },
     avg_rating: { type: Number, default: 0 }
   },
@@ -113,6 +114,8 @@ const partnerSchema = new mongoose.Schema({
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     gst_number: { type: String },
     gst_image: { type: String },
+    rera_number: { type: String },
+    rera_certificate_image: { type: String },
     submitted_at: { type: Date, default: Date.now },
     reviewed_at: { type: Date },
     rejection_reason: { type: String }
