@@ -43,8 +43,8 @@ export default function PartnerInquiries() {
     }
   };
 
-  const filteredInquiries = inquiries.filter(item => {
-    // 1. Filter by Active Role
+  // 1. Filter by Active Role
+  const baseInquiries = inquiries.filter(item => {
     const activeRole = (user?.active_role || user?.partner_type || user?.role || '').toLowerCase();
     const type = (item.enquiry_type || '').toLowerCase();
     
@@ -60,8 +60,11 @@ export default function PartnerInquiries() {
     
     // Only show if the enquiry type matches the active role's category
     if (targetType && type !== targetType) return false;
+    return true;
+  });
 
-    // 2. Filter by Status
+  // 2. Filter by Status
+  const filteredInquiries = baseInquiries.filter(item => {
     if (filter === 'all') return true;
     return item.status === filter;
   });
@@ -109,9 +112,9 @@ export default function PartnerInquiries() {
 
           {/* Filters */}
           <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
-             <FilterBtn active={filter === 'all'} label="All" onClick={() => setFilter('all')} count={inquiries.length} />
-             <FilterBtn active={filter === 'new'} label="New" onClick={() => setFilter('new')} count={inquiries.filter(i => i.status === 'new').length} />
-             <FilterBtn active={filter === 'contacted'} label="Contacted" onClick={() => setFilter('contacted')} count={inquiries.filter(i => i.status === 'contacted').length} />
+             <FilterBtn active={filter === 'all'} label="All" onClick={() => setFilter('all')} count={baseInquiries.length} />
+             <FilterBtn active={filter === 'new'} label="New" onClick={() => setFilter('new')} count={baseInquiries.filter(i => i.status === 'new').length} />
+             <FilterBtn active={filter === 'contacted'} label="Contacted" onClick={() => setFilter('contacted')} count={baseInquiries.filter(i => i.status === 'contacted').length} />
           </div>
         </div>
 

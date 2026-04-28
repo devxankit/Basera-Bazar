@@ -31,11 +31,25 @@ export default function PartnerHome() {
   const { user, refreshUser } = useAuth();
   const [showKYCModal, setShowKYCModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    listings: { total: 0, active: 0, pending: 0, featured: 0 },
+    leads: { total: 0, unread: 0 }
+  });
 
   useEffect(() => {
-    // Simulate loading for boneyard
-    const timer = setTimeout(() => setLoading(false), 1500);
-    return () => clearTimeout(timer);
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/partners/stats');
+        if (res.data.success) {
+          setStats(res.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching stats:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
   }, []);
 
   if (!user) return null;
@@ -77,12 +91,12 @@ export default function PartnerHome() {
   };
 
   const overviewStats = [
-    { label: 'Total', value: '0', icon: <Building2 size={24} />, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-    { label: 'Active', value: '0', icon: <CheckCircle2 size={24} />, color: 'text-green-600', bgColor: 'bg-green-50' },
-    { label: 'Pending', value: '0', icon: <Clock size={24} />, color: 'text-orange-500', bgColor: 'bg-orange-50' },
-    { label: 'Featured', value: '0', icon: <Star size={24} />, color: 'text-yellow-500', bgColor: 'bg-yellow-50' },
-    { label: 'Total Leads', value: '0', icon: <Users size={24} />, color: 'text-indigo-500', bgColor: 'bg-indigo-50' },
-    { label: 'Unread', value: '0', icon: <Mail size={24} />, color: 'text-red-500', bgColor: 'bg-red-50' },
+    { label: 'Total', value: stats.listings.total, icon: <Building2 size={24} />, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+    { label: 'Active', value: stats.listings.active, icon: <CheckCircle2 size={24} />, color: 'text-green-600', bgColor: 'bg-green-50' },
+    { label: 'Pending', value: stats.listings.pending, icon: <Clock size={24} />, color: 'text-orange-500', bgColor: 'bg-orange-50' },
+    { label: 'Featured', value: stats.listings.featured, icon: <Star size={24} />, color: 'text-yellow-500', bgColor: 'bg-yellow-50' },
+    { label: 'Total Leads', value: stats.leads.total, icon: <Users size={24} />, color: 'text-indigo-500', bgColor: 'bg-indigo-50' },
+    { label: 'Unread', value: stats.leads.unread, icon: <Mail size={24} />, color: 'text-red-500', bgColor: 'bg-red-50' },
   ];
 
   const getAddActionLabel = () => {

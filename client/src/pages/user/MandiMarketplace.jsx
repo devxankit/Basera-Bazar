@@ -191,10 +191,10 @@ export default function MandiMarketplace() {
             <div className="flex items-center gap-2.5">
                <div className="flex flex-col leading-none">
                   <div className="flex items-center gap-0.5">
-                     <span className="font-black text-[#f59e0b]" style={{ fontSize: 'clamp(15px, 5vw, 19px)' }}>बसेरा</span>
+                     <span className="font-black text-orange-500" style={{ fontSize: 'clamp(15px, 5vw, 19px)' }}>बसेरा</span>
                      <span className="font-black text-[#1f2355] uppercase ml-0.5" style={{ fontSize: 'clamp(15px, 5vw, 19px)' }}>BAZAR</span>
                   </div>
-                  <p className="font-semibold text-[#f59e0b] tracking-tight" style={{ fontSize: 'clamp(7px, 2vw, 9px)' }}>Building better, together</p>
+                  <p className="font-semibold text-orange-500 tracking-tight" style={{ fontSize: 'clamp(7px, 2vw, 9px)' }}>Building better, together</p>
                </div>
             </div>
             <div className="flex items-center gap-2">
@@ -263,8 +263,8 @@ export default function MandiMarketplace() {
                </div>
 
                <div className="absolute inset-0 z-20 p-4 sm:p-6 flex flex-col justify-center max-w-[70%] sm:max-w-[55%]">
-                  <p className="text-[#f59e0b] font-bold mb-0.5 uppercase tracking-widest opacity-90" style={{ fontSize: 'clamp(7.5px, 2vw, 9px)' }}>खदान मंडी से सीधे</p>
-                  <h1 className="text-[#f59e0b] font-black leading-tight mb-3" style={{ fontSize: 'clamp(16px, 5.5vw, 22px)' }}>
+                  <p className="text-orange-500 font-bold mb-0.5 uppercase tracking-widest opacity-90" style={{ fontSize: 'clamp(7.5px, 2vw, 9px)' }}>खदान मंडी से सीधे</p>
+                  <h1 className="text-orange-500 font-black leading-tight mb-3" style={{ fontSize: 'clamp(16px, 5.5vw, 22px)' }}>
                      आपके घर तक!
                   </h1>
 
@@ -275,12 +275,12 @@ export default function MandiMarketplace() {
                         { icon: IndianRupee, label: 'LOWEST\nPRICE' },
                      ].map((item, i) => (
                         <div key={i} className="flex flex-col items-center gap-1">
-                           <div className="rounded-lg bg-[#f59e0b] flex items-center justify-center text-white shadow-lg border border-white/10"
+                           <div className="rounded-lg bg-orange-500 flex items-center justify-center text-white shadow-lg border border-white/10"
                               style={{ width: 'clamp(26px, 7vw, 32px)', height: 'clamp(26px, 7vw, 32px)' }}
                            >
                               <item.icon size={13} strokeWidth={2.5} />
                            </div>
-                           <span className="text-[#f59e0b] font-black uppercase text-center leading-tight tracking-wider" style={{ fontSize: '6px' }}>{item.label}</span>
+                           <span className="text-orange-500 font-black uppercase text-center leading-tight tracking-wider" style={{ fontSize: '6px' }}>{item.label}</span>
                         </div>
                      ))}
                   </div>
@@ -300,7 +300,7 @@ export default function MandiMarketplace() {
          <div className="mt-4 bg-[#1f2355] py-3.5 px-2 grid grid-cols-4 gap-1">
             {trustBadges.map((item, i) => (
                <div key={i} className="flex flex-col items-center gap-1">
-                  <div className="text-[#f59e0b]">
+                  <div className="text-orange-500">
                      <item.icon size={15} strokeWidth={2.5} />
                   </div>
                   <p className="font-black text-white text-center leading-tight px-1" style={{ fontSize: 'clamp(7.5px, 2.2vw, 9.5px)' }}>{item.title}</p>
@@ -329,7 +329,7 @@ export default function MandiMarketplace() {
                         onClick={() => navigate(`/browse/mandi?cat=${cat.id}`)}
                         className="flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-all group"
                      >
-                        <div className="w-full aspect-square rounded-2xl overflow-hidden bg-[#fffbeb] border border-orange-50/50 flex items-center justify-center p-2.5 group-hover:shadow-md transition-shadow">
+                        <div className="w-full aspect-square rounded-2xl overflow-hidden bg-orange-500/5 border border-orange-500/10 flex items-center justify-center p-1.5 group-hover:shadow-md transition-shadow">
                            <img
                               src={cat.image}
                               alt={cat.name}
