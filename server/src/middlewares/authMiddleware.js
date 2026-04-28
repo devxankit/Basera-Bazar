@@ -32,7 +32,7 @@ const protect = async (req, res, next) => {
       if (decoded.role === 'super_admin' || decoded.role === 'SuperAdmin') {
         userFound = await AdminUser.findById(decoded.id).select('-password');
       } else if (decoded.role === 'partner') {
-        userFound = await Partner.findById(decoded.id).select('-password');
+        userFound = await Partner.findById(decoded.id).select('-password').populate('active_subscription_id');
       } else {
         userFound = await User.findById(decoded.id).select('-password');
       }
@@ -120,7 +120,7 @@ const optionalProtect = async (req, res, next) => {
       if (decoded.role === 'super_admin' || decoded.role === 'SuperAdmin') {
         userFound = await AdminUser.findById(decoded.id).select('-password');
       } else if (decoded.role === 'partner') {
-        userFound = await Partner.findById(decoded.id).select('-password');
+        userFound = await Partner.findById(decoded.id).select('-password').populate('active_subscription_id');
       } else {
         userFound = await User.findById(decoded.id).select('-password');
       }

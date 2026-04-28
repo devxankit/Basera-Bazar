@@ -4,7 +4,7 @@ import {
   AlignLeft, FileText, Briefcase, 
   MapPin, Image as ImageIcon, Plus, 
   X, Navigation, ChevronDown, CheckCircle2,
-  Trash2, UploadCloud, Building2
+  Trash2, UploadCloud, Building2, Star
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,7 +48,8 @@ export default function AddService() {
     businessAddress: '',
     businessName: '',
     thumbnail: null,
-    portfolio: []
+    portfolio: [],
+    is_featured: false
   });
 
   const [activeStep, setActiveStep] = useState(1);
@@ -75,20 +76,45 @@ export default function AddService() {
       return;
     }
 
-    if (editId) {
-      const services = JSON.parse(localStorage.getItem('baserabazar_partner_services') || '[]');
-      const found = services.find(s => s.id.toString() === editId);
-      if (found) {
-        setFormData(found);
-        if (found.category_id) {
-          db.getCategories('service', found.category_id).then(setSubCategories);
+    const fetchEditData = async () => {
+      if (editId) {
+        try {
+          const res = await db.getById('listings', editId);
+          if (res) {
+            setFormData(prev => ({
+              ...prev,
+              category_id: res.category_id?._id || res.category_id || '',
+              subcategory_id: res.subcategory_id?._id || res.subcategory_id || '',
+              category: res.category_id?.name || '',
+              serviceName: res.title || '',
+              serviceType: res.details?.serviceType || '',
+              shortDescription: res.short_description || '',
+              detailedDescription: res.full_description || res.details?.description || '',
+              experience: res.years_of_experience || res.details?.experience || '',
+              state: res.address?.state || '',
+              district: res.address?.district || '',
+              city: res.address?.district || '',
+              businessAddress: res.address?.full_address || res.details?.businessName || '',
+              businessName: res.details?.businessName || user.businessName || '',
+              thumbnail: res.thumbnail || '',
+              portfolio: res.portfolio_images || [],
+              is_featured: res.is_featured || false
+            }));
+            
+            if (res.category_id) {
+              const catId = typeof res.category_id === 'object' ? res.category_id._id : res.category_id;
+              db.getCategories('service', catId).then(setSubCategories);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch service for edit:", err);
         }
+      } else if (user.businessName) {
+        setFormData(prev => ({ ...prev, businessName: user.businessName }));
       }
-    }
-
-    if (!editId && user.businessName) {
-      setFormData(prev => ({ ...prev, businessName: user.businessName }));
-    }
+    };
+    
+    fetchEditData();
   }, [editId, user, navigate]);
 
   const handleChange = async (e) => {
@@ -119,6 +145,16 @@ export default function AddService() {
       setFormData(prev => ({ ...prev, state: normalizedState, district: '', city: '' }));
     } else if (name === 'district') {
       setFormData(prev => ({ ...prev, district: value, city: prev.city || value }));
+    } else if (name === 'is_featured') {
+      const sub = user?.active_subscription_id;
+      const limit = sub?.plan_snapshot?.featured_listings_limit || 0;
+      const used = sub?.usage?.featured_listings_used || 0;
+      
+      if (e.target.checked && limit !== -1 && used >= limit) {
+        alert(`You have reached your featured listings limit of ${limit}. Please upgrade your plan to feature more services.`);
+        return;
+      }
+      setFormData(prev => ({ ...prev, [name]: e.target.checked }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -235,11 +271,16 @@ export default function AddService() {
           description: formData.detailedDescription || formData.shortDescription,
           businessName: formData.businessName
         },
-        location_text: `${formData.businessAddress}, ${formData.district}, ${formData.state}`
+        location_text: `${formData.businessAddress}, ${formData.district}, ${formData.state}`,
+        is_featured: formData.is_featured
       };
 
       // 3. Submit to API
-      await db.create('listings', payload);
+      if (editId) {
+        await db.update('listings', editId, payload);
+      } else {
+        await db.create('listings', payload);
+      }
       
       setShowSuccessModal(true);
     } catch (error) {
@@ -609,6 +650,39 @@ export default function AddService() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Featured Service Section */}
+        <section className="space-y-4">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-[32px] p-6 shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-amber-100 text-amber-500 rounded-2xl flex items-center justify-center">
+                <Star size={24} fill="currentColor" />
+              </div>
+              <div>
+                <h4 className="text-[16px] font-bold text-[#001b4e] uppercase tracking-tight">Feature this Service</h4>
+                <p className="text-[12px] text-slate-500 font-medium mt-0.5">Showcase your service on the homepage to attract more leads.</p>
+                
+                {user?.active_subscription_id && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 bg-white px-2 py-0.5 rounded-full shadow-sm border border-slate-100">
+                      {user.active_subscription_id.usage?.featured_listings_used || 0} / {user.active_subscription_id.plan_snapshot?.featured_listings_limit === -1 ? '∞' : (user.active_subscription_id.plan_snapshot?.featured_listings_limit || 0)} Used
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                name="is_featured"
+                checked={formData.is_featured}
+                onChange={handleChange}
+                className="sr-only peer" 
+              />
+              <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-amber-500"></div>
+            </label>
           </div>
         </section>
       </div>

@@ -318,6 +318,27 @@ class DataEngine {
       throw error;
     }
   }
+
+  async update(table, id, data) {
+    try {
+      if (table === 'listings') {
+        const response = await api.put(`/listings/${id}`, data);
+        return this._normalize(response.data.data || response.data);
+      }
+      return null;
+    } catch (error) {
+      console.error(`Error updating ${table} ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async recordInteraction(id, type) {
+    try {
+      await api.post(`/listings/${id}/interaction`, { type });
+    } catch (error) {
+      console.error(`Error recording interaction ${type} for ${id}:`, error);
+    }
+  }
 }
 
 export const db = new DataEngine();

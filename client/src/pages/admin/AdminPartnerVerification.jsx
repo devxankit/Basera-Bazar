@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   CheckCircle2, XCircle, Eye, Search, Filter,
   FileText, Shield, User, MapPin, Building2, ExternalLink,
-  Clock, AlertCircle, Loader2
+  Clock, AlertCircle, Loader2, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminTable from '../../components/common/AdminTable';
@@ -198,6 +198,36 @@ export default function AdminPartnerVerification() {
               <XCircle size={16} />
             </button>
           )}
+
+          {/* Delete Action */}
+          <button 
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setModalConfig({
+                title: 'Permanent Deletion',
+                message: `CRITICAL: Are you sure you want to erase ${row.name} from the database? This action is irreversible and will remove all associated data.`,
+                type: 'danger',
+                onConfirm: async () => {
+                  setIsActionLoading(true);
+                  try {
+                    await api.delete(`/admin/users/${row._id || row.id}`);
+                    fetchPartners();
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setIsActionLoading(false);
+                    setIsModalOpen(false);
+                  }
+                }
+              });
+              setIsModalOpen(true);
+            }}
+            className="w-9 h-9 flex items-center justify-center bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 transition-all shadow-sm cursor-pointer relative z-10"
+            title="Delete Permanently"
+          >
+            <Trash2 size={16} />
+          </button>
         </div>
       )
     }

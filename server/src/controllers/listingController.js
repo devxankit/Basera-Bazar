@@ -1,5 +1,8 @@
 const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const { Category } = require('../models/System');
+const { Subscription } = require('../models/Finance');
+const { Partner } = require('../models/Partner');
+
 const mongoose = require('mongoose');
 
 /**
@@ -242,7 +245,8 @@ const createServiceListing = async (req, res) => {
     const { 
       title, description, category, category_id, subcategory_id,
       shortDescription, detailedDescription, experience, details, 
-      image, images, location_text, location, state, district, pincode 
+      image, images, location_text, location, state, district, pincode,
+      is_featured 
     } = req.body;
 
     // Find the category ID by name if category_id is not provided
@@ -257,6 +261,20 @@ const createServiceListing = async (req, res) => {
 
     if (!final_category_id) {
        return res.status(400).json({ success: false, message: 'Top category is mandatory for service registration.' });
+    }
+
+    if (is_featured) {
+      const sub = req.user.active_subscription_id;
+      if (!sub) {
+        return res.status(403).json({ success: false, message: 'You must have an active subscription to feature a listing.' });
+      }
+      
+      const limit = sub.plan_snapshot?.featured_listings_limit || 0;
+      const used = sub.usage?.featured_listings_used || 0;
+      
+      if (limit !== -1 && used >= limit) {
+        return res.status(400).json({ success: false, message: `You have reached your featured listings limit of ${limit}. Please upgrade your plan.` });
+      }
     }
 
     const newService = await ServiceListing.create({
@@ -279,8 +297,15 @@ const createServiceListing = async (req, res) => {
       },
       location: location || { type: 'Point', coordinates: [0, 0] },
       service_radius_km: 50, // Default 50km radius for services
-      status: 'active'
+      status: 'active',
+      is_featured: !!is_featured
     });
+
+    if (is_featured) {
+      await Subscription.findByIdAndUpdate(req.user.active_subscription_id._id, {
+        $inc: { 'usage.featured_listings_used': 1 }
+      });
+    }
 
     res.status(201).json({ success: true, message: 'Service listing created successfully.', data: newService });
   } catch (error) {
@@ -321,16 +346,23 @@ const getListingById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Listing not found.' });
     }
 
+    // Handle both populated and unpopulated partner_id
+    const listingOwnerId = listing.partner_id?._id || listing.partner_id;
+    const isOwner = req.user && req.user.id.toString() === listingOwnerId?.toString();
+    const isAdmin = req.user && (req.user.role === 'admin' || req.user.role === 'super_admin' || req.user.role === 'SuperAdmin');
+
     // NEW: If listing is NOT active, it should only be viewable by owner, admin or superadmin
     if (listing.status !== 'active') {
-       // Handle both populated and unpopulated partner_id
-       const listingOwnerId = listing.partner_id?._id || listing.partner_id;
-       const isOwner = req.user && req.user.id.toString() === listingOwnerId?.toString();
-       const isAdmin = req.user && (req.user.role === 'admin' || req.user.role === 'super_admin' || req.user.role === 'SuperAdmin');
-       
        if (!isOwner && !isAdmin) {
          return res.status(403).json({ success: false, message: 'This listing is under review or inactive.' });
        }
+    }
+
+    // NEW: Record a view automatically if someone other than the owner is viewing it
+    if (!isOwner) {
+      if (!listing.stats) listing.stats = {};
+      listing.stats.views = (listing.stats.views || 0) + 1;
+      await listing.save({ validateBeforeSave: false }); // Bypass validation for speed and to avoid unrelated schema errors
     }
 
     res.status(200).json({ success: true, data: listing });
@@ -503,6 +535,20 @@ const getPublicCategories = async (req, res) => {
           : { $or: [{ category_id: cat._id }, { subcategory_id: cat._id }], status: 'active' };
         
         count = await ListingModel.countDocuments(countQuery);
+      } else if (type === 'supplier') {
+        const countQuery = process.env.NODE_ENV === 'development'
+          ? { 
+              $or: [{ roles: 'supplier' }, { partner_type: 'supplier' }],
+              'profile.supplier_profile.material_categories': cat.name,
+              onboarding_status: { $in: ['approved', 'pending_approval', 'incomplete'] }
+            }
+          : { 
+              $or: [{ roles: 'supplier' }, { partner_type: 'supplier' }],
+              'profile.supplier_profile.material_categories': cat.name,
+              onboarding_status: 'approved',
+              is_active: true
+            };
+        count = await Partner.countDocuments(countQuery);
       }
       return { ...cat.toObject(), listing_count: count };
     }));
@@ -596,6 +642,27 @@ const updateListing = async (req, res) => {
     // Properties still require approval, but services and suppliers can be active immediately
     const nextStatus = Model === PropertyListing ? 'pending_approval' : 'active';
 
+    // Handle is_featured flag changes
+    if (updateData.is_featured !== undefined && updateData.is_featured !== listing.is_featured) {
+      const sub = req.user.active_subscription_id;
+      if (updateData.is_featured === true) {
+        if (!sub) {
+          return res.status(403).json({ success: false, message: 'You must have an active subscription to feature a listing.' });
+        }
+        const limit = sub.plan_snapshot?.featured_listings_limit || 0;
+        const used = sub.usage?.featured_listings_used || 0;
+        
+        if (limit !== -1 && used >= limit) {
+          return res.status(400).json({ success: false, message: `You have reached your featured listings limit of ${limit}.` });
+        }
+        await Subscription.findByIdAndUpdate(sub._id, { $inc: { 'usage.featured_listings_used': 1 } });
+      } else if (updateData.is_featured === false && listing.is_featured === true) {
+        if (sub && sub.usage?.featured_listings_used > 0) {
+          await Subscription.findByIdAndUpdate(sub._id, { $inc: { 'usage.featured_listings_used': -1 } });
+        }
+      }
+    }
+
     const updated = await Model.findByIdAndUpdate(
       id,
       { ...updateData, status: nextStatus },
@@ -679,6 +746,52 @@ const createMandiListing = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Record interaction on a listing (view, enquiry, call, whatsapp_click)
+ * @route   POST /api/listings/:id/interaction
+ * @access  Public
+ */
+const recordListingInteraction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.body; // 'views', 'enquiries', 'calls', 'whatsapp_clicks'
+
+    const validTypes = ['views', 'enquiries', 'calls', 'whatsapp_clicks'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ success: false, message: 'Invalid interaction type.' });
+    }
+
+    let Model = null;
+    let listing = await ServiceListing.findById(id);
+    if (listing) Model = ServiceListing;
+    
+    if (!Model) {
+      listing = await PropertyListing.findById(id);
+      if (listing) Model = PropertyListing;
+    }
+
+    if (!Model) {
+      listing = await MandiListing.findById(id);
+      if (listing) Model = MandiListing;
+    }
+
+    if (!Model) {
+      return res.status(404).json({ success: false, message: 'Listing not found.' });
+    }
+
+    // Increment the specific stat
+    const updateQuery = {};
+    updateQuery[`stats.${type}`] = 1;
+
+    await Model.findByIdAndUpdate(id, { $inc: updateQuery });
+
+    res.status(200).json({ success: true, message: `Recorded ${type} successfully.` });
+  } catch (error) {
+    console.error("Error recording interaction:", error);
+    res.status(500).json({ success: false, message: 'Server error recording interaction.' });
+  }
+};
+
 module.exports = {
   getNearbyServices,
   getMandiListings,
@@ -691,5 +804,6 @@ module.exports = {
   getPublicCategories,
   getMyListings,
   updateListing,
-  deleteListing
+  deleteListing,
+  recordListingInteraction
 };

@@ -281,9 +281,13 @@ export default function PartnerInventory() {
                   {/* Price & Actions Row */}
                   <div className="flex items-center justify-between mt-1 pt-2 border-t border-slate-50">
                     <div className="text-[13px] xs:text-[14px] mm:text-[15px] font-bold text-[#001b4e] leading-none uppercase tracking-tighter">
-                       ₹{typeof item.price === 'object' 
-                         ? `${Number(item.price.value).toLocaleString()}${(!item.price.unit || item.price.unit === 'Total') ? '' : ' ' + item.price.unit}` 
-                         : Number(item.price || 0).toLocaleString()}
+                       {item.category === 'service' || item.type === 'service' ? (
+                          item.years_of_experience ? `${item.years_of_experience} YEARS EXP.` : 'SERVICE DETAILS'
+                       ) : (
+                          `₹${typeof item.price === 'object' 
+                           ? `${Number(item.price.value).toLocaleString()}${(!item.price.unit || item.price.unit === 'Total' || item.price.unit === 'Contact for Price') ? '' : ' ' + item.price.unit}` 
+                           : Number(item.price || 0).toLocaleString()}`
+                       )}
                     </div>
  
                     <div className="flex items-center gap-1">

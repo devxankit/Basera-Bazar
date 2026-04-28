@@ -100,7 +100,16 @@ export default function PartnerHome() {
       if (logs) {
         try {
           const parsed = JSON.parse(logs);
-          setRecentActivities(parsed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5));
+          // Deduplicate "Account Registered" and other activities by title
+          const uniqueActivities = [];
+          const seenTitles = new Set();
+          for (const activity of parsed) {
+            if (!seenTitles.has(activity.title)) {
+              seenTitles.add(activity.title);
+              uniqueActivities.push(activity);
+            }
+          }
+          setRecentActivities(uniqueActivities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5));
         } catch (e) {
           setRecentActivities([]);
         }
@@ -349,7 +358,7 @@ export default function PartnerHome() {
               </div>
               <div className="min-w-0">
                 <h3 className="text-[12px] xs:text-[14px] mm:text-[16px] font-bold text-[#001b4e] truncate pr-2 uppercase tracking-tight leading-none">
-                  {partner.plan === 'free' ? 'Free Trial Plan' : 'Pre-launching Offer'}
+                  {partner.active_subscription_id?.plan_snapshot?.name || (partner.plan === 'free' ? 'Free Trail' : 'Free Trail')}
                 </h3>
                 <div className="flex items-center gap-2 xs:gap-3 mt-1 xs:mt-1.5">
                   <div className="flex items-center gap-1 text-slate-400 text-[9px] xs:text-[10px] mm:text-[12px] font-bold">

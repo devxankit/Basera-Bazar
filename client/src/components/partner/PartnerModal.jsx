@@ -77,7 +77,7 @@ export default function PartnerModal({
                     <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" className="h-4" />
                   </div>
                   <div className="text-left">
-                    <div className="text-[13px] font-bold text-[#001b4e]">Pre-launching offer</div>
+                    <div className="text-[13px] font-bold text-[#001b4e]">Free Tier Subscription</div>
                     <div className="text-[11px] text-slate-400">Recurring annually</div>
                   </div>
                 </div>

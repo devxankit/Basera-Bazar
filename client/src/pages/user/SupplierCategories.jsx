@@ -71,11 +71,11 @@ const SupplierCategories = () => {
               >
                 <div className="flex items-center gap-5">
                   <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center p-2 group-hover:scale-110 transition-transform overflow-hidden">
-                    <img 
-                      src={cat.icon && cat.icon.length > 5 ? cat.icon : '/default-product-category-image.png'} 
-                      alt={cat.name} 
-                      className="w-full h-full object-contain" 
-                      style={{ mixBlendMode: 'multiply' }} 
+                    <img
+                      src={cat.icon && cat.icon.length > 5 ? cat.icon : '/default-product-category-image.png'}
+                      alt={cat.name}
+                      className="w-full h-full object-contain"
+                      style={{ mixBlendMode: 'multiply' }}
                       onError={(e) => { e.target.onerror = null; e.target.src = '/default-product-category-image.png'; }}
                     />
                   </div>
@@ -99,7 +99,7 @@ const SupplierCategories = () => {
 
       {/* Floating View All Button */}
       <div className="fixed bottom-24 left-0 right-0 flex justify-center z-50 px-5">
-        <button 
+        <button
           onClick={() => navigate('/browse/supplier')}
           className="bg-[#3f51b5] text-white px-8 py-4 rounded-2xl shadow-[0_8px_30px_rgb(63,81,181,0.4)] flex items-center gap-3 active:scale-95 transition-all group"
         >

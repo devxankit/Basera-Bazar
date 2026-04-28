@@ -69,7 +69,7 @@ const PropertyCategories = () => {
               className="w-full bg-white p-5 rounded-[28px] border border-slate-100 shadow-xl shadow-slate-200/40 flex items-center justify-between group active:scale-[0.98] transition-all"
             >
               <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center p-2 group-hover:scale-110 transition-transform overflow-hidden">
+                <div className="w-20 h-20 rounded-2xl bg-white flex items-center justify-center p-0.5 group-hover:scale-110 transition-transform overflow-hidden">
                   {cat.icon || localImages[cat.slug] ? (
                     <img src={cat.icon || localImages[cat.slug]} alt={cat.name} className="w-full h-full object-contain" style={{ mixBlendMode: 'multiply' }} />
                   ) : (

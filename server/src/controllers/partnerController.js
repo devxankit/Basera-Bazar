@@ -1,6 +1,7 @@
 const { Partner } = require('../models/Partner');
-const { ServiceListing, PropertyListing } = require('../models/Listing');
+const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const { Enquiry } = require('../models/Enquiry');
+const { SubscriptionPlan } = require('../models/Finance');
 
 /**
  * @desc    Submit KYC and onboard a partner
@@ -452,6 +453,21 @@ const getPublicPartnerById = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get all active subscription plans for partners
+ * @route   GET /api/partners/subscriptions/plans
+ * @access  Private (Partner)
+ */
+const getPartnerSubscriptionPlans = async (req, res) => {
+  try {
+    const plans = await SubscriptionPlan.find({ is_active: true }).sort({ price: 1 });
+    res.status(200).json({ success: true, count: plans.length, data: plans });
+  } catch (error) {
+    console.error("Error fetching subscription plans:", error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 module.exports = {
   onboardPartner,
   getMyPartnerProfile,
@@ -460,5 +476,6 @@ module.exports = {
   switchRole,
   deleteRole,
   getPublicPartners,
-  getPublicPartnerById
+  getPublicPartnerById,
+  getPartnerSubscriptionPlans
 };

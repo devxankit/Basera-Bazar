@@ -137,6 +137,10 @@ const ListingDetails = () => {
       if (!user) {
         setTimeout(() => window.location.reload(), 2000); // Reload to reflect login state after modal
       }
+      
+      // Record enquiry stat
+      db.recordInteraction(id, 'enquiries');
+
     } catch (error) {
       console.error("Submission error:", error);
       alert("Failed to send enquiry. Please try again.");
@@ -177,6 +181,7 @@ const ListingDetails = () => {
           }));
         }
       }
+      
       setLoading(false);
     };
     fetchListing();
@@ -648,7 +653,10 @@ const ListingDetails = () => {
                     <h3 className="text-[17px] font-bold text-[#1f2355]">Quick Actions</h3>
                     <div className="grid grid-cols-3 gap-3">
                       <button 
-                        onClick={() => window.open(`tel:${listing.owner?.phone || '9322910004'}`, '_self')}
+                        onClick={() => {
+                          db.recordInteraction(id, 'calls');
+                          window.open(`tel:${listing.owner?.phone || '9322910004'}`, '_self');
+                        }}
                         className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-[#f0f9f1] border border-[#d2ead6] active:scale-95 transition-all"
                       >
                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#34a853] shadow-sm">
@@ -657,7 +665,10 @@ const ListingDetails = () => {
                         <span className="text-[12px] font-bold text-[#34a853]">Call</span>
                       </button>
                       <button 
-                        onClick={() => window.open(`https://wa.me/91${listing.owner?.phone || '9322910004'}`, '_blank')}
+                        onClick={() => {
+                          db.recordInteraction(id, 'whatsapp_clicks');
+                          window.open(`https://wa.me/91${listing.owner?.phone || '9322910004'}`, '_blank');
+                        }}
                         className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-[#ebfaf1] border border-[#d2ead6] active:scale-95 transition-all"
                       >
                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#25d366] shadow-sm">

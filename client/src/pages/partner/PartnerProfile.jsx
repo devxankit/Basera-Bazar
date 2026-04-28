@@ -186,7 +186,7 @@ export default function PartnerProfile() {
               <SettingsItem 
                 icon={<div className="bg-blue-50 p-2 xs:p-2.5 rounded-xl text-[#001b4e]"><CreditCard size={18} /></div>} 
                 label="Subscription" 
-                text={partner.plan === 'free' ? 'Free Trial Plan • 29 days left' : 'Pre-launching Offer • 29 days left'} 
+                text={`${partner.active_subscription_id?.plan_snapshot?.name || (partner.plan === 'free' ? 'Free Trail' : 'Free Trail')} • 29 days left`}
                 badge="ACTIVE" 
                 onClick={() => navigate('/partner/subscription')}
               />

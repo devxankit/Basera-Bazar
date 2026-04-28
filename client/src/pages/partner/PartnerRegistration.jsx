@@ -70,7 +70,7 @@ export default function PartnerRegistration() {
         isOpen: true,
         type: 'payment',
         title: 'Unlock Premium Features',
-        message: 'Proceed to payment to activate your Pre-launching annual subscription.',
+        message: 'Proceed to payment to activate your Free Tier annual subscription.',
         confirmLabel: 'Pay & Activate'
       });
     }
@@ -177,7 +177,8 @@ export default function PartnerRegistration() {
       };
       const activityKey = `baserabazar_activity_${userData.id || userData._id}`;
       const existingLogs = JSON.parse(localStorage.getItem(activityKey) || '[]');
-      localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs]));
+      const filteredLogs = existingLogs.filter(log => log.title !== activity.title);
+      localStorage.setItem(activityKey, JSON.stringify([activity, ...filteredLogs]));
 
       login(userData, token);
 

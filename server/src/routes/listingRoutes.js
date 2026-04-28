@@ -12,7 +12,8 @@ const {
   getPublicCategories,
   getMyListings,
   updateListing,
-  deleteListing
+  deleteListing,
+  recordListingInteraction
 } = require('../controllers/listingController');
 
 const { protect, authorizeRoles, optionalProtect } = require('../middlewares/authMiddleware');
@@ -36,6 +37,7 @@ router.put('/:id', protect, authorizeRoles('partner'), updateListing);
 router.delete('/:id', protect, authorizeRoles('partner'), deleteListing);
 
 // Parameterized catch-all — MUST be LAST
+router.post('/:id/interaction', recordListingInteraction);
 router.get('/:id', optionalProtect, getListingById);
 
 module.exports = router;

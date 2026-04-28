@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Edit3, Trash2, MapPin, 
   Briefcase, Calendar, Info, LayoutGrid,
-  ChevronRight, AlertTriangle, Home, Building2, BedDouble, Bath, Square, Navigation, Car, Bike, Users, IndianRupee, Tag, Package, Camera
+  ChevronRight, AlertTriangle, Home, Building2, BedDouble, Bath, Square, Navigation, Car, Bike, Users, IndianRupee, Tag, Package, Camera, Star
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -128,23 +128,35 @@ export default function PartnerServiceDetails() {
 
           {/* Quick Infographics */}
           <div className="grid grid-cols-2 gap-3 mt-6">
-             <div className="bg-white p-4 rounded-xl xs:rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
-                <div className="w-10 h-10 xs:w-11 xs:h-11 bg-blue-50 text-blue-600 rounded-lg xs:rounded-xl flex items-center justify-center mb-2">
-                   <Tag size={18} xs:size={20} />
-                </div>
-                <div className="text-[9px] xs:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 opacity-60">Price</div>
-                <h4 className="text-[16px] xs:text-[17px] font-bold text-[#001b4e] leading-none uppercase tracking-tighter">
-                   ₹{typeof service.price === 'object' ? service.price.value.toLocaleString() : Number(service.price).toLocaleString()}
-                </h4>
-             </div>
+             {isProperty ? (
+               <div className="bg-white p-4 rounded-xl xs:rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
+                  <div className="w-10 h-10 xs:w-11 xs:h-11 bg-blue-50 text-blue-600 rounded-lg xs:rounded-xl flex items-center justify-center mb-2">
+                     <Tag size={18} />
+                  </div>
+                  <div className="text-[9px] xs:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 opacity-60">Price</div>
+                  <h4 className="text-[16px] xs:text-[17px] font-bold text-[#001b4e] leading-none uppercase tracking-tighter">
+                     ₹{service.pricing?.amount ? service.pricing.amount.toLocaleString() : (typeof service.price === 'object' ? service.price?.value?.toLocaleString() : Number(service.price || 0).toLocaleString())}
+                  </h4>
+               </div>
+             ) : (
+               <div className="bg-white p-4 rounded-xl xs:rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
+                  <div className="w-10 h-10 xs:w-11 xs:h-11 bg-blue-50 text-blue-600 rounded-lg xs:rounded-xl flex items-center justify-center mb-2">
+                     <Briefcase size={18} />
+                  </div>
+                  <div className="text-[9px] xs:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 opacity-60">Experience</div>
+                  <h4 className="text-[16px] xs:text-[17px] font-bold text-[#001b4e] leading-none uppercase tracking-tighter">
+                     {service.years_of_experience || service.details?.experience || 'N/A'}
+                  </h4>
+               </div>
+             )}
              
              <div className="bg-white p-4 rounded-xl xs:rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
                 <div className="w-10 h-10 xs:w-11 xs:h-11 bg-purple-50 text-purple-600 rounded-lg xs:rounded-xl flex items-center justify-center mb-2">
-                   <LayoutGrid size={18} xs:size={20} />
+                   <LayoutGrid size={18} />
                 </div>
                 <div className="text-[9px] xs:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 opacity-60">Type</div>
                 <h4 className="text-[14px] xs:text-[15px] font-bold text-[#001b4e] truncate w-full leading-none uppercase tracking-tight">
-                   {(service.serviceType || service.propertyType || service.category || 'N/A').split(' ')[0]}
+                   {(service.details?.serviceType || service.service_type || service.property_type || service.category_id?.name || service.category || 'N/A')}
                 </h4>
              </div>
           </div>
@@ -153,13 +165,13 @@ export default function PartnerServiceDetails() {
           <div className="bg-white rounded-xl xs:rounded-2xl p-4 xs:p-5 border border-slate-100 shadow-sm">
             <div className="flex items-center gap-2.5 xs:gap-3 mb-3 xs:mb-4">
               <div className="w-9 h-9 xs:w-10 xs:h-10 bg-orange-50 text-orange-600 rounded-lg xs:rounded-xl flex items-center justify-center">
-                <MapPin size={18} xs:size={20} />
+                <MapPin size={18} />
               </div>
               <h3 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] uppercase tracking-tight opacity-70">Location</h3>
             </div>
-            <p className="text-[13px] xs:text-[14px] font-bold text-[#001b4e] mb-1 leading-tight uppercase tracking-tight">{service.district}, {service.state}</p>
+            <p className="text-[13px] xs:text-[14px] font-bold text-[#001b4e] mb-1 leading-tight uppercase tracking-tight">{(service.address?.district || service.district) ? `${service.address?.district || service.district}, ${service.address?.state || service.state}` : 'Location Not Specified'}</p>
             <p className="text-[12px] xs:text-[13px] text-slate-400 leading-snug font-medium opacity-50 uppercase tracking-wide">
-              {service.completeAddress || service.businessAddress || 'No address provided'}
+              {service.address?.full_address || service.completeAddress || service.businessAddress || 'No address provided'}
             </p>
           </div>
 
@@ -212,7 +224,7 @@ export default function PartnerServiceDetails() {
                 <h3 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] uppercase tracking-tight opacity-70">About</h3>
               </div>
               <p className="text-[13px] xs:text-[14px] text-[#001b4e] leading-relaxed font-bold opacity-80 uppercase tracking-tight">
-                {service.description || service.shortDescription || 'No description provided.'}
+                {service.full_description || service.details?.description || service.short_description || service.description || service.shortDescription || 'No description provided.'}
               </p>
             </div>
           )}
@@ -227,7 +239,7 @@ export default function PartnerServiceDetails() {
                 <h3 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] uppercase tracking-tight opacity-70">Gallery</h3>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {(service.images || service.portfolio || []).map((img, idx) => (
+                {(service.portfolio_images || service.images || service.portfolio || []).map((img, idx) => (
                   <div key={idx} className="aspect-square rounded-xl xs:rounded-2xl overflow-hidden bg-slate-50 border border-slate-100">
                     <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
                   </div>
@@ -235,6 +247,28 @@ export default function PartnerServiceDetails() {
               </div>
             </div>
           )}
+
+          {/* Performance Stats Section */}
+          <div className="bg-white rounded-xl xs:rounded-2xl p-6 border border-slate-100 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg xs:rounded-xl flex items-center justify-center">
+                <Tag size={18} />
+              </div>
+              <h3 className="text-[15px] xs:text-[16px] font-bold text-[#001b4e] uppercase tracking-tight opacity-70">Performance</h3>
+              {service.is_featured && (
+                <span className="ml-auto bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+                  <Star size={12} fill="currentColor" /> Featured
+                </span>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 xs:grid-cols-4 gap-3">
+              <StatCard label="Views" value={service.stats?.views || 0} />
+              <StatCard label="Enquiries" value={service.stats?.enquiries || 0} />
+              <StatCard label="Calls" value={service.stats?.calls || 0} />
+              <StatCard label="WhatsApp" value={service.stats?.whatsapp_clicks || 0} />
+            </div>
+          </div>
         </div>
 
         {/* Floating Bottom Actions */}
@@ -329,6 +363,15 @@ function DetailItem({ icon, label, value }) {
         <div className="text-[9px] xs:text-[10px] font-medium text-slate-300 uppercase tracking-widest leading-none mb-1 opacity-60">{label}</div>
         <div className="text-[12px] xs:text-[13px] mm:text-[14px] font-medium text-[#001b4e] leading-tight truncate uppercase tracking-tight">{value}</div>
       </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value }) {
+  return (
+    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col items-center justify-center text-center">
+      <div className="text-[16px] font-black text-[#001b4e] leading-none mb-1">{value}</div>
+      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest opacity-70">{label}</div>
     </div>
   );
 }
