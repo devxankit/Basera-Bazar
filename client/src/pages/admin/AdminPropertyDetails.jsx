@@ -4,7 +4,8 @@ import {
    ArrowLeft, Edit2, MapPin, Calendar, Smartphone, 
    Info, Layout, Maximize2, Home, Key, Shield,
    ImageIcon, MoreHorizontal, User, IndianRupee, Sparkles, Building2,
-   CheckCircle2, AlertCircle, Trash2, Hash, Box, Wallet, ShieldCheck, Zap, TrendingUp, Star, Globe, FileText, ChevronRight, XCircle, Loader2
+   CheckCircle2, AlertCircle, Trash2, Hash, Box, Wallet, ShieldCheck, Zap, TrendingUp, Star, Globe, FileText, ChevronRight, XCircle, Loader2,
+   PauseCircle, PlayCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -22,6 +23,7 @@ export default function AdminPropertyDetails() {
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState(null);
    const [activeImage, setActiveImage] = useState(0);
+   const [showOptions, setShowOptions] = useState(false);
    
    // Rejection Modal State
    const [isRejecting, setIsRejecting] = useState(false);
@@ -43,6 +45,31 @@ export default function AdminPropertyDetails() {
       };
       fetchPropertyDetails();
    }, [id]);
+
+   const handleToggleActive = async () => {
+      const newStatus = listing.status === 'active' ? 'draft' : 'active';
+      try {
+         const res = await api.patch(`/admin/listings/${listing._id}/status`, { status: newStatus });
+         if (res.data.success) {
+            setListing({ ...listing, status: newStatus });
+            setShowOptions(false);
+         }
+      } catch (err) {
+         alert("Failed to update status");
+      }
+   };
+
+   const handleDeleteProperty = async () => {
+      if (!window.confirm("Are you sure you want to permanently delete this property asset from the database? This action cannot be undone.")) return;
+      try {
+         const res = await api.delete(`/admin/listings/${listing._id}`);
+         if (res.data.success) {
+            navigate('/admin/properties');
+         }
+      } catch (err) {
+         alert("Failed to delete property");
+      }
+   };
 
    const handleApprove = async () => {
       try {
@@ -105,9 +132,11 @@ export default function AdminPropertyDetails() {
          <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
             
             {/* Action Header Block */}
-            <div className="relative bg-white rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
+            <div className="relative bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
                {/* Immersive Background element */}
-               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-100/40 via-purple-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
+               <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+                  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-100/40 via-purple-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
+               </div>
                
                <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between p-8 gap-6 z-10">
                   <div className="flex items-start gap-6">
@@ -156,19 +185,75 @@ export default function AdminPropertyDetails() {
                      )}
 
                      <button 
-                        onClick={() => navigate(`/admin/properties/edit/${listing._id}`)}
+                        onClick={handleToggleActive}
                         className={cn(
-                           "px-6 py-3 font-semibold text-[12px] uppercase tracking-widest rounded-2xl transition-all active:scale-95 flex items-center gap-2",
-                           listing.status === 'pending_approval' 
-                              ? "bg-slate-50 text-slate-500 hover:bg-slate-100" 
-                              : "bg-slate-900 text-white hover:bg-orange-600 shadow-xl shadow-slate-200"
+                           "px-6 py-3 font-semibold text-[12px] uppercase tracking-widest rounded-2xl transition-all active:scale-95 flex items-center gap-2 shadow-xl",
+                           listing.status === 'active' 
+                              ? "bg-rose-500 text-white hover:bg-rose-600 shadow-rose-100" 
+                              : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100"
                         )}
                      >
-                        <Edit2 size={14} /> Refine Listing
+                        {listing.status === 'active' ? (
+                          <><PauseCircle size={14} /> Deactivate Asset</>
+                        ) : (
+                          <><PlayCircle size={14} /> Activate Asset</>
+                        )}
                      </button>
-                     <button className="p-3 border border-slate-200 bg-white text-slate-400 rounded-2xl hover:bg-slate-50 hover:text-slate-600 transition-all shadow-sm active:scale-95">
-                        <MoreHorizontal size={20} />
-                     </button>
+                     <div className="relative">
+                        <button 
+                          onClick={() => setShowOptions(!showOptions)}
+                          className={cn(
+                            "p-3 border rounded-2xl transition-all shadow-sm active:scale-95",
+                            showOptions ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 bg-white text-slate-400 hover:border-indigo-200 hover:text-indigo-600"
+                          )}
+                        >
+                           <MoreHorizontal size={20} />
+                        </button>
+
+                        {showOptions && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
+                            <div className="absolute right-0 mt-3 w-64 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                               <button 
+                                 onClick={() => navigate(`/admin/properties/edit/${listing._id}`)}
+                                 className="w-full flex items-center gap-4 p-4 text-slate-600 hover:bg-slate-50 rounded-2xl transition-colors group"
+                               >
+                                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-colors">
+                                     <Edit2 size={18} />
+                                  </div>
+                                  <span className="font-bold text-sm tracking-tight">Refine Listing</span>
+                               </button>
+
+                               {(listing.status === 'active' || listing.status === 'draft') && (
+                                 <button 
+                                   onClick={handleToggleActive}
+                                   className="w-full flex items-center gap-4 p-4 text-slate-600 hover:bg-slate-50 rounded-2xl transition-colors group"
+                                 >
+                                    <div className={cn(
+                                       "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                                       listing.status === 'active' ? "bg-rose-50 text-rose-400 group-hover:text-rose-600 group-hover:bg-rose-100" : "bg-emerald-50 text-emerald-400 group-hover:text-emerald-600 group-hover:bg-emerald-100"
+                                    )}>
+                                       {listing.status === 'active' ? <PauseCircle size={18} /> : <PlayCircle size={18} />}
+                                    </div>
+                                    <span className="font-bold text-sm tracking-tight text-left">{listing.status === 'active' ? 'Deactivate Asset' : 'Activate Asset'}</span>
+                                 </button>
+                               )}
+
+                               <div className="h-px bg-slate-100 my-2 mx-4" />
+
+                               <button 
+                                 onClick={handleDeleteProperty}
+                                 className="w-full flex items-center gap-4 p-4 text-rose-600 hover:bg-rose-50 rounded-2xl transition-colors group"
+                                >
+                                  <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-400 group-hover:text-rose-600 group-hover:bg-rose-100 transition-colors">
+                                     <Trash2 size={18} />
+                                  </div>
+                                  <span className="font-bold text-sm tracking-tight text-left">Delete From DB</span>
+                               </button>
+                            </div>
+                          </>
+                        )}
+                     </div>
                   </div>
                </div>
 

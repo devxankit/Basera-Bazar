@@ -5,7 +5,8 @@ import {
   MapPin, Clock, Edit2, ArrowLeft, MoreVertical,
   CreditCard, Activity, CheckCircle2, AlertCircle,
   Briefcase, TrendingUp, ChevronRight, BarChart3,
-  Package, Store, ShieldCheck, Globe, Zap, FileText, ExternalLink
+  Package, Store, ShieldCheck, Globe, Zap, FileText, ExternalLink,
+  UserMinus, UserCheck, Trash2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -21,6 +22,7 @@ export default function AdminUserDetails() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showOptions, setShowOptions] = useState(false);
 
   useEffect(() => {
     const fetchUserDetail = async () => {
@@ -37,6 +39,30 @@ export default function AdminUserDetails() {
     };
     fetchUserDetail();
   }, [id]);
+
+  const handleToggleStatus = async () => {
+    try {
+      const res = await api.put(`/admin/users/${id}`, { is_active: !user.is_active });
+      if (res.data.success) {
+        setUser({ ...user, is_active: !user.is_active });
+        setShowOptions(false);
+      }
+    } catch (err) {
+      alert("Failed to update user status");
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!window.confirm("Are you sure you want to permanently delete this user from the database? This action cannot be undone.")) return;
+    try {
+      const res = await api.delete(`/admin/users/${id}`);
+      if (res.data.success) {
+        navigate('/admin/users');
+      }
+    } catch (err) {
+      alert("Failed to delete user");
+    }
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[50vh]">
@@ -60,9 +86,11 @@ export default function AdminUserDetails() {
       <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
         
         {/* Action Header Block */}
-        <div className="relative bg-white rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
+        <div className="relative bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
            {/* Immersive Background element */}
-           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-100/40 via-purple-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
+           <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-100/40 via-purple-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
+           </div>
            
            <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between p-8 gap-6 z-10">
               <div className="flex items-start gap-6">
@@ -107,9 +135,59 @@ export default function AdminUserDetails() {
                  >
                     <Edit2 size={14} /> Update Identity
                  </button>
-                 <button className="p-3 border border-slate-200 bg-white text-slate-400 rounded-2xl hover:border-indigo-200 hover:text-indigo-600 transition-all shadow-sm active:scale-95">
-                    <MoreVertical size={20} />
-                 </button>
+                 <div className="relative">
+                   <button 
+                     onClick={() => setShowOptions(!showOptions)}
+                     className={cn(
+                       "p-3 border rounded-2xl transition-all shadow-sm active:scale-95",
+                       showOptions ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 bg-white text-slate-400 hover:border-indigo-200 hover:text-indigo-600"
+                     )}
+                   >
+                      <MoreVertical size={20} />
+                   </button>
+
+                   {showOptions && (
+                     <>
+                       <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
+                       <div className="absolute right-0 mt-3 w-64 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <button 
+                            onClick={() => navigate(`/admin/users/subscriptions/${user._id}`)}
+                            className="w-full flex items-center gap-4 p-4 text-slate-600 hover:bg-slate-50 rounded-2xl transition-colors group"
+                          >
+                             <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-colors">
+                                <CreditCard size={18} />
+                             </div>
+                             <span className="font-bold text-sm tracking-tight">Subscriptions</span>
+                          </button>
+
+                          <button 
+                            onClick={handleToggleStatus}
+                            className="w-full flex items-center gap-4 p-4 text-slate-600 hover:bg-slate-50 rounded-2xl transition-colors group"
+                          >
+                             <div className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                                user.is_active ? "bg-rose-50 text-rose-400 group-hover:text-rose-600 group-hover:bg-rose-100" : "bg-emerald-50 text-emerald-400 group-hover:text-emerald-600 group-hover:bg-emerald-100"
+                             )}>
+                                {user.is_active ? <UserMinus size={18} /> : <UserCheck size={18} />}
+                             </div>
+                             <span className="font-bold text-sm tracking-tight text-left">{user.is_active ? 'Deactivate Node' : 'Activate Node'}</span>
+                          </button>
+
+                          <div className="h-px bg-slate-100 my-2 mx-4" />
+
+                          <button 
+                            onClick={handleDeleteUser}
+                            className="w-full flex items-center gap-4 p-4 text-rose-600 hover:bg-rose-50 rounded-2xl transition-colors group"
+                          >
+                             <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-400 group-hover:text-rose-600 group-hover:bg-rose-100 transition-colors">
+                                <Trash2 size={18} />
+                             </div>
+                             <span className="font-bold text-sm tracking-tight text-left">Delete From DB</span>
+                          </button>
+                       </div>
+                     </>
+                   )}
+                 </div>
               </div>
            </div>
 
