@@ -8,10 +8,10 @@ export default function KYCModal({ isOpen, onClose, user, onComplete }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
-    panImage: null,
-    aadharFront: null,
-    aadharBack: null,
-    gstImage: null
+    panImage: user?.kyc?.pan_image || null,
+    aadharFront: user?.kyc?.aadhar_front_image || null,
+    aadharBack: user?.kyc?.aadhar_back_image || null,
+    gstImage: user?.kyc?.gst_image || null
   });
 
   const panInputRef = useRef(null);

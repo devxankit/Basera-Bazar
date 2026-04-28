@@ -163,7 +163,8 @@ export default function PartnerRegistration() {
           aadhar_back_image: aadharBackUrl,
           gst_number: formData.gst,
           gst_image: gstUrl
-        }
+        },
+        onboarding_status: 'pending_approval'
       };
 
       await api.put('/auth/profile', updatePayload);

@@ -59,18 +59,24 @@ export default function PartnerHome() {
   // Account states
   const isApproved = partner.onboarding_status === 'approved';
   const isRejected = partner.onboarding_status === 'rejected';
-  const isPending = partner.onboarding_status === 'pending_approval';
-  const isKYCPending = !partner.kyc?.pan_image || !partner.kyc?.aadhar_front_image;
   
-  // Success banner logic: Show for 24 hours after approval
-  const approvedAt = partner.kyc?.reviewed_at;
-  const isRecentlyApproved = isApproved && approvedAt && (new Date() - new Date(approvedAt)) < (24 * 60 * 60 * 1000);
-
+  // Robust check for submitted documents
+  const hasSubmittedKYC = !!(partner.kyc?.pan_image || partner.kyc?.aadhar_front_image || partner.kyc?.gst_image);
+  
+  // Account is pending if explicitly set OR if docs exist but status is still incomplete
+  const isPending = partner.onboarding_status === 'pending_approval' || (hasSubmittedKYC && partner.onboarding_status === 'incomplete' && !isApproved && !isRejected);
+  
+  const isKYCPending = !hasSubmittedKYC;
+  
   // Account is restricted if not approved
   const isRestricted = !isApproved;
   
-  // Incomplete is for initial onboarding (no documents or explicitly incomplete)
-  const isIncomplete = (partner.onboarding_status === 'incomplete' || isKYCPending) && !isRejected && !isPending && !isApproved;
+  // Incomplete is for initial onboarding (truly no documents and not pending/rejected/approved)
+  const isIncomplete = partner.onboarding_status === 'incomplete' && !hasSubmittedKYC && !isRejected && !isApproved;
+
+  // Success banner logic: Show for 24 hours after approval
+  const approvedAt = partner.kyc?.reviewed_at;
+  const isRecentlyApproved = isApproved && approvedAt && (new Date() - new Date(approvedAt)) < (24 * 60 * 60 * 1000);
 
   const rejectionMessage = partner.kyc?.rejection_reason || "Your documents were not accepted. Please check the requirements and resubmit.";
 
