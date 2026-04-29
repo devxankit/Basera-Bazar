@@ -5,6 +5,7 @@ import {
    BadgePercent, HelpCircle, Bell
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { useLocationContext } from '../../context/LocationContext';
@@ -53,15 +54,17 @@ export default function MandiMarketplace() {
    const [searchQuery, setSearchQuery] = useState('');
    const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
+   const [banners, setBanners] = useState([]);
+   const [currentSlide, setCurrentSlide] = useState(0);
+
    useEffect(() => {
       const fetchData = async () => {
          try {
             setLoadingCategories(true);
-            // Fetch specialized marketplace home data (for deals)
-            // and supplier categories for the shop section
-            const [mandiRes, supplierRes] = await Promise.all([
+            const [mandiRes, supplierRes, bannerRes] = await Promise.all([
                api.get('/mandi/marketplace/home'),
-               api.get('/listings/categories?type=supplier')
+               api.get('/listings/categories?type=supplier'),
+               api.get('/listings/banners')
             ]);
 
             if (mandiRes.data.success) {
@@ -78,6 +81,11 @@ export default function MandiMarketplace() {
             if (supplierRes.data.success) {
                setSupplierCategories(supplierRes.data.data);
             }
+
+            if (bannerRes.data.success) {
+               // Only show home_top banners in this carousel
+               setBanners(bannerRes.data.data.filter(b => b.position === 'home_top' || !b.position));
+            }
          } catch (error) {
             console.error("Error fetching Mandi marketplace data:", error);
          } finally {
@@ -87,6 +95,19 @@ export default function MandiMarketplace() {
       fetchData();
    }, []);
 
+   // Auto-slide effect
+   useEffect(() => {
+      if (banners.length === 0) return;
+      const timer = setInterval(() => {
+         setCurrentSlide(prev => (prev + 1) % (banners.length + 1));
+      }, 5000);
+      return () => clearInterval(timer);
+   }, [banners.length]);
+
+   const bannerList = [
+      ...banners.map(b => ({ ...b, isDefault: false })),
+      { isDefault: true }
+   ];
 
    const shopCategories = supplierCategories.map(cat => ({
       id: cat._id,
@@ -246,51 +267,99 @@ export default function MandiMarketplace() {
             </div>
          </div>
 
-         <div className="px-4 mt-2">
-            <div className="relative rounded-[24px] overflow-hidden bg-[#081229] shadow-xl group cursor-pointer active:scale-[0.98] transition-all"
+         <div className="px-4 mt-2 overflow-hidden">
+            <div className="relative rounded-[24px] overflow-hidden bg-[#081229] shadow-xl"
                style={{ height: 'clamp(200px, 60vw, 260px)' }}
-               onClick={() => navigate('/browse/mandi')}
             >
-               {/* Image Container - Full Width with Narrow Fade */}
-               <div className="absolute inset-0 z-0">
-                  <img
-                     src="/basera-mandi-hero.jpeg"
-                     alt="Mandi Marketplace"
-                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                  />
-                  {/* Narrower Horizontal Fade Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229] to-transparent w-[60%] z-10" />
-               </div>
-
-               <div className="absolute inset-0 z-20 p-4 sm:p-6 flex flex-col justify-center max-w-[70%] sm:max-w-[55%]">
-                  <p className="text-orange-500 font-bold mb-0.5 uppercase tracking-widest opacity-90" style={{ fontSize: 'clamp(7.5px, 2vw, 9px)' }}>खदान मंडी से सीधे</p>
-                  <h1 className="text-orange-500 font-black leading-tight mb-3" style={{ fontSize: 'clamp(16px, 5.5vw, 22px)' }}>
-                     आपके घर तक!
-                  </h1>
-
-                  <div className="flex gap-2.5 mb-4">
-                     {[
-                        { icon: Package, label: 'FRESH\nMATERIAL' },
-                        { icon: Truck, label: 'FAST\nDELIVERY' },
-                        { icon: IndianRupee, label: 'LOWEST\nPRICE' },
-                     ].map((item, i) => (
-                        <div key={i} className="flex flex-col items-center gap-1">
-                           <div className="rounded-lg bg-orange-500 flex items-center justify-center text-white shadow-lg border border-white/10"
-                              style={{ width: 'clamp(26px, 7vw, 32px)', height: 'clamp(26px, 7vw, 32px)' }}
-                           >
-                              <item.icon size={13} strokeWidth={2.5} />
-                           </div>
-                           <span className="text-orange-500 font-black uppercase text-center leading-tight tracking-wider" style={{ fontSize: '6px' }}>{item.label}</span>
-                        </div>
-                     ))}
-                  </div>
-
-                  <button
-                     className="bg-white text-[#1f2355] rounded-lg font-black uppercase flex items-center gap-1.5 w-fit active:scale-95 transition-all shadow-lg"
-                     style={{ fontSize: 'clamp(7.5px, 2.2vw, 9px)', padding: 'clamp(6px, 1.8vw, 8px) clamp(12px, 3vw, 18px)' }}
+               <AnimatePresence mode="wait">
+                  <motion.div
+                     key={currentSlide}
+                     initial={{ opacity: 0, x: 50 }}
+                     animate={{ opacity: 1, x: 0 }}
+                     exit={{ opacity: 0, x: -50 }}
+                     transition={{ duration: 0.5, ease: "easeInOut" }}
+                     drag="x"
+                     dragConstraints={{ left: 0, right: 0 }}
+                     onDragEnd={(e, { offset, velocity }) => {
+                        const swipe = offset.x;
+                        if (swipe < -50) {
+                           setCurrentSlide((currentSlide + 1) % bannerList.length);
+                        } else if (swipe > 50) {
+                           setCurrentSlide((currentSlide - 1 + bannerList.length) % bannerList.length);
+                        }
+                     }}
+                     className="absolute inset-0 cursor-grab active:cursor-grabbing"
                   >
-                     SHOP NOW <ArrowRight size={11} strokeWidth={3} />
-                  </button>
+                     {bannerList[currentSlide].isDefault ? (
+                        <div className="relative w-full h-full" onClick={() => navigate('/browse/mandi')}>
+                           {/* Image Container - Full Width with Narrow Fade */}
+                           <div className="absolute inset-0 z-0">
+                              <img
+                                 src="/basera-mandi-hero.jpeg"
+                                 alt="Mandi Marketplace"
+                                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                              />
+                              {/* Narrower Horizontal Fade Overlay */}
+                              <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229] to-transparent w-[60%] z-10" />
+                           </div>
+
+                           <div className="absolute inset-0 z-20 p-4 sm:p-6 flex flex-col justify-center max-w-[70%] sm:max-w-[55%]">
+                              <p className="text-orange-500 font-bold mb-0.5 uppercase tracking-widest opacity-90" style={{ fontSize: 'clamp(7.5px, 2vw, 9px)' }}>खदान मंडी से सीधे</p>
+                              <h1 className="text-orange-500 font-black leading-tight mb-3" style={{ fontSize: 'clamp(16px, 5.5vw, 22px)' }}>
+                                 आपके घर तक!
+                              </h1>
+
+                              <div className="flex gap-2.5 mb-4">
+                                 {[
+                                    { icon: Package, label: 'FRESH\nMATERIAL' },
+                                    { icon: Truck, label: 'FAST\nDELIVERY' },
+                                    { icon: IndianRupee, label: 'LOWEST\nPRICE' },
+                                 ].map((item, i) => (
+                                    <div key={i} className="flex flex-col items-center gap-1">
+                                       <div className="rounded-lg bg-orange-500 flex items-center justify-center text-white shadow-lg border border-white/10"
+                                          style={{ width: 'clamp(26px, 7vw, 32px)', height: 'clamp(26px, 7vw, 32px)' }}
+                                       >
+                                          <item.icon size={13} strokeWidth={2.5} />
+                                       </div>
+                                       <span className="text-orange-500 font-black uppercase text-center leading-tight tracking-wider" style={{ fontSize: '6px' }}>{item.label}</span>
+                                    </div>
+                                 ))}
+                              </div>
+
+                              <button
+                                 className="bg-white text-[#1f2355] rounded-lg font-black uppercase flex items-center gap-1.5 w-fit active:scale-95 transition-all shadow-lg"
+                                 style={{ fontSize: 'clamp(7.5px, 2.2vw, 9px)', padding: 'clamp(6px, 1.8vw, 8px) clamp(12px, 3vw, 18px)' }}
+                              >
+                                 SHOP NOW <ArrowRight size={11} strokeWidth={3} />
+                              </button>
+                           </div>
+                        </div>
+                     ) : (
+                        <div className="relative w-full h-full" onClick={() => bannerList[currentSlide].link_url && (window.location.href = bannerList[currentSlide].link_url)}>
+                           <img
+                              src={bannerList[currentSlide].image_url}
+                              alt={bannerList[currentSlide].title || "Banner"}
+                              className="w-full h-full object-cover"
+                           />
+                           {bannerList[currentSlide].title && (
+                              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                                 <h3 className="text-white font-bold text-sm uppercase tracking-wider">{bannerList[currentSlide].title}</h3>
+                              </div>
+                           )}
+                        </div>
+                     )}
+                  </motion.div>
+               </AnimatePresence>
+
+               {/* Pagination Dots */}
+               <div className="absolute bottom-4 left-0 right-0 z-30 flex justify-center gap-2">
+                  {bannerList.map((_, i) => (
+                     <button
+                        key={i}
+                        onClick={() => setCurrentSlide(i)}
+                        className={`w-1.5 h-1.5 rounded-full transition-all ${currentSlide === i ? 'bg-orange-500 w-4' : 'bg-white/40'}`}
+                     />
+                  ))}
                </div>
             </div>
          </div>

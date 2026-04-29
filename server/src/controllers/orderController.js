@@ -47,7 +47,8 @@ const createMarketplaceOrder = async (req, res) => {
         qty: item.qty,
         price: product.pricing.price_per_unit,
         unit: product.pricing.unit,
-        status: 'pending'
+        status: 'pending',
+        delivery_otp: Math.floor(100000 + Math.random() * 900000).toString()
       });
     }
 
@@ -212,10 +213,24 @@ const updateLeadStatus = async (req, res) => {
 
     // Handle Delivery Logic
     if (status === 'delivered') {
+      const { delivery_otp } = req.body;
+      if (!delivery_otp) {
+        return res.status(400).json({ success: false, message: 'Delivery OTP is required to mark as delivered.' });
+      }
+      if (item.delivery_otp !== delivery_otp) {
+        return res.status(400).json({ success: false, message: 'Invalid Delivery OTP.' });
+      }
+
+      item.delivered_at = Date.now();
       order.final_payment.method = 'cod';
       order.final_payment.status = 'paid';
       const itemTotal = item.price * item.qty;
       order.final_payment.amount = (order.final_payment.amount || 0) + itemTotal;
+
+      // Update Partner Success Stats
+      await Partner.findByIdAndUpdate(sellerId, {
+        $inc: { 'milestone_stats.successful_orders': 1 }
+      });
     }
 
     // Handle Seller Cancellation Penalty
@@ -263,7 +278,9 @@ const getUserOrders = async (req, res) => {
 const getSellerOrders = async (req, res) => {
   try {
     const sellerId = req.user.id;
-    const orders = await Order.find({ 'items.seller_id': sellerId }).sort({ createdAt: -1 });
+    const orders = await Order.find({ 'items.seller_id': sellerId })
+      .populate('user_id', 'name phone')
+      .sort({ createdAt: -1 });
     
     // Filter items to only show seller's own items
     const filteredOrders = orders.map(order => {

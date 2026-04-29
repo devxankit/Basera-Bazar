@@ -20,7 +20,9 @@ const orderItemSchema = new mongoose.Schema({
     }
   ],
   commission_rate: { type: Number }, // Captured at time of order
-  commission_amount: { type: Number } // Calculated as (price * qty) * (rate / 100)
+  commission_amount: { type: Number }, // Calculated as (price * qty) * (rate / 100)
+  delivery_otp: { type: String }, // Random 6-digit OTP for delivery verification
+  delivered_at: { type: Date }
 }, { _id: true });
 
 const orderSchema = new mongoose.Schema({

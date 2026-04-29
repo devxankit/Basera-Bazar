@@ -90,6 +90,8 @@ import MandiInventory from './pages/partner/MandiInventory';
 import AddMandiProduct from './pages/partner/AddMandiProduct';
 import MandiOrders from './pages/partner/MandiOrders';
 import MandiPenalties from './pages/partner/MandiPenalties';
+import PartnerMilestones from './pages/partner/PartnerMilestones';
+import PartnerOrderHistory from './pages/partner/PartnerOrderHistory';
 
 // Route guard — redirects unauthenticated users to /login
 const ProtectedRoute = ({ children }) => {
@@ -295,7 +297,9 @@ function App() {
             <Route path="/partner/mandi/inventory" element={<PartnerLayout><MandiInventory /></PartnerLayout>} />
             <Route path="/partner/mandi/add-product" element={<AddMandiProduct />} />
             <Route path="/partner/mandi/orders" element={<PartnerLayout><MandiOrders /></PartnerLayout>} />
+            <Route path="/partner/mandi/orders-history" element={<PartnerLayout><PartnerOrderHistory /></PartnerLayout>} />
             <Route path="/partner/mandi/penalties" element={<PartnerLayout><MandiPenalties /></PartnerLayout>} />
+            <Route path="/partner/milestones" element={<PartnerLayout><PartnerMilestones /></PartnerLayout>} />
 
             {/* Admin Module Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />

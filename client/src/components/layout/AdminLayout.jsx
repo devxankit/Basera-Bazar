@@ -63,6 +63,7 @@ const navItems = [
       { label: 'Sellers', path: '/admin/mandi-bazar/sellers' },
       { label: 'Economics', path: '/admin/mandi-bazar/economics' },
       { label: 'Market Orders', path: '/admin/mandi-bazar/orders' },
+      { label: 'Milestones', path: '/admin/mandi-bazar/milestones' },
     ]
   },
   { 

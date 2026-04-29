@@ -22,7 +22,7 @@ const debounceMiddleware = require('../middlewares/debounceMiddleware');
 
 // public routes (No authentication needed to view)
 router.get('/', debounceMiddleware, cacheMiddleware(2), getAllListings);
-router.get('/banners', debounceMiddleware, cacheMiddleware(60), getPublicBanners); // Banners change rarely
+router.get('/banners', debounceMiddleware, cacheMiddleware(1), getPublicBanners); // Banners update faster now
 router.get('/services', debounceMiddleware, cacheMiddleware(5), getNearbyServices);
 router.get('/mandi', debounceMiddleware, cacheMiddleware(5), getMandiListings);
 router.get('/categories', debounceMiddleware, cacheMiddleware(60), getPublicCategories); // Categories change rarely

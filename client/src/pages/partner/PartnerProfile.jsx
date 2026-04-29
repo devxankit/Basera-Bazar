@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Edit2, Box, Building2, ChevronRight, 
-  User, Mail, Phone, CreditCard, HelpCircle, Info, LogOut, Trash2, Clock, Loader2 
+  User, Mail, Phone, CreditCard, HelpCircle, Info, LogOut, Trash2, Clock, Loader2,
+  Trophy, AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -159,50 +160,67 @@ export default function PartnerProfile() {
           </motion.div>
         )}
 
-        {/* Profile Information */}
-        <div className="space-y-3 xs:space-y-4">
-          <div className="flex items-center gap-2 px-1">
-            <div className="w-1 h-3 bg-[#001b4e] rounded-full" />
-            <h3 className="text-[#001b4e] text-[15px] xs:text-[17px] font-bold uppercase tracking-tight">Details</h3>
-          </div>
-          <div className="space-y-2 xs:space-y-3">
-            <InfoField icon={<User className="text-blue-500" size={14} xs:size={16} />} label="Name" value={partner.name} />
-            <InfoField icon={<Mail className="text-indigo-500" size={14} xs:size={16} />} label="Email" value={partner.email} />
-            <InfoField icon={<Phone className="text-slate-600" size={14} xs:size={16} />} label="Phone" value={partner.phone || 'N/A'} />
-            {partner.role !== 'agent' && (
-              <InfoField icon={<Building2 className="text-slate-500" size={14} xs:size={16} />} label="Business" value={partner.businessName || 'N/A'} />
-            )}
-          </div>
-        </div>
-
-        {/* Settings */}
+        {/* Category Grid */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-1">
-            <div className="w-1 h-4 bg-[#001b4e] rounded-full" />
-            <h3 className="text-[#001b4e] text-[17px] font-medium tracking-tight">Settings</h3>
+            <div className="w-1.5 h-4 bg-[#001b4e] rounded-full" />
+            <h3 className="text-[#001b4e] text-[15px] font-black uppercase tracking-tight">Partner Dashboard</h3>
           </div>
-          <div className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
+          
+          <div className="grid grid-cols-2 gap-4">
+            {/* Subscription */}
             {!isIncomplete && (
-              <SettingsItem 
-                icon={<div className="bg-blue-50 p-2 xs:p-2.5 rounded-xl text-[#001b4e]"><CreditCard size={18} /></div>} 
-                label="Subscription" 
-                text={`${partner.active_subscription_id?.plan_snapshot?.name || (partner.plan === 'free' ? 'Free Trail' : 'Free Trail')} • 29 days left`}
-                badge="ACTIVE" 
+              <CategoryButton 
+                icon={<CreditCard size={22} />}
+                label="Subscription"
+                subLabel="Active Plan"
+                color="blue"
                 onClick={() => navigate('/partner/subscription')}
               />
             )}
-            <SettingsItem 
-              icon={<div className="bg-slate-50 p-2.5 rounded-xl text-[#001b4e]"><HelpCircle size={18} /></div>} 
-              label="Help & Support" 
-              text="Get help with your account" 
-              border={true} 
+            
+            {/* Order History */}
+            <CategoryButton 
+              icon={<Clock size={22} />}
+              label="Order History"
+              subLabel="Sales Data"
+              color="indigo"
+              onClick={() => navigate('/partner/mandi/orders-history')}
+            />
+
+            {/* Milestones */}
+            <CategoryButton 
+              icon={<Trophy size={22} />}
+              label="Rewards"
+              subLabel="Milestones"
+              color="amber"
+              onClick={() => navigate('/partner/milestones')}
+            />
+
+            {/* Penalties */}
+            <CategoryButton 
+              icon={<AlertCircle size={22} />}
+              label="Penalties"
+              subLabel="Account Health"
+              color="rose"
+              onClick={() => navigate('/partner/mandi/penalties')}
+            />
+
+            {/* Help */}
+            <CategoryButton 
+              icon={<HelpCircle size={22} />}
+              label="Support"
+              subLabel="Get Help"
+              color="slate"
               onClick={() => navigate('/partner/help')}
             />
-            <SettingsItem 
-              icon={<div className="bg-slate-50 p-2.5 rounded-xl text-[#001b4e]"><Info size={18} /></div>} 
-              label="About" 
-              text="App version and information" 
-              border={false} 
+
+            {/* About */}
+            <CategoryButton 
+              icon={<Info size={22} />}
+              label="About"
+              subLabel="App Info"
+              color="slate"
               onClick={() => navigate('/partner/about')}
             />
           </div>
@@ -211,10 +229,10 @@ export default function PartnerProfile() {
         {/* Logout */}
         <button 
           onClick={() => setShowLogoutModal(true)}
-          className="w-full bg-[#ff4d4d] text-white py-4.5 rounded-2xl font-bold text-[16px] flex items-center justify-center gap-3 shadow-xl shadow-red-500/20 active:scale-[0.98] transition-all mt-4"
+          className="w-full bg-white border border-slate-200 text-slate-500 py-4.5 rounded-[24px] font-bold text-[14px] flex items-center justify-center gap-3 active:scale-[0.98] transition-all mt-6 shadow-sm hover:bg-red-50 hover:text-red-500 hover:border-red-100"
         >
-          <LogOut size={20} className="rotate-180" />
-          Logout
+          <LogOut size={18} className="rotate-180" />
+          LOGOUT SESSION
         </button>
 
         {/* Logout Confirmation Modal */}
@@ -302,41 +320,30 @@ export default function PartnerProfile() {
   );
 }
 
-function InfoField({ icon, label, value }) {
-  return (
-    <div className="bg-white p-3 xs:p-3.5 rounded-xl xs:rounded-2xl border border-slate-100 flex items-center gap-4 shadow-sm">
-      <div className="w-9 h-9 xs:w-10 xs:h-10 bg-slate-50 rounded-lg flex items-center justify-center">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <div className="text-slate-400 text-[9px] xs:text-[10px] font-medium uppercase tracking-widest leading-none mb-1 opacity-60">{label}</div>
-        <div className="text-[#001b4e] text-[13px] xs:text-[14px] font-medium truncate leading-tight uppercase tracking-tight">{value}</div>
-      </div>
-    </div>
-  );
-}
+function CategoryButton({ icon, label, subLabel, color, onClick }) {
+  const colorMap = {
+    blue: 'bg-blue-50 text-blue-600 border-blue-100',
+    indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100',
+    amber: 'bg-amber-50 text-amber-600 border-amber-100',
+    rose: 'bg-rose-50 text-rose-600 border-rose-100',
+    slate: 'bg-slate-50 text-slate-500 border-slate-100'
+  };
 
-function SettingsItem({ icon, label, text, badge, border = true, onClick }) {
   return (
-    <div 
+    <button 
       onClick={onClick}
-      className={`p-4 xs:p-4.5 flex items-center justify-between active:bg-slate-50 transition-colors cursor-pointer ${border ? 'border-b border-slate-50' : ''}`}
+      className={`p-5 rounded-[32px] border flex flex-col items-start gap-4 active:scale-95 transition-all text-left relative overflow-hidden group ${colorMap[color] || colorMap.slate}`}
     >
-        <div className="flex items-center gap-3 xs:gap-4 min-w-0">
-          {icon}
-          <div className="min-w-0">
-            <div className="text-[#001b4e] text-[14px] xs:text-[15px] font-bold truncate uppercase tracking-tight leading-tight">{label}</div>
-            <div className="text-slate-400 text-[9px] xs:text-[10px] font-medium mt-0.5 truncate uppercase tracking-widest opacity-40 leading-tight">{text}</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {badge && (
-            <span className="bg-green-500 text-white text-[8px] font-medium px-1.5 py-0.5 rounded-lg tracking-widest uppercase">
-              {badge}
-            </span>
-          )}
-          <ChevronRight className="text-slate-200" size={16} />
-        </div>
-    </div>
+      <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-sm relative z-10 transition-transform group-hover:scale-110">
+        {React.cloneElement(icon, { size: 20 })}
+      </div>
+      <div className="relative z-10">
+        <div className="text-[14px] font-black uppercase tracking-tight leading-none mb-1">{label}</div>
+        <div className="text-[9px] font-bold opacity-60 uppercase tracking-widest">{subLabel}</div>
+      </div>
+      <div className="absolute -bottom-2 -right-2 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+        {React.cloneElement(icon, { size: 80 })}
+      </div>
+    </button>
   );
 }

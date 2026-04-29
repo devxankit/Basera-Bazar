@@ -6,7 +6,8 @@ import {
   Briefcase, 
   Package, 
   Users, 
-  UserCircle 
+  UserCircle,
+  TrendingUp
 } from 'lucide-react';
 
 export default function PartnerBottomNav({ role }) {
@@ -23,6 +24,7 @@ export default function PartnerBottomNav({ role }) {
     if (isMandi) {
       return {
         category: { label: 'Stocks', icon: <Package size={24} />, path: '/partner/mandi/inventory' },
+        leads: { label: 'Leads', icon: <TrendingUp size={24} />, path: '/partner/leads' },
         comm: { label: 'Orders', icon: <Users size={24} />, path: '/partner/mandi/orders' }
       };
     }
@@ -50,11 +52,12 @@ export default function PartnerBottomNav({ role }) {
     };
   };
 
-  const { category: categoryTab, comm: commTab } = getTabs();
+  const { category: categoryTab, comm: commTab, leads: leadsTab } = getTabs();
 
   const navItems = [
     { label: 'Home', icon: <Home size={20} />, path: '/partner/home' },
     categoryTab,
+    leadsTab,
     commTab,
     { label: 'Profile', icon: <UserCircle size={20} />, path: '/partner/profile' }
   ].filter(Boolean);

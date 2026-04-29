@@ -49,11 +49,7 @@ export default function MediaDropZone({
         const formData = new FormData();
         formData.append('image', file);
         
-        const response = await api.post('/upload', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
+        const response = await api.post('/upload', formData);
 
         if (response.data.success) {
           uploadedUrls.push(response.data.url);
@@ -65,7 +61,7 @@ export default function MediaDropZone({
       onChange(newValue);
     } catch (err) {
       console.error("Upload error:", err);
-      setError("Failed to upload assets. Please check connection.");
+      setError(err.response?.data?.message || "Failed to upload assets. Please check connection.");
     } finally {
       setUploading(false);
     }
@@ -106,7 +102,7 @@ export default function MediaDropZone({
               <p className="text-sm font-black text-slate-900 tracking-tight">
                 {value.length > 0 && !multiple ? 'Click or drag to replace image' : description}
               </p>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Supports: JPG, PNG, WEBP (Max 5MB)</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Supports: JPG, JPEG, PNG, WEBP (Max 5MB)</p>
             </div>
             <input 
               type="file" 

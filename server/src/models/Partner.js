@@ -180,6 +180,10 @@ const partnerSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  milestone_stats: {
+    successful_orders: { type: Number, default: 0 },
+    current_milestone_target: { type: Number, default: 0 }
+  },
   push_subscriptions: {
     type: [Object],
     default: []

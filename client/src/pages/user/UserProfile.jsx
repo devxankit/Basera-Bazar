@@ -348,6 +348,12 @@ const UserProfile = () => {
                                         'bg-orange-50 text-orange-600 border-orange-100'
                                       )}>{item.status}</span>
                                    </div>
+                                   {item.status === 'shipped' && (
+                                       <div className="mt-2 p-2 bg-indigo-50 rounded-lg flex items-center justify-between border border-indigo-100">
+                                          <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Delivery OTP:</span>
+                                          <span className="text-[14px] font-black text-indigo-600 tracking-widest">{item.delivery_otp}</span>
+                                       </div>
+                                   )}
                                 </div>
                                 <div className="text-[14px] font-black text-[#1f2355]">₹{item.price * item.quantity}</div>
                              </div>

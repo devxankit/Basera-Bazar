@@ -22,8 +22,9 @@ const storage = new CloudinaryStorage({
     // This is the specific folder inside your Cloudinary account where images will live
     folder: 'basera_bazar_uploads', 
     
-    // Allowed file formats. Only allow standard web images to prevent malicious uploads.
-    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'], 
+    // Explicitly support both JPG and JPEG, and set resource_type to auto
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'], 
+    resource_type: 'auto',
     
     // Optional setting: You can add transformations here (e.g., resizing before saving)
     // transformation: [{ width: 500, height: 500, crop: 'limit' }]

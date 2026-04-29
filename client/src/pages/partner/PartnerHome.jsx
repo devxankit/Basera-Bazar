@@ -17,7 +17,8 @@ import {
   Shield,
   Package,
   Check,
-  Bell
+  Bell,
+  Info
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -225,7 +226,17 @@ export default function PartnerHome() {
                   <button 
                     onClick={() => {
                       if (actualRole.includes('agent')) navigate('/partner/add-property');
-                      else if (actualRole.includes('mandi')) navigate('/partner/mandi/add-product');
+                      else if (actualRole.includes('mandi')) {
+                      const productCount = parseInt(stats?.listings?.total || 0);
+                      const isFreePlan = partner.plan === 'free' || !partner.active_subscription_id;
+                      
+                      if (isFreePlan && productCount >= 1) {
+                        alert("Free Trail limit reached! Your first product listing is free. To add more products, please purchase a Premium Plan.");
+                        navigate('/partner/subscription');
+                      } else {
+                        navigate('/partner/mandi/add-product');
+                      }
+                    }
                       else navigate('/partner/add-service');
                     }}
                     className="mt-2.5 w-full bg-white text-emerald-700 py-2 rounded-xl font-bold text-[10px] xs:text-[11px] uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-lg active:scale-[0.98] transition-all"
@@ -422,7 +433,12 @@ export default function PartnerHome() {
 
         {/* Overview Section */}
         {actualRole.includes('mandi') ? (
-          <MandiOverview partner={partner} isRestricted={isRestricted} />
+          <MandiOverview 
+            partner={partner} 
+            isRestricted={isRestricted} 
+            isApproved={isApproved}
+            isPending={isPending}
+          />
         ) : (
           <div className="space-y-4 xs:space-y-5">
             <h2 className="text-[15px] xs:text-[17px] font-bold text-[#001b4e] px-1 uppercase tracking-tight opacity-70">{getCategoryTheme()} Overview</h2>
@@ -464,7 +480,17 @@ export default function PartnerHome() {
                 onClick={() => {
                   if (isApproved) {
                     if (actualRole.includes('agent')) navigate('/partner/add-property');
-                    else if (actualRole.includes('mandi')) navigate('/partner/mandi/add-product');
+                    else if (actualRole.includes('mandi')) {
+                      const productCount = parseInt(stats?.listings?.total || 0);
+                      const isFreePlan = partner.plan === 'free' || !partner.active_subscription_id;
+                      
+                      if (isFreePlan && productCount >= 1) {
+                        alert("Free Trail limit reached! Your first product listing is free. To add more products, please purchase a Premium Plan.");
+                        navigate('/partner/subscription');
+                      } else {
+                        navigate('/partner/mandi/add-product');
+                      }
+                    }
                     else navigate('/partner/add-service');
                   } else if (isPending) {
                     alert("Your application is currently under review.");
@@ -652,7 +678,7 @@ function RoleSwitcher({ roles, activeRole, partnerId, isApproved, user }) {
   );
 }
 
-function MandiOverview({ partner, isRestricted }) {
+function MandiOverview({ partner, isRestricted, isApproved, isPending }) {
   const navigate = useNavigate();
   const [showKYCModal, setShowKYCModal] = useState(false);
   const [stats, setStats] = useState(null);
@@ -680,20 +706,45 @@ function MandiOverview({ partner, isRestricted }) {
 
   return (
     <div className="space-y-6">
+      {/* Listing Limit Info for Free Plan */}
+      {(partner.plan === 'free' || !partner.active_subscription_id) && (
+        <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-start gap-3 shadow-sm">
+          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-500/20">
+            <Info size={16} />
+          </div>
+          <div>
+            <h4 className="text-[13px] font-bold text-[#001b4e] leading-tight mb-0.5 uppercase tracking-tight">Free Trail Listing</h4>
+            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+              Your first product listing is 100% free! To add more products to your inventory, please purchase a premium plan.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4">
-        <div className="bg-gradient-to-br from-indigo-900 to-[#001b4e] p-6 rounded-[32px] text-white shadow-xl shadow-indigo-900/10">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-white/60 text-[13px] font-medium uppercase tracking-wider">Mandi Seller Account</p>
-              <h2 className="text-[28px] font-bold">Penalty Score: ₹{stats?.penalty_due || 0}</h2>
+        <div className="bg-white border border-slate-100 p-5 rounded-[28px] shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all relative overflow-hidden">
+          <div className={`absolute top-0 left-0 w-1.5 h-full ${stats?.penalty_due > 0 ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+          
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${stats?.penalty_due > 0 ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`}>
+              {stats?.penalty_due > 0 ? <AlertCircle size={24} /> : <CheckCircle2 size={24} />}
             </div>
-            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm">
-              <AlertCircle className={stats?.penalty_due > 0 ? "text-rose-400" : "text-green-400"} size={24} />
+            <div className="min-w-0">
+              <h3 className="text-[15px] font-bold text-[#001b4e] leading-none mb-1 uppercase tracking-tight">Seller Standing</h3>
+              <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider leading-none">
+                {stats?.penalty_due > 0 ? 'Action Required' : 'Excellent Performance'}
+              </p>
             </div>
           </div>
-          <p className="text-white/40 text-[11px] leading-tight">
-            Penalties are applied if you cancel an active lead. High penalty scores may lead to account suspension.
-          </p>
+
+          <div className="text-right">
+            <div className={`text-[20px] font-black leading-none mb-1 ${stats?.penalty_due > 0 ? 'text-rose-600' : 'text-[#001b4e]'}`}>
+              ₹{stats?.penalty_due || 0}
+            </div>
+            <div className={`text-[9px] font-black uppercase tracking-widest leading-none ${stats?.penalty_due > 0 ? 'text-rose-400' : 'text-emerald-500'}`}>
+              {stats?.penalty_due > 0 ? 'Deduction' : 'Penalty'}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -722,17 +773,17 @@ function MandiOverview({ partner, isRestricted }) {
           <button 
             onClick={() => {
               if (isApproved) {
-                navigate('/partner/mandi/add-product');
+                navigate('/partner/mandi/orders');
               } else if (isPending) {
-                alert("Your application is currently under review. Material listing will be enabled once approved.");
+                alert("Your application is currently under review. Order management will be enabled once approved.");
               } else {
                 setShowKYCModal(true);
               }
             }} 
             className={`bg-[#001b4e] p-5 rounded-3xl text-white flex flex-col items-center gap-2 shadow-lg shadow-indigo-900/10 active:scale-95 transition-all ${isRestricted ? 'opacity-60 grayscale-[0.5]' : ''}`}
           >
-            <PlusCircle size={24} />
-            <span className="text-[14px] font-bold">List Material</span>
+            <Users size={24} />
+            <span className="text-[14px] font-bold">View Orders</span>
           </button>
           <button 
             onClick={() => {

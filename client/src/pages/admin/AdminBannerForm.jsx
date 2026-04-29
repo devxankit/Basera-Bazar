@@ -14,6 +14,7 @@ export default function AdminBannerForm() {
     title: '',
     description: '',
     priority: 50,
+    position: 'home_top',
     is_active: true,
     image_url: '',
     start_date: '',
@@ -28,15 +29,16 @@ export default function AdminBannerForm() {
           const res = await api.get(`/admin/system/banners/${id}`);
           if (res.data.success) {
             const banner = res.data.data;
-            setFormData({
-              title: banner.title || '',
-              description: banner.description || '',
-              priority: banner.priority || 50,
-              is_active: banner.is_active !== false,
-              image_url: banner.image_url || '',
-              start_date: banner.start_date ? banner.start_date.split('T')[0] : '',
-              end_date: banner.end_date ? banner.end_date.split('T')[0] : ''
-            });
+               setFormData({
+                 title: banner.title || '',
+                 description: banner.description || '',
+                 priority: banner.priority || 50,
+                 position: banner.position || 'home_top',
+                 is_active: banner.is_active !== false,
+                 image_url: banner.image_url || '',
+                 start_date: banner.start_date ? banner.start_date.split('T')[0] : '',
+                 end_date: banner.end_date ? banner.end_date.split('T')[0] : ''
+               });
           }
         } catch (err) {
           console.error(err);
@@ -137,7 +139,7 @@ export default function AdminBannerForm() {
                        />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-8">
+                    <div className="grid grid-cols-3 gap-8">
                        <div className="space-y-2">
                           <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Display Priority</label>
                           <input 
@@ -146,6 +148,19 @@ export default function AdminBannerForm() {
                             onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                             className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-bold shadow-xs outline-none" 
                           />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Banner Placement</label>
+                          <select 
+                            value={formData.position}
+                            onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-bold italic shadow-xs outline-none"
+                          >
+                            <option value="home_top">Marketplace Carousel</option>
+                            <option value="home_middle">Home Middle Strip</option>
+                            <option value="category_sidebar">Category Sidebar</option>
+                            <option value="popup">Announcement Popup</option>
+                          </select>
                        </div>
                        <div className="space-y-2">
                           <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Status</label>

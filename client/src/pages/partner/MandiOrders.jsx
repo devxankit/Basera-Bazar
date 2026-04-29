@@ -24,6 +24,7 @@ export default function MandiOrders() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('active'); // active, delivered, cancelled
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [deliveryOTPs, setDeliveryOTPs] = useState({}); // { itemId: otp }
 
   useEffect(() => {
     fetchOrders();
@@ -41,7 +42,7 @@ export default function MandiOrders() {
     }
   };
 
-  const handleUpdateStatus = async (orderId, itemId, status, method = null) => {
+  const handleUpdateStatus = async (orderId, itemId, status, method = null, delivery_otp = null) => {
     if (status === 'cancelled') {
       if (!window.confirm(`Are you sure you want to cancel this lead? As per policy, your account will be penalized the token booking fee because the amount will be refunded to the customer.`)) return;
     } else {
@@ -49,7 +50,7 @@ export default function MandiOrders() {
     }
 
     try {
-      await api.patch(`/orders/lead/${orderId}/${itemId}/status`, { status, method });
+      await api.patch(`/orders/lead/${orderId}/${itemId}/status`, { status, method, delivery_otp });
       fetchOrders();
     } catch (err) {
       alert("Status update failed");
@@ -57,7 +58,12 @@ export default function MandiOrders() {
   };
 
   const handleMarkDeliveredCOD = (orderId, itemId) => {
-    handleUpdateStatus(orderId, itemId, 'delivered', 'cod');
+    const otp = deliveryOTPs[itemId];
+    if (!otp || otp.length !== 6) {
+      alert("Please enter the 6-digit delivery OTP shared by the customer.");
+      return;
+    }
+    handleUpdateStatus(orderId, itemId, 'delivered', 'cod', otp);
   };
 
   const filteredOrders = orders.filter(order => {
@@ -185,13 +191,25 @@ export default function MandiOrders() {
                         )}
 
                         {item.status === 'shipped' && (
-                          <div className="space-y-2 pt-2 border-t border-slate-100">
+                          <div className="space-y-3 pt-2 border-t border-slate-100">
                             <p className="text-[10px] font-bold text-slate-400 uppercase text-center tracking-widest">Complete Delivery</p>
+                            
+                            <div className="relative">
+                              <input 
+                                type="text" 
+                                placeholder="Enter 6-digit Customer OTP"
+                                maxLength={6}
+                                value={deliveryOTPs[item._id] || ''}
+                                onChange={(e) => setDeliveryOTPs({...deliveryOTPs, [item._id]: e.target.value})}
+                                className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl text-center text-[14px] font-bold tracking-[4px] text-[#001b4e] focus:ring-2 focus:ring-[#001b4e]/20 outline-none placeholder:tracking-normal placeholder:font-medium placeholder:text-slate-400"
+                              />
+                            </div>
+
                             <button
                               onClick={() => handleMarkDeliveredCOD(order._id, item._id)}
-                              className="w-full text-[12px] font-bold text-slate-700 flex flex-col items-center justify-center bg-slate-100 py-3 rounded-xl active:scale-95 transition-all"
+                              className="w-full text-[12px] font-bold text-white flex flex-col items-center justify-center bg-emerald-600 py-3 rounded-xl active:scale-95 transition-all shadow-lg shadow-emerald-600/20"
                             >
-                              <span className="flex items-center gap-1.5"><IndianRupee size={16} /> Mark COD Collected & Delivered</span>
+                              <span className="flex items-center gap-1.5"><CheckCircle2 size={16} /> Mark Delivered</span>
                             </button>
                           </div>
                         )}
@@ -208,7 +226,7 @@ export default function MandiOrders() {
                     <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#001b4e] shadow-sm">
                       <User size={16} />
                     </div>
-                    <span className="text-[13px] font-bold text-[#001b4e]">{order.customer_id?.name || 'Customer'}</span>
+                    <span className="text-[13px] font-bold text-[#001b4e]">{order.user_id?.name || 'Customer'}</span>
                   </div>
                   {/* Optional feature: quick call */}
                   <a href={`tel:${order.shipping_address.phone || ''}`} className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">

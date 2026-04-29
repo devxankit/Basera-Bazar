@@ -19,11 +19,17 @@ import {
   Download,
   ArrowRight,
   Box,
-  Save
+  Save,
+  Trophy,
+  Calendar,
+  Trash2,
+  Info,
+  RefreshCcw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminTable from '../../components/common/AdminTable';
+import MediaDropZone from '../../components/common/MediaDropZone';
 import api from '../../services/api';
 
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
@@ -32,13 +38,26 @@ const labelClass = "text-[10px] font-black text-slate-400 uppercase tracking-wid
 export default function AdminMandiBazar() {
   const { tab } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(tab || 'kyc'); // kyc, withdrawals, economics, orders
+  const [activeTab, setActiveTab] = useState(tab || 'orders'); // withdrawals, orders, milestones
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [commission, setCommission] = useState(10);
   const [tokenAmount, setTokenAmount] = useState(500);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Milestone Config State
+  const [milestoneConfigs, setMilestoneConfigs] = useState([]);
+  const [newMilestone, setNewMilestone] = useState({
+    target_orders: '',
+    prize_name: '',
+    prize_description: '',
+    banner_url: '',
+    valid_until: '',
+    is_active: true
+  });
+  const [viewingMilestone, setViewingMilestone] = useState(null);
+  const [rewardRequests, setRewardRequests] = useState([]);
 
   useEffect(() => {
     if (tab) {
@@ -68,9 +87,51 @@ export default function AdminMandiBazar() {
         if (res.data.success) {
           setTokenAmount(res.data.data.token_amount);
         }
+      } else if (activeTab === 'orders') {
+        const res = await api.get('/admin/marketplace/orders'); // Corrected path
+        setData(res.data.data || []);
+      } else if (activeTab === 'milestones') {
+        const [configRes, rewardRes] = await Promise.all([
+          api.get('/milestones/admin/configs'),
+          api.get('/milestones/admin/rewards')
+        ]);
+        setMilestoneConfigs(configRes.data.data || []);
+        setRewardRequests(rewardRes.data.data || []);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching milestones:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteMilestoneConfig = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this milestone? This action cannot be undone.")) return;
+    try {
+      setLoading(true);
+      await api.delete(`/milestones/admin/config/${id}`);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to delete milestone");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleMilestoneStatus = async (milestone) => {
+    try {
+      setLoading(true);
+      await api.post('/milestones/admin/config', {
+        ...milestone,
+        id: milestone._id,
+        is_active: !milestone.is_active
+      });
+      fetchData();
+      if (viewingMilestone?._id === milestone._id) {
+        setViewingMilestone({ ...viewingMilestone, is_active: !milestone.is_active });
+      }
+    } catch (err) {
+      alert("Failed to update status");
     } finally {
       setLoading(false);
     }
@@ -98,6 +159,39 @@ export default function AdminMandiBazar() {
       alert("Mandi settings updated successfully!");
     } catch (err) {
       alert("Update failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveMilestoneConfig = async () => {
+    try {
+      setLoading(true);
+      await api.post('/milestones/admin/config', newMilestone);
+      alert("Milestone configuration saved!");
+      fetchData();
+      setNewMilestone({
+        target_orders: '',
+        prize_name: '',
+        prize_description: '',
+        banner_url: '',
+        valid_until: '',
+        is_active: true
+      });
+    } catch (err) {
+      alert("Failed to save config");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateRewardStatus = async (id, status, tracking_id = '') => {
+    try {
+      setLoading(true);
+      await api.patch(`/milestones/admin/rewards/${id}`, { status, tracking_id });
+      fetchData();
+    } catch (err) {
+      alert("Failed to update status");
     } finally {
       setLoading(false);
     }
@@ -254,6 +348,118 @@ export default function AdminMandiBazar() {
     }
   ];
 
+  const configColumns = [
+    { header: 'TARGET', accessor: 'target_orders', render: (row) => <span className="font-bold text-[#001b4e]">{row.target_orders} Orders</span> },
+    { header: 'PRIZE NAME', accessor: 'prize_name', render: (row) => <span className="font-bold text-slate-700 uppercase tracking-tight">{row.prize_name}</span> },
+    { 
+      header: 'EXPIRY', 
+      render: (row) => (
+        <span className="text-[11px] font-bold text-slate-400">
+           {row.valid_until ? new Date(row.valid_until).toLocaleDateString() : 'No Expiry'}
+        </span>
+      ) 
+    },
+    { 
+      header: 'STATUS', 
+      render: (row) => (
+        <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${row.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
+          {row.is_active ? 'Active' : 'Inactive'}
+        </span>
+      )
+    },
+    {
+      header: 'ACTIONS',
+      render: (row) => (
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={() => setViewingMilestone(row)}
+            className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-all"
+            title="View Details"
+          >
+            <Eye size={16} />
+          </button>
+          <button 
+            onClick={() => {
+              setNewMilestone({
+                id: row._id,
+                target_orders: row.target_orders,
+                prize_name: row.prize_name,
+                prize_description: row.prize_description,
+                banner_url: row.banner_url,
+                valid_until: row.valid_until ? row.valid_until.split('T')[0] : '',
+                is_active: row.is_active
+              });
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-amber-600 transition-all"
+            title="Edit"
+          >
+            <Settings size={16} />
+          </button>
+          <button 
+            onClick={() => handleDeleteMilestoneConfig(row._id)}
+            className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-rose-600 transition-all"
+            title="Delete"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
+    }
+  ];
+
+  const rewardColumns = [
+    { 
+      header: 'PARTNER INFO', 
+      render: (row) => (
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 uppercase font-black text-[10px]">
+             {row.partner_id?.name?.charAt(0)}
+          </div>
+          <div>
+            <p className="font-bold text-slate-900 leading-none">{row.partner_id?.name || 'Partner'}</p>
+            <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{row.partner_id?.phone}</p>
+          </div>
+        </div>
+      )
+    },
+    { 
+      header: 'PRIZE', 
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <Trophy size={14} className="text-amber-500" />
+          <span className="font-bold text-slate-700">{row.milestone_id?.prize_name}</span>
+        </div>
+      )
+    },
+    { 
+      header: 'SHIPPING ADDRESS', 
+      render: (row) => (
+        <div className="max-w-xs overflow-hidden">
+          <p className="text-[11px] font-medium text-slate-500 line-clamp-2">{row.shipping_address?.full_address}, {row.shipping_address?.city}, {row.shipping_address?.pincode}</p>
+        </div>
+      )
+    },
+    { 
+      header: 'STATUS', 
+      render: (row) => (
+        <select 
+          value={row.status}
+          onChange={(e) => handleUpdateRewardStatus(row._id, e.target.value)}
+          className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider outline-none border-none ${
+            row.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : 
+            row.status === 'shipped' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
+          }`}
+        >
+          <option value="pending">Pending</option>
+          <option value="shipped">Shipped</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      )
+    }
+  ];
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       {/* Header Area */}
@@ -266,7 +472,6 @@ export default function AdminMandiBazar() {
           </h1>
           <p className="text-slate-400 font-medium text-sm mt-0.5">Manage sellers, verify payouts, and configure marketplace economics.</p>
         </div>
-
       </div>
 
       <AnimatePresence mode="wait">
@@ -302,6 +507,134 @@ export default function AdminMandiBazar() {
                data={data}
                loading={loading}
                searchPlaceholder="Find orders by ID or customer..."
+             />
+          </motion.div>
+        )}
+
+        {activeTab === 'milestones' && (
+          <motion.div key="milestones" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10">
+             {/* Configuration Form */}
+             <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-6">
+                   {newMilestone.id && (
+                     <button 
+                       onClick={() => setNewMilestone({ target_orders: '', prize_name: '', prize_description: '', banner_url: '', valid_until: '', is_active: true })}
+                       className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:underline"
+                     >
+                        Clear Edit Mode
+                     </button>
+                   )}
+                </div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-full -mr-16 -mt-16 blur-2xl" />
+                
+                <div className="flex items-center gap-4 mb-8">
+                   <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
+                      <Trophy size={24} />
+                   </div>
+                   <div>
+                      <h3 className="text-xl font-black text-slate-900 tracking-tight">Milestone Settings</h3>
+                      <p className="text-sm font-medium text-slate-400">Set targets and physical rewards for successful mandi sellers.</p>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                   <div className="space-y-1.5">
+                      <label className={labelClass}>Target Orders</label>
+                      <input 
+                        type="number" 
+                        placeholder="e.g. 50" 
+                        value={newMilestone.target_orders}
+                        onChange={e => setNewMilestone({...newMilestone, target_orders: e.target.value})}
+                        className={inputClass} 
+                      />
+                   </div>
+                   <div className="space-y-1.5">
+                      <label className={labelClass}>Prize Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Smart Watch" 
+                        value={newMilestone.prize_name}
+                        onChange={e => setNewMilestone({...newMilestone, prize_name: e.target.value})}
+                        className={inputClass} 
+                      />
+                   </div>
+                   <div className="space-y-1.5">
+                      <label className={labelClass}>Valid Until (Timeline)</label>
+                      <input 
+                        type="date" 
+                        value={newMilestone.valid_until}
+                        onChange={e => setNewMilestone({...newMilestone, valid_until: e.target.value})}
+                        className={inputClass} 
+                      />
+                   </div>
+                   <div className="flex items-end pb-1.5">
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className="relative">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only"
+                            checked={newMilestone.is_active}
+                            onChange={e => setNewMilestone({...newMilestone, is_active: e.target.checked})}
+                          />
+                          <div className={`w-12 h-6 rounded-full transition-colors ${newMilestone.is_active ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${newMilestone.is_active ? 'translate-x-6' : ''}`} />
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">
+                          {newMilestone.is_active ? 'Status: Active' : 'Status: Inactive'}
+                        </span>
+                      </label>
+                   </div>
+                </div>
+
+                <div className="mb-8">
+                   <MediaDropZone 
+                      label="Milestone Banner Image"
+                      description="Click or drag high-quality banner image here (Cloudinary)"
+                      value={newMilestone.banner_url ? [newMilestone.banner_url] : []}
+                      onChange={(urls) => setNewMilestone({...newMilestone, banner_url: urls[0] || ''})}
+                      multiple={false}
+                      maxFiles={1}
+                      accentColor="amber"
+                   />
+                </div>
+
+                <div className="mb-8">
+                   <label className={labelClass}>Prize Description</label>
+                   <textarea 
+                     rows={3}
+                     placeholder="Tell partners what they win and why it's great..."
+                     value={newMilestone.prize_description}
+                     onChange={e => setNewMilestone({...newMilestone, prize_description: e.target.value})}
+                     className={inputClass + " resize-none"}
+                   />
+                </div>
+
+                <button 
+                  onClick={handleSaveMilestoneConfig}
+                  disabled={loading}
+                  className="w-full bg-[#fa641e] text-white py-4 rounded-2xl font-bold text-[14px] shadow-lg shadow-orange-100 flex items-center justify-center gap-2 hover:bg-[#e45b1b] transition-all uppercase tracking-widest"
+                 >
+                   {loading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                   {newMilestone.id ? 'Update Milestone Configuration' : 'Create Milestone Reward'}
+                 </button>
+             </div>
+
+             {/* Configs Table */}
+             <AdminTable 
+               title="Active Milestone Targets"
+               columns={configColumns}
+               data={milestoneConfigs}
+               loading={loading}
+               searchPlaceholder="Search milestones..."
+             />
+
+             {/* Fulfillment Table */}
+             <AdminTable 
+               title="Physical Reward Fulfillment Queue"
+               columns={rewardColumns}
+               data={rewardRequests}
+               loading={loading}
+               searchPlaceholder="Find request by partner name..."
              />
           </motion.div>
         )}
@@ -442,6 +775,113 @@ export default function AdminMandiBazar() {
                    </button>
                 </div>
              </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Milestone View Modal */}
+      <AnimatePresence>
+        {viewingMilestone && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setViewingMilestone(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white w-full max-w-2xl rounded-[40px] overflow-hidden shadow-2xl relative z-20"
+            >
+              <div className="relative h-56 bg-slate-100">
+                {viewingMilestone.banner_url ? (
+                  <img src={viewingMilestone.banner_url} className="w-full h-full object-cover" alt="" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-300">
+                    <ImageIcon size={48} />
+                  </div>
+                )}
+                <button 
+                  onClick={() => setViewingMilestone(null)}
+                  className="absolute top-6 right-6 w-10 h-10 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all"
+                >
+                  <XCircle size={24} />
+                </button>
+              </div>
+
+              <div className="p-10">
+                <div className="flex items-start justify-between mb-8">
+                  <div>
+                    <h3 className="text-2xl font-black text-[#001b4e] uppercase tracking-tight">{viewingMilestone.prize_name}</h3>
+                    <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Requires {viewingMilestone.target_orders} Successful Orders</p>
+                  </div>
+                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${viewingMilestone.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                    {viewingMilestone.is_active ? 'Active Offer' : 'Deactivated'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8 mb-8">
+                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div className="flex items-center gap-3 text-slate-400 mb-2">
+                         <Calendar size={14} />
+                         <span className="text-[10px] font-black uppercase tracking-widest">Expiration Timeline</span>
+                      </div>
+                      <p className="text-sm font-bold text-[#001b4e]">
+                         {viewingMilestone.valid_until ? `Valid until ${new Date(viewingMilestone.valid_until).toLocaleDateString()}` : 'Valid indefinitely'}
+                      </p>
+                   </div>
+                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div className="flex items-center gap-3 text-slate-400 mb-2">
+                         <Info size={14} />
+                         <span className="text-[10px] font-black uppercase tracking-widest">Prize Status</span>
+                      </div>
+                      <p className="text-sm font-bold text-[#001b4e]">Physical Fulfillment Required</p>
+                   </div>
+                </div>
+
+                <div className="mb-10">
+                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Prize Description</h4>
+                   <p className="text-sm text-slate-600 leading-relaxed italic">{viewingMilestone.prize_description || 'No description provided.'}</p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                   <button 
+                     onClick={() => {
+                        setNewMilestone({
+                          id: viewingMilestone._id,
+                          target_orders: viewingMilestone.target_orders,
+                          prize_name: viewingMilestone.prize_name,
+                          prize_description: viewingMilestone.prize_description,
+                          banner_url: viewingMilestone.banner_url,
+                          valid_until: viewingMilestone.valid_until ? viewingMilestone.valid_until.split('T')[0] : '',
+                          is_active: viewingMilestone.is_active
+                        });
+                        setViewingMilestone(null);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                     }}
+                     className="flex-1 bg-[#001b4e] text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl shadow-blue-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                   >
+                     <Settings size={16} /> Edit
+                   </button>
+                   <button 
+                     onClick={() => handleToggleMilestoneStatus(viewingMilestone)}
+                     className={`flex-1 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 ${viewingMilestone.is_active ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}
+                   >
+                     <RefreshCcw size={16} /> {viewingMilestone.is_active ? 'Deactivate' : 'Activate'}
+                   </button>
+                   <button 
+                     onClick={() => {
+                        handleDeleteMilestoneConfig(viewingMilestone._id);
+                        setViewingMilestone(null);
+                     }}
+                     className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all"
+                   >
+                     <Trash2 size={20} />
+                   </button>
+                </div>
+              </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
