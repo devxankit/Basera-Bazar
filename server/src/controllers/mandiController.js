@@ -80,7 +80,7 @@ const getMarketplaceHome = async (req, res) => {
   try {
     // 1. Fetch Categories (Unified under "product" type for Materials)
     const categories = await Category.find({ 
-      type: 'product', 
+      type: { $in: ['product', 'supplier', 'material'] }, 
       is_active: true 
     });
 

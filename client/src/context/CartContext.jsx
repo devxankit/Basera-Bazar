@@ -56,7 +56,10 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => setCart({});
 
-  const cartTotal = Object.values(cart).reduce((sum, item) => sum + (item.item.pricing.price_per_unit * item.qty), 0);
+  const cartTotal = Object.values(cart).reduce((sum, item) => {
+    const price = item.item.pricing?.price_per_unit || item.item.price?.value || 0;
+    return sum + (price * item.qty);
+  }, 0);
   const cartCount = Object.values(cart).length;
 
   return (

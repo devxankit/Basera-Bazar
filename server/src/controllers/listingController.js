@@ -109,23 +109,29 @@ const getNearbyServices = async (req, res) => {
  */
 const getMandiListings = async (req, res) => {
   try {
-    const { lat, lng, district, state, radius = 300 } = req.query;
-
-    const latitude = parseFloat(lat);
-    const longitude = parseFloat(lng);
-
-    if (isNaN(latitude) || isNaN(longitude)) {
-      const query = process.env.NODE_ENV === 'development' 
-        ? { status: { $in: ['active', 'pending_approval'] } }
-        : { status: 'active' };
-      const mandiItems = await MandiListing.find(query).select('-partner_id');
-      return res.status(200).json({ success: true, count: mandiItems.length, data: mandiItems });
+    const { category_id } = req.query;
+    const query = { deleted_at: null };
+    if (process.env.NODE_ENV === 'development') {
+      // In dev, show almost everything to help debugging
+      query.status = { $in: ['active', 'pending_approval', 'draft'] };
+    } else {
+      query.status = 'active';
+    }
+    if (category_id) {
+      try {
+        const oid = new mongoose.Types.ObjectId(category_id);
+        query.$or = [
+          { category_id: oid },
+          { subcategory_id: oid }
+        ];
+      } catch (e) {
+        // invalid ObjectId — ignore category filter
+      }
     }
 
-    const pipeline = buildProximityPipeline(lat, lng, district, state, radius);
-    pipeline.push({ $project: { partner_id: 0 } }); // Hide seller identity
-
-    const mandiItems = await MandiListing.aggregate(pipeline);
+    const mandiItems = await MandiListing.find(query)
+      .populate('category_id', 'name icon mandi_icon type')
+      .sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, count: mandiItems.length, data: mandiItems });
 
@@ -134,6 +140,7 @@ const getMandiListings = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error fetching mandi inventory.' });
   }
 };
+
 
 /**
  * @desc    Partner creates a Draft Property Listing
@@ -390,10 +397,7 @@ const getAllListings = async (req, res) => {
     const proximityRadius = 300;
 
     const fetchCategory = async (Model, modelName) => {
-      // In development mode, we also show pending_approval listings to help the developer see their data
-      const query = process.env.NODE_ENV === 'development' 
-        ? { status: { $in: ['active', 'pending_approval'] } }
-        : { status: 'active' };
+      const query = { status: 'active' };
       if (is_featured === 'true') {
         query.is_featured = true;
       }
@@ -518,8 +522,10 @@ const getPublicCategories = async (req, res) => {
     if (type) query.type = type;
     if (parent_id) {
       query.parent_id = parent_id;
-    } else {
-      query.parent_id = null; // Default to top-level if no parent_id is specified
+    } else if (type !== 'product' && type !== 'material' && type !== 'supplier') {
+      // For non-mandi types, default to top-level categories only
+      // For mandi (product/material), return ALL categories regardless of hierarchy
+      query.parent_id = null;
     }
 
     const categories = await Category.find(query).sort({ name: 1 });
@@ -621,17 +627,20 @@ const updateListing = async (req, res) => {
     const partnerId = req.user.id;
     const updateData = req.body;
 
-    // We need to find which model contains this ID
-    let listing = await PropertyListing.findOne({ _id: id, partner_id: partnerId });
+    // Admins can update any listing, partners only their own
+    const isAdmin = ['admin', 'super_admin', 'SuperAdmin', 'Admin'].includes(req.user.role);
+    const filter = isAdmin ? { _id: id } : { _id: id, partner_id: partnerId };
+
+    let listing = await PropertyListing.findOne(filter);
     let Model = PropertyListing;
 
     if (!listing) {
-      listing = await ServiceListing.findOne({ _id: id, partner_id: partnerId });
+      listing = await ServiceListing.findOne(filter);
       Model = ServiceListing;
     }
 
     if (!listing) {
-      listing = await MandiListing.findOne({ _id: id, partner_id: partnerId });
+      listing = await MandiListing.findOne(filter);
       Model = MandiListing;
     }
 
@@ -639,10 +648,14 @@ const updateListing = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Listing not found or unauthorized' });
     }
 
-    // Update with new data (re-normalize if it's a property)
-    // Note: In a production app, we'd reuse the sanitation logic here.
-    // Properties still require approval, but services and suppliers can be active immediately
-    const nextStatus = Model === PropertyListing ? 'pending_approval' : 'active';
+    // Determine next status: Admins can set status directly, Partners follow review rules
+    let nextStatus;
+    if (isAdmin && updateData.status) {
+      nextStatus = updateData.status;
+    } else {
+      // Logic for partners: properties need review, others are auto-approved
+      nextStatus = Model === PropertyListing ? 'pending_approval' : 'active';
+    }
 
     // Handle is_featured flag changes
     if (updateData.is_featured !== undefined && updateData.is_featured !== listing.is_featured) {
@@ -689,11 +702,14 @@ const deleteListing = async (req, res) => {
     const { id } = req.params;
     const partnerId = req.user.id;
 
-    // Try deleting from any collection
+    // Admins can delete any listing, partners only their own
+    const isAdmin = ['admin', 'super_admin', 'SuperAdmin', 'Admin'].includes(req.user.role);
+    const filter = isAdmin ? { _id: id } : { _id: id, partner_id: partnerId };
+
     const result = await Promise.all([
-      PropertyListing.findOneAndDelete({ _id: id, partner_id: partnerId }),
-      ServiceListing.findOneAndDelete({ _id: id, partner_id: partnerId }),
-      MandiListing.findOneAndDelete({ _id: id, partner_id: partnerId })
+      PropertyListing.findOneAndDelete(filter),
+      ServiceListing.findOneAndDelete(filter),
+      MandiListing.findOneAndDelete(filter)
     ]);
 
     const deleted = result.find(r => r !== null);

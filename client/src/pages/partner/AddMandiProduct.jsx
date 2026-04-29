@@ -35,7 +35,7 @@ export default function AddMandiProduct() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await api.get('/admin/categories?type=product');
+        const res = await api.get('/listings/categories?type=product');
         setCategories(res.data.data);
       } catch (err) {
         console.error(err);
@@ -63,17 +63,24 @@ export default function AddMandiProduct() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.material_id || !formData.price || !formData.stock || !formData.thumbnail) {
-      alert("Please fill all required fields and upload an image.");
+    
+    const isReady = formData.material_id && 
+                    formData.price && 
+                    formData.stock && 
+                    formData.thumbnail;
+
+    if (!isReady) {
+      console.warn("Validation failed. Current form data:", formData);
+      alert("Please select a material type, enter price/stock, and upload an image.");
       return;
     }
 
     try {
       setLoading(true);
       const payload = {
-        title: formData.title || categories.find(c => c._id === formData.material_id)?.name,
+        title: formData.title || categories.find(c => (c._id || c.id) === formData.material_id)?.name,
         category_id: formData.material_id,
-        material_name: categories.find(c => c._id === formData.material_id)?.name,
+        material_name: categories.find(c => (c._id || c.id) === formData.material_id)?.name,
         description: formData.description,
         pricing: {
           price_per_unit: Number(formData.price),
@@ -148,11 +155,11 @@ export default function AddMandiProduct() {
               ) : (
                 categories.map(cat => (
                   <button
-                    key={cat._id}
+                    key={cat._id || cat.id}
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, material_id: cat._id }))}
+                    onClick={() => setFormData(prev => ({ ...prev, material_id: cat._id || cat.id }))}
                     className={`p-4 rounded-2xl border-2 flex items-center gap-3 transition-all ${
-                      formData.material_id === cat._id 
+                      formData.material_id === (cat._id || cat.id)
                       ? 'border-[#001b4e] bg-indigo-50/30' 
                       : 'border-slate-100 bg-white'
                     }`}
@@ -160,7 +167,7 @@ export default function AddMandiProduct() {
                     <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
                        <Box size={16} className="text-slate-500" />
                     </div>
-                    <span className={`text-[13px] font-bold ${formData.material_id === cat._id ? 'text-[#001b4e]' : 'text-slate-500'}`}>
+                    <span className={`text-[13px] font-bold ${formData.material_id === (cat._id || cat.id) ? 'text-[#001b4e]' : 'text-slate-500'}`}>
                       {cat.name}
                     </span>
                   </button>

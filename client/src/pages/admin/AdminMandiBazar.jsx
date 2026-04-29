@@ -97,6 +97,9 @@ export default function AdminMandiBazar() {
         ]);
         setMilestoneConfigs(configRes.data.data || []);
         setRewardRequests(rewardRes.data.data || []);
+      } else if (activeTab === 'products') {
+        const res = await api.get('/listings?category=mandi');
+        setData(res.data.data || []);
       }
     } catch (err) {
       console.error("Error fetching milestones:", err);
@@ -192,6 +195,20 @@ export default function AdminMandiBazar() {
       fetchData();
     } catch (err) {
       alert("Failed to update status");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleProductStatus = async (product) => {
+    try {
+      setLoading(true);
+      const nextStatus = product.status === 'active' ? 'pending_approval' : 'active';
+      await api.put(`/listings/${product._id}`, { status: nextStatus });
+      fetchData();
+    } catch (err) {
+      console.error("Status update error:", err);
+      alert("Failed: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
@@ -345,6 +362,83 @@ export default function AdminMandiBazar() {
           </span>
         );
       }
+    }
+  ];
+
+  const productColumns = [
+    {
+      header: 'MATERIAL INFO',
+      render: (row) => (
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 overflow-hidden shrink-0 shadow-sm">
+             <img src={row.thumbnail} className="w-full h-full object-cover" />
+          </div>
+          <div className="min-w-0">
+             <p className="font-bold text-slate-900 truncate tracking-tight">{row.title}</p>
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{row.material_name}</p>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'SELLER',
+      render: (row) => (
+        <div className="flex flex-col">
+           <span className="font-bold text-slate-700 text-sm">{row.partner_id?.name || 'Unknown'}</span>
+           <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{row.partner_id?.phone}</span>
+        </div>
+      )
+    },
+    {
+      header: 'PRICE & STOCK',
+      render: (row) => (
+        <div className="flex flex-col">
+           <div className="flex items-center gap-1 text-slate-900 font-black">
+              <IndianRupee size={12} className="text-slate-300" />
+              <span>{row.pricing?.price_per_unit}</span>
+              <span className="text-[10px] text-slate-400 font-bold tracking-tighter">/{row.pricing?.unit}</span>
+           </div>
+           <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase mt-0.5">
+              <Box size={10} />
+              <span>{row.stock_quantity} Stock</span>
+           </div>
+        </div>
+      )
+    },
+    {
+      header: 'STATUS',
+      render: (row) => (
+        <div className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border flex items-center gap-1.5 w-fit ${
+          row.status === 'active' 
+            ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+            : 'bg-amber-50 text-amber-600 border-amber-100'
+        }`}>
+          {row.status === 'active' ? 'Live' : 'Under Review'}
+        </div>
+      )
+    },
+    {
+      header: 'ACTIONS',
+      render: (row) => (
+        <div className="flex items-center gap-2">
+           <button 
+             onClick={() => handleToggleProductStatus(row)}
+             className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 border ${
+               row.status === 'active'
+               ? 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-600 hover:text-white'
+               : 'bg-emerald-600 text-white border-emerald-600 hover:bg-slate-900 shadow-md shadow-emerald-100'
+             }`}
+           >
+             {row.status === 'active' ? 'Deactivate' : 'Approve Listing'}
+           </button>
+           <button 
+             onClick={() => window.confirm("Permanently delete this listing?") && api.delete(`/listings/${row._id}`).then(() => fetchData()).catch(err => alert("Failed: " + (err.response?.data?.message || err.message)))}
+             className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+           >
+             <Trash2 size={16} />
+           </button>
+        </div>
+      )
     }
   ];
 
@@ -507,6 +601,18 @@ export default function AdminMandiBazar() {
                data={data}
                loading={loading}
                searchPlaceholder="Find orders by ID or customer..."
+             />
+          </motion.div>
+        )}
+
+        {activeTab === 'products' && (
+          <motion.div key="products" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+             <AdminTable 
+               title="Mandi Inventory Repository"
+               columns={productColumns}
+               data={data}
+               loading={loading}
+               searchPlaceholder="Search materials, sellers, or IDs..."
              />
           </motion.div>
         )}

@@ -5,9 +5,10 @@ import {
   ArrowLeft, Search, Filter, Map, LayoutGrid, Building2,
   ChevronRight, MapPin, Package, Star, Phone, MessageSquare, Clock, Award, X, Navigation,
   ListFilter, History, TrendingUp, TrendingDown, Ruler, Maximize, Check, List, CheckCircle2, Store, Briefcase,
-  Bed, Bath, ArrowRight, Heart
+  Bed, Bath, ArrowRight, Heart, Plus, ShoppingCart, Minus, Truck, FileText, MoreVertical
 } from 'lucide-react';
 import { useLocationContext } from '../../context/LocationContext';
+import { useCart } from '../../context/CartContext';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Skeleton } from '../../components/common/Skeleton';
@@ -27,6 +28,7 @@ const BrowseCategory = () => {
   const subCategory = searchParams.get('sub');
   const navigate = useNavigate();
   const { location } = useLocationContext();
+  const { cart, addToCart, removeFromCart } = useCart();
   
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +40,11 @@ const BrowseCategory = () => {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [selectedDistricts, setSelectedDistricts] = useState([]);
   const [filterState, setFilterState] = useState('Bihar');
+  const [mandiCategories, setMandiCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
+  const [activeMandiCat, setActiveMandiCat] = useState(searchParams.get('cat') || null);
+  const [activeSubCat, setActiveSubCat] = useState(searchParams.get('sub') || null);
+  const [currentCategoryDetails, setCurrentCategoryDetails] = useState(null);
   
   const [activeFilters, setActiveFilters] = useState({
     propertyFor: null,
@@ -71,7 +78,58 @@ const BrowseCategory = () => {
     if (queryFromUrl) {
       setSearchQuery(queryFromUrl);
     }
+
+    // Sync mandi category
+    const mandiCat = searchParams.get('cat');
+    if (mandiCat && mandiCat !== activeMandiCat) {
+      setActiveMandiCat(mandiCat);
+      setActiveSubCat(null); // Reset subcat when parent changes
+    }
+    
+    const sub = searchParams.get('sub');
+    if (sub && sub !== activeSubCat) {
+      setActiveSubCat(sub);
+    }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (category === 'mandi') {
+      db.getCategories('product').then(cats => {
+        if (cats.length > 0) {
+          setMandiCategories(cats);
+          // If we have an active cat from URL, find its details
+          if (activeMandiCat) {
+            const current = cats.find(c => String(c._id) === activeMandiCat);
+            if (current) setCurrentCategoryDetails(current);
+            
+            // Fetch subcategories
+            db.getCategories('product', { parent_id: activeMandiCat }).then(subs => {
+               setSubCategories(subs);
+            });
+          }
+        }
+      });
+    }
+  }, [category, activeMandiCat]);
+
+  // When mandi items load, derive any missing categories from the items themselves
+  // This ensures the sidebar always reflects what's actually available
+  useEffect(() => {
+    if (category === 'mandi' && items.length > 0) {
+      setMandiCategories(prev => {
+        const existing = new Set(prev.map(c => String(c._id)));
+        const fromItems = [];
+        items.forEach(item => {
+          if (item.category_id && typeof item.category_id === 'object' && !existing.has(String(item.category_id._id || item.category_id))) {
+            fromItems.push(item.category_id);
+            existing.add(String(item.category_id._id || item.category_id));
+          }
+        });
+        return fromItems.length > 0 ? [...prev, ...fromItems] : prev;
+      });
+    }
+  }, [items, category]);
+
 
   const toggleFilter = (key, value) => {
     setActiveFilters(prev => ({
@@ -132,6 +190,7 @@ const BrowseCategory = () => {
       const params = {
         category: category !== 'all' ? category : undefined,
         subCategory: subCategory || undefined,
+        category_id: (category === 'mandi') ? (activeSubCat || activeMandiCat || undefined) : undefined,
         search: searchQuery || undefined,
         ...locationParams,
         ...activeFilters // Price ranges etc
@@ -223,388 +282,254 @@ const BrowseCategory = () => {
   const isService = category === 'service';
   const isSupplier = category === 'supplier';
   const isProperty = category === 'property';
+  const isMandi = category === 'mandi';
 
   return (
     <div className="bg-white flex flex-col pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* Header */}
-      <div className="bg-white sticky top-0 z-50 shadow-sm">
-        {/* Back + title row */}
-        <div className="px-4 py-3 flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-[#1f2355] shrink-0 -ml-1">
-            <ArrowLeft size={22} />
+      {/* ── PREMIUM HEADER ── */}
+      <div className="bg-white sticky top-0 z-[100] shadow-sm px-4 py-3 flex items-center justify-between border-b border-slate-50">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="w-9 h-9 flex items-center justify-center text-slate-700 active:scale-90 transition-all">
+            <ArrowLeft size={22} strokeWidth={2.5} />
           </button>
-          <h1 className="font-bold text-[#1f2355] capitalize truncate" style={{ fontSize: 'clamp(14px, 4.5vw, 18px)' }}>
-            {category === 'all' ? 'All Listings' : `${category}s`}
-          </h1>
-        </div>
-
-        {/* Search Bar */}
-        <div className="px-4 mb-3 flex items-center gap-2">
-          <div className="flex-grow bg-white border border-slate-200 rounded-2xl flex items-center px-3 py-0 shadow-sm focus-within:border-[#1f2355] transition-all">
-            <Search size={16} className="text-slate-400 shrink-0" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={`Search ${category}s...`}
-              className="w-full bg-transparent outline-none pl-2 py-3 text-[13px] text-[#1f2355] placeholder:text-slate-400 font-medium"
-            />
+          <div className="flex flex-col leading-none" onClick={() => navigate('/')}>
+            <div className="flex items-center gap-0.5">
+              <span className="font-black text-orange-500 text-[18px]">बसेरा</span>
+              <span className="font-black text-[#1f2355] uppercase ml-0.5 text-[18px]">BAZAR</span>
+            </div>
+            <p className="font-bold text-orange-500 text-[8px] tracking-tight">Building better, together</p>
           </div>
-          <button onClick={() => setIsFilterOpen(true)} className="w-11 h-11 bg-[#1f2355] rounded-2xl flex items-center justify-center text-white shadow-md active:scale-95 transition-all shrink-0">
-            <Filter size={18} strokeWidth={2.5} />
-          </button>
         </div>
 
-        {/* Filter & Sort Pills */}
-        <div className="px-4 mb-3 flex gap-2">
-          <button
-            onClick={() => setIsFilterOpen(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 font-bold text-[#1f2355] bg-white py-3 rounded-2xl border border-slate-100 shadow-sm active:scale-95 transition-all"
-            style={{ fontSize: 'clamp(11px, 3.5vw, 14px)' }}
-          >
-            <Filter size={15} className="text-[#1f2355]" /> Filters <ChevronRight size={14} className="rotate-90 opacity-40" />
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(`/browse/${category}?search=true`)} className="w-9 h-9 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355] active:scale-90 transition-all">
+            <Search size={18} strokeWidth={2.5} />
           </button>
-          <button
-            onClick={() => setIsSortOpen(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 font-bold text-[#1f2355] bg-white py-3 rounded-2xl border border-slate-100 shadow-sm active:scale-95 transition-all"
-            style={{ fontSize: 'clamp(11px, 3.5vw, 14px)' }}
-          >
-            <ArrowRight size={15} className="text-[#1f2355] rotate-90" /> Sort: {sortBy.split(' ')[0]} <ChevronRight size={14} className="rotate-90 opacity-40" />
+          <button onClick={() => navigate('/cart')} className="relative w-9 h-9 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355] active:scale-90 transition-all border border-slate-100">
+            <ShoppingCart size={18} strokeWidth={2.5} />
+            {Object.keys(cart).length > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full text-[9px] text-white font-black flex items-center justify-center border-2 border-white shadow-sm">
+                {Object.values(cart).reduce((sum, item) => sum + item.qty, 0)}
+              </span>
+            )}
           </button>
-        </div>
-
-        {/* Results count + view toggle */}
-        <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100">
-          <h3 className="font-black text-[#1f2355]" style={{ fontSize: 'clamp(13px, 4vw, 16px)' }}>
-            {items.length} {isService ? 'Services' : isSupplier ? 'Suppliers' : 'Properties'} Found
-          </h3>
-          <div className="flex bg-slate-50 border border-slate-100 rounded-xl p-1">
-            <button
-              onClick={() => setIsGridView(false)}
-              className={cn('p-1.5 rounded-lg transition-all', !isGridView ? 'bg-[#1f2355] text-white shadow-md' : 'text-slate-400')}
-            >
-              <List size={16} />
-            </button>
-            <button
-              onClick={() => setIsGridView(true)}
-              className={cn('p-1.5 rounded-lg transition-all', isGridView ? 'bg-[#1f2355] text-white shadow-md' : 'text-slate-400')}
-            >
-              <LayoutGrid size={16} />
-            </button>
-          </div>
+          <button className="w-9 h-9 flex items-center justify-center text-slate-400">
+            <MoreVertical size={20} />
+          </button>
         </div>
       </div>
 
-      {/* Results List */}
+      {/* ── MANDI HERO SECTION ── */}
+      {isMandi && currentCategoryDetails && (
+        <div className="px-4 pt-4 bg-white animate-in fade-in slide-in-from-top-4 duration-700">
+          <div className="relative rounded-[32px] overflow-hidden bg-slate-50 min-h-[160px] flex items-center px-6 py-8 border border-slate-100/50">
+            {/* Background Decorative Image */}
+            <div className="absolute right-0 top-0 bottom-0 w-[55%] opacity-40">
+              <img 
+                src={currentCategoryDetails.mandi_icon || currentCategoryDetails.icon || "https://images.unsplash.com/photo-1574621100236-d25b64cfd647?q=80&w=600&auto=format&fit=crop"} 
+                className="w-full h-full object-cover"
+                style={{ maskImage: 'linear-gradient(to left, black, transparent)' }}
+                alt="category-bg"
+              />
+            </div>
+            
+            <div className="relative z-10 max-w-[65%]">
+              <h2 className="text-[28px] font-black text-[#1f2355] leading-tight mb-2">
+                {currentCategoryDetails.name}
+              </h2>
+              <p className="text-[11px] font-medium text-slate-500 leading-relaxed line-clamp-2 mb-4">
+                {currentCategoryDetails.description || `Premium quality ${currentCategoryDetails.name} materials for strong and durable construction of your dream home.`}
+              </p>
+              
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { icon: CheckCircle2, label: '100% Natural' },
+                  { icon: Star, label: 'Best Quality' }
+                ].map((tag, i) => (
+                  <div key={i} className="flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-slate-100 shadow-sm">
+                    <tag.icon size={11} className="text-orange-500" strokeWidth={3} />
+                    <span className="text-[9px] font-black text-[#1f2355] uppercase tracking-tight">{tag.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MANDI SUB-TABS ── */}
+      {isMandi && (
+        <div className="bg-white sticky top-[68px] z-40 border-b border-slate-50 pt-5 pb-0">
+          <div className="flex overflow-x-auto no-scrollbar px-4 gap-7">
+            <button 
+              onClick={() => {
+                setActiveSubCat(null);
+                setSearchParams(prev => { prev.delete('sub'); return prev; });
+              }}
+              className={cn(
+                "pb-3.5 text-[14px] font-black whitespace-nowrap transition-all relative uppercase tracking-wide",
+                !activeSubCat ? "text-orange-500" : "text-slate-400"
+              )}
+            >
+              All Products ({items.length})
+              {!activeSubCat && <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-500 rounded-t-full" />}
+            </button>
+            {subCategories.map((sub) => (
+              <button 
+                key={sub._id}
+                onClick={() => {
+                  setActiveSubCat(sub._id);
+                  setSearchParams(prev => { prev.set('sub', sub._id); return prev; });
+                }}
+                className={cn(
+                  "pb-3.5 text-[14px] font-black whitespace-nowrap transition-all relative uppercase tracking-wide",
+                  activeSubCat === sub._id ? "text-orange-500" : "text-slate-400"
+                )}
+              >
+                {sub.name}
+                {activeSubCat === sub._id && <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-500 rounded-t-full" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── FILTER & SORT BAR ── */}
+      <div className="px-4 py-4 flex items-center justify-between bg-white border-b border-slate-50 sticky top-[125px] z-30">
+        <div className="flex gap-2.5 flex-grow max-w-[80%]">
+          <button onClick={() => setIsFilterOpen(true)} className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 text-[13px] font-black text-[#1f2355] active:scale-95 transition-all">
+            <Filter size={16} strokeWidth={2.5} /> Filter
+          </button>
+          <button onClick={() => setIsSortOpen(true)} className="flex-grow flex items-center justify-between px-5 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 text-[13px] font-black text-[#1f2355] active:scale-95 transition-all">
+            <span className="truncate">Sort By: {sortBy.split(':')[0]}</span>
+            <ChevronRight size={14} className="rotate-90 opacity-40 ml-1" />
+          </button>
+        </div>
+        <div className="flex bg-slate-50 border border-slate-100 rounded-xl p-1.5 ml-3">
+          <button onClick={() => setIsGridView(false)} className={cn('p-1.5 rounded-lg transition-all', !isGridView ? 'bg-white text-orange-500 shadow-sm' : 'text-slate-400')}>
+            <List size={18} strokeWidth={2.5} />
+          </button>
+          <button onClick={() => setIsGridView(true)} className={cn('p-1.5 rounded-lg transition-all', isGridView ? 'bg-white text-orange-500 shadow-sm' : 'text-slate-400')}>
+            <LayoutGrid size={18} strokeWidth={2.5} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── RESULTS LISTING ── */}
       <Skeleton name="browse-results-grid" loading={loading}>
-        <div className={`pt-4 pb-10 ${isGridView ? 'px-3 grid grid-cols-2 gap-3' : 'px-3 space-y-3'}`}>
+        <div className="flex-grow bg-white pb-40">
+          <div className={cn(
+            "p-4",
+            isMandi ? "space-y-5" : (isGridView ? 'grid grid-cols-2 gap-4' : 'space-y-4')
+          )}>
           {items.length > 0 ? (
             items.map((item) => (
               isService ? (
-                /* Service Card — Grid/List Responsive */
+                /* Service Card */
+                <div key={item.id} onClick={() => navigate(`/service/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl overflow-hidden flex h-36 active:scale-[0.98] transition-all">
+                   <div className="w-36 bg-slate-50 overflow-hidden relative shrink-0">
+                      <img src={item.image} className="w-full h-full object-cover" alt={item.title} />
+                   </div>
+                   <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
+                      <div>
+                        <h3 className="font-bold text-[#1f2355] text-[15px] leading-tight line-clamp-2">{item.title}</h3>
+                        <div className="flex items-center gap-1 mt-1">
+                          <MapPin size={10} className="text-orange-500" />
+                          <span className="text-[10px] text-slate-400 font-bold truncate">{item.location || 'Bihar'}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-end">
+                         <span className="font-black text-[#1f2355] text-[18px]">₹{item.price?.value}</span>
+                         <button className="text-[11px] font-black text-orange-500 uppercase tracking-wider">Book Now</button>
+                      </div>
+                   </div>
+                </div>
+              ) : isMandi ? (
+                /* ── NEW MANDI LIST CARD ── */
                 <div
                   key={item.id}
-                  onClick={() => navigate(`/service/${item.id}`)}
-                  className={cn(
-                    "bg-white border border-slate-100 shadow-sm overflow-hidden group active:scale-[0.99] transition-all cursor-pointer",
-                    isGridView ? "rounded-2xl flex flex-col" : "rounded-2xl flex"
-                  )}
+                  className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm hover:shadow-md transition-all group flex h-[160px] xs:h-[185px] active:scale-[0.99]"
+                  onClick={() => navigate(`/listing/${item.id}`)}
                 >
-                  {/* Image Section */}
-                  <div className={cn(
-                    "relative shrink-0 overflow-hidden bg-slate-100",
-                    isGridView ? "w-full aspect-[4/3]" : "w-[105px] xs:w-[120px] sm:w-[130px]"
-                  )}>
-                    <img
-                      src={item.image || 'https://images.unsplash.com/photo-1581578731522-745d4b45a07e?q=80&w=400&auto=format&fit=crop'}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      alt={item.title}
-                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1581578731522-745d4b45a07e?q=80&w=400&auto=format&fit=crop'; }}
-                    />
-                    {/* Status Badge overlay */}
-                    <div className={cn(
-                      "absolute bottom-2 left-2 flex items-center gap-1 bg-[#4f46e5] text-white font-black uppercase rounded-lg shadow-md",
-                      isGridView ? "px-1.5 py-1 text-[7px]" : "px-2 py-1.5 text-[9px]"
-                    )}>
-                      <CheckCircle2 size={isGridView ? 8 : 10} strokeWidth={3} />
-                      <span>{item.category_id?.name || item.category_name || 'Service'}</span>
-                    </div>
-                    {/* Heart on top right in Grid View */}
-                    {isGridView && (
-                      <button className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-slate-400 hover:text-red-500 transition-colors">
-                        <Heart size={14} />
-                      </button>
+                  <div className="w-[40%] xs:w-[35%] bg-slate-50 relative overflow-hidden shrink-0">
+                    <img src={item.image || item.thumbnail || '/placeholder-material.png'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={item.title} />
+                    {item.is_featured && (
+                      <div className="absolute top-3 left-3 bg-emerald-500 text-white text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-lg z-10">
+                        Best Seller
+                      </div>
                     )}
                   </div>
-
-                  {/* Content Section */}
-                  <div className={cn(
-                    "flex-1 flex flex-col justify-between min-w-0",
-                    isGridView ? "p-3 space-y-1" : "p-3 xs:p-4"
-                  )}>
-                    <div className="space-y-1">
-                      <div className="flex items-start justify-between gap-1">
-                        <h3 className={cn(
-                          "font-bold text-[#1f2355] leading-snug line-clamp-2 flex-1",
-                          isGridView ? "text-[12px]" : "text-[15px]"
-                        )}>
+                  
+                  <div className="flex-1 p-4 xs:p-5 flex flex-col justify-between min-w-0">
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-black text-[#1f2355] text-[15px] xs:text-[18px] leading-tight line-clamp-2 flex-1">
                           {item.title}
                         </h3>
-                        {!isGridView && (
-                          <button className="shrink-0 text-slate-300 hover:text-red-400 transition-colors mt-0.5 ml-1">
-                            <Heart size={18} />
-                          </button>
-                        )}
+                        <button className="text-slate-300 hover:text-red-500 transition-colors shrink-0">
+                          <Heart size={20} />
+                        </button>
                       </div>
-
-                      <span className={cn(
-                        "inline-block px-2 py-0.5 bg-[#eef2ff] text-[#4f46e5] rounded-full font-semibold tracking-tight",
-                        isGridView ? "text-[8px]" : "text-[10px]"
-                      )}>
-                        {item.subcategory_name || item.category_name || item.serviceType || 'Service'}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1">
-                      {/* Partner Row */}
-                      <div className="flex items-center gap-1.5">
-                        <div className={cn(
-                          "rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[#1f2355] font-bold shrink-0",
-                          isGridView ? "w-5 h-5 text-[7px]" : "w-6 h-6 text-[9px]"
-                        )}>
-                          {String(item.businessName || item.title || 'BP').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                        </div>
-                        <span className={cn(
-                          "font-semibold text-[#1f2355] truncate",
-                          isGridView ? "text-[10px]" : "text-[12px]"
-                        )}>{item.businessName || 'Verified Partner'}</span>
-                        <div className="rounded-full bg-[#3b82f6] flex items-center justify-center shrink-0 w-3 h-3">
-                          <Check size={7} className="text-white" strokeWidth={3.5} />
-                        </div>
-                      </div>
-
-                      {/* Location Row */}
-                      <div className="flex items-center gap-1">
-                        <MapPin size={isGridView ? 10 : 12} className="text-[#1f2355] shrink-0" />
-                        <span className={cn(
-                          "font-medium text-slate-500 truncate",
-                          isGridView ? "text-[9px]" : "text-[11px]"
-                        )}>{item.location || 'Muzaffarpur, Bihar'}</span>
-                      </div>
-
-                      {/* Rating Row */}
-                      <div className="flex items-center gap-0.5">
-                        {[...Array(5)].map((_, i) => <Star key={i} size={isGridView ? 9 : 12} fill="currentColor" className="text-orange-400" />)}
-                        <span className={cn("font-bold text-[#1f2355] ml-0.5", isGridView ? "text-[10px]" : "text-[12px]")}>5.0</span>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tight truncate opacity-80">
+                        {item.material_name || 'Premium Material'} • Top Rated Choice
+                      </p>
+                      <div className="flex items-center gap-1 mt-2.5">
+                        {[1, 2, 3, 4].map(i => <Star key={i} size={11} className="fill-orange-400 text-orange-400" />)}
+                        <Star size={11} className="text-orange-400" />
+                        <span className="text-[10px] font-black text-slate-400 ml-1.5">(128)</span>
                       </div>
                     </div>
 
-                    {/* Footer Row — Optimized for List View Width */}
-                    <div className={cn(
-                      "flex items-center justify-between gap-1.5",
-                      isGridView ? "mt-1" : "mt-2.5 sm:mt-3"
-                    )}>
-                      <div className={cn(
-                        "bg-[#fff8ed] border border-[#fde8b8] rounded-xl flex items-center gap-1 shrink-0",
-                        isGridView ? "px-1.5 py-0.5" : "px-2 py-1 xs:px-2.5 xs:py-1.5"
-                      )}>
-                        <Briefcase size={isGridView ? 9 : 10} className="text-[#b45309]" strokeWidth={2.5} />
-                        <span className={cn("font-bold text-[#b45309] whitespace-nowrap", isGridView ? "text-[8px]" : "text-[9px] xs:text-[10px]")}>
-                          {isGridView ? `${item.experience || '8'} Yrs` : `Exp: ${item.experience || '8'} Yrs`}
-                        </span>
+                    <div className="flex items-end justify-between mt-auto gap-3">
+                      <div className="flex flex-col">
+                        <span className="text-[#1f2355] font-black text-[20px] xs:text-[22px] leading-none tracking-tight">₹{item.price?.value.toLocaleString()}</span>
+                        <span className="text-slate-400 text-[9px] font-black uppercase tracking-tighter mt-1 opacity-70">/ {item.price?.unit || 'Ton'}</span>
                       </div>
-                      {!isGridView && (
-                        <button
-                          className="bg-[#1f2355] text-white rounded-xl font-bold whitespace-nowrap active:scale-95 transition-all shadow-md shrink-0"
-                          style={{ 
-                            fontSize: 'clamp(9px, 2.8vw, 11px)', 
-                            padding: 'clamp(6px, 2vw, 9px) clamp(10px, 3vw, 16px)' 
-                          }}
-                        >
-                          View Profile
+                      
+                      {cart[item.id] ? (
+                        <div className="flex items-center bg-orange-50 rounded-2xl border border-orange-100 overflow-hidden h-11 shadow-inner px-1">
+                          <button onClick={(e) => { e.stopPropagation(); removeFromCart(item.id); }} className="w-10 h-full flex items-center justify-center text-orange-600 hover:bg-orange-100 transition-all"><Minus size={16} strokeWidth={3} /></button>
+                          <span className="w-7 text-center text-[15px] font-black text-[#1f2355]">{cart[item.id].qty}</span>
+                          <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="w-10 h-full flex items-center justify-center text-orange-600 hover:bg-orange-100 transition-all"><Plus size={16} strokeWidth={3} /></button>
+                        </div>
+                      ) : (
+                        <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="px-6 h-11 bg-orange-500 hover:bg-orange-600 rounded-2xl flex items-center gap-2 text-white shadow-xl shadow-orange-200 active:scale-95 transition-all text-[12px] font-black uppercase tracking-wider">
+                          <ShoppingCart size={16} strokeWidth={2.5} /> Add
                         </button>
                       )}
                     </div>
                   </div>
                 </div>
               ) : isSupplier ? (
-                /* Redesigned Supplier Card — Midnight Industrial Premium */
-                <motion.div
-                  key={item._id || item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  onClick={() => navigate(`/listing/${item._id || item.id}`)}
-                  className={cn(
-                    "bg-white border border-slate-100 shadow-sm overflow-hidden group cursor-pointer transition-all active:scale-[0.98] relative",
-                    isGridView ? "rounded-[32px] flex flex-col" : "rounded-[28px] flex h-36 xs:h-44"
-                  )}
-                >
-                  {/* Image Area */}
-                  <div className={cn(
-                    "relative overflow-hidden shrink-0",
-                    isGridView ? "w-full aspect-[4/3]" : "w-32 xs:w-44 h-full"
-                  )}>
-                    <img 
-                      src={item.image} 
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1586864387917-f579ae5259fb?q=80&w=400&auto=format&fit=crop'; }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-40" />
-                    
-                    {/* Floating Status Badge */}
-                    <div className="absolute top-2.5 left-2.5">
-                      <span className="bg-white/90 backdrop-blur-md text-[#001b4e] px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm">
-                        Verified
-                      </span>
+                /* Supplier Card */
+                <div key={item.id} onClick={() => navigate(`/listing/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl p-5 flex gap-5 active:scale-[0.98] transition-all">
+                  <div className="w-24 h-24 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
+                    <img src={item.profile?.image || '/placeholder-supplier.png'} className="w-full h-full object-cover" alt={item.name} />
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <h3 className="font-black text-[#1f2355] text-[16px] truncate">{item.name}</h3>
+                    <p className="text-[11px] text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{item.profile?.bio || 'Verified supplier of premium building materials.'}</p>
+                    <div className="mt-3 flex gap-2">
+                       <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-black rounded-full uppercase tracking-widest border border-emerald-100">Verified</span>
                     </div>
                   </div>
-
-                  {/* Info Area */}
-                  <div className={cn(
-                    "flex flex-col justify-between flex-grow min-w-0",
-                    isGridView ? "p-4 space-y-2.5" : "p-3 xs:p-5"
-                  )}>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-lg font-black uppercase tracking-tighter" style={{ fontSize: '8px' }}>
-                          {item.subCategory || 'Building Materials'}
-                        </span>
-                      </div>
-                      
-                      <h3 className={cn(
-                        "font-black text-[#001b4e] leading-tight line-clamp-1 group-hover:text-[#3b82f6] transition-colors",
-                        isGridView ? "text-[15px]" : "text-[16px] xs:text-[20px]"
-                      )}>
-                        {item.title}
-                      </h3>
-
-                      <div className="flex items-center gap-1.5 font-bold text-slate-400" style={{ fontSize: isGridView ? '10px' : '12px' }}>
-                        <MapPin size={isGridView ? 12 : 14} className="text-slate-300 shrink-0" />
-                        <span className="truncate">{item.location?.city || item.location || 'Muzaffarpur, Bihar'}</span>
-                      </div>
-                    </div>
-
-                    <div className={cn(
-                      "flex items-center justify-between border-t border-slate-50 pt-2",
-                      isGridView ? "mt-1" : "mt-2"
-                    )}>
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex items-center gap-0.5">
-                          <Star size={isGridView ? 10 : 12} className="fill-amber-400 text-amber-400" />
-                          <span className="font-black text-[#001b4e]" style={{ fontSize: isGridView ? '11px' : '13px' }}>4.8</span>
-                        </div>
-                        <span className="text-slate-300">|</span>
-                        <span className="font-bold text-slate-400" style={{ fontSize: isGridView ? '10px' : '12px' }}>150+ Pros</span>
-                      </div>
-
-                      <button className="bg-[#001b4e] text-white p-2 xs:p-2.5 rounded-2xl active:scale-90 transition-all shadow-lg shadow-indigo-100/50">
-                        <ArrowRight size={isGridView ? 14 : 18} />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
+                </div>
               ) : (
-                /* Reimaged Property Card (Premium) */
-                <div
-                  key={item.id}
-                  onClick={() => navigate(`/listing/${item.id}`)}
-                  className={cn(
-                    "bg-white border border-slate-100 shadow-[0_5px_15px_rgba(0,0,0,0.03)] overflow-hidden active:scale-[0.98] transition-all group cursor-pointer",
-                    isGridView ? "rounded-2xl h-auto flex flex-col" : "rounded-2xl flex h-40 sm:h-44"
-                  )}
-                >
-                  {/* Image Section */}
-                  <div className={cn(
-                    "relative overflow-hidden shrink-0",
-                    isGridView ? "h-26 xs:h-32 w-full" : "w-36 xs:w-44 h-full"
-                  )}>
-                    <img 
-                      src={item.image || item.images?.[0]} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                      alt={item.title} 
-                    />
-                    
-                    {/* Badges Stack */}
-                    <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 items-start">
-                      {/* Intent Badge */}
-                      <div className={cn(
-                        "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-sm border",
-                        (item.listing_intent || item.type || 'sell').toLowerCase() === 'sell' && "bg-emerald-500/90 text-white border-emerald-400/50",
-                        (item.listing_intent || item.type || 'sell').toLowerCase() === 'rent' && "bg-[#124db5]/90 text-white border-blue-400/50",
-                        (item.listing_intent || item.type || 'sell').toLowerCase() === 'lease' && "bg-purple-500/90 text-white border-purple-400/50"
-                      )}>
-                        {item.listing_intent || item.type || 'Buy'}
+                /* Property Card */
+                <div key={item.id} onClick={() => navigate(`/listing/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl overflow-hidden flex flex-col h-auto active:scale-[0.98] transition-all group">
+                   <div className="aspect-[16/10] relative overflow-hidden">
+                      <img src={item.image || item.images?.[0]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={item.title} />
+                      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[10px] font-black uppercase text-[#1f2355]">
+                        {item.type || 'Property'}
                       </div>
-
-                      {/* Featured Badge */}
-                      {(item.featured || item.is_featured) && (
-                        <span className="bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full text-[8px] font-black uppercase text-emerald-600 border border-emerald-100 shadow-sm whitespace-nowrap">
-                          ★ Featured
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Content Section */}
-                  <div className={cn(
-                    "flex flex-col justify-between min-w-0 flex-grow",
-                    isGridView ? "p-2.5 space-y-1.5" : "p-3 xs:p-4"
-                  )}>
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-start gap-2">
-                         <h3 className={cn(
-                           "font-bold text-[#1f2355] leading-tight tracking-tight",
-                           isGridView ? "text-[13px] line-clamp-1" : "text-[14px] xs:text-[16px] sm:text-[18px] line-clamp-1"
-                         )}>
-                           {item.title}
-                         </h3>
+                   </div>
+                   <div className="p-5">
+                      <h3 className="font-black text-[#1f2355] text-[17px] leading-tight line-clamp-1">{item.title}</h3>
+                      <div className="mt-4 flex justify-between items-center pt-4 border-t border-slate-50">
+                        <span className="font-black text-[#1f2355] text-[20px]">₹{item.price?.value.toLocaleString()}</span>
+                        <span className="text-[11px] font-black text-orange-500 uppercase tracking-widest">Details</span>
                       </div>
-                      
-                      <div className="flex items-center gap-1 font-semibold text-slate-400" style={{ fontSize: isGridView ? '9px' : '11px' }}>
-                        <MapPin size={isGridView ? 10 : 12} className="text-emerald-500 shrink-0" />
-                        <span className="truncate">{item.location || item.address?.district || 'Bihar'}</span>
-                      </div>
-                    </div>
-
-                    {/* Specs Chips Row */}
-                    <div className={cn("flex flex-wrap gap-1", isGridView ? "py-0.5" : "py-1")}>
-                      {item.details?.bhk && (
-                        <div className="bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-lg flex items-center gap-1 font-bold text-slate-500 whitespace-nowrap" style={{ fontSize: isGridView ? '8px' : '9px' }}>
-                          <Bed size={isGridView ? 8 : 9} className="text-[#124db5]" /> {item.details.bhk} BHK
-                        </div>
-                      )}
-                      {(item.details?.area || item.details?.area?.value) && (
-                        <div className="bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-lg flex items-center gap-1 font-bold text-slate-500 whitespace-nowrap" style={{ fontSize: isGridView ? '8px' : '9px' }}>
-                          <LayoutGrid size={isGridView ? 8 : 9} className="text-[#124db5]" /> 
-                          {item.details.area?.value || item.details.area} {item.details.area?.unit || 'sqft'}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Pricing Footer */}
-                    <div className={cn(
-                      "flex items-center justify-between border-t border-slate-50 pt-1.5",
-                      isGridView ? "mt-0.5" : "mt-1"
-                    )}>
-                      <div className="flex flex-col min-w-0">
-                        <p className={cn(
-                          "font-black text-[#124db5] leading-none truncate",
-                          isGridView ? "text-[14px]" : "text-[18px] xs:text-[20px]"
-                        )}>
-                          ₹{(() => {
-                            const val = item.pricing?.amount || item.price?.value || 0;
-                            if (val >= 10000000) return `${(val / 10000000).toFixed(1)} Cr`;
-                            if (val >= 100000) return `${(val / 100000).toFixed(1)} Lac`;
-                            return val.toLocaleString('en-IN');
-                          })()}
-                          {(item.listing_intent?.toLowerCase() === 'rent' || item.type?.toLowerCase() === 'rent') && (
-                            <span className="font-bold text-slate-400 uppercase tracking-tighter ml-0.5" style={{ fontSize: isGridView ? '7px' : '9px' }}>/mo</span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                   </div>
                 </div>
               )
             ))
@@ -621,7 +546,8 @@ const BrowseCategory = () => {
             </div>
           )}
         </div>
-      </Skeleton>
+      </div>
+    </Skeleton>
 
       {/* CTA Banner — Removed as per user request */}
 

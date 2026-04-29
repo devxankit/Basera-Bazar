@@ -34,7 +34,7 @@ const SupplierCategories = () => {
           <button onClick={() => navigate(-1)} className="p-1 text-primary-900 hover:bg-slate-50 transition-all">
             <ArrowLeft size={22} />
           </button>
-          <h1 className="text-xl font-semibold text-primary-900 tracking-tight uppercase">Supplier Categories</h1>
+          <h1 className="text-xl font-semibold text-primary-900 tracking-tight uppercase">Product Categories</h1>
         </div>
         <button className="p-2 text-slate-400">
           <Search size={22} />

@@ -162,7 +162,7 @@ export default function PartnerEditProfile() {
 
             {formData.role === 'supplier' && (
               <div className="pt-2">
-                <label className="text-[13px] font-bold text-slate-500 ml-1 uppercase tracking-wider mb-2 block">Supplier Categories</label>
+                <label className="text-[13px] font-bold text-slate-500 ml-1 uppercase tracking-wider mb-2 block">Product Categories</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {SUPPLIER_CATEGORIES.map(category => {
                     let currentCats = [];

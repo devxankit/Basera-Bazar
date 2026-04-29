@@ -9,7 +9,8 @@ import {
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { db } from '../../services/DataEngine';
-import { Star, MapPin as Pin, Heart } from 'lucide-react';
+import { Star, MapPin as Pin, Heart, ShoppingCart, Plus, Minus } from 'lucide-react';
+import { useCart } from '../../context/CartContext';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -17,24 +18,28 @@ function cn(...inputs) {
 
 const Home = () => {
   const navigate = useNavigate();
+  const { cart, addToCart, removeFromCart } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [featuredProperties, setFeaturedProperties] = useState([]);
   const [featuredServices, setFeaturedServices] = useState([]);
   const [featuredSuppliers, setFeaturedSuppliers] = useState([]);
+  const [featuredMandi, setFeaturedMandi] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [props, servs, supps] = await Promise.all([
+        const [props, servs, supps, mandi] = await Promise.all([
           db.getAll('listings', { category: 'property', limit: 6 }),
           db.getAll('listings', { category: 'service', limit: 6 }),
-          db.getAll('partners', { active_role: 'supplier', is_featured: 'true', limit: 6 })
+          db.getAll('partners', { active_role: 'supplier', is_featured: 'true', limit: 6 }),
+          db.getAll('listings', { category: 'mandi', limit: 6 })
         ]);
         setFeaturedProperties(props);
         setFeaturedServices(servs);
         setFeaturedSuppliers(supps);
+        setFeaturedMandi(mandi);
       } catch (err) {
         console.error("Error fetching homepage data:", err);
       } finally {
@@ -192,7 +197,7 @@ const Home = () => {
             <div 
               onClick={() => navigate('/mandi-bazar')}
               className="relative rounded-[32px] overflow-hidden bg-[#081229] shadow-2xl group cursor-pointer active:scale-[0.98] transition-all"
-              style={{ height: 'clamp(280px, 75vw, 360px)' }}
+              style={{ height: 'clamp(200px, 55vw, 260px)' }}
             >
               {/* Image Container - Full Width with Narrow Fade */}
               <div className="absolute inset-0 z-0">
@@ -361,6 +366,71 @@ const Home = () => {
           )) : (
             [1,2,3].map(i => (
               <div key={i} className="min-w-[150px] h-[180px] bg-slate-50 rounded-[24px] animate-pulse" />
+            ))
+          )}
+        </div>
+      </div>
+      
+      {/* ── TOP MATERIALS (MANDI) ── */}
+      <div className="mb-10">
+        <div className="px-4 flex items-center justify-between mb-5">
+          <div className="flex flex-col leading-none">
+            <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Mandi Best Sellers</h2>
+            <p className="text-slate-400 font-bold text-[10px] mt-1 uppercase tracking-wider">Top items from Basera Bazar</p>
+          </div>
+          <button onClick={() => navigate('/mandi-bazar')} className="text-orange-500 font-black text-[10px] uppercase tracking-widest bg-orange-50 px-3 py-1.5 rounded-full">View All</button>
+        </div>
+        <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar">
+          {featuredMandi.length > 0 ? featuredMandi.map((item) => (
+            <div 
+              key={item.id}
+              onClick={() => navigate(`/listing/${item._id || item.id}`)}
+              className="min-w-[180px] bg-white rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-3 active:scale-[0.98] transition-all group relative"
+            >
+              <div className="h-[130px] rounded-[24px] overflow-hidden relative mb-3.5 bg-slate-50">
+                <img src={item.image || item.thumbnail} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={item.title} />
+                {item.price?.value < 1000 && (
+                  <div className="absolute top-3 left-3 bg-emerald-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">Value</div>
+                )}
+              </div>
+              <div className="px-1 pb-1">
+                <h3 className="font-bold text-[#181d5f] text-[13px] uppercase leading-tight line-clamp-2 min-h-[32px]">{item.title}</h3>
+                <div className="mt-3.5 pt-3 border-t border-slate-50 flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[#181d5f] font-black text-[15px] leading-none">₹{item.price?.value}</span>
+                    <span className="text-slate-400 text-[9px] font-bold uppercase mt-1">/ {item.price?.unit || 'Unit'}</span>
+                  </div>
+                  
+                  {cart[item._id || item.id] ? (
+                    <div className="flex items-center bg-indigo-50 rounded-xl border border-indigo-100 overflow-hidden h-8">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); removeFromCart(item._id || item.id); }}
+                        className="w-7 h-full flex items-center justify-center text-[#181d5f] hover:bg-indigo-100 active:scale-90 transition-all"
+                      >
+                        <Minus size={12} strokeWidth={3} />
+                      </button>
+                      <span className="w-5 text-center text-[11px] font-black text-[#181d5f]">{cart[item._id || item.id].qty}</span>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); addToCart(item); }}
+                        className="w-7 h-full flex items-center justify-center text-[#181d5f] hover:bg-indigo-100 active:scale-90 transition-all"
+                      >
+                        <Plus size={12} strokeWidth={3} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); addToCart(item); }}
+                      className="w-9 h-9 bg-[#181d5f] hover:bg-[#252b75] rounded-xl flex items-center justify-center text-white shadow-lg active:scale-90 transition-all"
+                    >
+                      <Plus size={16} strokeWidth={3} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )) : (
+            [1,2,3].map(i => (
+              <div key={i} className="min-w-[170px] h-[200px] bg-slate-50 rounded-[24px] animate-pulse" />
             ))
           )}
         </div>

@@ -1,5 +1,20 @@
 import api from './api';
 
+// ---------------------------------------------------------------------------
+// Module-level cache — persists for the lifetime of the browser session
+// This prevents repeated API calls for data that rarely changes (categories)
+// ---------------------------------------------------------------------------
+const _cache = {
+  categories: {},   // keyed by type string e.g. 'product'
+  expiresAt: {}     // keyed by type string, unix ms timestamp
+};
+const CATEGORY_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Force a fresh fetch on the next page load by clearing any previously cached data
+// (handles the case where backend data changes and users have stale browser caches)
+Object.keys(_cache.categories).forEach(k => { _cache.expiresAt[k] = 0; });
+
+
 /**
  * ------------------------------------------------------------------------------------------
  * 🚀 DATA ENGINE (REFACTORED FOR REAL BACKEND)
@@ -199,14 +214,27 @@ class DataEngine {
   // -----------------------------------------------------
 
   async getCategories(type, parentId = null) {
+    const cacheKey = `${type}_${parentId || 'root'}`;
+    const now = Date.now();
+
+    // Return cached value if still fresh
+    if (_cache.categories[cacheKey] && now < (_cache.expiresAt[cacheKey] || 0)) {
+      return _cache.categories[cacheKey];
+    }
+
     try {
       const response = await api.get('/listings/categories', {
         params: { type, parent_id: parentId }
       });
-      return response.data.data || [];
+      const data = response.data.data || [];
+      // Store in cache
+      _cache.categories[cacheKey] = data;
+      _cache.expiresAt[cacheKey] = now + CATEGORY_TTL_MS;
+      return data;
     } catch (error) {
       console.error(`Error fetching categories:`, error);
-      return [];
+      // Return stale cache rather than empty on error
+      return _cache.categories[cacheKey] || [];
     }
   }
 
@@ -216,7 +244,16 @@ class DataEngine {
 
       // Mapping table names to backend routes
       if (table === 'listings') {
-        const response = await api.get(`/listings?${queryParams}`);
+        // For mandi, use the dedicated /listings/mandi endpoint.
+        // Only pass category_id — the mandi endpoint ignores all other params.
+        const isMandi = params.category === 'mandi';
+        let endpoint;
+        if (isMandi) {
+          endpoint = `/listings/mandi?${queryParams}`;
+        } else {
+          endpoint = `/listings?${queryParams}`;
+        }
+        const response = await api.get(endpoint);
         return (response.data.data || []).map(this._normalize).filter(Boolean);
       }
       

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
-import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star } from 'lucide-react';
+import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star, ShoppingCart, Plus, Minus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Skeleton from '../../components/common/Skeleton';
@@ -19,8 +20,11 @@ const ListingDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { cart, addToCart, removeFromCart } = useCart();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const isMandi = listing?.category === 'mandi';
   const [activeTab, setActiveTab] = useState('details');
   const [activeImg, setActiveImg] = useState(0);
   const [slideDir, setSlideDir] = useState(1);
@@ -749,9 +753,44 @@ const ListingDetails = () => {
       {/* Floating Sticky Footer */}
       <div className="fixed bottom-0 w-full max-w-md mx-auto border-t border-slate-100 bg-white/95 backdrop-blur-md z-[60] py-4 px-6 md:px-8">
         <div className="flex gap-3">
-          {isSupplier ? (
+          {isMandi ? (
             <div className="flex w-full gap-3">
-
+              {cart[listing.id] ? (
+                <div className="flex-1 flex items-center bg-indigo-50 rounded-full border border-indigo-100 overflow-hidden h-[52px]">
+                  <button 
+                    onClick={() => removeFromCart(listing.id)}
+                    className="flex-1 h-full flex items-center justify-center text-[#1f2355] hover:bg-indigo-100 active:scale-90 transition-all"
+                  >
+                    <Minus size={20} strokeWidth={3} />
+                  </button>
+                  <span className="w-12 text-center text-[16px] font-black text-[#1f2355]">{cart[listing.id].qty}</span>
+                  <button 
+                    onClick={() => addToCart(listing)}
+                    className="flex-1 h-full flex items-center justify-center text-[#1f2355] hover:bg-indigo-100 active:scale-90 transition-all"
+                  >
+                    <Plus size={20} strokeWidth={3} />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => addToCart(listing)}
+                  className="flex-1 bg-emerald-600 text-white h-[52px] rounded-full font-black text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 active:scale-95 transition-all"
+                >
+                   <ShoppingCart size={18} strokeWidth={3} />
+                   Add to Cart
+                </button>
+              )}
+              
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="flex-1 bg-[#1f2355] text-white h-[52px] rounded-full font-black text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-slate-200 active:scale-95 transition-all"
+              >
+                 <Send size={18} />
+                 Enquiry
+              </button>
+            </div>
+          ) : isSupplier ? (
+            <div className="flex w-full gap-3">
               <button 
                 onClick={() => setIsModalOpen(true)}
                 className="flex-[2] bg-[#1f2355] text-white py-4 rounded-full font-bold text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-slate-200 active:scale-95 transition-all"

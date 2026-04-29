@@ -33,8 +33,8 @@ router.post('/properties', protect, authorizeRoles('partner'), createPropertyLis
 router.post('/services', protect, authorizeRoles('partner'), createServiceListing);
 router.post('/mandi', protect, authorizeRoles('partner'), createMandiListing);
 
-router.put('/:id', protect, authorizeRoles('partner'), updateListing);
-router.delete('/:id', protect, authorizeRoles('partner'), deleteListing);
+router.put('/:id', protect, authorizeRoles('partner', 'admin', 'super_admin', 'SuperAdmin', 'Admin'), updateListing);
+router.delete('/:id', protect, authorizeRoles('partner', 'admin', 'super_admin', 'SuperAdmin', 'Admin'), deleteListing);
 
 // Parameterized catch-all — MUST be LAST
 router.post('/:id/interaction', recordListingInteraction);

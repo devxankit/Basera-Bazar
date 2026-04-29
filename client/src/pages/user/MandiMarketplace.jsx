@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
    ShoppingCart, Search, MapPin, ArrowRight, ChevronDown,
-   Package, ShieldCheck, Truck, Plus, IndianRupee,
+   Package, ShieldCheck, Truck, Plus, Minus, IndianRupee,
    BadgePercent, HelpCircle, Bell
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -45,11 +45,11 @@ const getCategoryImage = (cat) => {
 
 export default function MandiMarketplace() {
    const navigate = useNavigate();
-   const { cartCount } = useCart();
+   const { cart, cartCount, addToCart, removeFromCart } = useCart();
    const { location, setLocation } = useLocationContext();
 
    const [categories, setCategories] = useState([]);
-   const [supplierCategories, setSupplierCategories] = useState([]);
+   const [productCategories, setProductCategories] = useState([]);
    const [loadingCategories, setLoadingCategories] = useState(true);
    const [searchQuery, setSearchQuery] = useState('');
    const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -79,7 +79,7 @@ export default function MandiMarketplace() {
             }
 
             if (supplierRes.data.success) {
-               setSupplierCategories(supplierRes.data.data);
+               setProductCategories(supplierRes.data.data);
             }
 
             if (bannerRes.data.success) {
@@ -109,19 +109,20 @@ export default function MandiMarketplace() {
       { isDefault: true }
    ];
 
-   const shopCategories = supplierCategories.map(cat => ({
+   const shopCategories = productCategories.map(cat => ({
       id: cat._id,
       name: cat.name,
       image: getCategoryImage(cat)
    }));
 
-   const topProducts = categories
-      .filter(c => c.deal)
+   const topProducts = (categories || [])
+      .filter(c => c && c.deal)
       .map(c => ({
+         ...c.deal,
          id: c.deal._id,
          title: c.deal.title,
-         price: c.deal.pricing.price_per_unit,
-         unit: c.deal.pricing.unit,
+         price: c.deal.pricing?.price_per_unit || 0,
+         unit: c.deal.pricing?.unit || 'Unit',
          image: c.deal.thumbnail || getCategoryImage(c),
          label: 'BEST DEAL',
          labelColor: 'bg-red-500'
@@ -269,7 +270,7 @@ export default function MandiMarketplace() {
 
          <div className="px-4 mt-2 overflow-hidden">
             <div className="relative rounded-[24px] overflow-hidden bg-[#081229] shadow-xl"
-               style={{ height: 'clamp(200px, 60vw, 260px)' }}
+               style={{ height: 'clamp(160px, 45vw, 220px)' }}
             >
                <AnimatePresence mode="wait">
                   <motion.div
@@ -436,33 +437,54 @@ export default function MandiMarketplace() {
                {topProducts.map((product) => (
                   <div
                      key={product.id}
-                     className="flex-shrink-0 bg-white border border-slate-100 rounded-[18px] overflow-hidden shadow-md group active:scale-95 transition-all relative"
-                     style={{ width: 'clamp(125px, 37vw, 155px)' }}
+                     className="flex-shrink-0 bg-white border border-slate-100 rounded-[24px] overflow-hidden shadow-sm hover:shadow-md active:scale-[0.98] transition-all relative group"
+                     style={{ width: 'clamp(140px, 42vw, 170px)' }}
+                     onClick={() => navigate(`/listing/${product.id}`)}
                   >
-                     <span className={cn('absolute top-2 left-2 px-1.5 py-0.5 rounded-md text-white z-10 uppercase font-black', product.labelColor)}
-                        style={{ fontSize: 'clamp(6.5px, 2vw, 8px)' }}
+                     <span className={cn('absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-white z-10 uppercase font-black shadow-sm', product.labelColor)}
+                        style={{ fontSize: '7px' }}
                      >
                         {product.label}
                      </span>
-                     <div className="w-full bg-slate-50" style={{ height: 'clamp(90px, 26vw, 115px)' }}>
+                     <div className="w-full bg-slate-50 relative overflow-hidden" style={{ height: 'clamp(100px, 30vw, 125px)' }}>
                         <img
                            src={product.image}
                            alt={product.title}
                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                      </div>
-                     <div className="p-2.5">
-                        <p className="font-bold text-[#1f2355] line-clamp-1" style={{ fontSize: 'clamp(12px, 3.8vw, 15px)' }}>{product.title}</p>
-                        <div className="flex items-center justify-between mt-1.5">
-                           <div>
-                              <span className="font-black text-[#1f2355]" style={{ fontSize: 'clamp(12px, 3.5vw, 15px)' }}>₹{product.price}</span>
-                              <span className="font-semibold text-slate-400 ml-0.5" style={{ fontSize: 'clamp(8px, 2.5vw, 9px)' }}>/ {product.unit}</span>
+                     <div className="p-3">
+                        <p className="font-bold text-[#1f2355] line-clamp-2 text-[12px] min-h-[32px] leading-tight mb-3">{product.title}</p>
+                        <div className="flex items-center justify-between mt-auto">
+                           <div className="flex flex-col">
+                              <span className="font-black text-[#1f2355] text-[14px]">₹{product.price}</span>
+                              <span className="font-bold text-slate-400 text-[8px] uppercase tracking-tighter mt-0.5">/ {product.unit}</span>
                            </div>
-                           <button className="bg-[#1f2355] rounded-full flex items-center justify-center text-white shadow-md active:scale-90 transition-all"
-                              style={{ width: 'clamp(24px, 6.5vw, 28px)', height: 'clamp(24px, 6.5vw, 28px)' }}
-                           >
-                              <Plus size={12} strokeWidth={3} />
-                           </button>
+                           
+                           {cart[product.id] ? (
+                              <div className="flex items-center bg-indigo-50 rounded-lg border border-indigo-100 overflow-hidden h-7">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); removeFromCart(product.id); }}
+                                  className="w-7 h-full flex items-center justify-center text-[#1f2355] hover:bg-indigo-100 active:scale-90 transition-all"
+                                >
+                                  <Minus size={11} strokeWidth={3} />
+                                </button>
+                                <span className="w-5 text-center text-[10px] font-black text-[#1f2355]">{cart[product.id].qty}</span>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                                  className="w-7 h-full flex items-center justify-center text-[#1f2355] hover:bg-indigo-100 active:scale-90 transition-all"
+                                >
+                                  <Plus size={11} strokeWidth={3} />
+                                </button>
+                              </div>
+                           ) : (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                                className="w-8 h-8 bg-[#1f2355] hover:bg-[#2d3269] rounded-xl flex items-center justify-center text-white shadow-lg active:scale-90 transition-all"
+                              >
+                                <Plus size={14} strokeWidth={3} />
+                              </button>
+                           )}
                         </div>
                      </div>
                   </div>

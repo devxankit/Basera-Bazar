@@ -510,7 +510,7 @@ export default function AdminUserForm() {
                     </div>
                     {supplierCategories.length === 0 ? (
                       <p className="text-sm text-slate-400 italic py-2">
-                        No supplier categories in database yet. Add them from Supplier Categories page.
+                        No product categories in database yet. Add them from Product Categories page.
                       </p>
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

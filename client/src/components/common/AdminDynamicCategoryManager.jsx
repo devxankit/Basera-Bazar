@@ -24,7 +24,7 @@ const inputClass =
 
 const TYPE_META = {
   supplier: {
-    label: 'Product Category',
+    label: 'Product Categories',
     desc: 'Material/product types that suppliers can be classified under. A supplier may cover multiple.',
     partnerLabel: 'Suppliers',
     color: 'text-amber-600 bg-amber-50',

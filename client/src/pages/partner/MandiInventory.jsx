@@ -33,9 +33,11 @@ export default function MandiInventory() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/mandi/dashboard'); // The dashboard returns products too
-      // Alternatively use a dedicated products route if we created one
-      setProducts(res.data.data.products || []);
+      // Using the dedicated listings/my endpoint which returns all partner listings
+      const res = await api.get('/listings/my'); 
+      // Filter only mandi products from the combined results
+      const mandiProducts = res.data.data.filter(item => item.type === 'mandi_product');
+      setProducts(mandiProducts);
     } catch (err) {
       console.error(err);
     } finally {
