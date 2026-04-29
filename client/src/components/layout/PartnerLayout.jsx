@@ -50,33 +50,7 @@ export default function PartnerLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
-      {/* Top Header - ONLY visible on Partner Home */}
-      {location.pathname === '/partner/home' && (
-        <header className="sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-             {location.pathname !== '/partner/home' ? (
-                <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
-                  <ChevronLeft size={20} />
-                </button>
-             ) : (
-                <div className="w-10 h-10 rounded-xl bg-[#001b4e] flex items-center justify-center text-white font-black text-xl">B</div>
-             )}
-             <span className="font-black text-slate-800 tracking-tight">BaseraBazar</span>
-          </div>
-          
-          <button 
-            onClick={() => navigate('/partner/notifications')}
-            className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 relative active:scale-95 transition-all"
-          >
-            <Bell size={20} />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-        </header>
-      )}
+      {/* Header removed from here as per user request to move notification icon into PartnerHome content */}
 
       <main className="flex-grow">
         {children}

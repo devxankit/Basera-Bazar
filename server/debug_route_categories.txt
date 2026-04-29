@@ -1,1 +1,1 @@
-Hit getSystemCategories with type: property
+Hit getSystemCategories with type: service

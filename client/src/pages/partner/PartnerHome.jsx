@@ -16,7 +16,8 @@ import {
   XCircle,
   Shield,
   Package,
-  Check
+  Check,
+  Bell
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +36,7 @@ export default function PartnerHome() {
     listings: { total: 0, active: 0, pending: 0, featured: 0 },
     leads: { total: 0, unread: 0 }
   });
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -49,7 +51,17 @@ export default function PartnerHome() {
         setLoading(false);
       }
     };
+    const fetchNotifications = async () => {
+      try {
+        const res = await api.get('/notifications');
+        if (res.data.success) {
+          setUnreadNotifications(res.data.data.filter(n => !n.is_read).length);
+        }
+      } catch (err) {}
+    };
+
     fetchStats();
+    fetchNotifications();
   }, []);
 
   if (!user) return null;
@@ -57,7 +69,7 @@ export default function PartnerHome() {
   const actualRole = (partner?.active_role || partner?.partner_type || partner?.role || '').toLowerCase();
 
   // Account states
-  const isApproved = partner.onboarding_status === 'approved';
+  const isApproved = partner.onboarding_status === 'approved' || partner.is_active;
   const isRejected = partner.onboarding_status === 'rejected';
   
   // Robust check for submitted documents
@@ -165,7 +177,7 @@ export default function PartnerHome() {
             </div>
             <div className="min-w-0">
               <div className="text-white/50 text-[10px] xs:text-[12px] font-bold uppercase tracking-widest leading-none mb-0.5">Partner Portal</div>
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5 xs:gap-2">
                 <h1 className="text-white text-[16px] xs:text-[19px] font-bold truncate leading-tight uppercase tracking-tight">{partner.name}</h1>
                 <span className="bg-white/10 px-2 py-0.5 rounded-lg text-white/70 text-[8px] xs:text-[9px] font-bold uppercase tracking-widest backdrop-blur-sm border border-white/10">
                   {getRoleLabel()}
@@ -173,6 +185,18 @@ export default function PartnerHome() {
               </div>
             </div>
           </div>
+
+          <button 
+            onClick={() => navigate('/partner/notifications')}
+            className="relative p-2 xs:p-2.5 bg-white/10 rounded-xl xs:rounded-2xl text-white hover:bg-white/20 transition-all active:scale-95 shadow-inner border border-white/5"
+          >
+            <Bell size={20} xs:size={22} />
+            {unreadNotifications > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 xs:w-5 xs:h-5 bg-rose-500 text-white text-[9px] xs:text-[10px] font-black rounded-full flex items-center justify-center border-2 border-[#001b4e]">
+                {unreadNotifications}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -182,17 +206,17 @@ export default function PartnerHome() {
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-[#00a86b] rounded-2xl xs:rounded-[24px] p-4 xs:p-6 relative overflow-hidden shadow-xl shadow-emerald-500/10"
+            className="bg-[#00a86b] rounded-[24px] p-3 xs:p-4 relative overflow-hidden shadow-xl shadow-emerald-500/10"
           >
             <div className="absolute -right-4 -top-4 w-16 h-16 bg-white/10 rounded-full blur-xl" />
             
             <div className="relative flex flex-col items-center text-center">
-              <div className="w-10 h-10 xs:w-12 xs:h-12 bg-white/20 backdrop-blur-md rounded-xl xs:rounded-2xl flex items-center justify-center mb-2 xs:mb-3 border border-white/30 shadow-inner">
-                <CheckCircle2 size={20} className="text-white xs:w-6 xs:h-6" />
+              <div className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center mb-1.5 border border-white/30 shadow-inner">
+                <CheckCircle2 size={16} className="text-white" />
               </div>
               
-              <h2 className="text-white font-bold text-[15px] xs:text-[18px] leading-tight mb-0.5 xs:mb-1 uppercase tracking-tight">Verified</h2>
-              <p className="text-emerald-50/80 font-semibold text-[10px] xs:text-[12px] leading-tight max-w-[240px] uppercase tracking-wider">
+              <h2 className="text-white font-bold text-[13px] xs:text-[15px] leading-tight mb-0.5 uppercase tracking-tight">Verified</h2>
+              <p className="text-emerald-50/80 font-semibold text-[9px] xs:text-[11px] leading-tight max-w-[200px] uppercase tracking-wider">
                 Account is active. Start listing now.
               </p>
               
@@ -204,10 +228,9 @@ export default function PartnerHome() {
                       else if (actualRole.includes('mandi')) navigate('/partner/mandi/add-product');
                       else navigate('/partner/add-service');
                     }}
-                    className="mt-3 xs:mt-4 w-full bg-white text-emerald-700 py-2.5 xs:py-3 rounded-xl xs:rounded-2xl font-bold text-[11px] xs:text-[13px] uppercase tracking-widest flex items-center justify-center gap-1.5 xs:gap-2 shadow-lg active:scale-[0.98] transition-all"
+                    className="mt-2.5 w-full bg-white text-emerald-700 py-2 rounded-xl font-bold text-[10px] xs:text-[11px] uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-lg active:scale-[0.98] transition-all"
                   >
-                    Add Listing
-                    <Plus size={12} strokeWidth={4} />
+                    Add Listing +
                   </button>
                 )}
               </div>

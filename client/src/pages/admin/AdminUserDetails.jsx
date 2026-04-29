@@ -42,9 +42,19 @@ export default function AdminUserDetails() {
 
   const handleToggleStatus = async () => {
     try {
-      const res = await api.put(`/admin/users/${id}`, { is_active: !user.is_active });
+      const newActive = !user.is_active;
+      const updateData = { is_active: newActive };
+      
+      // If activating a partner, sync onboarding status
+      if (newActive && isPartner) {
+        updateData.onboarding_status = 'approved';
+        updateData['kyc.status'] = 'approved';
+        updateData['kyc.reviewed_at'] = new Date().toISOString();
+      }
+      
+      const res = await api.put(`/admin/users/${id}`, updateData);
       if (res.data.success) {
-        setUser({ ...user, is_active: !user.is_active });
+        setUser({ ...user, ...updateData });
         setShowOptions(false);
       }
     } catch (err) {
