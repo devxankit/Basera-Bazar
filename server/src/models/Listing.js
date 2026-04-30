@@ -126,6 +126,7 @@ const mandiListingSchema = new mongoose.Schema({
   title: { type: String, required: true }, // e.g., "Premium Red Bricks"
   material_name: { type: String, required: true }, // e.g., "Bricks"
   description: { type: String },
+  brand: { type: String },
   thumbnail: { type: String },
   pricing: {
     unit: { type: String, required: true },

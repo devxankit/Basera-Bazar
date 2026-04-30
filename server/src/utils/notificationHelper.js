@@ -42,7 +42,8 @@ const createNotification = async (recipientType, recipientId, title, body, data 
           data: {
             ...data,
             notification_id: notification._id,
-            url: data.enquiry_id ? `/partner/lead-details/${data.enquiry_id}` : '/partner/home'
+            url: data.enquiry_id ? `/partner/lead-details/${data.enquiry_id}` : 
+                 data.type === 'mandi_order' ? '/partner/marketplace/orders' : '/partner/home'
           }
         });
 

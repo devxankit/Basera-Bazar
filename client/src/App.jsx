@@ -25,6 +25,8 @@ import Notifications from './pages/user/Notifications';
 import PartnerLogin from './pages/partner/PartnerLogin';
 import PartnerRegistration from './pages/partner/PartnerRegistration';
 import PartnerHome from './pages/partner/PartnerHome';
+import MandiOrders from './pages/partner/MandiOrders';
+import MandiOrderDetails from './pages/partner/MandiOrderDetails';
 import PartnerInventory from './pages/partner/PartnerInventory';
 import PartnerInquiries from './pages/partner/PartnerInquiries';
 import PartnerLeadDetails from './pages/partner/PartnerLeadDetails';
@@ -88,7 +90,6 @@ import AdminPartnerVerification from './pages/admin/AdminPartnerVerification';
 import AdminRoleRequests from './pages/admin/AdminRoleRequests';
 import MandiInventory from './pages/partner/MandiInventory';
 import AddMandiProduct from './pages/partner/AddMandiProduct';
-import MandiOrders from './pages/partner/MandiOrders';
 import MandiPenalties from './pages/partner/MandiPenalties';
 import PartnerMilestones from './pages/partner/PartnerMilestones';
 import PartnerOrderHistory from './pages/partner/PartnerOrderHistory';
@@ -118,11 +119,15 @@ const UserLayout = ({ children }) => {
   const isCategory = location.pathname.startsWith('/category/');
   const isBrowse = location.pathname.startsWith('/browse/');
   const isMandi = location.pathname.startsWith('/mandi');
-  const isDetail = location.pathname.startsWith('/listing/') || location.pathname.startsWith('/service/') || location.pathname.startsWith('/agent/');
+  const isDetail = location.pathname.startsWith('/products/') || location.pathname.startsWith('/service/') || location.pathname.startsWith('/agent/');
   const isCart = location.pathname === '/cart';
   const isNotifications = location.pathname === '/notifications';
   const isProfile = location.pathname === '/profile';
-  const showBottomNav = !isDetail && !isCart && !isNotifications && !isProfile;
+  const isOrders = location.pathname.startsWith('/profile/my-orders');
+  const isEnquiries = location.pathname.startsWith('/profile/my-enquiries');
+  const isEditProfile = location.pathname === '/profile/edit';
+  const isMandiCheckout = location.pathname === '/mandi-bazar/checkout';
+  const showBottomNav = !isDetail && !isCart && !isNotifications && !isProfile && !isOrders && !isEnquiries && !isEditProfile && !isMandiCheckout;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
@@ -137,6 +142,8 @@ const UserLayout = ({ children }) => {
 };
 
 import AgentDetails from './pages/user/AgentDetails';
+import MyOrdersPage from './pages/user/MyOrdersPage';
+import MyEnquiriesPage from './pages/user/MyEnquiriesPage';
 
 function App() {
   return (
@@ -152,7 +159,7 @@ function App() {
               </UserLayout>
             } />
 
-            <Route path="/listing/:id" element={
+            <Route path="/products/:id" element={
               <UserLayout>
                 <ListingDetails />
               </UserLayout>
@@ -172,9 +179,19 @@ function App() {
                 <UserLayout><UserProfile /></UserLayout>
               </ProtectedRoute>
             } />
-            <Route path="/edit-profile" element={
+            <Route path="/profile/edit" element={
               <ProtectedRoute>
                 <UserLayout><EditProfile /></UserLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/my-orders" element={
+              <ProtectedRoute>
+                <UserLayout><MyOrdersPage /></UserLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/my-enquiries" element={
+              <ProtectedRoute>
+                <UserLayout><MyEnquiriesPage /></UserLayout>
               </ProtectedRoute>
             } />
 
@@ -215,7 +232,7 @@ function App() {
                 <MandiCategoryView />
               </UserLayout>
             } />
-            <Route path="/mandi-checkout" element={
+            <Route path="/mandi-bazar/checkout" element={
               <ProtectedRoute>
                 <UserLayout><MandiCheckout /></UserLayout>
               </ProtectedRoute>
@@ -262,11 +279,12 @@ function App() {
               </PartnerLayout>
             } />
 
-            <Route path="/partner/leads" element={
+            <Route path="/partner/my-enquiries" element={
               <PartnerLayout>
                 <PartnerInquiries />
               </PartnerLayout>
             } />
+            <Route path="/partner/leads" element={<Navigate to="/partner/my-enquiries" replace />} />
             <Route path="/partner/profile" element={
               <PartnerLayout>
                 <PartnerProfile />
@@ -296,7 +314,9 @@ function App() {
             <Route path="/partner/mandi/dashboard" element={<PartnerLayout><PartnerHome /></PartnerLayout>} />
             <Route path="/partner/mandi/inventory" element={<PartnerLayout><MandiInventory /></PartnerLayout>} />
             <Route path="/partner/mandi/add-product" element={<AddMandiProduct />} />
-            <Route path="/partner/mandi/orders" element={<PartnerLayout><MandiOrders /></PartnerLayout>} />
+            <Route path="/partner/marketplace/orders" element={<PartnerLayout><MandiOrders /></PartnerLayout>} />
+            <Route path="/partner/marketplace/orders/:id" element={<PartnerLayout><MandiOrderDetails /></PartnerLayout>} />
+            <Route path="/partner/mandi/orders" element={<Navigate to="/partner/marketplace/orders" replace />} />
             <Route path="/partner/mandi/orders-history" element={<PartnerLayout><PartnerOrderHistory /></PartnerLayout>} />
             <Route path="/partner/mandi/penalties" element={<PartnerLayout><MandiPenalties /></PartnerLayout>} />
             <Route path="/partner/milestones" element={<PartnerLayout><PartnerMilestones /></PartnerLayout>} />

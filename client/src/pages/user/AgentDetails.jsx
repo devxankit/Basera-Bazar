@@ -294,7 +294,7 @@ const AgentDetails = () => {
                       key={item.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      onClick={() => navigate(`/listing/${item.id}`)}
+                      onClick={() => navigate(`/products/${item.id}`)}
                       className={cn(
                         "bg-white border border-slate-100 shadow-[0_5px_15px_rgba(0,0,0,0.03)] overflow-hidden active:scale-[0.98] transition-all group cursor-pointer",
                         isGridView ? "rounded-[16px] h-auto flex flex-col" : "rounded-[24px] flex h-40 sm:h-44"

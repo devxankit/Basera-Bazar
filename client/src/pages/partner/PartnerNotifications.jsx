@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Bell, Trash2, CheckCircle2, XCircle,
-  Clock, ArrowLeft, Loader2, Info, MessageSquare
+  Clock, ArrowLeft, Loader2, Info, MessageSquare, ShoppingBag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
@@ -48,6 +48,8 @@ export default function PartnerNotifications() {
         return <XCircle className="text-rose-500" size={20} />;
       case 'enquiry':
         return <MessageSquare className="text-blue-500" size={20} />;
+      case 'mandi_order':
+        return <ShoppingBag className="text-indigo-500" size={20} />;
       case 'account_status_change':
         return <Info className="text-indigo-500" size={20} />;
       default:
@@ -63,6 +65,8 @@ export default function PartnerNotifications() {
         return 'bg-rose-50';
       case 'enquiry':
         return 'bg-blue-50';
+      case 'mandi_order':
+        return 'bg-indigo-50';
       case 'account_status_change':
         return 'bg-indigo-50';
       default:
@@ -76,6 +80,8 @@ export default function PartnerNotifications() {
       navigate(`/partner/lead-details/${n.data.enquiry_id}`);
     } else if (type === 'account_status_change') {
       navigate('/partner/profile');
+    } else if (type === 'mandi_order') {
+      navigate('/partner/marketplace/orders');
     } else if (type === 'listing_approval' || type === 'listing_rejection') {
       navigate('/partner/inventory');
     }

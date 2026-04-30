@@ -299,7 +299,7 @@ const Home = () => {
           {featuredProperties.length > 0 ? featuredProperties.map((item) => (
             <div 
               key={item.id}
-              onClick={() => navigate(`/listing/${item.id}`)}
+              onClick={() => navigate(`/products/${item.id}`)}
               className="min-w-[200px] bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden active:scale-95 transition-all"
             >
               <div className="h-[120px] relative">
@@ -384,7 +384,7 @@ const Home = () => {
           {featuredMandi.length > 0 ? featuredMandi.map((item) => (
             <div 
               key={item.id}
-              onClick={() => navigate(`/listing/${item._id || item.id}`)}
+              onClick={() => navigate(`/products/${item._id || item.id}`)}
               className="min-w-[180px] bg-white rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-3 active:scale-[0.98] transition-all group relative"
             >
               <div className="h-[130px] rounded-[24px] overflow-hidden relative mb-3.5 bg-slate-50">
@@ -449,7 +449,7 @@ const Home = () => {
           {featuredSuppliers.length > 0 ? featuredSuppliers.map((item) => (
             <div 
               key={item.id}
-              onClick={() => navigate(`/listing/${item._id || item.id}`)}
+              onClick={() => navigate(`/products/${item._id || item.id}`)}
               className="min-w-[240px] bg-white rounded-[28px] border border-slate-100 shadow-[0_12px_25px_rgb(0,0,0,0.04)] p-4 active:scale-95 transition-all flex flex-col gap-4"
             >
               <div className="flex items-center gap-3">

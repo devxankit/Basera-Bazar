@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const orderItemSchema = new mongoose.Schema({
-  product_id: { type: mongoose.Schema.Types.ObjectId, ref: 'MandiListing', required: true },
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Listing', required: true },
   seller_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
   name: { type: String, required: true },
   qty: { type: Number, required: true },
@@ -22,7 +22,8 @@ const orderItemSchema = new mongoose.Schema({
   commission_rate: { type: Number }, // Captured at time of order
   commission_amount: { type: Number }, // Calculated as (price * qty) * (rate / 100)
   delivery_otp: { type: String }, // Random 6-digit OTP for delivery verification
-  delivered_at: { type: Date }
+  delivered_at: { type: Date },
+  isReviewed: { type: Boolean, default: false }
 }, { _id: true });
 
 const orderSchema = new mongoose.Schema({
@@ -60,11 +61,7 @@ const orderSchema = new mongoose.Schema({
     full_address: { type: String },
     city: { type: String },
     state: { type: String },
-    pincode: { type: String },
-    location: {
-      type: { type: String, enum: ['Point'], default: 'Point' },
-      coordinates: [Number]
-    }
+    pincode: { type: String }
   },
 
   billing_address: {
@@ -82,7 +79,7 @@ const orderSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Index for geo-location of delivery if needed
-orderSchema.index({ 'shipping_address.location': '2dsphere' });
+// Index for geo-location of delivery if needed - removed to avoid errors when coordinates are missing
+// orderSchema.index({ 'shipping_address.location': '2dsphere' });
 
 module.exports = mongoose.model('Order', orderSchema);

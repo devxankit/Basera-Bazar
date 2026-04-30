@@ -439,7 +439,7 @@ export default function MandiMarketplace() {
                      key={product.id}
                      className="flex-shrink-0 bg-white border border-slate-100 rounded-[24px] overflow-hidden shadow-sm hover:shadow-md active:scale-[0.98] transition-all relative group"
                      style={{ width: 'clamp(140px, 42vw, 170px)' }}
-                     onClick={() => navigate(`/listing/${product.id}`)}
+                     onClick={() => navigate(`/products/${product.id}`)}
                   >
                      <span className={cn('absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-white z-10 uppercase font-black shadow-sm', product.labelColor)}
                         style={{ fontSize: '7px' }}

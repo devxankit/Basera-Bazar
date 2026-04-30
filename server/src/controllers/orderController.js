@@ -25,9 +25,9 @@ const createMarketplaceOrder = async (req, res) => {
 
     // 1. Validate Stock and Calculate Total
     for (const item of items) {
-      const product = await MandiListing.findById(item.product_id);
+      const product = await MandiListing.findById(item.productId || item.product_id);
       if (!product) {
-        return res.status(404).json({ success: false, message: `Product ${item.product_id} not found` });
+        return res.status(404).json({ success: false, message: `Product ${item.productId || item.product_id} not found` });
       }
 
       if (product.stock_quantity < item.qty) {
@@ -41,7 +41,7 @@ const createMarketplaceOrder = async (req, res) => {
       totalAmount += itemTotal;
 
       processedItems.push({
-        product_id: product._id,
+        productId: product._id,
         seller_id: product.partner_id,
         name: product.title,
         qty: item.qty,
@@ -65,6 +65,7 @@ const createMarketplaceOrder = async (req, res) => {
     
     // 4. Create Marketplace Order with Token Payment Intent
     const orderId = `BSR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    console.log(`Creating marketplace order with ${processedItems.length} items`);
     const newOrder = await Order.create({
       order_id: orderId,
       user_id: userId,
@@ -79,6 +80,7 @@ const createMarketplaceOrder = async (req, res) => {
       },
       status: 'pending'
     });
+    console.log(`Successfully created order: ${newOrder._id}`);
 
     // 5. Record the Razorpay intent for the Token Amount
     await RazorpayOrder.create({
@@ -100,8 +102,17 @@ const createMarketplaceOrder = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Create Order Error:", error);
-    res.status(500).json({ success: false, message: 'Error creating order.' });
+    console.error("Detailed Create Order Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+      userId: req.user?.id
+    });
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Error creating order.',
+      error_detail: error.name === 'ValidationError' ? error.errors : null
+    });
   }
 };
 
@@ -142,12 +153,30 @@ const verifyMarketplacePayment = async (req, res) => {
 
     // 4. Reduce Stock (The lead is now committed)
     for (let item of order.items) {
-      await MandiListing.findByIdAndUpdate(item.product_id, {
+      const MandiListing = mongoose.model('Listing'); // Use correct model name
+      await MandiListing.findByIdAndUpdate(item.productId, {
         $inc: { stock_quantity: -item.qty }
       });
     }
 
     await order.save();
+
+    // 5. Notify Sellers (Active Leads)
+    try {
+      const { createNotification } = require('../utils/notificationHelper');
+      for (let item of order.items) {
+        await createNotification(
+          'partner',
+          item.seller_id,
+          'New Order Received! 🛍️',
+          `You have a new order for ${item.name} (${item.qty} units). Total: ₹${item.price * item.qty}.`,
+          { type: 'mandi_order', orderId: order._id, itemId: item._id }
+        );
+      }
+    } catch (notifErr) {
+      console.error("Seller Notification Error:", notifErr);
+      // Don't fail the payment verification if notification fails
+    }
 
     res.status(200).json({ 
       success: true, 
@@ -278,20 +307,95 @@ const getUserOrders = async (req, res) => {
 const getSellerOrders = async (req, res) => {
   try {
     const sellerId = req.user.id;
+    console.log(`Fetching orders for seller: ${sellerId}`);
+    
     const orders = await Order.find({ 'items.seller_id': sellerId })
       .populate('user_id', 'name phone')
+      .populate({
+        path: 'items.productId',
+        model: 'MandiListing'
+      })
       .sort({ createdAt: -1 });
     
+    console.log(`Found ${orders.length} matching orders in DB for seller ${sellerId}`);
+
     // Filter items to only show seller's own items
     const filteredOrders = orders.map(order => {
       const obj = order.toObject();
-      obj.items = obj.items.filter(i => i.seller_id.toString() === sellerId);
+      obj.items = obj.items.filter(i => i.seller_id.toString() === sellerId.toString());
       return obj;
     });
 
     res.status(200).json({ success: true, data: filteredOrders });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error fetching orders.' });
+    console.error("Seller Orders Fetch Error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching orders.',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+};
+
+/**
+ * @desc    Get Detailed Order Info
+ * @route   GET /api/orders/:id
+ * @access  Private
+ */
+const getOrderDetails = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate('user_id', 'name phone email')
+      .populate({ path: 'items.productId', model: 'MandiListing' })
+      .populate({ path: 'items.seller_id', model: 'Partner' });
+
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    res.status(200).json({ success: true, data: order });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching order details' });
+  }
+};
+
+/**
+ * @desc    Add Review to Seller/Item
+ * @route   POST /api/orders/review
+ * @access  Private (User Only)
+ */
+const addReview = async (req, res) => {
+  try {
+    const { order_id, partner_id, behavior_rating, item_ratings, comment } = req.body;
+    const userId = req.user.id;
+    const Review = require('../models/Review');
+
+    // 1. Verify order exists and is delivered
+    const order = await Order.findById(order_id);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+
+    // 2. Create the review
+    const newReview = await Review.create({
+      user_id: userId,
+      partner_id,
+      order_id,
+      item_ratings,
+      behavior_rating,
+      comment
+    });
+
+    // 3. Mark items as reviewed in the order
+    const itemIds = item_ratings.map(r => r.item_id);
+    order.items.forEach(item => {
+      if (itemIds.includes(item._id.toString())) {
+        item.isReviewed = true;
+      }
+    });
+    await order.save();
+
+    res.status(201).json({ success: true, message: 'Review submitted successfully', data: newReview });
+  } catch (error) {
+    console.error("Review Error:", error);
+    res.status(500).json({ success: false, message: error.message || 'Error submitting review.' });
   }
 };
 
@@ -300,5 +404,7 @@ module.exports = {
   verifyMarketplacePayment,
   updateLeadStatus,
   getUserOrders,
-  getSellerOrders
+  getSellerOrders,
+  getOrderDetails,
+  addReview
 };

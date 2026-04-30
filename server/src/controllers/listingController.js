@@ -732,11 +732,13 @@ const deleteListing = async (req, res) => {
 const createMandiListing = async (req, res) => {
   try {
     const partnerId = req.user.id;
-    const { title, material_name, category_id, description, thumbnail, pricing, stock_quantity, location, state, district, pincode } = req.body;
+    const { title, material_name, category_id, subcategory_id, brand, description, thumbnail, pricing, stock_quantity, location, state, district, pincode } = req.body;
 
     const newMandiItem = await MandiListing.create({
       partner_id: partnerId,
       category_id,
+      subcategory_id,
+      brand,
       title,
       material_name,
       description,

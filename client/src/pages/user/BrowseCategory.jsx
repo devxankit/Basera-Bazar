@@ -449,7 +449,7 @@ const BrowseCategory = () => {
                 <div
                   key={item.id}
                   className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm hover:shadow-md transition-all group flex h-[160px] xs:h-[185px] active:scale-[0.99]"
-                  onClick={() => navigate(`/listing/${item.id}`)}
+                  onClick={() => navigate(`/products/${item.id}`)}
                 >
                   <div className="w-[40%] xs:w-[35%] bg-slate-50 relative overflow-hidden shrink-0">
                     <img src={item.image || item.thumbnail || '/placeholder-material.png'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={item.title} />
@@ -502,7 +502,7 @@ const BrowseCategory = () => {
                 </div>
               ) : isSupplier ? (
                 /* Supplier Card */
-                <div key={item.id} onClick={() => navigate(`/listing/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl p-5 flex gap-5 active:scale-[0.98] transition-all">
+                <div key={item.id} onClick={() => navigate(`/products/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl p-5 flex gap-5 active:scale-[0.98] transition-all">
                   <div className="w-24 h-24 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
                     <img src={item.profile?.image || '/placeholder-supplier.png'} className="w-full h-full object-cover" alt={item.name} />
                   </div>
@@ -516,7 +516,7 @@ const BrowseCategory = () => {
                 </div>
               ) : (
                 /* Property Card */
-                <div key={item.id} onClick={() => navigate(`/listing/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl overflow-hidden flex flex-col h-auto active:scale-[0.98] transition-all group">
+                <div key={item.id} onClick={() => navigate(`/products/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl overflow-hidden flex flex-col h-auto active:scale-[0.98] transition-all group">
                    <div className="aspect-[16/10] relative overflow-hidden">
                       <img src={item.image || item.images?.[0]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={item.title} />
                       <div className="absolute top-4 left-4 bg-white/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[10px] font-black uppercase text-[#1f2355]">

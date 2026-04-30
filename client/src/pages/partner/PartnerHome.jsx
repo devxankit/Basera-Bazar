@@ -546,7 +546,7 @@ export default function PartnerHome() {
             <button
               onClick={() => {
                 if (isApproved) {
-                  navigate('/partner/leads');
+                  navigate('/partner/my-enquiries');
                 } else if (isPending) {
                   alert("Your application is currently under review.");
                 } else {
@@ -700,7 +700,7 @@ function MandiOverview({ partner, isRestricted, isApproved, isPending }) {
 
   const mandiStats = [
     { label: 'Active Products', value: stats?.active_products || '0', icon: <Package size={20} />, color: 'text-blue-600', bgColor: 'bg-blue-50', path: '/partner/mandi/inventory' },
-    { label: 'Total Orders', value: stats?.total_orders || '0', icon: <TrendingUp size={20} />, color: 'text-purple-600', bgColor: 'bg-purple-50', path: '/partner/mandi/orders' },
+    { label: 'Total Orders', value: stats?.total_orders || '0', icon: <TrendingUp size={20} />, color: 'text-purple-600', bgColor: 'bg-purple-50', path: '/partner/marketplace/orders' },
     { label: 'Penalty Due', value: `₹${stats?.penalty_due || 0}`, icon: <AlertCircle size={20} />, color: 'text-rose-600', bgColor: 'bg-rose-50', path: '/partner/mandi/penalties' },
   ];
 
@@ -773,7 +773,7 @@ function MandiOverview({ partner, isRestricted, isApproved, isPending }) {
           <button 
             onClick={() => {
               if (isApproved) {
-                navigate('/partner/mandi/orders');
+                navigate('/partner/marketplace/orders');
               } else if (isPending) {
                 alert("Your application is currently under review. Order management will be enabled once approved.");
               } else {

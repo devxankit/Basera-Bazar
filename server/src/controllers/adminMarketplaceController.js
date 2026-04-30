@@ -161,12 +161,46 @@ const getAllWithdrawals = async (req, res) => {
  */
 const getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find()
-      .populate('customer_id', 'name phone')
+    console.log("Admin requesting all marketplace orders...");
+    const orders = await Order.find({})
+      .populate('user_id', 'name phone')
+      .populate({
+        path: 'items.productId',
+        model: 'MandiListing'
+      })
+      .populate({
+        path: 'items.seller_id',
+        model: 'Partner'
+      })
       .sort({ createdAt: -1 });
+
+    console.log(`Successfully fetched ${orders.length} orders for admin`);
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error fetching orders.' });
+    console.error("CRITICAL: Get All Orders Admin Error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching orders.',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+};
+
+const debugMarketplace = async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const count = await Order.countDocuments({});
+    const lastOrder = await Order.findOne({}).sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      orderCount: count,
+      lastOrder: lastOrder,
+      db: mongoose.connection.db.databaseName,
+      host: mongoose.connection.host
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -175,5 +209,6 @@ module.exports = {
   updateCommissionRate,
   processWithdrawal,
   getAllWithdrawals,
-  getAllOrders
+  getAllOrders,
+  debugMarketplace
 };

@@ -29,9 +29,9 @@ const createEnquiry = async (req, res) => {
       partnerId = targetListing ? targetListing._id : null;
     } else if (enquiry_type === 'mandi') {
       targetListing = await MandiListing.findById(listing_id);
-      // BIG DIFFERENCE: For Mandi, we intentionally DO NOT map the partnerID right now. 
-      // It stays null so the Admin can manually assign it later!
-      partnerId = null; 
+      // Fixed: Directly assign the partner_id from the MandiListing 
+      // so the lead shows up in the seller's partner app!
+      partnerId = targetListing ? targetListing.partner_id : null; 
     }
 
     if (!targetListing) {

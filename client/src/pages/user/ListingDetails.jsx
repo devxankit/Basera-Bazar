@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
-import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star, ShoppingCart, Plus, Minus } from 'lucide-react';
+import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star, ShoppingCart, Plus, Minus, Package } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { clsx } from 'clsx';
@@ -227,7 +227,7 @@ const ListingDetails = () => {
   ] : [
     { id: 'details', label: 'Details' },
     { id: 'features', label: 'Features' },
-    { id: 'owner', label: 'Owner' }
+    { id: 'owner', label: isMandi ? 'Seller' : 'Owner' }
   ];
   
   const allImages = listing?.images?.length > 0 ? listing.images : [listing?.image || heroRealEstate];
@@ -457,26 +457,45 @@ const ListingDetails = () => {
               {activeTab === 'details' && (
                 <div className="space-y-4 pt-5">
                   <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-3">
-                    <h3 className="text-[15px] font-semibold text-[#1f2355]">About This Property</h3>
+                    <h3 className="text-[15px] font-semibold text-[#1f2355]">
+                      {isMandi ? 'Product Description' : 'About This Property'}
+                    </h3>
                     <p className="text-[13px] text-[#4a5578] leading-relaxed font-medium">
-                      {listing.details?.description || listing.description || 'No description available for this property.'}
+                      {listing.details?.description || listing.description || `No description available for this ${isMandi ? 'product' : 'property'}.`}
                     </p>
                   </div>
                   <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
-                    <h3 className="text-[15px] font-semibold text-[#1f2355]">Property Details</h3>
+                    <h3 className="text-[15px] font-semibold text-[#1f2355]">
+                      {isMandi ? 'Product Information' : 'Property Details'}
+                    </h3>
                     <div className="space-y-2">
-                      {[
-                        { label: 'Property For', value: listing.type || 'N/A' },
-                        { label: 'Property Type', value: listing.details?.propertyType || listing.category || 'N/A' },
-                        { label: 'Area', value: listing.details?.area ? `${listing.details.area} ${listing.details.areaUnit || ''}` : 'N/A' }
-                      ].map((detail, idx) => (
-                        <div key={idx} className="flex flex-row items-center justify-between py-0.5">
-                          <span className="text-[13px] font-medium text-[#64719b] capitalize w-1/3">{detail.label}</span>
-                          <span className="text-[13px] font-medium text-[#1f2355] capitalize w-2/3 flex items-center before:content-[':'] before:mr-2 before:text-[#4a5578]">
-                            {detail.value}
-                          </span>
-                        </div>
-                      ))}
+                      {isMandi ? (
+                        [
+                          { label: 'Material Name', value: listing.material_name || listing.title },
+                          { label: 'Product Type', value: listing.category || 'Mandi' },
+                          { label: 'Stock Available', value: listing.stock_quantity ? `${listing.stock_quantity} ${listing.pricing?.unit || 'Units'}` : 'In Stock' }
+                        ].map((detail, idx) => (
+                          <div key={idx} className="flex flex-row items-center justify-between py-0.5">
+                            <span className="text-[13px] font-medium text-[#64719b] capitalize w-1/3">{detail.label}</span>
+                            <span className="text-[13px] font-medium text-[#1f2355] capitalize w-2/3 flex items-center before:content-[':'] before:mr-2 before:text-[#4a5578]">
+                              {detail.value}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        [
+                          { label: 'Property For', value: listing.type || 'N/A' },
+                          { label: 'Property Type', value: listing.details?.propertyType || listing.category || 'N/A' },
+                          { label: 'Area', value: listing.details?.area ? `${listing.details.area} ${listing.details.areaUnit || ''}` : 'N/A' }
+                        ].map((detail, idx) => (
+                          <div key={idx} className="flex flex-row items-center justify-between py-0.5">
+                            <span className="text-[13px] font-medium text-[#64719b] capitalize w-1/3">{detail.label}</span>
+                            <span className="text-[13px] font-medium text-[#1f2355] capitalize w-2/3 flex items-center before:content-[':'] before:mr-2 before:text-[#4a5578]">
+                              {detail.value}
+                            </span>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                   <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
@@ -497,33 +516,36 @@ const ListingDetails = () => {
                     </div>
                   </div>
 
-                  {/* Property Map Pinpoint */}
-                  <div className="bg-white border border-[#eef2fc] rounded-xl p-2 shadow-[0_4px_15px_-5px_rgba(0,0,0,0.08)] overflow-hidden">
-                    <div className="h-48 w-full rounded-xl overflow-hidden bg-slate-100 relative">
-                      {listing.lat && listing.lng ? (
-                        <iframe 
-                          title="Property Location"
-                          width="100%" 
-                          height="100%" 
-                          frameBorder="0" 
-                          style={{ border: 0 }}
-                          src={`https://maps.google.com/maps?q=${listing.lat},${listing.lng}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-                          allowFullScreen
-                        />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
-                          <MapPin size={32} className="opacity-20" />
-                          <span className="text-[11px] font-bold uppercase tracking-widest">Location pinpoint unavailable</span>
-                        </div>
-                      )}
+                  {!isMandi && (
+                    <div className="bg-white border border-[#eef2fc] rounded-xl p-2 shadow-[0_4px_15px_-5px_rgba(0,0,0,0.08)] overflow-hidden">
+                      <div className="h-48 w-full rounded-xl overflow-hidden bg-slate-100 relative">
+                        {listing.lat && listing.lng ? (
+                          <iframe 
+                            title="Property Location"
+                            width="100%" 
+                            height="100%" 
+                            frameBorder="0" 
+                            style={{ border: 0 }}
+                            src={`https://maps.google.com/maps?q=${listing.lat},${listing.lng}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                            allowFullScreen
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                            <MapPin size={32} className="opacity-20" />
+                            <span className="text-[11px] font-bold uppercase tracking-widest">Location pinpoint unavailable</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
               {activeTab === 'features' && (
                 <div className="space-y-4 pt-5">
                   <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
-                    <h3 className="text-[15px] font-semibold text-[#1f2355]">Property Features</h3>
+                    <h3 className="text-[15px] font-semibold text-[#1f2355]">
+                      {isMandi ? 'Product Features' : 'Property Features'}
+                    </h3>
                     <div className="grid grid-cols-2 gap-y-4 gap-x-2">
                       {(() => {
                         const features = [];
@@ -551,7 +573,10 @@ const ListingDetails = () => {
                         
                         // Fallback to existing hardcoded ones if no details are found, 
                         // but prioritize dynamic ones
-                        const displayFeatures = features.length > 0 ? features : ['Prime Location', 'Road Access', 'Clear Title'];
+                        const defaultFeatures = isMandi 
+                          ? ['Quality Assured', 'On-time Delivery', 'Best Market Price', 'Bulk Availability']
+                          : ['Prime Location', 'Road Access', 'Clear Title'];
+                        const displayFeatures = features.length > 0 ? features : defaultFeatures;
 
                         return displayFeatures.map((feature, idx) => (
                           <div key={idx} className="flex items-center gap-2">
@@ -567,7 +592,9 @@ const ListingDetails = () => {
               {activeTab === 'owner' && (
                 <div className="space-y-4 pt-5">
                   <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4">
-                    <h3 className="text-[15px] font-semibold text-[#1f2355]">Property Owner/Agent</h3>
+                    <h3 className="text-[15px] font-semibold text-[#1f2355]">
+                      {isMandi ? 'Seller Information' : 'Property Owner/Agent'}
+                    </h3>
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 bg-[#eef2fc] rounded-full flex items-center justify-center text-[#fa8639] text-xl font-bold border border-[#d2dcf3] overflow-hidden">
                         {listing.owner?.profileImage ? (
@@ -585,11 +612,11 @@ const ListingDetails = () => {
                     </div>
 
                     <button 
-                      onClick={() => navigate(`/agent/${listing.owner?.id}`)}
+                      onClick={() => navigate(isMandi ? `/seller/${listing.owner?.id}` : `/agent/${listing.owner?.id}`)}
                       className="w-full mt-4 bg-slate-50 border border-slate-100 py-3 rounded-2xl text-[13px] font-bold text-[#1f2355] hover:bg-slate-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
                       <LayoutGrid size={16} />
-                      View All Property
+                      {isMandi ? 'View Seller Shop' : 'View All Property'}
                     </button>
                   </div>
                   <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-5">
@@ -756,38 +783,58 @@ const ListingDetails = () => {
           {isMandi ? (
             <div className="flex w-full gap-3">
               {cart[listing.id] ? (
-                <div className="flex-1 flex items-center bg-indigo-50 rounded-full border border-indigo-100 overflow-hidden h-[52px]">
+                <div className="flex flex-col w-full gap-2">
+                  <div className="flex gap-3">
+                    <div className="flex-1 flex items-center bg-indigo-50 rounded-full border border-indigo-100 overflow-hidden h-[52px]">
+                      <button 
+                        onClick={() => removeFromCart(listing.id)}
+                        className="flex-1 h-full flex items-center justify-center text-[#1f2355] hover:bg-indigo-100 active:scale-90 transition-all"
+                      >
+                        <Minus size={20} strokeWidth={3} />
+                      </button>
+                      <span className="w-12 text-center text-[16px] font-black text-[#1f2355]">{cart[listing.id].qty}</span>
+                      <button 
+                        onClick={() => addToCart(listing)}
+                        className="flex-1 h-full flex items-center justify-center text-[#1f2355] hover:bg-indigo-100 active:scale-90 transition-all"
+                      >
+                        <Plus size={20} strokeWidth={3} />
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => setIsModalOpen(true)}
+                      className="flex-1 bg-slate-100 text-[#1f2355] h-[52px] rounded-full font-black text-[15px] flex items-center justify-center gap-2 active:scale-95 transition-all"
+                    >
+                      <Send size={18} />
+                      Enquiry
+                    </button>
+                  </div>
                   <button 
-                    onClick={() => removeFromCart(listing.id)}
-                    className="flex-1 h-full flex items-center justify-center text-[#1f2355] hover:bg-indigo-100 active:scale-90 transition-all"
+                    onClick={() => navigate('/cart')}
+                    className="w-full bg-emerald-600 text-white h-[52px] rounded-full font-black text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 active:scale-95 transition-all"
                   >
-                    <Minus size={20} strokeWidth={3} />
-                  </button>
-                  <span className="w-12 text-center text-[16px] font-black text-[#1f2355]">{cart[listing.id].qty}</span>
-                  <button 
-                    onClick={() => addToCart(listing)}
-                    className="flex-1 h-full flex items-center justify-center text-[#1f2355] hover:bg-indigo-100 active:scale-90 transition-all"
-                  >
-                    <Plus size={20} strokeWidth={3} />
+                    <ShoppingCart size={18} strokeWidth={3} />
+                    Go to Cart
                   </button>
                 </div>
               ) : (
-                <button 
-                  onClick={() => addToCart(listing)}
-                  className="flex-1 bg-emerald-600 text-white h-[52px] rounded-full font-black text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 active:scale-95 transition-all"
-                >
-                   <ShoppingCart size={18} strokeWidth={3} />
-                   Add to Cart
-                </button>
+                <div className="flex w-full gap-3">
+                  <button 
+                    onClick={() => addToCart(listing)}
+                    className="flex-1 bg-emerald-600 text-white h-[52px] rounded-full font-black text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 active:scale-95 transition-all"
+                  >
+                    <ShoppingCart size={18} strokeWidth={3} />
+                    Add to Cart
+                  </button>
+                  
+                  <button 
+                    onClick={() => setIsModalOpen(true)}
+                    className="flex-1 bg-[#1f2355] text-white h-[52px] rounded-full font-black text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-slate-200 active:scale-95 transition-all"
+                  >
+                    <Send size={18} />
+                    Enquiry
+                  </button>
+                </div>
               )}
-              
-              <button 
-                onClick={() => setIsModalOpen(true)}
-                className="flex-1 bg-[#1f2355] text-white h-[52px] rounded-full font-black text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-slate-200 active:scale-95 transition-all"
-              >
-                 <Send size={18} />
-                 Enquiry
-              </button>
             </div>
           ) : isSupplier ? (
             <div className="flex w-full gap-3">
@@ -969,12 +1016,14 @@ const ListingDetails = () => {
             </p>
             <div className="bg-[#ffe8d6] border border-[#ffdac1] rounded-2xl p-4 space-y-2.5">
               <div className="flex items-center gap-2">
-                {isSupplier ? <Building2 size={18} strokeWidth={2.5} className="text-[#fa8639]" /> : <Home size={18} strokeWidth={2.5} className="text-[#fa8639]" />}
-                <span className="font-semibold text-[#fa8639] text-[15px]">{isSupplier ? 'Supplier Details' : 'Property Details'}</span>
+                {isSupplier ? <Building2 size={18} strokeWidth={2.5} className="text-[#fa8639]" /> : (isMandi ? <Package size={18} strokeWidth={2.5} className="text-[#fa8639]" /> : <Home size={18} strokeWidth={2.5} className="text-[#fa8639]" />)}
+                <span className="font-semibold text-[#fa8639] text-[15px]">
+                  {isSupplier ? 'Supplier Details' : (isMandi ? 'Product Details' : 'Property Details')}
+                </span>
               </div>
               <div className="text-[14px] text-[#1f2355] space-y-1 font-medium pb-1">
-                <p>{isSupplier ? 'Business' : 'Owner/Agent'}: {listing.listedBy || listing.owner?.name}</p>
-                <p>{isSupplier ? 'Category' : 'Property'}: {listing.title}</p>
+                <p>{isSupplier ? 'Business' : (isMandi ? 'Seller' : 'Owner/Agent')}: {listing.listedBy || listing.owner?.name}</p>
+                <p>{isSupplier ? 'Category' : (isMandi ? 'Product' : 'Property')}: {listing.title}</p>
                 <p>Location: {listing.location}</p>
               </div>
             </div>

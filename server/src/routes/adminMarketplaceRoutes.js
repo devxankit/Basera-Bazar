@@ -5,7 +5,8 @@ const {
   updateCommissionRate, 
   processWithdrawal,
   getAllWithdrawals,
-  getAllOrders
+  getAllOrders,
+  debugMarketplace
 } = require('../controllers/adminMarketplaceController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -18,5 +19,6 @@ router.post('/commission', updateCommissionRate);
 router.get('/withdrawals', getAllWithdrawals);
 router.patch('/withdrawals/:id', processWithdrawal);
 router.get('/orders', getAllOrders);
+router.get('/debug', debugMarketplace);
 
 module.exports = router;

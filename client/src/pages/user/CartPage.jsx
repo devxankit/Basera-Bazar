@@ -9,6 +9,9 @@ export default function CartPage() {
   const { cart, addToCart, removeFromCart, deleteFromCart, cartTotal, cartCount } = useCart();
 
   const cartItems = Object.values(cart);
+  
+  const uniqueSellersCount = new Set(cartItems.map(c => c.item.owner?.id || c.item.partner_id || c.item.seller_id).filter(Boolean)).size || 1;
+  const tokenAmount = uniqueSellersCount * 500;
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24">
@@ -56,12 +59,12 @@ export default function CartPage() {
                   className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex gap-4"
                 >
                   <div className="w-20 h-20 bg-slate-50 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-100">
-                     <img 
-                       src={c.item.media?.[0] || '/default-product-image.png'} 
-                       alt={c.item.title} 
-                       className="w-full h-full object-cover"
-                       onError={(e) => { e.target.onerror = null; e.target.src = '/default-product-image.png'; }}
-                     />
+                      <img 
+                        src={c.item.image || (c.item.images && c.item.images[0]) || '/default-product-image.png'} 
+                        alt={c.item.title} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.target.onerror = null; e.target.src = '/default-product-image.png'; }}
+                      />
                   </div>
                   
                   <div className="flex-grow flex flex-col justify-between py-0.5">
@@ -77,8 +80,10 @@ export default function CartPage() {
                     
                     <div className="flex items-end justify-between mt-3">
                       <div className="flex flex-col">
-                        <span className="text-[11px] text-slate-400 font-semibold mb-1">{c.item.unit_of_measure?.name || 'Unit'}</span>
-                        <span className="text-[16px] font-black text-[#0c2461]">₹{c.item.pricing?.price_per_unit}</span>
+                        <span className="text-[11px] text-slate-400 font-semibold mb-1">
+                          {c.item.pricing?.unit || c.item.unit_of_measure?.name || 'Unit'}
+                        </span>
+                        <span className="text-[16px] font-black text-[#0c2461]">₹{c.item.pricing?.price_per_unit || c.item.price?.value}</span>
                       </div>
                       
                       <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1">
@@ -110,13 +115,23 @@ export default function CartPage() {
                   <span className="font-bold text-slate-700">₹{cartTotal}</span>
                 </div>
                 <div className="flex justify-between items-center text-[13px]">
-                  <span className="text-slate-500 font-medium">Delivery Charges</span>
-                  <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px] uppercase tracking-widest">As applicable</span>
+                  <div className="flex flex-col">
+                    <span className="text-slate-500 font-medium">Booking Token</span>
+                    <span className="text-[10px] text-indigo-500 font-bold italic">Pay now to confirm</span>
+                  </div>
+                  <span className="font-bold text-indigo-600">₹{tokenAmount}</span>
+                </div>
+                <div className="flex justify-between items-center text-[13px]">
+                  <div className="flex flex-col">
+                    <span className="text-slate-500 font-medium">Remaining (COD)</span>
+                    <span className="text-[10px] text-emerald-600 font-bold italic">Pay on delivery</span>
+                  </div>
+                  <span className="font-bold text-emerald-600">₹{cartTotal - tokenAmount}</span>
                 </div>
               </div>
               <div className="border-t border-slate-100 pt-4 mt-2 flex justify-between items-center">
-                <span className="text-[14px] font-black text-[#0c2461]">To Pay</span>
-                <span className="text-[20px] font-black text-[#0c2461]">₹{cartTotal}</span>
+                <span className="text-[14px] font-black text-[#0c2461]">To Pay Now</span>
+                <span className="text-[24px] font-black text-[#0c2461]">₹{tokenAmount}</span>
               </div>
             </div>
           </div>
@@ -126,11 +141,11 @@ export default function CartPage() {
       {cartCount > 0 && (
         <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-slate-100 p-4 pb-safe flex items-center justify-between z-50 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)]">
           <div className="flex flex-col">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Total Amount</span>
-            <span className="text-[22px] font-black text-[#0c2461] leading-none mt-1">₹{cartTotal}</span>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">To Pay Now</span>
+            <span className="text-[22px] font-black text-[#0c2461] leading-none mt-1">₹{tokenAmount}</span>
           </div>
           <button 
-            onClick={() => navigate('/mandi-checkout')}
+            onClick={() => navigate('/mandi-bazar/checkout')}
             className="h-[52px] bg-[#0c2461] hover:bg-[#1e293b] text-white px-8 rounded-full font-bold text-[15px] shadow-xl shadow-indigo-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
             Checkout <ChevronRight size={18} />
