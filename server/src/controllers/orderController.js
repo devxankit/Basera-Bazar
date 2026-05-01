@@ -205,7 +205,7 @@ const updateLeadStatus = async (req, res) => {
     if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
 
     const item = order.items.id(itemId);
-    if (!item || item.seller_id.toString() !== sellerId) {
+    if (!item || item.seller_id.toString() !== sellerId.toString()) {
       return res.status(403).json({ success: false, message: 'Not authorized for this lead.' });
     }
 
@@ -215,11 +215,12 @@ const updateLeadStatus = async (req, res) => {
     // Flow: pending -> contacted -> processing -> shipped -> delivered
     const statusPriority = {
       'pending': 1,
-      'contacted': 2,
+      'accepted': 2,
+      'contacted': 2, // Backward compatibility
       'processing': 3,
       'shipped': 4,
       'delivered': 5,
-      'cancelled': 0 // Cancelled can happen from pending/contacted usually
+      'cancelled': 0
     };
 
     // Block updates to terminal states
@@ -246,7 +247,9 @@ const updateLeadStatus = async (req, res) => {
       if (!delivery_otp) {
         return res.status(400).json({ success: false, message: 'Delivery OTP is required to mark as delivered.' });
       }
-      if (item.delivery_otp !== delivery_otp) {
+      
+      // Robust comparison
+      if (item.delivery_otp?.toString() !== delivery_otp?.toString()) {
         return res.status(400).json({ success: false, message: 'Invalid Delivery OTP.' });
       }
 
@@ -285,16 +288,37 @@ const updateLeadStatus = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get User Orders
- * @route   GET /api/orders/my-orders
- * @access  Private (User Only)
- */
 const getUserOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ user_id: req.user.id }).sort({ createdAt: -1 });
+    const userId = req.user._id || req.user.id;
+    const userPhone = req.user.phone;
+    
+    console.log(`Fetching orders for User ID: ${userId}, Phone: ${userPhone}`);
+
+    // We fetch orders linked to the specific ID OR orders matching the user's phone number.
+    // This handles cases where a person might have both a User and Partner record
+    // but wants to see all their marketplace orders in one place.
+    const orders = await Order.find({ 
+      $or: [
+        { user_id: userId },
+        { "shipping_address.phone": userPhone }
+      ]
+    })
+      .populate({
+        path: 'items.productId',
+        model: 'MandiListing'
+      })
+      .populate({
+        path: 'items.seller_id',
+        select: 'name shop_name phone profile_image',
+        model: 'Partner'
+      })
+      .sort({ createdAt: -1 });
+
+    console.log(`Found ${orders.length} total orders matching ID or Phone.`);
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
+    console.error("getUserOrders Error:", error);
     res.status(500).json({ success: false, message: 'Error fetching orders.' });
   }
 };
@@ -399,6 +423,43 @@ const addReview = async (req, res) => {
   }
 };
 
+const resendOrderOTP = async (req, res) => {
+  try {
+    const { orderId, itemId } = req.params;
+    const sellerId = req.user.id;
+
+    const order = await Order.findById(orderId).populate('user_id');
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+
+    const item = order.items.id(itemId);
+    if (!item || item.seller_id.toString() !== sellerId.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized.' });
+    }
+
+    if (item.status === 'delivered') {
+      return res.status(400).json({ success: false, message: 'Order already delivered.' });
+    }
+
+    const customerPhone = order.user_id?.phone;
+    if (!customerPhone) {
+      return res.status(400).json({ success: false, message: 'Customer phone not found.' });
+    }
+
+    const { sendOTP } = require('../utils/sms');
+    // Using a more generic message for delivery
+    const success = await sendOTP(customerPhone, item.delivery_otp);
+
+    if (success) {
+      return res.status(200).json({ success: true, message: 'OTP sent to customer.' });
+    } else {
+      return res.status(500).json({ success: false, message: 'Failed to send SMS.' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+};
+
 module.exports = {
   createMarketplaceOrder,
   verifyMarketplacePayment,
@@ -406,5 +467,6 @@ module.exports = {
   getUserOrders,
   getSellerOrders,
   getOrderDetails,
-  addReview
+  addReview,
+  resendOrderOTP
 };

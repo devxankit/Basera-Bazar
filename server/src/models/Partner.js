@@ -55,17 +55,25 @@ const partnerSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
+  is_active: {
+    type: Boolean,
+    default: true
+  },
+  is_blocked: {
+    type: Boolean,
+    default: false
+  },
   email: {
     type: String,
     trim: true,
     lowercase: true,
     default: null
   },
-  image: {
+  business_logo: {
     type: String,
     default: null
   },
-  business_logo: {
+  image: {
     type: String,
     default: null
   },
@@ -184,8 +192,12 @@ const partnerSchema = new mongoose.Schema({
     successful_orders: { type: Number, default: 0 },
     current_milestone_target: { type: Number, default: 0 }
   },
-  push_subscriptions: {
-    type: [Object],
+  fcmTokens: {
+    type: [String],
+    default: []
+  },
+  fcmTokenMobile: {
+    type: [String],
     default: []
   }
 }, { timestamps: true });

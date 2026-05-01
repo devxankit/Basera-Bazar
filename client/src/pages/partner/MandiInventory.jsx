@@ -1,243 +1,225 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Edit3, 
-  Trash2, 
-  MoreVertical, 
   Package, 
-  IndianRupee, 
-  Database,
-  ArrowRight,
-  Loader2,
+  Plus, 
+  ArrowLeft, 
+  Search,
   ChevronRight,
+  Edit,
+  Trash2,
+  MapPin,
+  Box,
+  LayoutGrid,
   TrendingUp,
-  Box
+  Activity,
+  ArrowUpRight,
+  Filter,
+  Loader2,
+  MoreVertical,
+  X,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { db } from '../../services/DataEngine';
 
 export default function MandiInventory() {
   const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
+  const { user } = useAuth();
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [filter, setFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    fetchProducts();
+    fetchMyProducts();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchMyProducts = async () => {
     try {
       setLoading(true);
-      // Using the dedicated listings/my endpoint which returns all partner listings
-      const res = await api.get('/listings/my'); 
-      // Filter only mandi products from the combined results
-      const mandiProducts = res.data.data.filter(item => item.type === 'mandi_product');
-      setProducts(mandiProducts);
+      const res = await api.get('/listings/my');
+      if (res.data.success) {
+        // Filter only mandi products
+        const normalized = (res.data.data || [])
+          .map(item => db._normalize(item))
+          .filter(item => item.type === 'mandi_product');
+        setItems(normalized);
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching mandi inventory:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      await api.patch(`/mandi/products/${editingProduct._id}`, {
-        pricing: {
-          price_per_unit: Number(editingProduct.pricing.price_per_unit),
-          unit: editingProduct.pricing.unit
-        },
-        stock_quantity: Number(editingProduct.stock_quantity)
-      });
-      setIsEditModalOpen(false);
-      fetchProducts();
-    } catch (err) {
-      alert("Update failed");
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    if (window.confirm("Delete this product from your inventory?")) {
+      try {
+        await api.delete(`/listings/${id}`);
+        setItems(prev => prev.filter(item => (item.id || item._id) !== id));
+      } catch (err) {
+        console.error("Delete error:", err);
+        alert("Failed to delete product.");
+      }
     }
   };
 
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         item.brand?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (!matchesSearch) return false;
+    if (filter === 'All') return true;
+    if (filter === 'Active') return item.status === 'active';
+    if (filter === 'Pending') return item.status === 'pending_approval' || !item.status;
+    return true;
+  });
+
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-24">
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-[#f8fafc] font-sans pb-32">
       {/* Header */}
-      <div className="bg-[#001b4e] pt-12 pb-20 px-6 rounded-b-[40px] relative overflow-hidden">
-        <div className="flex items-center justify-between relative z-10 mb-6">
-          <h1 className="text-white text-[24px] font-bold">My Inventory</h1>
+      <div className="bg-white px-5 py-3 sticky top-0 z-50 border-b border-slate-100 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
           <button 
-            onClick={() => navigate('/partner/mandi/add-product')}
-            className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#001b4e] shadow-lg active:scale-90 transition-all"
+            onClick={() => navigate('/partner/home')}
+            className="p-1 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
           >
-            <Plus size={24} />
+            <ArrowLeft size={22} />
           </button>
+          <h2 className="text-[18px] font-bold text-[#001b4e] uppercase tracking-tight">Mandi Inventory</h2>
         </div>
-        
-        {/* Search Bar */}
-        <div className="relative z-10">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl flex items-center px-5 py-4">
-             <Search size={20} className="text-white/40 mr-3" />
-             <input 
-               type="text" 
-               placeholder="Search materials..." 
-               className="bg-transparent border-none outline-none text-white placeholder:text-white/30 text-[15px] w-full font-medium"
-             />
+
+        {/* Search */}
+        <div className="relative group">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#001b4e] transition-colors">
+            <Search size={18} />
           </div>
+          <input 
+            type="text" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search products by title or brand..." 
+            className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 pl-12 pr-4 text-[14px] outline-none focus:bg-white focus:border-blue-500/30 transition-all font-medium"
+          />
         </div>
       </div>
 
-      <div className="px-6 -mt-10 relative z-20 space-y-4">
-        {loading ? (
-          <div className="flex flex-col items-center py-20 gap-4">
-            <Loader2 className="animate-spin text-[#001b4e]" size={40} />
-            <span className="text-slate-400 font-medium">Loading materials...</span>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="bg-white rounded-[40px] p-12 shadow-sm border border-slate-100 flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-200 mb-6">
-               <Package size={40} />
-            </div>
-            <h3 className="text-[18px] font-bold text-[#001b4e] mb-2">No Products Found</h3>
-            <p className="text-slate-400 text-[13px] leading-relaxed mb-8">You haven't listed any materials yet. Start selling by adding your first product.</p>
-            <button 
-              onClick={() => navigate('/partner/mandi/add-product')}
-              className="bg-[#001b4e] text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-indigo-900/10 active:scale-95 transition-all"
+      <div className="p-5">
+        {/* Filter Tabs */}
+        <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-6">
+          {['All', 'Active', 'Pending'].map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-4 py-2 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all border ${
+                filter === f 
+                  ? 'bg-[#001b4e] text-white border-[#001b4e] shadow-md' 
+                  : 'bg-white text-slate-400 border-slate-100'
+              }`}
             >
-              Add Your First Product
+              {f}
             </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center py-20">
+            <Loader2 className="animate-spin text-blue-500 mb-4" size={32} />
+            <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Updating Stock...</span>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
+             <Package size={64} className="text-slate-200 mb-6" />
+             <h3 className="text-[18px] font-bold text-slate-400 uppercase tracking-tight">Inventory Empty</h3>
+             <button 
+               onClick={() => navigate('/partner/add-product')}
+               className="mt-4 text-blue-600 font-bold uppercase text-[12px] tracking-widest hover:underline"
+             >
+               Add First Product
+             </button>
           </div>
         ) : (
-          products.map((product) => (
-            <motion.div 
-              key={product._id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white p-4 rounded-[32px] shadow-sm border border-slate-50 flex gap-4 group active:scale-[0.98] transition-all"
-            >
-              <div className="w-24 h-24 rounded-[24px] overflow-hidden bg-slate-100 shrink-0">
-                <img src={product.thumbnail} alt={product.title} className="w-full h-full object-cover" />
-              </div>
-              <div className="flex-grow flex flex-col justify-between py-1">
-                <div>
-                  <div className="flex justify-between items-start">
-                    <h3 className="text-[16px] font-bold text-[#001b4e] leading-tight">{product.title}</h3>
-                    <div className={`px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider ${
-                      product.status === 'approved' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'
-                    }`}>
-                      {product.status}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 mt-2">
-                    <div className="flex items-center gap-1 text-[#001b4e]">
-                       <IndianRupee size={12} className="text-slate-300" />
-                       <span className="text-[14px] font-bold">{product.pricing.price_per_unit}</span>
-                       <span className="text-[11px] text-slate-400">/{product.pricing.unit}</span>
-                    </div>
-                    <div className="w-1 h-1 bg-slate-100 rounded-full" />
-                    <div className="flex items-center gap-1 text-slate-400">
-                       <Database size={12} className="text-slate-300" />
-                       <span className="text-[12px] font-bold text-slate-500">{product.stock_quantity}</span>
-                       <span className="text-[11px] text-slate-300">Left</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => {
-                          setEditingProduct(product);
-                          setIsEditModalOpen(true);
-                        }}
-                        className="bg-slate-50 p-2 rounded-xl text-[#001b4e] hover:bg-slate-100 transition-all"
-                      >
-                         <Edit3 size={16} />
-                      </button>
-                      <button className="bg-slate-50 p-2 rounded-xl text-red-500 hover:bg-red-50 transition-all">
-                         <Trash2 size={16} />
-                      </button>
+          <div className="grid grid-cols-1 gap-3">
+            {filteredItems.map((item) => (
+              <motion.div 
+                key={item.id || item._id}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex h-[100px]"
+              >
+                {/* Thumbnail */}
+                <div className="w-[100px] h-full bg-slate-50 shrink-0 relative border-r border-slate-50">
+                   {item.thumbnail || item.image ? (
+                     <img src={item.thumbnail || item.image} alt="" className="w-full h-full object-cover" />
+                   ) : (
+                     <div className="w-full h-full flex items-center justify-center text-slate-200">
+                        <Package size={24} />
+                     </div>
+                   )}
+                   <div className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest text-white shadow-sm ${item.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`}>
+                      {item.status || 'PENDING'}
                    </div>
-                   <button className="flex items-center gap-1 text-[12px] font-bold text-indigo-600">
-                      Stats <ChevronRight size={14} />
-                   </button>
                 </div>
-              </div>
-            </motion.div>
-          ))
+
+                {/* Info */}
+                <div className="flex-grow p-3 min-w-0 flex flex-col justify-between">
+                   <div className="min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest truncate">{item.brand || 'UNBRANDED'}</span>
+                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">#{item.id?.slice(-4).toUpperCase()}</span>
+                      </div>
+                      <h4 className="text-[13px] font-black text-[#001b4e] uppercase tracking-tight truncate leading-tight mb-1">{item.title}</h4>
+                      <div className="flex items-baseline gap-1.5">
+                         <span className="text-[15px] font-black text-[#001b4e] tracking-tighter">
+                            ₹{typeof item.price === 'object' 
+                               ? Number(item.price.value || 0).toLocaleString() 
+                               : Number(item.price || 0).toLocaleString()}
+                         </span>
+                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                            / {typeof item.price === 'object' ? (item.price.unit || item.unit || 'unit') : (item.unit || 'unit')}
+                         </span>
+                      </div>
+                   </div>
+
+                   <div className="flex items-center justify-between border-t border-slate-50 pt-1.5 mt-1">
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                         Stock: <span className={item.stock > 10 ? 'text-blue-600' : 'text-rose-600'}>{item.stock || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                         <button 
+                           onClick={() => navigate(`/partner/add-product?edit=${item.id || item._id}`)}
+                           className="flex items-center gap-1 px-2 py-1 bg-slate-50 text-slate-600 rounded border border-slate-100 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                         >
+                            <Edit size={10} />
+                            <span className="text-[8px] font-black uppercase tracking-widest pt-0.5">Edit</span>
+                         </button>
+                         <button 
+                           onClick={(e) => handleDelete(e, item.id || item._id)}
+                           className="p-1 bg-rose-50 text-rose-500 rounded border border-rose-100 active:scale-90 transition-all"
+                         >
+                            <Trash2 size={10} />
+                         </button>
+                      </div>
+                   </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Quick Edit Modal */}
-      <AnimatePresence>
-        {isEditModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsEditModalOpen(false)}
-              className="absolute inset-0 bg-[#001b4e]/60 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-sm rounded-[40px] shadow-2xl relative z-10 overflow-hidden"
-            >
-              <div className="p-8 pb-4">
-                <h3 className="text-[20px] font-bold text-[#001b4e] mb-2">Quick Update</h3>
-                <p className="text-slate-400 text-[13px]">Update the live pricing and stock for {editingProduct?.title}</p>
-                
-                <div className="mt-8 space-y-5">
-                  <div className="space-y-2">
-                    <label className="text-[12px] font-bold text-slate-400 uppercase tracking-widest px-1">Price per {editingProduct?.pricing.unit}</label>
-                    <div className="relative">
-                       <input 
-                         type="number"
-                         className="w-full bg-slate-50 border-none rounded-2xl py-5 pl-12 pr-6 text-[#001b4e] font-bold text-[16px] outline-none"
-                         value={editingProduct?.pricing.price_per_unit}
-                         onChange={(e) => setEditingProduct({...editingProduct, pricing: {...editingProduct.pricing, price_per_unit: e.target.value}})}
-                       />
-                       <IndianRupee size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[12px] font-bold text-slate-400 uppercase tracking-widest px-1">Available Stock</label>
-                    <div className="relative">
-                       <input 
-                         type="number"
-                         className="w-full bg-slate-50 border-none rounded-2xl py-5 pl-12 pr-6 text-[#001b4e] font-bold text-[16px] outline-none"
-                         value={editingProduct?.stock_quantity}
-                         onChange={(e) => setEditingProduct({...editingProduct, stock_quantity: e.target.value})}
-                       />
-                       <Database size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-8 pt-4 flex gap-3">
-                <button 
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="flex-1 py-4 rounded-2xl font-bold text-slate-400 bg-slate-50 active:scale-95 transition-all"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleQuickUpdate}
-                  className="flex-[2] py-4 rounded-2xl font-bold bg-[#001b4e] text-white shadow-lg shadow-indigo-900/10 active:scale-95 transition-all"
-                >
-                  Update Now
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Floating Add Button */}
+      <button 
+        onClick={() => navigate('/partner/add-product')}
+        className="fixed bottom-32 right-6 w-14 h-14 bg-[#001b4e] text-white rounded-full flex items-center justify-center shadow-xl shadow-blue-900/30 active:scale-90 transition-all z-[60]"
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 }

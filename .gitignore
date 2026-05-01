@@ -43,3 +43,9 @@ data/
 
 # Vercel
 .vercel
+
+# Firebase & Secrets
+*firebase-service-account.json*
+*.json.json
+service-account.json
+credentials.json

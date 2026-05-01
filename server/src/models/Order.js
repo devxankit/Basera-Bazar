@@ -9,7 +9,7 @@ const orderItemSchema = new mongoose.Schema({
   unit: { type: String },
   status: {
     type: String,
-    enum: ['pending', 'contacted', 'processing', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'accepted', 'contacted', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
   },
   status_history: [
@@ -74,7 +74,7 @@ const orderSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ['pending', 'token_paid', 'contacted', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'token_paid', 'accepted', 'contacted', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
   }
 }, { timestamps: true });

@@ -7,7 +7,8 @@ const {
   getUserOrders,
   getSellerOrders,
   getOrderDetails,
-  addReview
+  addReview,
+  resendOrderOTP
 } = require('../controllers/orderController');
 const { protect } = require('../middlewares/authMiddleware');
 
@@ -23,5 +24,6 @@ router.post('/review', protect, addReview);
 
 // Lead Management (Mandi Bazar)
 router.patch('/lead/:orderId/:itemId/status', protect, updateLeadStatus);
+router.post('/lead/:orderId/:itemId/send-otp', protect, resendOrderOTP);
 
 module.exports = router;

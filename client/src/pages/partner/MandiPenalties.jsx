@@ -8,7 +8,8 @@ import {
   TrendingDown,
   ChevronRight,
   Loader2,
-  ShieldAlert
+  ShieldAlert,
+  ArrowLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -38,61 +39,58 @@ export default function MandiPenalties() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-24">
-      {/* Header Card */}
-      <div className="bg-[#001b4e] pt-12 pb-32 px-6 rounded-b-[40px] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl opacity-50" />
-        <div className="flex items-center justify-between relative z-10 mb-8">
-           <h1 className="text-white text-[24px] font-bold">Account Summary</h1>
-           <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white backdrop-blur-md">
-              <ShieldAlert size={20} />
-           </div>
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-[#f8fafc] font-sans pb-32">
+      {/* Header */}
+      <div className="bg-white px-5 py-3 sticky top-0 z-50 border-b border-slate-100 shadow-sm">
+        <div className="flex items-center gap-3 mb-2">
+          <button 
+            onClick={() => navigate('/partner/profile')}
+            className="p-1 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
+          >
+            <ArrowLeft size={22} />
+          </button>
+          <h2 className="text-[18px] font-bold text-[#001b4e] uppercase tracking-tight">Account Summary</h2>
         </div>
+      </div>
 
-        <div className="relative z-10 text-center py-4">
-           <p className="text-white/60 text-[14px] font-medium uppercase tracking-widest mb-1">Total Penalty Due</p>
-           <h2 className={`text-[48px] font-bold flex items-baseline justify-center gap-2 ${stats?.penalty_due > 0 ? 'text-rose-400' : 'text-white'}`}>
-             <span className="opacity-40 text-[24px]">₹</span>
-             {stats?.penalty_due || '0'}
-           </h2>
-           <div className="mt-4 inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-              <div className={`w-2 h-2 rounded-full ${stats?.penalty_due > 0 ? 'bg-rose-400' : 'bg-emerald-400'}`} />
-              <span className="text-white/80 text-[12px] font-medium">
+      <div className="p-5 space-y-6">
+        {/* Penalty Due Card */}
+        <div className="bg-[#001b4e] rounded-[24px] p-8 text-center text-white shadow-xl shadow-blue-900/20">
+           <div className="text-[12px] font-bold uppercase tracking-widest opacity-60 mb-2">Total Penalty Due</div>
+           <div className="text-[48px] font-black tracking-tight flex items-baseline justify-center gap-1">
+              <span className="text-[24px] opacity-40">₹</span>
+              {stats?.penalty_due || '0'}
+           </div>
+           <div className={`inline-flex items-center gap-2 mt-4 px-4 py-1.5 rounded-full border border-white/10 ${stats?.penalty_due > 0 ? 'bg-rose-500/20 text-rose-200' : 'bg-emerald-500/20 text-emerald-200'}`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${stats?.penalty_due > 0 ? 'bg-rose-400 animate-pulse' : 'bg-emerald-400'}`} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">
                 {stats?.penalty_due > 0 ? 'Pending Settlement' : 'No Penalties Recorded'}
               </span>
            </div>
         </div>
-      </div>
 
-      <div className="px-6 -mt-10 relative z-20 space-y-6">
-        {/* Warning Info */}
-        <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-50 flex gap-4">
-           <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 shrink-0 shadow-inner">
-              <AlertCircle size={24} />
+        {/* Info Section */}
+        <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-start gap-4">
+           <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center shrink-0">
+              <AlertCircle size={20} />
            </div>
            <div>
-              <h3 className="text-[17px] font-bold text-[#001b4e]">About Penalties</h3>
-              <p className="text-slate-400 text-[13px] leading-relaxed mt-1">
+              <h3 className="text-[15px] font-bold text-[#001b4e] uppercase tracking-tight">About Penalties</h3>
+              <p className="text-slate-400 text-[13px] leading-relaxed mt-1 font-medium">
                 A penalty equal to the booking token is charged whenever you cancel an active lead. These dues must be settled with the platform admin.
               </p>
            </div>
         </div>
 
-        {/* Action button (placeholder for paying penalty if needed, or just info) */}
-        <div className="bg-indigo-50 p-6 rounded-[32px] border border-indigo-100 space-y-4">
-           <div className="flex items-center gap-2">
-              <TrendingDown size={18} className="text-indigo-600" />
-              <span className="text-[13px] font-black text-indigo-900 uppercase tracking-wide">Performance Tracking</span>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-4">
+           <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm">
+              <div className="text-[20px] font-bold text-[#001b4e]">{stats?.total_orders || 0}</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Lead Count</div>
            </div>
-           <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-50">
-                 <div className="text-[18px] font-bold text-[#001b4e] truncate">{stats?.total_orders || 0}</div>
-                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Lead Count</div>
-              </div>
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-50">
-                 <div className="text-[18px] font-bold text-[#001b4e] truncate">100%</div>
-                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Success Rate</div>
-              </div>
+           <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm">
+              <div className="text-[20px] font-bold text-[#001b4e]">100%</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Success Rate</div>
            </div>
         </div>
       </div>

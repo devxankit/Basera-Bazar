@@ -1,99 +1,93 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Home, 
-  Building2, 
-  Briefcase, 
   Package, 
-  Users, 
   UserCircle,
-  TrendingUp
+  TrendingUp,
+  ShoppingBag,
+  Zap,
+  LayoutGrid
 } from 'lucide-react';
 
 export default function PartnerBottomNav({ role }) {
-  // Define role-specific tabs
-  const getTabs = () => {
-    // Determine role with heavy normalization
-    const normalizedRole = (role || '').toLowerCase();
-    const isMandi = normalizedRole.includes('mandi');
-    const isService = normalizedRole.includes('service');
-    const isSupplier = normalizedRole.includes('supplier') || normalizedRole.includes('vendor');
-    const isAgent = normalizedRole.includes('agent') || normalizedRole.includes('property') || !role;
+  const location = useLocation();
+  const normalizedRole = (role || '').toLowerCase();
+  const isMandi = normalizedRole.includes('mandi');
 
-    // MANDI: Stocks/Orders
-    if (isMandi) {
-      return {
-        category: { label: 'Stocks', icon: <Package size={24} />, path: '/partner/mandi/inventory' },
-        leads: { label: 'Leads', icon: <TrendingUp size={24} />, path: '/partner/leads' },
-        comm: { label: 'Orders', icon: <Users size={24} />, path: '/partner/mandi/orders' }
-      };
-    }
-
-    // SERVICE: Services/Inquiries
-    if (isService) {
-      return {
-        category: { label: 'Services', icon: <Briefcase size={24} />, path: '/partner/services' },
-        comm: { label: 'Inquiries', icon: <Users size={24} />, path: '/partner/leads' }
-      };
-    }
-
-    // SUPPLIER: Only Inquiries (discovery-based profile)
-    if (isSupplier) {
-      return {
-        category: null,
-        comm: { label: 'Inquiries', icon: <Users size={24} />, path: '/partner/leads' }
-      };
-    }
-
-    // PROPERTY (Default for Partners): Properties/Leads
-    return {
-      category: { label: 'Properties', icon: <Building2 size={24} />, path: '/partner/properties' },
-      comm: { label: 'Leads', icon: <Users size={24} />, path: '/partner/leads' }
-    };
-  };
-
-  const { category: categoryTab, comm: commTab, leads: leadsTab } = getTabs();
-
-  const navItems = [
-    { label: 'Home', icon: <Home size={20} />, path: '/partner/home' },
-    categoryTab,
-    leadsTab,
-    commTab,
-    { label: 'Profile', icon: <UserCircle size={20} />, path: '/partner/profile' }
-  ].filter(Boolean);
+  const navItems = isMandi ? [
+    { label: 'Home', icon: <Home size={22} />, path: '/partner/home' },
+    { label: 'Stocks', icon: <Package size={22} />, path: '/partner/inventory' },
+    { label: 'Orders', icon: <ShoppingBag size={22} />, path: '/partner/orders' },
+    { label: 'Leads', icon: <TrendingUp size={22} />, path: '/partner/leads' },
+    { label: 'Profile', icon: <UserCircle size={22} />, path: '/partner/profile' }
+  ] : [
+    { label: 'Home', icon: <Home size={24} />, path: '/partner/home' },
+    { label: 'Inventory', icon: <Package size={24} />, path: '/partner/inventory' },
+    { label: 'Leads', icon: <TrendingUp size={24} />, path: '/partner/leads' },
+    { label: 'Profile', icon: <UserCircle size={24} />, path: '/partner/profile' }
+  ];
 
   return (
-    <nav className="bg-white border-t border-slate-100 px-4 sm:px-6 py-1.5 sm:py-2 flex justify-between items-center pb-6 sm:pb-8 shadow-[0_-10px_30px_rgba(0,27,78,0.03)] rounded-t-[28px] sm:rounded-t-[32px]">
-      {navItems.map((item) => (
-        <NavLink
-          key={item.label}
-          to={item.path}
-          className={({ isActive }) => `
-            flex flex-col items-center gap-1 transition-all duration-300 flex-1
-            ${isActive ? 'text-[#001b4e]' : 'text-slate-300'}
-          `}
-        >
-          {({ isActive }) => (
-            <>
-              <div className={`
-                p-1.5 sm:p-2 rounded-xl sm:rounded-2xl transition-all duration-300
-                ${isActive ? 'bg-[#001b4e]/5' : 'bg-transparent'}
-              `}>
-                {React.cloneElement(item.icon, {
-                  size: 20,
-                  strokeWidth: isActive ? 2.5 : 2
-                })}
+    <div className="fixed bottom-0 left-0 right-0 z-[100] px-4 pb-4 pointer-events-none">
+      <motion.div 
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="max-w-md mx-auto bg-white/90 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,27,78,0.12)] rounded-3xl px-2 py-2 flex justify-around items-center pointer-events-auto ring-1 ring-[#001b4e]/5"
+      >
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          
+          return (
+            <NavLink
+              key={item.label}
+              to={item.path}
+              className="relative flex flex-col items-center justify-center p-2 group transition-all duration-300 min-w-[64px]"
+            >
+              {/* Background Glow/Indicator */}
+              <AnimatePresence>
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-0 bg-[#001b4e]/5 rounded-2xl"
+                    transition={{ type: "spring", bounce: 0.3, duration: 0.6 }}
+                  />
+                )}
+              </AnimatePresence>
+
+              {/* Icon with scaling */}
+              <div className={`relative z-10 transition-all duration-300 ${
+                isActive ? 'text-[#001b4e] -translate-y-1' : 'text-slate-400 group-hover:text-slate-600'
+              }`}>
+                {item.icon}
+                
+                {/* Active Dot */}
+                {isActive && (
+                  <motion.div 
+                    layoutId="activeDot"
+                    className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#fa8639] rounded-full"
+                    transition={{ type: "spring", bounce: 0.3, duration: 0.6 }}
+                  />
+                )}
               </div>
-              <span className={`text-[9px] sm:text-[10px] font-bold tracking-[0.05em] uppercase ${isActive ? 'opacity-100' : 'opacity-80'}`}>
+
+              {/* Label */}
+              <span className={`relative z-10 text-[9px] font-black uppercase tracking-widest mt-1 transition-all duration-300 ${
+                isActive ? 'text-[#001b4e] opacity-100 scale-110' : 'text-slate-400 opacity-60'
+              }`}>
                 {item.label}
               </span>
-              {isActive && (
-                <div className="w-1 h-1 bg-[#001b4e] rounded-full mt-[-1px]" />
-              )}
-            </>
-          )}
-        </NavLink>
-      ))}
-    </nav>
+
+              {/* Tap Ripple Effect (Subtle) */}
+              <motion.div
+                whileTap={{ scale: 0.9 }}
+                className="absolute inset-0 rounded-2xl"
+              />
+            </NavLink>
+          );
+        })}
+      </motion.div>
+    </div>
   );
 }

@@ -396,11 +396,11 @@ export default function AddService() {
         </div>
 
         {/* Category Section */}
-        <section className="space-y-4">
-          <SectionHeader icon={<LayoutGrid size={18} />} title="Category" />
-          <div className="space-y-4">
+        <section className="space-y-3">
+          <SectionHeader icon={<LayoutGrid size={14} />} title="Category" />
+          <div className="grid grid-cols-1 gap-3">
             <SelectField 
-              icon={<LayoutGrid size={18} />}
+              icon={<LayoutGrid size={14} />}
               label="Service Category *"
               name="category_id"
               value={formData.category_id}
@@ -411,8 +411,8 @@ export default function AddService() {
 
             {subCategories.length > 0 && (
               <SelectField 
-                icon={<LayoutGrid size={18} />}
-                label="Sub Category (Optional)"
+                icon={<LayoutGrid size={14} />}
+                label="Sub Category"
                 name="subcategory_id"
                 value={formData.subcategory_id}
                 options={subCategories}
@@ -424,38 +424,37 @@ export default function AddService() {
         </section>
 
         {/* Basic Information Section */}
-        <section className="space-y-4">
-          <SectionHeader icon={<Type size={18} />} title="Basic Information" />
-          <div className="space-y-5">
-            <div>
+        <section className="space-y-3">
+          <SectionHeader icon={<Type size={14} />} title="Basic Information" />
+          <div className="space-y-3">
+            <InputField 
+              icon={<Type size={14} />}
+              label="Service Name *"
+              name="serviceName"
+              value={formData.serviceName}
+              placeholder="E.g., Interior Design"
+              onChange={handleChange}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
               <InputField 
-                icon={<Type size={18} />}
-                label="Service Name *"
-                name="serviceName"
-                value={formData.serviceName}
-                placeholder="E.g., Professional Interior Design Service"
+                icon={<Building2 size={14} />}
+                label="Business Name *"
+                name="businessName"
+                value={formData.businessName}
+                placeholder="Company Name"
                 onChange={handleChange}
               />
-              <p className="text-[11px] text-slate-400 mt-1.5 ml-1 font-medium italic">E.g., Professional Interior Design Service</p>
+
+              <SelectField 
+                icon={<Briefcase size={14} />}
+                label="Service Type *"
+                name="serviceType"
+                value={formData.serviceType}
+                options={SERVICE_TYPES}
+                onChange={handleChange}
+              />
             </div>
-
-            <InputField 
-              icon={<Building2 size={18} />}
-              label="Business Name *"
-              name="businessName"
-              value={formData.businessName}
-              placeholder="Your registered business name"
-              onChange={handleChange}
-            />
-
-            <SelectField 
-              icon={<Briefcase size={18} />}
-              label="Service Type *"
-              name="serviceType"
-              value={formData.serviceType}
-              options={SERVICE_TYPES}
-              onChange={handleChange}
-            />
 
             <div className="relative">
               <label className="absolute -top-2 left-4 px-2 bg-white text-[10px] font-medium text-[#001b4e] uppercase tracking-wider z-10">
@@ -797,63 +796,56 @@ export default function AddService() {
 
 function SectionHeader({ icon, title }) {
   return (
-    <div className="flex items-center gap-3 mb-6">
-      <div className="w-10 h-10 bg-slate-100 text-[#001b4e] rounded-xl flex items-center justify-center">
+    <div className="flex items-center gap-2 mb-3">
+      <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
         {icon}
       </div>
-      <h3 className="text-[18px] font-medium text-[#001b4e] uppercase tracking-tight">{title}</h3>
-      <div className="flex-grow h-[1px] bg-slate-100 ml-2" />
+      <h3 className="text-[12px] font-black text-[#001b4e] uppercase tracking-widest">{title}</h3>
     </div>
   );
 }
 
-function InputField({ icon, label, placeholder, name, value, onChange }) {
+function InputField({ label, name, type = 'text', value, placeholder, icon, onChange, disabled }) {
   return (
-    <div className="relative">
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-        {icon}
+    <div className="w-full">
+      <label className="block text-[10px] font-black text-[#001b4e] uppercase mb-1 ml-1 tracking-tight">{label}</label>
+      <div className="relative flex items-center">
+        {icon && <div className="absolute left-3 z-10 flex items-center text-slate-400">{icon}</div>}
+        <input 
+          type={type} 
+          name={name} 
+          value={value} 
+          placeholder={placeholder} 
+          onChange={onChange}
+          disabled={disabled}
+          className={`w-full bg-white border border-slate-200 rounded-lg py-2.5 pr-3 text-[13px] font-bold text-[#001b4e] outline-none focus:border-blue-400 transition-all placeholder:text-slate-300 ${icon ? 'pl-9' : 'pl-3'} ${disabled ? 'opacity-50' : ''}`}
+        />
       </div>
-      <label className="absolute -top-2 left-4 px-2 bg-white text-[10px] font-medium text-[#001b4e] uppercase tracking-wider z-10">
-        {label}
-      </label>
-      <input
-        type="text"
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full bg-white border border-slate-200 rounded-2xl py-4.5 pl-12 pr-5 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all"
-      />
     </div>
   );
 }
 
-function SelectField({ icon, label, options, name, value, onChange, placeholder, disabled }) {
+function SelectField({ label, name, value, options, icon, onChange, disabled, placeholder }) {
   return (
-    <div className={`relative ${disabled ? 'opacity-50' : ''}`}>
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-        {icon}
-      </div>
-      <label className="absolute -top-2 left-4 px-2 bg-white text-[10px] font-medium text-[#001b4e] uppercase tracking-wider z-10">
-        {label}
-      </label>
-      <select 
-        name={name}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        className="w-full bg-white border border-slate-200 rounded-2xl py-4.5 pl-12 pr-10 text-[15px] font-medium text-[#001b4e] outline-none appearance-none focus:border-[#001b4e] transition-all"
-      >
-        <option value="">{placeholder || 'Select Option'}</option>
-        {options.map(opt => {
-          const isObj = typeof opt === 'object' && opt !== null;
-          const val = isObj ? opt._id : opt;
-          const label = isObj ? opt.name : opt;
-          return <option key={val} value={val}>{label}</option>;
-        })}
-      </select>
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-        <ChevronDown size={20} />
+    <div className={`w-full ${disabled ? 'opacity-50' : ''}`}>
+      <label className="block text-[10px] font-black text-[#001b4e] uppercase mb-1 ml-1 tracking-tight">{label}</label>
+      <div className="relative">
+        {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10">{icon}</div>}
+        <select 
+          name={name} 
+          value={value} 
+          onChange={onChange} 
+          disabled={disabled}
+          className={`w-full bg-white border border-slate-200 rounded-lg py-2.5 pr-8 text-[13px] font-bold text-[#001b4e] outline-none appearance-none focus:border-blue-400 transition-all capitalize ${icon ? 'pl-9' : 'pl-3'}`}
+        >
+          {placeholder && <option value="" disabled hidden>{placeholder}</option>}
+          {options.map((opt, i) => {
+            const val = typeof opt === 'object' ? opt._id : opt;
+            const labelStr = typeof opt === 'object' ? opt.name : opt;
+            return <option key={i} value={val} className="capitalize">{labelStr}</option>
+          })}
+        </select>
+        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
       </div>
     </div>
   );

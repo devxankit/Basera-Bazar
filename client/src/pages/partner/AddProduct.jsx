@@ -324,21 +324,21 @@ export default function AddProduct() {
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-white py-6 px-8 border-b border-slate-100 flex items-center justify-between relative overflow-hidden">
-        <div className="absolute top-1/2 left-8 right-8 h-1 bg-slate-100 -translate-y-1/2 -z-10" />
+      <div className="bg-white py-4 px-8 border-b border-slate-100 flex items-center justify-between relative overflow-hidden">
+        <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-slate-100 -translate-y-1/2 -z-10" />
         <div 
-          className="absolute top-1/2 left-8 h-1 bg-blue-500 -translate-y-1/2 -z-10 transition-all duration-500 ease-out"
+          className="absolute top-1/2 left-8 h-0.5 bg-blue-500 -translate-y-1/2 -z-10 transition-all duration-500 ease-out"
           style={{ width: `calc(${(activeStep - 1) * 50}% - 8px)` }}
         />
         {[1, 2, 3].map((step) => (
           <div 
             key={step}
             onClick={() => step < activeStep && setActiveStep(step)}
-            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-[14px] transition-all shadow-sm
+            className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[12px] transition-all shadow-sm
               ${activeStep === step ? 'bg-[#001b4e] text-white scale-110 shadow-blue-900/30' : 
                 activeStep > step ? 'bg-blue-500 text-white cursor-pointer' : 'bg-slate-200 text-slate-400'}`}
           >
-            {activeStep > step ? <Check size={18} strokeWidth={3} /> : step}
+            {activeStep > step ? <Check size={14} strokeWidth={4} /> : step}
           </div>
         ))}
       </div>
@@ -367,25 +367,25 @@ export default function AddProduct() {
       </div>
 
       {/* Fixed Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-slate-100 flex items-center justify-between z-40 max-w-md mx-auto">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100 flex items-center justify-between z-40 max-w-md mx-auto">
         {activeStep > 1 ? (
           <button 
             onClick={prevStep}
-            className="px-8 py-3.5 border-2 border-[#001b4e] text-[#001b4e] rounded-xl font-bold text-[15px] active:scale-95 transition-all"
+            className="px-6 py-3 border-2 border-[#001b4e] text-[#001b4e] rounded-lg font-black text-[13px] uppercase tracking-widest active:scale-95 transition-all"
           >
-            Previous
+            Back
           </button>
-        ) : <div className="px-8" />}
+        ) : <div className="px-6" />}
         <button 
           onClick={nextStep}
           disabled={uploadingImage}
-          className={`px-10 py-3.5 rounded-xl font-bold text-[15px] shadow-lg active:scale-95 transition-all ${
+          className={`px-10 py-3.5 rounded-lg font-black text-[13px] uppercase tracking-widest shadow-lg active:scale-95 transition-all ${
             uploadingImage 
               ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
               : 'bg-[#001b4e] text-white shadow-blue-900/20'
           }`}
         >
-          {uploadingImage ? 'Uploading...' : (activeStep === 3 ? (editId ? 'Update Product' : 'Submit Product') : 'Next')}
+          {uploadingImage ? 'Uploading...' : (activeStep === 3 ? (editId ? 'Update' : 'Submit') : 'Next')}
         </button>
       </div>
 
@@ -443,44 +443,46 @@ export default function AddProduct() {
 function StepOne({ formData, handleChange, partnerCategories }) {
   return (
     <div className="space-y-6">
-      <SectionCard title="Basic Details" icon={<Package size={18} className="text-blue-500" />}>
-        <div className="space-y-4">
+      <SectionCard title="Basic Details" icon={<Package size={14} className="text-blue-500" />}>
+        <div className="space-y-3">
           <InputField 
             label="Material Name *" 
             name="title" 
             value={formData.title} 
-            icon={<Package size={18} />} 
+            icon={<Package size={14} />} 
             placeholder="Ex: UltraTech Premium Cement" 
             onChange={handleChange} 
           />
           
-          <SelectField 
-            label="Material Category *" 
-            name="category" 
-            icon={<Building2 size={18} />} 
-            value={formData.category} 
-            options={partnerCategories} 
-            onChange={handleChange} 
-          />
-          
-          <InputField 
-            label="Brand (Optional)" 
-            name="brand" 
-            value={formData.brand} 
-            icon={<Settings size={18} />} 
-            placeholder="Ex: UltraTech" 
-            onChange={handleChange} 
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <SelectField 
+              label="Category *" 
+              name="category" 
+              icon={<Building2 size={14} />} 
+              value={formData.category} 
+              options={partnerCategories} 
+              onChange={handleChange} 
+            />
+            
+            <InputField 
+              label="Brand" 
+              name="brand" 
+              value={formData.brand} 
+              icon={<Settings size={14} />} 
+              placeholder="Ex: UltraTech" 
+              onChange={handleChange} 
+            />
+          </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-[#001b4e] uppercase mb-1.5 ml-1">Description</label>
+            <label className="block text-[10px] font-black text-[#001b4e] uppercase mb-1 ml-1">Description</label>
             <textarea 
               name="description" 
               value={formData.description} 
               onChange={handleChange} 
-              rows={3}
-              placeholder="Write a detailed description..."
-              className="w-full border border-slate-200 rounded-xl p-4 text-[14px] font-medium resize-none outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all"
+              rows={2}
+              placeholder="Write a brief description..."
+              className="w-full border border-slate-200 rounded-lg p-3 text-[13px] font-bold text-[#001b4e] resize-none outline-none focus:border-blue-400 transition-all placeholder:text-slate-300 bg-slate-50/30"
             />
           </div>
         </div>
@@ -724,10 +726,10 @@ function StepThree({ formData, handleChange, handleFileChange, removeImage, addS
 // -------------------------------------------------------------
 function SectionCard({ title, icon, children }) {
   return (
-    <div className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100">
-      <div className="flex items-center gap-3 border-b border-slate-50 pb-3 mb-4">
+    <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 mb-3">
+      <div className="flex items-center gap-2 border-b border-slate-50 pb-2 mb-3">
         {icon}
-        <h2 className="text-[16px] font-bold text-[#001b4e]">{title}</h2>
+        <h2 className="text-[12px] font-black text-[#001b4e] uppercase tracking-widest">{title}</h2>
       </div>
       {children}
     </div>
@@ -737,16 +739,16 @@ function SectionCard({ title, icon, children }) {
 function InputField({ label, name, type = 'text', value, placeholder, icon, onChange }) {
   return (
     <div className="w-full">
-      <label className="block text-[11px] font-bold text-[#001b4e] uppercase mb-1.5 ml-1">{label}</label>
+      <label className="block text-[10px] font-black text-[#001b4e] uppercase mb-1 ml-1 tracking-tight">{label}</label>
       <div className="relative flex items-center">
-        {icon && <div className="absolute left-4 z-10 flex items-center text-slate-400">{icon}</div>}
+        {icon && <div className="absolute left-3 z-10 flex items-center text-slate-400">{icon}</div>}
         <input 
           type={type} 
           name={name} 
           value={value} 
           placeholder={placeholder} 
           onChange={onChange}
-          className={`w-full bg-white border border-slate-200 rounded-xl py-3.5 pr-4 text-[14px] font-medium outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-300 ${icon ? 'pl-11' : 'pl-4'}`}
+          className={`w-full bg-slate-50/50 border border-slate-200 rounded-lg py-2.5 pr-3 text-[13px] font-bold text-[#001b4e] outline-none focus:border-blue-400 transition-all placeholder:text-slate-300 ${icon ? 'pl-9' : 'pl-3'}`}
         />
       </div>
     </div>
@@ -756,22 +758,22 @@ function InputField({ label, name, type = 'text', value, placeholder, icon, onCh
 function SelectField({ label, name, value, options, icon, onChange, disabled }) {
   return (
     <div className={`w-full ${disabled ? 'opacity-50' : ''}`}>
-      <label className="block text-[11px] font-bold text-[#001b4e] uppercase mb-1.5 ml-1">{label}</label>
+      <label className="block text-[10px] font-black text-[#001b4e] uppercase mb-1 ml-1 tracking-tight">{label}</label>
       <div className="relative">
-        {icon && <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10">{icon}</div>}
+        {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10">{icon}</div>}
         <select 
           name={name} 
           value={value} 
           onChange={onChange} 
           disabled={disabled}
-          className={`w-full bg-white border border-slate-200 rounded-xl py-3.5 pr-10 text-[14px] font-medium outline-none appearance-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all capitalize ${icon ? 'pl-11' : 'pl-4'}`}
+          className={`w-full bg-slate-50/50 border border-slate-200 rounded-lg py-2.5 pr-8 text-[13px] font-bold text-[#001b4e] outline-none appearance-none focus:border-blue-400 transition-all capitalize ${icon ? 'pl-9' : 'pl-3'}`}
         >
-          <option value="" disabled hidden>Select option</option>
+          <option value="" disabled hidden>Select</option>
           {options.map((opt, i) => (
             <option key={i} value={opt} className="capitalize">{opt}</option>
           ))}
         </select>
-        <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
       </div>
     </div>
   );

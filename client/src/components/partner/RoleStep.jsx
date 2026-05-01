@@ -77,7 +77,7 @@ export default function RoleStep({ selectedRole, onSelect, onNext }) {
               key={role.id}
               whileTap={{ scale: 0.96 }}
               onClick={() => onSelect(role.id)}
-              className={`relative flex flex-col p-5 rounded-3xl border-2 transition-all text-left overflow-hidden ${
+              className={`relative flex flex-col p-5 rounded-2xl border-2 transition-all text-left overflow-hidden ${
                 isSelected 
                   ? `${themeStyle.active} shadow-xl ring-4` 
                   : 'border-slate-100 bg-white hover:border-slate-200 hover:shadow-md hover:-translate-y-0.5'

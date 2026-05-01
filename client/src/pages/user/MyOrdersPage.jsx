@@ -5,7 +5,7 @@ import api from '../../services/api';
 import { 
   ArrowLeft, ShoppingBag, Clock, CheckCircle2, 
   Package, Truck, XCircle, Download, ChevronRight,
-  ShieldCheck, MapPin, Receipt, Search, Filter
+  ShieldCheck, MapPin, Receipt, Search, Filter, Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';

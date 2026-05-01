@@ -99,7 +99,7 @@ export default function PartnerLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center px-8 pt-12 max-w-md mx-auto font-sans">
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-white flex flex-col items-center px-8 pt-12 font-sans overflow-x-hidden">
       <motion.div 
         variants={staggerContainer}
         initial="initial"
@@ -196,7 +196,7 @@ export default function PartnerLogin() {
             whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={loading}
-            className="w-full bg-[#001b4e] text-white py-5 rounded-[20px] font-bold text-[16px] shadow-lg shadow-indigo-900/20 active:bg-[#001b4e]/90 transition-all flex items-center justify-center mt-4"
+            className="w-full bg-[#001b4e] text-white py-5 rounded-xl font-bold text-[16px] shadow-lg shadow-indigo-900/20 active:bg-[#001b4e]/90 transition-all flex items-center justify-center mt-4"
           >
             {loading ? <Loader2 className="animate-spin" size={24} /> : 'Login'}
           </motion.button>
@@ -237,7 +237,7 @@ export default function PartnerLogin() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             style={{
-              backgroundColor: '#ffffff', borderRadius: '24px', padding: '32px',
+              backgroundColor: '#ffffff', borderRadius: '16px', padding: '32px',
               width: '100%', maxWidth: '360px', textAlign: 'center',
               boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
             }}
@@ -271,7 +271,7 @@ export default function PartnerLogin() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             style={{
-              backgroundColor: '#ffffff', borderRadius: '24px', padding: '32px',
+              backgroundColor: '#ffffff', borderRadius: '16px', padding: '32px',
               width: '100%', maxWidth: '360px', textAlign: 'center',
               boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
             }}

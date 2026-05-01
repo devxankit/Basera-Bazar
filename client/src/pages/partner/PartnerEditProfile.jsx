@@ -91,21 +91,21 @@ export default function PartnerEditProfile() {
   return (
     <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden bg-slate-50 font-sans pb-10">
       {/* Header */}
-      <div className="bg-white px-5 py-4 flex items-center justify-between sticky top-0 z-50 border-b border-slate-100">
+      <div className="bg-white px-5 py-2.5 flex items-center justify-between sticky top-0 z-50 border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate('/partner/profile')}
-            className="p-1 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
+            className="p-1.5 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
           >
-            <ArrowLeft size={24} />
+            <ArrowLeft size={20} />
           </button>
-          <h2 className="text-[20px] font-medium text-[#001b4e]">Edit Profile</h2>
+          <h2 className="text-[16px] font-black text-[#001b4e] uppercase tracking-widest">Edit Profile</h2>
         </div>
         <button 
           onClick={() => navigate('/partner/profile')}
-          className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+          className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
         >
-          <X size={24} />
+          <X size={20} />
         </button>
       </div>
 
@@ -116,11 +116,12 @@ export default function PartnerEditProfile() {
           onSubmit={handleSubmit} 
           className="space-y-6"
         >
-          {/* Avatar Section (Read Only in this view) */}
-          <div className="flex flex-col items-center mb-10">
-            <div className="w-24 h-24 bg-[#001b4e] rounded-full flex items-center justify-center text-[40px] font-medium text-white shadow-xl shadow-blue-900/10 mb-2">
+          {/* Avatar Section */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-20 h-20 bg-[#001b4e] rounded-full flex items-center justify-center text-[32px] font-black text-white shadow-xl shadow-blue-900/10 mb-2 border-4 border-white">
               {formData.name?.charAt(0) || 'U'}
             </div>
+            <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Partner Account</div>
           </div>
 
           <div className="space-y-4">
@@ -246,17 +247,17 @@ export default function PartnerEditProfile() {
 function InputField({ icon, label, value, onChange, placeholder, type = "text" }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[13px] font-bold text-slate-500 ml-1 uppercase tracking-wider">{label}</label>
+      <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">{label}</label>
       <div className="relative group">
         <div className="absolute inset-y-0 left-4 flex items-center text-slate-400 group-focus-within:text-[#001b4e] transition-colors">
-          {icon}
+          {React.cloneElement(icon, { size: 16 })}
         </div>
         <input 
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full bg-white rounded-2xl py-4 pl-12 pr-4 text-[15px] shadow-sm border border-slate-100 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all font-medium text-[#181d5f]"
+          className="w-full bg-white rounded-xl py-3.5 pl-11 pr-4 text-[14px] shadow-sm border border-slate-100 outline-none focus:ring-2 focus:ring-blue-500/5 focus:border-blue-500/20 transition-all font-bold text-[#001b4e]"
           required
         />
       </div>

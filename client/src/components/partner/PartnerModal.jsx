@@ -47,7 +47,7 @@ export default function PartnerModal({
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="bg-white w-full max-w-sm rounded-[32px] overflow-hidden relative z-10 shadow-2xl"
+          className="bg-white w-full max-w-sm rounded-2xl overflow-hidden relative z-10 shadow-2xl"
         >
           {/* Close Button */}
           {!loading && (

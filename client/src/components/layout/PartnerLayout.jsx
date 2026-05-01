@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import PartnerBottomNav from '../../components/partner/PartnerBottomNav';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { subscribeToNotifications } from '../../services/pushService';
 
 import { Bell, ChevronLeft } from 'lucide-react';
 
@@ -36,16 +35,6 @@ export default function PartnerLayout({ children }) {
       } catch (err) {}
     };
     fetchUnread();
-
-    // ── PUSH NOTIFICATION REGISTRATION ──
-    const initPush = async () => {
-       try {
-         await subscribeToNotifications();
-       } catch (err) {
-         console.warn("[Push] Registration failed:", err);
-       }
-    };
-    initPush();
   }, [location]);
 
   return (
@@ -56,10 +45,11 @@ export default function PartnerLayout({ children }) {
         {children}
       </main>
       
-      {!location.pathname.includes('/partner/subscription') && (
-        <div className="fixed bottom-0 left-0 right-0 z-[60] max-w-md mx-auto w-full border-t border-slate-100/50">
-          <PartnerBottomNav role={role} />
-        </div>
+      {!location.pathname.includes('/partner/subscription') && 
+       !location.pathname.includes('/partner/add-product') && 
+       !location.pathname.includes('/partner/marketplace/orders/') &&
+       !location.pathname.includes('/partner/lead-details/') && (
+        <PartnerBottomNav role={role} />
       )}
     </div>
   );

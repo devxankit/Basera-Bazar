@@ -6,6 +6,7 @@ import { CartProvider } from './context/CartContext';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
 import { Briefcase } from 'lucide-react';
+import { initializeFCM, setupForegroundHandler, registerFCMToken } from './services/pushNotificationService';
 import Home from './pages/user/Home';
 import ListingDetails from './pages/user/ListingDetails';
 import BrowseCategory from './pages/user/BrowseCategory';
@@ -94,7 +95,25 @@ import MandiPenalties from './pages/partner/MandiPenalties';
 import PartnerMilestones from './pages/partner/PartnerMilestones';
 import PartnerOrderHistory from './pages/partner/PartnerOrderHistory';
 
-// Route guard — redirects unauthenticated users to /login
+// --- SWITCHER COMPONENTS FOR UNIFIED URLS ---
+
+const PartnerInventorySwitcher = () => {
+  const { user } = useAuth();
+  const role = (user?.active_role || user?.partner_type || user?.role || '').toLowerCase();
+  if (role.includes('mandi')) return <MandiInventory />;
+  return <PartnerInventory />;
+};
+
+const PartnerAddSwitcher = () => {
+  const { user } = useAuth();
+  const role = (user?.active_role || user?.partner_type || user?.role || '').toLowerCase();
+  if (role.includes('mandi')) return <AddMandiProduct />;
+  if (role.includes('agent')) return <AddProperty />;
+  if (role.includes('service')) return <AddService />;
+  return <AddMandiProduct />; // Default fallback
+};
+
+// --- END SWITCHER COMPONENTS ---
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return null;
@@ -108,6 +127,36 @@ const AdminRoute = ({ children }) => {
   if (!isAuthenticated || user?.role !== 'super_admin') {
     return <Navigate to="/admin/login" replace />;
   }
+  return children;
+};
+
+/**
+ * FCMHandler - Centralizes push notification logic
+ */
+const FCMHandler = ({ children }) => {
+  const { user, isAuthenticated } = useAuth();
+  
+  React.useEffect(() => {
+    // 1. Initialize FCM (SW registration)
+    initializeFCM();
+
+    // 2. Handle foreground messages
+    const unsubscribe = setupForegroundHandler((payload) => {
+      console.log('FCM Foreground Message:', payload);
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  // 3. Register token when user logs in
+  React.useEffect(() => {
+    if (isAuthenticated && user) {
+      registerFCMToken();
+    }
+  }, [isAuthenticated, user]);
+
   return children;
 };
 
@@ -150,7 +199,8 @@ function App() {
     <LocationProvider>
       <AuthProvider>
         <CartProvider>
-          <Router>
+          <FCMHandler>
+            <Router>
             <Routes>
             {/* User Module Routes */}
             <Route path="/" element={
@@ -268,23 +318,21 @@ function App() {
             } />
 
             {/* Real Partner Navigation Routes */}
-            <Route path="/partner/properties" element={
+            <Route path="/partner/inventory" element={
               <PartnerLayout>
-                <PartnerInventory />
+                <PartnerInventorySwitcher />
               </PartnerLayout>
             } />
-            <Route path="/partner/services" element={
-              <PartnerLayout>
-                <PartnerInventory />
-              </PartnerLayout>
-            } />
+            <Route path="/partner/properties" element={<Navigate to="/partner/inventory" replace />} />
+            <Route path="/partner/services" element={<Navigate to="/partner/inventory" replace />} />
 
-            <Route path="/partner/my-enquiries" element={
+            <Route path="/partner/leads" element={
               <PartnerLayout>
                 <PartnerInquiries />
               </PartnerLayout>
             } />
-            <Route path="/partner/leads" element={<Navigate to="/partner/my-enquiries" replace />} />
+            <Route path="/partner/my-enquiries" element={<Navigate to="/partner/leads" replace />} />
+            
             <Route path="/partner/profile" element={
               <PartnerLayout>
                 <PartnerProfile />
@@ -311,12 +359,16 @@ function App() {
             } />
 
             {/* Mandi Seller Specific Routes */}
-            <Route path="/partner/mandi/dashboard" element={<PartnerLayout><PartnerHome /></PartnerLayout>} />
-            <Route path="/partner/mandi/inventory" element={<PartnerLayout><MandiInventory /></PartnerLayout>} />
-            <Route path="/partner/mandi/add-product" element={<AddMandiProduct />} />
-            <Route path="/partner/marketplace/orders" element={<PartnerLayout><MandiOrders /></PartnerLayout>} />
+            <Route path="/partner/mandi/dashboard" element={<Navigate to="/partner/home" replace />} />
+            <Route path="/partner/mandi/inventory" element={<Navigate to="/partner/inventory" replace />} />
+            
+            <Route path="/partner/add-product" element={<PartnerLayout><PartnerAddSwitcher /></PartnerLayout>} />
+            <Route path="/partner/mandi/add-product" element={<Navigate to="/partner/add-product" replace />} />
+            
+            <Route path="/partner/orders" element={<PartnerLayout><MandiOrders /></PartnerLayout>} />
+            <Route path="/partner/marketplace/orders" element={<Navigate to="/partner/orders" replace />} />
             <Route path="/partner/marketplace/orders/:id" element={<PartnerLayout><MandiOrderDetails /></PartnerLayout>} />
-            <Route path="/partner/mandi/orders" element={<Navigate to="/partner/marketplace/orders" replace />} />
+            <Route path="/partner/mandi/orders" element={<Navigate to="/partner/orders" replace />} />
             <Route path="/partner/mandi/orders-history" element={<PartnerLayout><PartnerOrderHistory /></PartnerLayout>} />
             <Route path="/partner/mandi/penalties" element={<PartnerLayout><MandiPenalties /></PartnerLayout>} />
             <Route path="/partner/milestones" element={<PartnerLayout><PartnerMilestones /></PartnerLayout>} />
@@ -740,8 +792,9 @@ function App() {
             } />
 
 
-          </Routes>
-        </Router>
+            </Routes>
+          </Router>
+          </FCMHandler>
         </CartProvider>
       </AuthProvider>
     </LocationProvider>

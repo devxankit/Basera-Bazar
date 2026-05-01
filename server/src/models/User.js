@@ -53,13 +53,17 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  fcm_token: {
-    type: String,
-    default: null
-  },
   password: {
     type: String,
     default: null // Optional for OTP-only users
+  },
+  fcmTokens: {
+    type: [String],
+    default: []
+  },
+  fcmTokenMobile: {
+    type: [String],
+    default: []
   },
   role: {
     type: String,

@@ -433,7 +433,7 @@ export default function AddProperty() {
       }
       
       setShowConfirmModal(false);
-      navigate('/partner/properties');
+      navigate('/partner/inventory');
     } catch (error) {
       console.error('Error saving property:', error.response?.data || error.message);
       alert(error.response?.data?.message || 'Failed to save property. Please try again.');
@@ -488,21 +488,21 @@ export default function AddProperty() {
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-white py-6 px-8 border-b border-slate-100 flex items-center justify-between relative overflow-hidden">
-        <div className="absolute top-1/2 left-8 right-8 h-1 bg-slate-100 -translate-y-1/2 -z-10" />
+      <div className="bg-white py-4 px-8 border-b border-slate-100 flex items-center justify-between relative overflow-hidden">
+        <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-slate-100 -translate-y-1/2 -z-10" />
         <div 
-          className="absolute top-1/2 left-8 h-1 bg-green-500 -translate-y-1/2 -z-10 transition-all duration-500 ease-out"
+          className="absolute top-1/2 left-8 h-0.5 bg-green-500 -translate-y-1/2 -z-10 transition-all duration-500 ease-out"
           style={{ width: `calc(${(activeStep - 1) * 33.33}% - 8px)` }}
         />
         {[1, 2, 3, 4].map((step) => (
           <div 
             key={step}
             onClick={() => step < activeStep && setActiveStep(step)}
-            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-[14px] transition-all shadow-sm
+            className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[12px] transition-all shadow-sm
               ${activeStep === step ? 'bg-[#001b4e] text-white scale-110 shadow-blue-900/30' : 
                 activeStep > step ? 'bg-green-500 text-white cursor-pointer' : 'bg-slate-200 text-slate-400'}`}
           >
-            {activeStep > step ? <Check size={18} strokeWidth={3} /> : step}
+            {activeStep > step ? <Check size={14} strokeWidth={4} /> : step}
           </div>
         ))}
       </div>
@@ -547,25 +547,25 @@ export default function AddProperty() {
       </div>
 
       {/* Fixed Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100 flex items-center gap-3 z-40 max-w-md mx-auto">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100 flex items-center gap-2 z-40 max-w-md mx-auto">
         {activeStep > 1 && (
           <button 
             onClick={prevStep}
-            className="flex-1 py-4 border-2 border-[#001b4e] text-[#001b4e] rounded-xl font-bold text-[15px] active:scale-95 transition-all whitespace-nowrap"
+            className="flex-1 py-3.5 border-2 border-[#001b4e] text-[#001b4e] rounded-lg font-black text-[13px] uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
           >
-            Previous
+            Back
           </button>
         )}
         <button 
           onClick={nextStep}
           disabled={uploadingImage}
-          className={`flex-[2] py-4 rounded-xl font-bold text-[15px] shadow-lg active:scale-95 transition-all whitespace-nowrap ${
+          className={`flex-[2] py-4 rounded-lg font-black text-[13px] uppercase tracking-widest shadow-lg active:scale-95 transition-all whitespace-nowrap ${
             uploadingImage 
               ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
               : 'bg-[#001b4e] text-white shadow-blue-900/20'
           }`}
         >
-          {uploadingImage ? 'Uploading...' : (activeStep === 4 ? (editId ? 'Update Property' : 'Submit Property') : 'Next Step')}
+          {uploadingImage ? 'Uploading...' : (activeStep === 4 ? (editId ? 'Update' : 'Submit') : 'Next')}
         </button>
       </div>
 
@@ -628,37 +628,39 @@ export default function AddProperty() {
 // -------------------------------------------------------------
 function StepOne({ formData, handleChange, handleCategorySelect, handleSubCategorySelect, parentCategories, subCategories }) {
   return (
-    <div className="space-y-6">
-      <SectionCard title="Essential Details" icon={<div className="w-3 h-3 bg-blue-500 rounded-full" />}>
-        <InputField 
-          label="Property Title *" 
-          name="title" 
-          value={formData.title} 
-          icon={<Home size={18} />} 
-          placeholder="Choose a descriptive title" 
-          onChange={handleChange} 
-        />
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <div>
-             <label className="block text-[11px] font-bold text-[#001b4e] uppercase mb-1.5 ml-1">Intention</label>
-             <div className="relative">
-                <Building2 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <select name="intention" value={formData.intention} onChange={handleChange} className="w-full border border-slate-200 rounded-xl py-3.5 pl-11 pr-4 text-[14px] font-medium outline-none appearance-none bg-white">
-                  <option value="For Sale">For Sale</option>
-                  <option value="For Rent">For Rent</option>
-                </select>
-                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-             </div>
-          </div>
+    <div className="space-y-4">
+      <SectionCard title="Essential Details" icon={<Home size={14} className="text-blue-500" />}>
+        <div className="space-y-3">
           <InputField 
-            label="Price *" 
-            name="price" 
-            type="number"
-            value={formData.price} 
-            icon={<span className="font-bold text-slate-400 text-lg">₹</span>} 
-            placeholder="Ex: 5000000" 
+            label="Property Title *" 
+            name="title" 
+            value={formData.title} 
+            icon={<Home size={14} />} 
+            placeholder="Choose a descriptive title" 
             onChange={handleChange} 
           />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+               <label className="block text-[10px] font-black text-[#001b4e] uppercase mb-1 ml-1">Intention</label>
+               <div className="relative">
+                  <Building2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <select name="intention" value={formData.intention} onChange={handleChange} className="w-full border border-slate-200 rounded-lg py-2.5 pl-9 pr-3 text-[13px] font-bold text-[#001b4e] outline-none appearance-none bg-slate-50/50">
+                    <option value="For Sale">For Sale</option>
+                    <option value="For Rent">For Rent</option>
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+               </div>
+            </div>
+            <InputField 
+              label="Price *" 
+              name="price" 
+              type="number"
+              value={formData.price} 
+              icon={<span className="font-bold text-slate-400 text-sm">₹</span>} 
+              placeholder="Ex: 50L" 
+              onChange={handleChange} 
+            />
+          </div>
         </div>
       </SectionCard>
 

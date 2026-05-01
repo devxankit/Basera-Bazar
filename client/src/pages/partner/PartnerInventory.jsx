@@ -91,7 +91,7 @@ export default function PartnerInventory() {
     } else if (role.includes('agent') || role.includes('property')) {
       navigate('/partner/add-property');
     } else if (role.includes('mandi')) {
-      navigate('/partner/add-mandi-product');
+      navigate('/partner/add-product');
     } else {
       alert(`Add ${labels.item} flow coming soon for ${role}s!`);
     }
@@ -137,7 +137,7 @@ export default function PartnerInventory() {
     } else if (item.type === 'product' || role.includes('supplier')) {
       navigate(`/partner/add-product?edit=${item.id}`);
     } else if (item.type === 'mandi_product' || role.includes('mandi')) {
-      navigate(`/partner/add-mandi-product?edit=${item.id}`);
+      navigate(`/partner/add-product?edit=${item.id}`);
     } else {
       navigate(`/partner/add-service?edit=${item.id}`);
     }
@@ -158,7 +158,7 @@ export default function PartnerInventory() {
   });
 
   return (
-    <div className="min-h-screen bg-white font-sans flex flex-col">
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-white font-sans flex flex-col">
       {/* Header */}
       <div className="px-5 py-3 flex items-center justify-between border-b border-slate-50 sticky top-0 bg-white z-50">
         <div className="flex items-center gap-3">
@@ -215,7 +215,7 @@ export default function PartnerInventory() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 onClick={() => navigate(`/partner/service-details/${item._id || item.id}`)}
-                className="bg-white rounded-xl xs:rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-row relative group hover:shadow-md transition-all cursor-pointer"
+                className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-row relative group hover:shadow-md transition-all cursor-pointer"
               >
                 {/* Left: Compact Image Section */}
                 <div className="relative w-24 xs:w-28 sm:w-32 h-auto bg-slate-100 overflow-hidden shrink-0">
@@ -337,7 +337,7 @@ export default function PartnerInventory() {
                 handleAddAction();
               }}
               disabled={!partner.is_active}
-              className={`p-4 xs:p-5 rounded-xl xs:rounded-2xl shadow-2xl flex items-center gap-3 active:scale-90 transition-all font-bold uppercase tracking-widest ${
+              className={`p-4 xs:p-5 rounded-xl shadow-2xl flex items-center gap-3 active:scale-90 transition-all font-bold uppercase tracking-widest ${
                 !partner.is_active 
                   ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' 
                   : 'bg-[#001b4e] text-white'

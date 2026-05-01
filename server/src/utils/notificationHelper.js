@@ -1,18 +1,10 @@
 const { Notification } = require('../models/System');
 const { Partner } = require('../models/Partner');
-const webpush = require('web-push');
-
-// Configure Web Push with VAPID keys
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    process.env.VAPID_EMAIL || 'mailto:support@baserabazar.com',
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
-}
+const { User } = require('../models/User');
+const { sendPushNotification } = require('../services/firebaseAdmin');
 
 /**
- * @desc    Create an in-app notification for a user or partner
+ * @desc    Create an in-app notification for a user or partner and send push if tokens exist
  * @param   {string} recipientType - 'user', 'partner', or 'admin'
  * @param   {string} recipientId - MongoDB ID of the recipient
  * @param   {string} title - Notification title
@@ -21,6 +13,7 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
  */
 const createNotification = async (recipientType, recipientId, title, body, data = {}) => {
   try {
+    // 1. Create In-App Notification Record
     const notification = await Notification.create({
       recipient_type: recipientType,
       recipient_id: recipientId,
@@ -31,43 +24,50 @@ const createNotification = async (recipientType, recipientId, title, body, data 
     
     console.log(`[Notification] Created in-app for ${recipientType} (${recipientId}): ${title}`);
 
-    // If it's a partner, try to send real-time Web Push
+    // 2. Fetch Recipient to get FCM Tokens
+    let recipient;
     if (recipientType === 'partner') {
-      const partner = await Partner.findById(recipientId);
-      if (partner && partner.push_subscriptions && partner.push_subscriptions.length > 0) {
-        console.log(`[Push Notification] Found ${partner.push_subscriptions.length} subscriptions for partner ${recipientId}`);
-        const payload = JSON.stringify({
-          title,
-          body,
-          data: {
-            ...data,
-            notification_id: notification._id,
-            url: data.enquiry_id ? `/partner/lead-details/${data.enquiry_id}` : 
-                 data.type === 'mandi_order' ? '/partner/marketplace/orders' : '/partner/home'
-          }
+      recipient = await Partner.findById(recipientId);
+    } else {
+      recipient = await User.findById(recipientId);
+    }
+
+    if (recipient) {
+      const tokens = [
+        ...(recipient.fcmTokens || []),
+        ...(recipient.fcmTokenMobile || [])
+      ];
+
+      // Remove duplicates and empty tokens
+      const uniqueTokens = [...new Set(tokens)].filter(t => t && t.length > 0);
+
+      if (uniqueTokens.length > 0) {
+        console.log(`[Push Notification] Attempting to send to ${uniqueTokens.length} devices for ${recipientType} ${recipientId}`);
+        
+        // Prepare payload for FCM (FCM data values must be strings)
+        const stringifiedData = {
+          notification_id: notification._id.toString(),
+          click_action: data.enquiry_id ? `/partner/lead-details/${data.enquiry_id}` : 
+                        data.type === 'mandi_order' ? '/partner/marketplace/orders' : '/partner/home'
+        };
+
+        // Merge extra data, converting all values to strings for FCM compatibility
+        Object.keys(data).forEach(key => {
+          stringifiedData[key] = String(data[key]);
         });
 
-        // Track invalid subscriptions to clean them up later
-        const staleSubIndices = [];
+        const pushPayload = {
+          title,
+          body,
+          data: stringifiedData
+        };
 
-        await Promise.all(partner.push_subscriptions.map(async (sub, index) => {
-          try {
-            await webpush.sendNotification(sub, payload);
-            console.log(`[Push Notification] Successfully sent to subscription ${index}`);
-          } catch (err) {
-            console.error(`[Push Notification] Failed for sub ${index}:`, err.statusCode, err.message);
-            // If the subscription is no longer valid (expired or revoked), we should remove it
-            if (err.statusCode === 410 || err.statusCode === 404) {
-              staleSubIndices.push(index);
-            }
-          }
-        }));
-
-        // Cleanup stale subscriptions if any
-        if (staleSubIndices.length > 0) {
-          partner.push_subscriptions = partner.push_subscriptions.filter((_, idx) => !staleSubIndices.includes(idx));
-          await partner.save();
-        }
+        const result = await sendPushNotification(uniqueTokens, pushPayload);
+        
+        // Cleanup logic for failed tokens could be added here if needed
+        // but admin-sdk's sendEachForMulticast handles basic reporting
+      } else {
+        console.log(`[Push Notification] No FCM tokens found for ${recipientType} ${recipientId}`);
       }
     }
     

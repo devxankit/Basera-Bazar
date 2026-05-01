@@ -204,7 +204,7 @@ export default function PartnerRegistration() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col max-w-md mx-auto font-sans relative overflow-x-hidden">
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-white flex flex-col font-sans overflow-x-hidden">
       {/* Header / Progress Bar */}
       <div className="bg-white sticky top-0 z-50">
         <div className="px-5 py-4 flex items-center justify-between border-b border-slate-50">
