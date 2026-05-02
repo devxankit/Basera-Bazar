@@ -11,7 +11,8 @@ const {
   getPublicPartners,
   getPublicPartnerById,
   getPartnerSubscriptionPlans,
-  toggleFeature
+  toggleFeature,
+  getActivities
 } = require('../controllers/partnerController');
 
 // Import our security middlewares!
@@ -84,6 +85,13 @@ router.put(
   protect,
   authorizeRoles('partner'),
   toggleFeature
+);
+
+router.get(
+  '/activities',
+  protect,
+  authorizeRoles('partner'),
+  getActivities
 );
 
 module.exports = router;

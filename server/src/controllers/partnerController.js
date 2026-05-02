@@ -2,6 +2,8 @@ const { Partner } = require('../models/Partner');
 const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const { Enquiry } = require('../models/Enquiry');
 const { SubscriptionPlan } = require('../models/Finance');
+const Order = require('../models/Order');
+
 
 /**
  * @desc    Submit KYC and onboard a partner
@@ -445,6 +447,83 @@ const getPartnerSubscriptionPlans = async (req, res) => {
 };
 
 /**
+ * @desc    Get recent activities for partner dashboard (Orders, Listings)
+ * @route   GET /api/partners/activities
+ * @access  Private (Partner)
+ */
+const getActivities = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    const partner = await Partner.findById(partnerId);
+    
+    if (!partner) return res.status(404).json({ success: false, message: 'Partner not found' });
+
+    // 1. Fetch Recent Orders
+    const orders = await Order.find({ 'items.seller_id': partnerId })
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // 2. Fetch Recent Listings
+    const modelMap = {
+      'property_agent': PropertyListing,
+      'service_provider': ServiceListing,
+      'mandi_seller': MandiListing,
+      'supplier': null
+    };
+    const ListingModel = modelMap[partner.active_role || partner.partner_type];
+    
+    let listings = [];
+    if (ListingModel) {
+      listings = await ListingModel.find({ partner_id: partnerId })
+        .sort({ createdAt: -1 })
+        .limit(10);
+    }
+
+    // 3. Format and Merge
+    const orderActivities = orders.map(o => ({
+      title: `Order Received #${o.order_id}`,
+      time: formatRelativeTime(o.createdAt),
+      type: 'order',
+      rawDate: o.createdAt
+    }));
+
+    const listingActivities = listings.map(l => ({
+      title: `Product Listed: ${l.title}`,
+      time: formatRelativeTime(l.createdAt),
+      type: 'listing',
+      rawDate: l.createdAt
+    }));
+
+    const combined = [...orderActivities, ...listingActivities]
+      .sort((a, b) => b.rawDate - a.rawDate)
+      .slice(0, 10);
+
+    res.status(200).json({
+      success: true,
+      data: combined
+    });
+
+  } catch (error) {
+    console.error("Error fetching activities:", error);
+    res.status(500).json({ success: false, message: 'Server error fetching activities' });
+  }
+};
+
+// Helper for relative time
+function formatRelativeTime(date) {
+  const now = new Date();
+  const diff = now - date;
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(mins / 600);
+  const days = Math.floor(hours / 24);
+
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+}
+
+/**
  * @desc    Toggle partner featured status
  * @route   PUT /api/partners/toggle-feature
  * @access  Private (Partner)
@@ -477,6 +556,7 @@ module.exports = {
   onboardPartner,
   getMyPartnerProfile,
   getPartnerStats,
+  getActivities,
   addRole,
   switchRole,
   deleteRole,
