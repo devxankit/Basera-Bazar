@@ -406,7 +406,7 @@ const getAllListings = async (req, res) => {
     const proximityRadius = 300;
 
     const fetchCategory = async (Model, modelName) => {
-      const query = process.env.NODE_ENV === 'development'
+      const query = process.env.NODE_ENV === 'development' || is_featured === 'true'
         ? { status: { $in: ['active', 'pending_approval', 'draft'] } }
         : { status: 'active' };
 

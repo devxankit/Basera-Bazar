@@ -31,10 +31,10 @@ const Home = () => {
       setLoading(true);
       try {
         const [props, servs, supps, mandi] = await Promise.all([
-          db.getAll('listings', { category: 'property', limit: 8 }),
-          db.getAll('listings', { category: 'service', limit: 8 }),
-          db.getAll('partners', { is_featured: 'true', category: 'supplier', limit: 8 }),
-          db.getAll('listings', { category: 'mandi', limit: 8 })
+          db.getAll('listings', { category: 'property', is_featured: 'true', limit: 8 }),
+          db.getAll('listings', { category: 'service', is_featured: 'true', limit: 8 }),
+          db.getAll('partners', { category: 'supplier', is_featured: 'true', limit: 8 }),
+          db.getAll('listings', { category: 'mandi', sort: 'top_selling', limit: 8 })
         ]);
         setFeaturedProperties(props);
         setFeaturedServices(servs);

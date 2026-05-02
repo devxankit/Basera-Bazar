@@ -14,7 +14,20 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+
+// Safe Messaging Initialization (Prevents crash in unsupported browsers)
+let messaging = null;
+try {
+  // Check if messaging is supported before initializing
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'Notification' in window) {
+    messaging = getMessaging(app);
+    console.log("✅ Firebase Messaging initialized");
+  } else {
+    console.warn("⚠️ Firebase Messaging is not supported in this browser environment.");
+  }
+} catch (err) {
+  console.error("❌ Failed to initialize Firebase Messaging:", err);
+}
 
 console.log("✅ Firebase initialized successfully");
 

@@ -359,7 +359,7 @@ const getPublicPartners = async (req, res) => {
   try {
     const { category, search, district, state, is_featured } = req.query;
 
-    const query = process.env.NODE_ENV === 'development'
+    const query = (process.env.NODE_ENV === 'development' || is_featured === 'true')
       ? { is_active: { $in: [true, false] }, onboarding_status: { $in: ['approved', 'pending_approval', 'incomplete'] } }
       : { is_active: true, onboarding_status: 'approved' };
 
