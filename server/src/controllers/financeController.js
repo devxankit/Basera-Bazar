@@ -63,8 +63,12 @@ const initiateSubscription = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Subscription Init Error:", error.response?.data || error.message);
-    res.status(500).json({ success: false, message: 'Failed to initialize payment' });
+    const errorMsg = error.response?.data?.error?.description || error.response?.data?.message || error.message;
+    console.error("Subscription Init Error:", errorMsg);
+    res.status(500).json({ 
+      success: false, 
+      message: `Failed to initialize payment: ${errorMsg}` 
+    });
   }
 };
 
