@@ -90,13 +90,13 @@ export default function AdminDashboard() {
     
     setError(null);
     try {
-      const [statsRes, activitiesRes] = await Promise.all([
-        api.get(`/admin/dashboard/stats?range=${range.toLowerCase()}`),
-        api.get('/admin/dashboard/activities?limit=8')
+      const { getDashboardData, getActivities } = await import('../../services/AdminService');
+      const [statsData, activitiesData] = await Promise.all([
+        getDashboardData(range.toLowerCase()),
+        getActivities(8)
       ]);
-      if (statsRes.data.success) setData(statsRes.data.data);
-      else setError('Failed to fetch platform metrics.');
-      if (activitiesRes.data.success) setActivities(activitiesRes.data.data || []);
+      setData(statsData);
+      setActivities(activitiesData);
     } catch (error) {
       console.error("Dashboard error:", error);
       setError('Connection to infrastructure interrupted.');
@@ -112,6 +112,10 @@ export default function AdminDashboard() {
     setIsProcessing(true);
     try {
       await api.patch(`/admin/listings/${id}/status`, { status });
+      
+      const { refreshAdminCache } = await import('../../services/AdminService');
+      refreshAdminCache();
+
       // Update local state instead of refetching for better UX
       setData(prev => {
         const newProperties = prev.pending.properties.filter(p => p._id !== id);

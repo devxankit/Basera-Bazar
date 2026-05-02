@@ -8,7 +8,8 @@ const {
   getSellerOrders,
   getOrderDetails,
   addReview,
-  resendOrderOTP
+  resendOrderOTP,
+  getOrderReview
 } = require('../controllers/orderController');
 const { protect } = require('../middlewares/authMiddleware');
 
@@ -21,6 +22,7 @@ router.get('/my-orders', protect, getUserOrders);
 router.get('/seller-orders', protect, getSellerOrders);
 router.get('/:id', protect, getOrderDetails);
 router.post('/review', protect, addReview);
+router.get('/:id/review', protect, getOrderReview);
 
 // Lead Management (Mandi Bazar)
 router.patch('/lead/:orderId/:itemId/status', protect, updateLeadStatus);

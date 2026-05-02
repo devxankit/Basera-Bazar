@@ -26,7 +26,27 @@ const MyOrdersPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [ratingModal, setRatingModal] = useState({ isOpen: false, order: null });
+  const [ratingModal, setRatingModal] = useState({ isOpen: false, order: null, initialData: null });
+  const [orderReviews, setOrderReviews] = useState({});
+
+  useEffect(() => {
+    if (selectedOrder && !orderReviews[selectedOrder]) {
+      const fetchReview = async () => {
+        try {
+          const res = await api.get(`/orders/${selectedOrder}/review`);
+          if (res.data.success && res.data.data.length > 0) {
+            const userReview = res.data.data.find(r => r.user_id === user?._id || r.user_id?._id === user?._id);
+            if (userReview) {
+              setOrderReviews(prev => ({ ...prev, [selectedOrder]: userReview }));
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching review for order:", err);
+        }
+      };
+      fetchReview();
+    }
+  }, [selectedOrder, user?._id, orderReviews]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -50,14 +70,37 @@ const MyOrdersPage = () => {
 
   const handleReviewSubmit = async (reviewData) => {
     try {
-      await api.post('/orders/review', reviewData);
+      const res = await api.post('/orders/review', reviewData);
       // Refresh orders to update review status
-      const res = await api.get('/orders/my-orders');
-      setOrders(res.data.data || []);
-      setRatingModal({ isOpen: false, order: null });
+      const ordersRes = await api.get('/orders/my-orders');
+      setOrders(ordersRes.data.data || []);
+      
+      // Update local review state
+      if (res.data.success) {
+        setOrderReviews(prev => ({ ...prev, [reviewData.order_id]: res.data.data }));
+      }
+      
+      setRatingModal({ isOpen: false, order: null, initialData: null });
     } catch (err) {
       console.error("Review error:", err);
-      alert("Failed to submit review");
+      alert("Failed to save review");
+    }
+  };
+
+  const handleOpenRating = async (order) => {
+    try {
+      // Fetch all reviews for this order
+      const res = await api.get(`/orders/${order._id}/review`);
+      let existingReview = null;
+      if (res.data.success && res.data.data.length > 0) {
+        // Find the review by current user for the first seller in the order (assuming single seller for now or handling accordingly)
+        const sellerId = order.items[0]?.seller_id;
+        existingReview = res.data.data.find(r => r.user_id === user?._id || r.user_id?._id === user?._id);
+      }
+      setRatingModal({ isOpen: true, order, initialData: existingReview });
+    } catch (err) {
+      console.error("Error opening rating modal:", err);
+      setRatingModal({ isOpen: true, order, initialData: null });
     }
   };
 
@@ -327,16 +370,46 @@ const MyOrdersPage = () => {
                         </div>
                       )}
 
-                      {/* Rating Button */}
-                      {order.items.some(i => i.status === 'delivered' && !i.isReviewed) && (
-                        <button 
-                          onClick={() => setRatingModal({ isOpen: true, order })}
-                          className="w-full bg-emerald-500 text-white py-4 rounded-[24px] font-black text-[13px] uppercase tracking-[0.2em] shadow-lg shadow-emerald-500/10 active:scale-95 transition-all flex items-center justify-center gap-2"
-                        >
-                          <Star size={18} fill="currentColor" />
-                          Rate Experience
-                        </button>
-                      )}
+                      {/* Rating Section */}
+                      <div className="space-y-3">
+                        {order.items.some(i => i.isReviewed) ? (
+                          <div className="bg-emerald-50 rounded-[28px] p-4 flex items-center justify-between border border-emerald-100/50">
+                             <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-1.5">
+                                   <CheckCircle2 size={14} className="text-emerald-500" />
+                                   <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Rating Submitted</span>
+                                </div>
+                                {orderReviews[order._id] && (
+                                  <div className="flex gap-0.5">
+                                     {[1, 2, 3, 4, 5].map(star => (
+                                       <Star 
+                                         key={star} 
+                                         size={14} 
+                                         className={star <= orderReviews[order._id].behavior_rating ? "text-orange-500 fill-orange-500" : "text-emerald-200"} 
+                                       />
+                                     ))}
+                                  </div>
+                                )}
+                             </div>
+                             <button 
+                               onClick={() => handleOpenRating(order)}
+                               className="px-5 py-2.5 bg-white border border-emerald-500 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm"
+                             >
+                               Edit
+                             </button>
+                          </div>
+                        ) : (
+                          order.items.some(i => i.status === 'delivered') && (
+                            <button 
+                              onClick={() => handleOpenRating(order)}
+                              className="w-full bg-emerald-500 text-white py-4 rounded-[24px] font-black text-[13px] uppercase tracking-[0.2em] shadow-lg shadow-emerald-500/10 active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                              <Star size={18} fill="currentColor" />
+                              Rate Experience
+                            </button>
+                          )
+                        )}
+                      </div>
 
                       <div className="bg-slate-50 rounded-3xl p-5 space-y-3">
                          <div className="flex justify-between text-[13px]">
@@ -389,11 +462,12 @@ const MyOrdersPage = () => {
       {ratingModal.isOpen && (
         <RatingModal 
           isOpen={ratingModal.isOpen}
-          onClose={() => setRatingModal({ isOpen: false, order: null })}
+          onClose={() => setRatingModal({ isOpen: false, order: null, initialData: null })}
           onSubmit={handleReviewSubmit}
           orderId={ratingModal.order?._id}
           partnerId={ratingModal.order?.items[0]?.seller_id}
-          items={ratingModal.order?.items.filter(i => i.status === 'delivered' && !i.isReviewed)}
+          items={ratingModal.order?.items.filter(i => i.status === 'delivered')}
+          initialData={ratingModal.initialData}
         />
       )}
     </div>

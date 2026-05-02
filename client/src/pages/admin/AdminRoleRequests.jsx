@@ -32,11 +32,9 @@ export default function AdminRoleRequests() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      // Fetch specifically role upgrade requests
-      const res = await api.get('/admin/partners/role-requests'); 
-      const roleRequests = res.data.data || [];
-      
-      setRequests(roleRequests);
+      const { getRoleRequests } = await import('../../services/AdminService');
+      const data = await getRoleRequests();
+      setRequests(data);
     } catch (err) {
       console.error("Fetch requests error:", err);
     } finally {

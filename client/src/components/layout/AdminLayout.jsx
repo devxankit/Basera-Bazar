@@ -180,25 +180,20 @@ export default function AdminLayout({ children }) {
   const [badges, setBadges] = useState({ verification: 0, upgrades: 0 });
 
   React.useEffect(() => {
-    const fetchBadges = async () => {
+    const fetchBadges = async (force = false) => {
       try {
-        const [usersRes, upgradesRes] = await Promise.all([
-          api.get('/admin/users'),
-          api.get('/admin/partners/role-requests')
-        ]);
+        const { getAdminStats } = await import('../../services/AdminService');
+        const data = await getAdminStats(force === true); // force if called via event
         
-        let verificationCount = 0;
-        if (usersRes.data?.success) {
-          verificationCount = usersRes.data.data.filter(u => 
-            (['Agent', 'Supplier', 'Service Provider', 'mandi_seller'].includes(u.role) || u.partner_type || (u.roles && u.roles.length > 0)) && 
-            (u.onboarding_status === 'pending_approval' || u.onboarding_status === 'incomplete')
-          ).length;
-        }
+        const users = data.users || [];
+        const upgrades = data.upgrades || [];
+        
+        const verificationCount = users.filter(u => 
+          (['Agent', 'Supplier', 'Service Provider', 'mandi_seller'].includes(u.role) || u.partner_type || (u.roles && u.roles.length > 0)) && 
+          (u.onboarding_status === 'pending_approval' || u.onboarding_status === 'incomplete')
+        ).length;
 
-        let upgradesCount = 0;
-        if (upgradesRes.data?.success) {
-          upgradesCount = upgradesRes.data.data.filter(r => r.status === 'pending').length;
-        }
+        const upgradesCount = upgrades.filter(r => r.status === 'pending').length;
 
         setBadges({ verification: verificationCount, upgrades: upgradesCount });
       } catch (err) {
@@ -206,14 +201,18 @@ export default function AdminLayout({ children }) {
       }
     };
     
-    // Fetch immediately and then poll every 60 seconds
+    // Initial fetch
     fetchBadges();
-    const interval = setInterval(fetchBadges, 60000);
-    window.addEventListener('refreshAdminBadges', fetchBadges);
+    
+    // Reduced polling frequency - Cache handles sub-TTL calls
+    const interval = setInterval(() => fetchBadges(false), 120000); // 2 mins
+    
+    const handleRefresh = () => fetchBadges(true);
+    window.addEventListener('refreshAdminBadges', handleRefresh);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('refreshAdminBadges', fetchBadges);
+      window.removeEventListener('refreshAdminBadges', handleRefresh);
     };
   }, []);
 

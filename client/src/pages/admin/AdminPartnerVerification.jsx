@@ -7,7 +7,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminTable from '../../components/common/AdminTable';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
 
 export default function AdminPartnerVerification() {
   const [partners, setPartners] = useState([]);
@@ -31,16 +33,14 @@ export default function AdminPartnerVerification() {
   const fetchPartners = async () => {
     setLoading(true);
     try {
-      // Fetching all users and filtering partners
-      const response = await api.get('/admin/users');
-      if (response.data.success) {
-        // Filter only partners (Agent, Supplier, Service Provider)
-        const allPartners = response.data.data.filter(u =>
-          ['Agent', 'Supplier', 'Service Provider', 'mandi_seller'].includes(u.role) ||
-          u.partner_type || (u.roles && u.roles.length > 0)
-        );
-        setPartners(allPartners);
-      }
+      // Fetching all users and filtering partners via cached service
+      const data = await getAdminUsers();
+      // Filter only partners (Agent, Supplier, Service Provider)
+      const allPartners = data.filter(u =>
+        ['Agent', 'Supplier', 'Service Provider', 'mandi_seller'].includes(u.role) ||
+        u.partner_type || (u.roles && u.roles.length > 0)
+      );
+      setPartners(allPartners);
     } catch (error) {
       console.error("Failed to fetch partners:", error);
     } finally {
@@ -60,8 +60,8 @@ export default function AdminPartnerVerification() {
         is_active: isActive,
         rejection_reason: reason
       });
+      refreshAdminCache();
       fetchPartners();
-      window.dispatchEvent(new Event('refreshAdminBadges'));
       setIsModalOpen(false);
       setShowKYCView(false);
       setIsRejecting(false);

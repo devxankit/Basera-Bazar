@@ -3,7 +3,8 @@ import {
   ArrowLeft, Phone, MessageSquare, 
   Calendar, CheckCircle2, AlertTriangle,
   Package, ExternalLink, MapPin, 
-  Truck, ShieldCheck, Loader2
+  Truck, ShieldCheck, Loader2, Star,
+  UserCheck, MessageCircle
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +16,7 @@ export default function MandiOrderDetails() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [order, setOrder] = useState(null);
+  const [review, setReview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [deliveryOTP, setDeliveryOTP] = useState('');
@@ -23,7 +25,22 @@ export default function MandiOrderDetails() {
 
   useEffect(() => {
     fetchOrderDetails();
+    fetchReview();
   }, [id]);
+
+  const fetchReview = async () => {
+    try {
+      const res = await api.get(`/orders/${id}/review`);
+      if (res.data.success && res.data.data.length > 0) {
+        // Find the review for this specific seller
+        const currentUserId = user?._id || user?.id;
+        const myReview = res.data.data.find(r => r.partner_id?.toString() === currentUserId?.toString());
+        setReview(myReview);
+      }
+    } catch (err) {
+      console.error("Error fetching review:", err);
+    }
+  };
 
   const sendOTP = async (itemId) => {
     try {
@@ -176,10 +193,12 @@ export default function MandiOrderDetails() {
            <div className="flex items-start justify-between mb-6 relative z-10">
               <div className="flex items-center gap-4">
                  <div className="w-14 h-14 bg-[#001b4e] text-white rounded-xl flex items-center justify-center text-[22px] font-black shadow-xl shadow-blue-900/20 border border-white/10">
-                    {order.user_id?.name?.[0] || 'U'}
+                    {(order.shipping_address?.full_name || order.user_id?.name || 'U')[0]}
                  </div>
                  <div>
-                    <h3 className="text-[18px] font-black text-[#001b4e] uppercase tracking-tight leading-tight">{order.user_id?.name || 'Customer'}</h3>
+                    <h3 className="text-[18px] font-black text-[#001b4e] uppercase tracking-tight leading-tight">
+                       {order.shipping_address?.full_name || order.user_id?.name || 'Customer'}
+                    </h3>
                     <div className="flex items-center gap-2 mt-1.5">
                        <div className="px-1.5 py-0.5 bg-slate-50 text-slate-400 rounded text-[8px] font-black uppercase tracking-widest border border-slate-100">Marketplace Order</div>
                     </div>
@@ -191,9 +210,8 @@ export default function MandiOrderDetails() {
               </div>
            </div>
 
-           <div className="grid grid-cols-2 gap-3 relative z-10">
-              <ContactAction icon={<Phone size={14} />} label="Call Now" href={`tel:${order.user_id?.phone}`} color="bg-blue-50 text-blue-600 border-blue-100/50" />
-              <ContactAction icon={<MessageSquare size={14} />} label="WhatsApp" href={`https://wa.me/${order.user_id?.phone}`} color="bg-emerald-50 text-emerald-600 border-emerald-100/50" />
+           <div className="grid grid-cols-1 gap-3 relative z-10">
+              <ContactAction icon={<Phone size={14} />} label="Call Now" href={`tel:${order.shipping_address?.phone || order.user_id?.phone}`} color="bg-blue-50 text-blue-600 border-blue-100/50" />
            </div>
         </div>
 
@@ -217,7 +235,7 @@ export default function MandiOrderDetails() {
               <div className="space-y-3">
                  <div className="flex items-start gap-3">
                     <div className="text-[9px] font-black text-slate-300 uppercase w-14 pt-0.5 opacity-60">Street</div>
-                    <span className="text-[13px] font-bold text-slate-600 uppercase tracking-tight">{order.shipping_address?.street}</span>
+                    <span className="text-[13px] font-bold text-slate-600 uppercase tracking-tight">{order.shipping_address?.full_address || order.shipping_address?.street}</span>
                  </div>
                  <div className="flex items-start gap-3">
                     <div className="text-[9px] font-black text-slate-300 uppercase w-14 pt-0.5 opacity-60">District</div>
@@ -266,6 +284,63 @@ export default function MandiOrderDetails() {
               <span className="text-[11px] font-black text-white/50 uppercase tracking-[0.2em]">Transaction Total</span>
               <span className="text-[20px] font-black text-white tracking-tighter">₹{order.total_amount?.toLocaleString()}</span>
            </div>
+        </div>
+
+        {/* Customer Review Section */}
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+           <div className="bg-slate-50/50 px-4 py-2.5 border-b border-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                 <UserCheck size={14} className="text-emerald-500" />
+                 <h3 className="text-[10px] font-black text-[#001b4e] uppercase tracking-widest">Customer Feedback</h3>
+              </div>
+              {!review && (
+                <div className="flex items-center gap-1.5 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+                   <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+                   <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Rating Pending</span>
+                </div>
+              )}
+           </div>
+
+           {review ? (
+              <div className="p-5 space-y-4">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest block">Seller Behavior</span>
+                       <div className="flex gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                             <Star key={i} size={12} fill={i < review.behavior_rating ? "#f59e0b" : "transparent"} className={i < review.behavior_rating ? "text-amber-500" : "text-slate-200"} />
+                          ))}
+                       </div>
+                    </div>
+                    {review.item_ratings?.[0] && (
+                       <div className="space-y-1">
+                          <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest block">Product Quality</span>
+                          <div className="flex gap-0.5">
+                             {[...Array(5)].map((_, i) => (
+                                <Star key={i} size={12} fill={i < review.item_ratings[0].quality ? "#f59e0b" : "transparent"} className={i < review.item_ratings[0].quality ? "text-amber-500" : "text-slate-200"} />
+                             ))}
+                          </div>
+                       </div>
+                    )}
+                 </div>
+
+                 {review.comment && (
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 relative">
+                       <MessageCircle size={16} className="absolute -top-2 -left-2 text-slate-200 bg-white rounded-full p-0.5" />
+                       <p className="text-[13px] font-medium text-slate-600 italic leading-relaxed">
+                          "{review.comment}"
+                       </p>
+                    </div>
+                 )}
+              </div>
+           ) : (
+              <div className="p-8 text-center bg-white">
+                 <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-200">
+                    <Star size={24} />
+                 </div>
+                 <p className="text-[11px] font-bold text-slate-300 uppercase tracking-[0.1em]">No review submitted yet</p>
+              </div>
+           )}
         </div>
       </div>
 

@@ -35,6 +35,7 @@ export default function MandiOrders() {
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order._id.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          order.user_id?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         order.shipping_address?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          order.items.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
     
     if (!matchesSearch) return false;
@@ -122,11 +123,11 @@ export default function MandiOrders() {
                 <div className="px-4 py-3 bg-slate-50/50 border-b border-slate-50 flex items-center justify-between">
                    <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-[#001b4e] font-black text-[15px] shadow-sm border border-slate-100 shrink-0">
-                         {order.user_id?.name?.charAt(0) || 'C'}
+                         {(order.shipping_address?.full_name || order.user_id?.name || 'C')[0]}
                       </div>
                       <div className="min-w-0">
                         <h4 className="text-[14px] font-black text-[#001b4e] leading-tight uppercase tracking-tight truncate">
-                          {order.user_id?.name || 'Customer'}
+                          {order.shipping_address?.full_name || order.user_id?.name || 'Customer'}
                         </h4>
                         <div className="flex items-center gap-2 mt-1">
                            <span className="text-blue-600 text-[10px] font-black tracking-widest">#{order._id.slice(-8).toUpperCase()}</span>

@@ -31,10 +31,10 @@ const Home = () => {
       setLoading(true);
       try {
         const [props, servs, supps, mandi] = await Promise.all([
-          db.getAll('listings', { category: 'property', limit: 6 }),
-          db.getAll('listings', { category: 'service', limit: 6 }),
-          db.getAll('partners', { is_featured: 'true', limit: 6 }),
-          db.getAll('listings', { category: 'mandi', limit: 6 })
+          db.getAll('listings', { category: 'property', limit: 8 }),
+          db.getAll('listings', { category: 'service', limit: 8 }),
+          db.getAll('partners', { is_featured: 'true', category: 'supplier', limit: 8 }),
+          db.getAll('listings', { category: 'mandi', limit: 8 })
         ]);
         setFeaturedProperties(props);
         setFeaturedServices(servs);
@@ -268,17 +268,7 @@ const Home = () => {
                 {[1, 2, 3, 4, 5].map((_, i) => (
                   <div key={i} className="flex items-center">
                     <span className="text-[#081229] font-black uppercase tracking-wider mx-10" style={{ fontSize: 'clamp(10px, 3.2vw, 12.5px)' }}>
-                      घर खरीदना हो या घर बनवाना, सब कुछ मिलेगा यही पर
-                    </span>
-                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                  </div>
-                ))}
-              </div>
-              <div className="flex animate-[marquee_30s_linear_infinite] whitespace-nowrap" aria-hidden="true">
-                {[1, 2, 3, 4, 5].map((_, i) => (
-                  <div key={i} className="flex items-center">
-                    <span className="text-[#081229] font-black uppercase tracking-wider mx-10" style={{ fontSize: 'clamp(10px, 3.2vw, 12.5px)' }}>
-                      घर खरीदना हो या घर बनवाना, सब कुछ मिलेगा यही पर
+                      Basera Bazar: Property and Building Materials Marketplace
                     </span>
                     <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
                   </div>

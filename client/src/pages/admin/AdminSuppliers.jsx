@@ -5,6 +5,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
+import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
+import { Star } from 'lucide-react';
 
 export default function AdminSuppliers() {
   const navigate = useNavigate();
@@ -15,15 +17,13 @@ export default function AdminSuppliers() {
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
-        const response = await api.get('/admin/users');
-        if (response.data.success) {
-          // Filter to only show suppliers
-          const allSuppliers = response.data.data.filter(u => 
-            (u.role || '').toLowerCase() === 'supplier' || 
-            (u.displayRole || '').toLowerCase() === 'supplier'
-          );
-          setSuppliers(allSuppliers);
-        }
+        const data = await getAdminUsers();
+        // Filter to only show suppliers
+        const allSuppliers = data.filter(u => 
+          (u.role || '').toLowerCase() === 'supplier' || 
+          (u.displayRole || '').toLowerCase() === 'supplier'
+        );
+        setSuppliers(allSuppliers);
       } catch (error) {
         console.error("Failed to fetch suppliers:", error);
       } finally {
@@ -32,6 +32,18 @@ export default function AdminSuppliers() {
     };
     fetchSuppliers();
   }, []);
+
+  const toggleFeatured = async (supplier) => {
+    try {
+      await api.put(`/admin/users/${supplier._id}`, { is_featured: !supplier.is_featured });
+      refreshAdminCache();
+      setSuppliers(prev =>
+        prev.map(s => s._id === supplier._id ? { ...s, is_featured: !s.is_featured } : s)
+      );
+    } catch (err) {
+      alert('Failed to update featured status.');
+    }
+  };
 
   const toggleActive = async (supplier) => {
     try {
@@ -133,6 +145,19 @@ export default function AdminSuppliers() {
       header: 'ACTIONS', 
       render: (row) => (
         <div className="flex items-center gap-2">
+          <button 
+            onClick={() => toggleFeatured(row)}
+            className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all active:scale-95 group relative ${
+              row.is_featured
+                ? 'bg-amber-100 text-amber-600 border-amber-200'
+                : 'bg-white text-slate-300 border-slate-200 hover:border-amber-400 hover:text-amber-400'
+            }`}
+          >
+            <Star size={18} fill={row.is_featured ? "currentColor" : "none"} />
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              {row.is_featured ? 'Remove Featured' : 'Mark Featured'}
+            </span>
+          </button>
           <button 
             onClick={() => navigate(`/admin/users/view/${row._id}`)}
             className="w-10 h-10 flex items-center justify-center bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm group relative"

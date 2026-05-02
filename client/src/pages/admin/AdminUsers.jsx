@@ -8,6 +8,7 @@ import AdminTable from '../../components/common/AdminTable';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
 
 export default function AdminUsers() {
   const navigate = useNavigate();
@@ -28,10 +29,9 @@ export default function AdminUsers() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await api.get('/admin/users');
-        if (response.data.success) {
-          setUsers(response.data.data);
-        }
+        const { getAdminUsers } = await import('../../services/AdminService');
+        const data = await getAdminUsers();
+        setUsers(data);
       } catch (error) {
         console.error("Failed to fetch users:", error);
       } finally {
@@ -162,6 +162,27 @@ export default function AdminUsers() {
       header: 'ACTIONS', 
       render: (row) => (
         <div className="flex items-center gap-3 relative">
+          {/* Feature Icon (Star) */}
+          <button 
+            onClick={async () => {
+              try {
+                await api.put(`/admin/users/${row._id}`, { is_featured: !row.is_featured });
+                refreshAdminCache();
+                window.location.reload(); // Simplest way to update since it's a large component
+              } catch (err) {
+                alert('Failed to update featured status.');
+              }
+            }}
+            className={`w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-95 group/star relative ${
+              row.is_featured ? 'bg-amber-100 text-amber-600 border-2 border-amber-400 shadow-md' : 'bg-white border-2 border-slate-200 text-slate-300 hover:border-amber-400 hover:text-amber-400'
+            }`}
+          >
+            <Star size={18} fill={row.is_featured ? "currentColor" : "none"} />
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/star:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              {row.is_featured ? 'Remove Featured' : 'Mark Featured'}
+            </span>
+          </button>
+
           {/* View Icon (Eye) */}
           <button 
             onClick={() => navigate(`/admin/users/view/${row._id}`)}

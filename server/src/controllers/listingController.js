@@ -406,12 +406,21 @@ const getAllListings = async (req, res) => {
     const proximityRadius = 300;
 
     const fetchCategory = async (Model, modelName) => {
-      const query = { status: 'active' };
+      const query = process.env.NODE_ENV === 'development'
+        ? { status: { $in: ['active', 'pending_approval', 'draft'] } }
+        : { status: 'active' };
+
       if (is_featured === 'true') {
         query.is_featured = true;
       }
       if (partner_id) {
         query.partner_id = partner_id;
+      }
+
+      // Add special sorting for top selling/best sellers
+      let sort = { createdAt: -1 };
+      if (modelName === 'MandiListing' || category === 'mandi') {
+        sort = { 'stats.enquiries': -1, 'stats.views': -1, createdAt: -1 };
       }
 
       if (hasLocation && process.env.NODE_ENV !== 'development') {
@@ -464,6 +473,7 @@ const getAllListings = async (req, res) => {
           .populate({ path: 'partner_id', select: 'name phone email role default_location profile createdAt' })
           .populate('category_id')
           .populate('subcategory_id')
+          .sort(sort)
           .limit(parseInt(limit));
       }
     };

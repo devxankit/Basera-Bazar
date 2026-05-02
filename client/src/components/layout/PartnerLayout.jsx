@@ -28,10 +28,15 @@ export default function PartnerLayout({ children }) {
     // Fetch unread count
     const fetchUnread = async () => {
       try {
-        const res = await api.get('/notifications');
-        if (res.data.success) {
-          setUnreadCount(res.data.data.filter(n => !n.is_read).length);
-        }
+        const { cacheService } = await import('../../services/CacheService');
+        const count = await cacheService.get('unread_notifications_count', async () => {
+          const res = await api.get('/notifications');
+          if (res.data.success) {
+            return res.data.data.filter(n => !n.is_read).length;
+          }
+          return 0;
+        }, 1 * 60 * 1000); // 1 minute cache for notifications
+        setUnreadCount(count);
       } catch (err) {}
     };
     fetchUnread();

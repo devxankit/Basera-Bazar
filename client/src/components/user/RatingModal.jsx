@@ -2,12 +2,21 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, X, MessageSquare, ShieldCheck, ThumbsUp, Truck } from 'lucide-react';
 
-export default function RatingModal({ isOpen, onClose, onSubmit, orderId, partnerId, items }) {
-  const [behaviorRating, setBehaviorRating] = useState(0);
+export default function RatingModal({ isOpen, onClose, onSubmit, orderId, partnerId, items, initialData }) {
+  const [behaviorRating, setBehaviorRating] = useState(initialData?.behavior_rating || 0);
   const [itemRatings, setItemRatings] = useState(
-    items.map(item => ({ item_id: item._id, productId: item.productId?._id || item.productId, quality: 0, quantity: 0, name: item.name }))
+    items.map(item => {
+      const existing = initialData?.item_ratings?.find(r => r.item_id === item._id || r.productId === (item.productId?._id || item.productId));
+      return { 
+        item_id: item._id, 
+        productId: item.productId?._id || item.productId, 
+        quality: existing?.quality || 0, 
+        quantity: existing?.quantity || 0, 
+        name: item.name 
+      };
+    })
   );
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState(initialData?.comment || '');
   const [submitting, setSubmitting] = useState(false);
 
   const handleItemRatingChange = (index, field, value) => {
@@ -58,8 +67,8 @@ export default function RatingModal({ isOpen, onClose, onSubmit, orderId, partne
           >
             <div className="px-8 pt-8 pb-4 flex items-center justify-between sticky top-0 bg-white z-10">
               <div>
-                <h2 className="text-[20px] font-black text-[#001b4e] leading-none">Rate Experience</h2>
-                <p className="text-[11px] font-bold text-slate-400 mt-2 uppercase tracking-widest">Order Review</p>
+                <h2 className="text-[20px] font-black text-[#001b4e] leading-none">{initialData ? 'Edit Rating' : 'Rate Experience'}</h2>
+                <p className="text-[11px] font-bold text-slate-400 mt-2 uppercase tracking-widest">{initialData ? 'Update your review' : 'Order Review'}</p>
               </div>
               <button onClick={onClose} className="p-3 bg-slate-50 rounded-2xl text-slate-400">
                 <X size={20} />
@@ -146,7 +155,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit, orderId, partne
                 disabled={submitting}
                 className="w-full bg-[#001b4e] text-white py-5 rounded-[24px] font-black text-[14px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-900/20 active:scale-95 transition-all disabled:opacity-50"
               >
-                {submitting ? 'Submitting...' : 'Submit Review'}
+                {submitting ? 'Submitting...' : initialData ? 'Update Review' : 'Submit Review'}
               </button>
             </div>
           </motion.div>

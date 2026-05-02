@@ -54,6 +54,7 @@ const ListingDetails = () => {
   const [selectedSubType, setSelectedSubType] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('');
   const [matchedListing, setMatchedListing] = useState(null);
+  const [isAdded, setIsAdded] = useState(false);
 
   useEffect(() => {
     let interval;
@@ -876,17 +877,23 @@ const ListingDetails = () => {
         <div className="flex gap-3">
           {isMandi ? (
             <div className="flex w-full gap-3">
-              {cart[listing.id] ? (
+              {Object.values(cart).some(c => c.item._id === listing?._id || c.item.id === listing?._id) ? (
                 <div className="flex flex-col w-full gap-2">
                   <div className="flex gap-3">
                     <div className="flex-1 flex items-center bg-indigo-50 rounded-full border border-indigo-100 overflow-hidden h-[52px]">
-                      <button 
-                        onClick={() => removeFromCart(listing.id)}
+                      <button                         onClick={() => {
+                           const cartItem = Object.values(cart).find(c => c.item._id === listing?._id || c.item.id === listing?._id);
+                           if (cartItem) removeFromCart(cartItem.item._cartKey || cartItem.item._id);
+                         }}
                         className="flex-1 h-full flex items-center justify-center text-[#1f2355] hover:bg-indigo-100 active:scale-90 transition-all"
                       >
                         <Minus size={20} strokeWidth={3} />
                       </button>
-                      <span className="w-12 text-center text-[16px] font-black text-[#1f2355]">{cart[listing.id].qty}</span>
+                       <span className="w-12 text-center text-[16px] font-black text-[#1f2355]">
+                         {Object.values(cart)
+                           .filter(c => c.item._id === listing?._id || c.item.id === listing?._id)
+                           .reduce((sum, c) => sum + c.qty, 0)}
+                       </span>
                       <button 
                         onClick={() => {
                           fetchAttributesForCategory();
@@ -1210,7 +1217,11 @@ const ListingDetails = () => {
                               >
                                 <option value="">All Sub-Types</option>
                                 {categoryAttributes.sub_types
-                                  .filter(st => st.parent_name?.toLowerCase() === selectedType.toLowerCase() && availableSubTypesForSelection.has(st.name.toLowerCase()))
+                                .filter(st => {
+                                  const normalize = s => s?.toLowerCase().replace(/[-\s]/g, '');
+                                  return normalize(st.parent_name) === normalize(selectedType) && 
+                                         [...availableSubTypesForSelection].some(as => normalize(as) === normalize(st.name));
+                                })
                                   .map(st => (
                                     <option key={st._id} value={st.name}>{st.name}</option>
                                   ))
@@ -1296,24 +1307,31 @@ const ListingDetails = () => {
                 <div className="p-6 bg-slate-50 border-t border-slate-100 space-y-3">
                    {/* Add Matched */}
                    <button 
-                     disabled={!matchedListing}
-                     onClick={() => {
-                        // Add the matched cheapest listing to cart
-                        const productToAdd = {
-                          ...matchedListing,
-                          _id: matchedListing._id,
-                          id: matchedListing._id,
-                          _cartKey: `${matchedListing._id}_${selectedType}_${selectedSubType}_${selectedBrand}`,
-                          selectedType, selectedSubType, selectedBrand
-                        };
-                        addToCart(productToAdd);
-                        setIsVariationModalOpen(false);
-                     }}
-                     className="w-full bg-[#001b4e] text-white py-4 rounded-2xl font-black text-[14px] uppercase tracking-[0.1em] shadow-xl shadow-blue-900/20 disabled:opacity-40 active:scale-95 transition-all flex items-center justify-center gap-3"
-                   >
-                      <ShoppingCart size={18} />
-                      {matchedListing ? `Add Selected · ₹${(matchedListing.pricing?.price_per_unit || 0).toLocaleString()}` : 'Select Options Above'}
-                   </button>
+                      disabled={!matchedListing || isAdded}
+                      onClick={() => {
+                         // Add the matched cheapest listing to cart
+                         const productToAdd = {
+                           ...matchedListing,
+                           _id: matchedListing._id,
+                           id: matchedListing._id,
+                           _cartKey: `${matchedListing._id}_${selectedType}_${selectedSubType}_${selectedBrand}`,
+                           selectedType, selectedSubType, selectedBrand
+                         };
+                         addToCart(productToAdd);
+                         setIsAdded(true);
+                         setTimeout(() => {
+                           setIsAdded(false);
+                           setIsVariationModalOpen(false);
+                         }, 1000);
+                      }}
+                      className={cn(
+                        "w-full py-4 rounded-2xl font-black text-[14px] uppercase tracking-[0.1em] shadow-xl transition-all flex items-center justify-center gap-3",
+                        isAdded ? "bg-emerald-500 text-white shadow-emerald-900/20" : "bg-[#001b4e] text-white shadow-blue-900/20 active:scale-95 disabled:opacity-40"
+                      )}
+                    >
+                       {isAdded ? <CheckCircle2 size={18} /> : <ShoppingCart size={18} />}
+                       {isAdded ? 'Added to Cart!' : (matchedListing ? `Add Selected · ₹${(matchedListing.pricing?.price_per_unit || 0).toLocaleString()}` : 'Select Options Above')}
+                    </button>
                 </div>
              </motion.div>
           </div>

@@ -6,6 +6,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
+import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
 
 export default function AdminMandiSellers() {
   const navigate = useNavigate();
@@ -16,16 +17,14 @@ export default function AdminMandiSellers() {
   useEffect(() => {
     const fetchSellers = async () => {
       try {
-        const response = await api.get('/admin/users');
-        if (response.data.success) {
-          // Filter to only show approved mandi sellers
-          const allSellers = response.data.data.filter(u => 
-            ((u.partner_type || '').toLowerCase() === 'mandi_seller' ||
-             (u.roles && u.roles.includes('mandi_seller'))) &&
-            u.onboarding_status === 'approved'
-          );
-          setSellers(allSellers);
-        }
+        const data = await getAdminUsers();
+        // Filter to only show approved mandi sellers
+        const allSellers = data.filter(u => 
+          ((u.partner_type || '').toLowerCase() === 'mandi_seller' ||
+           (u.roles && u.roles.includes('mandi_seller'))) &&
+          u.onboarding_status === 'approved'
+        );
+        setSellers(allSellers);
       } catch (error) {
         console.error("Failed to fetch mandi sellers:", error);
       } finally {

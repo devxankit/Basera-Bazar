@@ -20,10 +20,22 @@ export const CartProvider = ({ children }) => {
    * The product's selectedType, selectedSubType, selectedBrand are stored alongside.
    */
   const addToCart = (product) => {
+    if (!product) return;
+    
     setCart((prev) => {
-      const cartKey = product._cartKey || product._id;
+      const cartKey = product._cartKey || product._id || product.id;
+      if (!cartKey) return prev;
+
       const currentQty = prev[cartKey]?.qty || 0;
-      if (currentQty >= (product.inventory?.quantity || 100)) return prev;
+      
+      // Support both 'inventory.quantity' (system products) and 'stock_quantity' (mandi products)
+      const stockLimit = product.inventory?.quantity ?? product.stock_quantity ?? 999;
+      
+      if (currentQty >= stockLimit) {
+        console.warn(`Cannot add more. Stock limit reached: ${stockLimit}`);
+        return prev;
+      }
+
       return {
         ...prev,
         [cartKey]: {

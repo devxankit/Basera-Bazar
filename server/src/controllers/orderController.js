@@ -397,15 +397,19 @@ const addReview = async (req, res) => {
     const order = await Order.findById(order_id);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
 
-    // 2. Create the review
-    const newReview = await Review.create({
-      user_id: userId,
-      partner_id,
-      order_id,
-      item_ratings,
-      behavior_rating,
-      comment
-    });
+    // 2. Create or Update the review
+    const newReview = await Review.findOneAndUpdate(
+      { user_id: userId, order_id: order_id, partner_id: partner_id },
+      { 
+        user_id: userId,
+        partner_id,
+        order_id,
+        item_ratings,
+        behavior_rating,
+        comment
+      },
+      { new: true, upsert: true }
+    );
 
     // 3. Mark items as reviewed in the order
     const itemIds = item_ratings.map(r => r.item_id);
@@ -416,7 +420,7 @@ const addReview = async (req, res) => {
     });
     await order.save();
 
-    res.status(201).json({ success: true, message: 'Review submitted successfully', data: newReview });
+    res.status(200).json({ success: true, message: 'Review saved successfully', data: newReview });
   } catch (error) {
     console.error("Review Error:", error);
     res.status(500).json({ success: false, message: error.message || 'Error submitting review.' });
@@ -460,6 +464,17 @@ const resendOrderOTP = async (req, res) => {
   }
 };
 
+const getOrderReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const Review = require('../models/Review');
+    const reviews = await Review.find({ order_id: id });
+    res.status(200).json({ success: true, data: reviews });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching review.' });
+  }
+};
+
 module.exports = {
   createMarketplaceOrder,
   verifyMarketplacePayment,
@@ -468,5 +483,6 @@ module.exports = {
   getSellerOrders,
   getOrderDetails,
   addReview,
-  resendOrderOTP
+  resendOrderOTP,
+  getOrderReview
 };
