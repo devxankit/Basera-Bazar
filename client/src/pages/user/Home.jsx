@@ -33,7 +33,7 @@ const Home = () => {
         const [props, servs, supps, mandi] = await Promise.all([
           db.getAll('listings', { category: 'property', limit: 6 }),
           db.getAll('listings', { category: 'service', limit: 6 }),
-          db.getAll('partners', { active_role: 'supplier', is_featured: 'true', limit: 6 }),
+          db.getAll('partners', { is_featured: 'true', limit: 6 }),
           db.getAll('listings', { category: 'mandi', limit: 6 })
         ]);
         setFeaturedProperties(props);
@@ -324,9 +324,9 @@ const Home = () => {
               </div>
             </div>
           )) : (
-            [1,2,3].map(i => (
-              <div key={i} className="min-w-[200px] h-[200px] bg-slate-50 rounded-2xl animate-pulse" />
-            ))
+            <div className="min-w-[200px] h-[200px] flex items-center justify-center bg-slate-50 rounded-2xl border border-slate-100">
+              <p className="text-slate-400 font-medium text-[12px] text-center px-4">Properties coming soon</p>
+            </div>
           )}
         </div>
       </div>
@@ -364,9 +364,9 @@ const Home = () => {
               </div>
             </div>
           )) : (
-            [1,2,3].map(i => (
-              <div key={i} className="min-w-[150px] h-[180px] bg-slate-50 rounded-[24px] animate-pulse" />
-            ))
+            <div className="min-w-[280px] h-[200px] flex items-center justify-center bg-slate-50 rounded-[32px] border border-slate-100">
+              <p className="text-slate-400 font-medium text-[13px]">More services coming soon</p>
+            </div>
           )}
         </div>
       </div>
@@ -419,7 +419,7 @@ const Home = () => {
                     </div>
                   ) : (
                     <button 
-                      onClick={(e) => { e.stopPropagation(); addToCart(item); }}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/products/${item._id || item.id}?action=add`); }}
                       className="w-9 h-9 bg-[#181d5f] hover:bg-[#252b75] rounded-xl flex items-center justify-center text-white shadow-lg active:scale-90 transition-all"
                     >
                       <Plus size={16} strokeWidth={3} />
@@ -429,9 +429,9 @@ const Home = () => {
               </div>
             </div>
           )) : (
-            [1,2,3].map(i => (
-              <div key={i} className="min-w-[170px] h-[200px] bg-slate-50 rounded-[24px] animate-pulse" />
-            ))
+            <div className="min-w-[170px] h-[150px] flex items-center justify-center bg-slate-50 rounded-[24px] border border-slate-100">
+              <p className="text-slate-400 font-medium text-[12px] text-center px-4">Mandi items coming soon</p>
+            </div>
           )}
         </div>
       </div>
@@ -484,9 +484,9 @@ const Home = () => {
               </div>
             </div>
           )) : (
-            [1,2].map(i => (
-              <div key={i} className="min-w-[240px] h-[160px] bg-slate-50 rounded-[28px] animate-pulse" />
-            ))
+            <div className="min-w-[240px] h-[120px] flex items-center justify-center bg-slate-50 rounded-[28px] border border-slate-100">
+              <p className="text-slate-400 font-medium text-[12px]">Featured suppliers coming soon</p>
+            </div>
           )}
         </div>
       </div>

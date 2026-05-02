@@ -479,7 +479,7 @@ export default function MandiMarketplace() {
                               </div>
                            ) : (
                               <button 
-                                onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                                onClick={(e) => { e.stopPropagation(); navigate(`/products/${product.id}?action=add`); }}
                                 className="w-8 h-8 bg-[#1f2355] hover:bg-[#2d3269] rounded-xl flex items-center justify-center text-white shadow-lg active:scale-90 transition-all"
                               >
                                 <Plus size={14} strokeWidth={3} />

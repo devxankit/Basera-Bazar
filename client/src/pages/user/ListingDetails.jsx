@@ -271,6 +271,18 @@ const ListingDetails = () => {
     fetchListing();
   }, [id]);
 
+  // Auto-open variation modal if action=add in URL
+  useEffect(() => {
+    if (!loading && listing && isMandi) {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('action') === 'add') {
+        fetchAttributesForCategory();
+        setIsVariationModalOpen(true);
+        // Clean up URL to prevent reopening on refresh
+        window.history.replaceState({}, '', `/products/${id}`);
+      }
+    }
+  }, [loading, listing, isMandi, id]);
 
 
   if (loading) return (
@@ -1282,18 +1294,6 @@ const ListingDetails = () => {
                 </div>
 
                 <div className="p-6 bg-slate-50 border-t border-slate-100 space-y-3">
-                   {/* Quick Add Current Item */}
-                   <button 
-                     onClick={() => {
-                        addToCart(listing);
-                        setIsVariationModalOpen(false);
-                     }}
-                     className="w-full bg-white text-[#001b4e] py-3 rounded-2xl font-black text-[13px] uppercase tracking-widest border-2 border-dashed border-slate-200 active:scale-95 transition-all flex items-center justify-center gap-2"
-                   >
-                      <Plus size={16} />
-                      Add Current Item (₹{(listing.pricing?.price_per_unit || listing.price?.value || 0).toLocaleString()})
-                   </button>
-
                    {/* Add Matched */}
                    <button 
                      disabled={!matchedListing}

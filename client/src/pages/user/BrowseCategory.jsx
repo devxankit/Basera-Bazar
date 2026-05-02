@@ -493,7 +493,7 @@ const BrowseCategory = () => {
                           <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="w-10 h-full flex items-center justify-center text-orange-600 hover:bg-orange-100 transition-all"><Plus size={16} strokeWidth={3} /></button>
                         </div>
                       ) : (
-                        <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="px-6 h-11 bg-orange-500 hover:bg-orange-600 rounded-2xl flex items-center gap-2 text-white shadow-xl shadow-orange-200 active:scale-95 transition-all text-[12px] font-black uppercase tracking-wider">
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/products/${item.id}?action=add`); }} className="px-6 h-11 bg-orange-500 hover:bg-orange-600 rounded-2xl flex items-center gap-2 text-white shadow-xl shadow-orange-200 active:scale-95 transition-all text-[12px] font-black uppercase tracking-wider">
                           <ShoppingCart size={16} strokeWidth={2.5} /> Add
                         </button>
                       )}
