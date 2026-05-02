@@ -80,7 +80,7 @@ export default function PartnerInquiries() {
              >
                <ArrowLeft size={20} />
              </button>
-             <h2 className="text-[16px] font-black text-[#001b4e] uppercase tracking-widest">Market Leads</h2>
+             <h2 className="text-[16px] font-bold text-[#001b4e] uppercase tracking-widest">Market Leads</h2>
           </div>
           <button className="p-1.5 text-slate-300">
              <MoreVertical size={20} />
@@ -97,7 +97,7 @@ export default function PartnerInquiries() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search leads by customer name..." 
-            className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 pl-11 pr-4 text-[13px] font-bold uppercase tracking-tight outline-none focus:bg-white focus:border-blue-200 transition-all placeholder:text-slate-200 placeholder:font-black"
+            className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 pl-11 pr-4 text-[13px] font-bold uppercase tracking-tight outline-none focus:bg-white focus:border-blue-200 transition-all placeholder:text-slate-200 placeholder:font-bold"
           />
         </div>
       </div>
@@ -113,12 +113,12 @@ export default function PartnerInquiries() {
         {loading ? (
           <div className="flex flex-col items-center py-24">
             <Loader2 className="animate-spin text-blue-600 mb-4" size={28} />
-            <span className="text-slate-300 font-black uppercase tracking-widest text-[10px]">Syncing Leads...</span>
+            <span className="text-slate-300 font-bold uppercase tracking-widest text-[10px]">Syncing Leads...</span>
           </div>
         ) : filteredInquiries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center opacity-30">
              <MessageSquare size={64} className="text-slate-200 mb-6" />
-             <h3 className="text-[14px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">No inquiries matching<br/>your criteria</h3>
+             <h3 className="text-[14px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">No inquiries matching<br/>your criteria</h3>
           </div>
         ) : (
           <div className="space-y-3">
@@ -136,24 +136,24 @@ export default function PartnerInquiries() {
                   {/* Lead Top Info */}
                   <div className="px-4 py-3 bg-slate-50/50 border-b border-slate-50 flex items-center justify-between">
                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-[#001b4e] font-black text-[15px] shadow-sm border border-slate-100">
+                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-[#001b4e] font-bold text-[15px] shadow-sm border border-slate-100">
                            {lead.user_details?.name?.charAt(0) || 'C'}
                         </div>
                         <div>
-                          <h4 className="text-[14px] font-black text-[#001b4e] leading-tight uppercase tracking-tight">
+                          <h4 className="text-[14px] font-bold text-[#001b4e] leading-tight uppercase tracking-tight">
                             {lead.user_details?.name || 'Customer'}
                           </h4>
                           <div className="flex items-center gap-2 mt-1">
                              <Phone size={10} className="text-blue-500" />
-                             <span className="text-slate-400 text-[10px] font-black tracking-widest">{lead.user_details?.phone || 'NO PHONE'}</span>
+                             <span className="text-slate-400 text-[10px] font-bold tracking-widest">{lead.user_details?.phone || 'NO PHONE'}</span>
                           </div>
                         </div>
                      </div>
                      <div className="flex flex-col items-end">
-                        <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm ${status.className}`}>
+                        <div className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest shadow-sm ${status.className}`}>
                            {status.label}
                         </div>
-                        <span className="text-slate-300 text-[9px] font-black uppercase mt-2 tracking-tighter opacity-60">
+                        <span className="text-slate-300 text-[9px] font-bold uppercase mt-2 tracking-tighter opacity-60">
                            {new Date(lead.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
                         </span>
                      </div>
@@ -166,8 +166,8 @@ export default function PartnerInquiries() {
                            <Zap size={14} className="text-blue-600" />
                         </div>
                         <div className="min-w-0">
-                           <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5 opacity-60">Interest Subject</div>
-                           <h5 className="text-[12px] font-black text-[#001b4e] uppercase tracking-tight truncate">
+                           <div className="text-[8px] font-bold text-slate-300 uppercase tracking-widest mb-0.5 opacity-60">Interest Subject</div>
+                           <h5 className="text-[12px] font-bold text-[#001b4e] uppercase tracking-tight truncate">
                               {lead.listing_snapshot?.title || lead.listing_snapshot?.serviceName || 'Market Inquiry'}
                            </h5>
                         </div>

@@ -23,9 +23,7 @@ const buildProximityPipeline = (lat, lng, userDistrict, userState, radiusKm = 30
         near: { type: "Point", coordinates: [longitude, latitude] },
         distanceField: "distance",
         maxDistance: (process.env.NODE_ENV === 'development' ? 20000 : parseFloat(radiusKm)) * 1000,
-        query: process.env.NODE_ENV === 'development' 
-          ? { status: { $in: ['active', 'pending_approval', 'draft'] } }
-          : { status: 'active' },
+        query: { status: 'active' },
         spherical: true
       }
     },
@@ -111,12 +109,7 @@ const getMandiListings = async (req, res) => {
   try {
     const { category_id, partner_id } = req.query;
     const query = { deleted_at: null };
-    if (process.env.NODE_ENV === 'development') {
-      // In dev, show almost everything to help debugging
-      query.status = { $in: ['active', 'pending_approval', 'draft'] };
-    } else {
-      query.status = 'active';
-    }
+    query.status = 'active';
 
     if (partner_id) {
       try {
@@ -141,6 +134,8 @@ const getMandiListings = async (req, res) => {
     const mandiItems = await MandiListing.find(query)
       .populate('category_id', 'name icon mandi_icon type')
       .sort({ createdAt: -1 });
+
+    console.log(`[MandiDebug] Found ${mandiItems.length} items for query:`, JSON.stringify(query));
 
     res.status(200).json({ success: true, count: mandiItems.length, data: mandiItems });
 
@@ -406,9 +401,7 @@ const getAllListings = async (req, res) => {
     const proximityRadius = 300;
 
     const fetchCategory = async (Model, modelName) => {
-      const query = process.env.NODE_ENV === 'development' || is_featured === 'true'
-        ? { status: { $in: ['active', 'pending_approval', 'draft'] } }
-        : { status: 'active' };
+      const query = { status: 'active' };
 
       if (is_featured === 'true') {
         query.is_featured = true;

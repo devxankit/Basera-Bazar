@@ -197,7 +197,7 @@ const Home = () => {
             <div 
               onClick={() => navigate('/mandi-bazar')}
               className="relative rounded-[32px] overflow-hidden bg-[#081229] shadow-2xl group cursor-pointer active:scale-[0.98] transition-all"
-              style={{ height: 'clamp(200px, 55vw, 260px)' }}
+              style={{ height: 'clamp(230px, 65vw, 300px)' }}
             >
               {/* Image Container - Full Width with Narrow Fade */}
               <div className="absolute inset-0 z-0">
@@ -207,20 +207,20 @@ const Home = () => {
                   className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
                 {/* Narrower Horizontal Fade Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229] to-transparent w-[60%] z-10" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#081229] via-[#081229]/80 to-transparent w-[70%] z-10" />
               </div>
 
               {/* Content Container - Positioned Left */}
-              <div className="absolute inset-0 z-20 p-5 sm:p-8 flex flex-col justify-center max-w-[65%] sm:max-w-[55%]">
-                <p className="text-white font-bold mb-1 uppercase tracking-widest opacity-80" style={{ fontSize: 'clamp(8px, 2vw, 10px)' }}>
+              <div className="absolute inset-0 z-20 p-6 sm:p-10 flex flex-col justify-center max-w-[80%] sm:max-w-[60%]">
+                <p className="text-white font-bold mb-1.5 uppercase tracking-widest opacity-80" style={{ fontSize: 'clamp(8.5px, 2.2vw, 10.5px)' }}>
                   One Stop Solution for
                 </p>
-                <h1 className="text-white font-black leading-[1.1] mb-5" style={{ fontSize: 'clamp(18px, 6vw, 28px)' }}>
+                <h1 className="text-white font-black leading-[1.1] mb-5" style={{ fontSize: 'clamp(20px, 6.5vw, 30px)' }}>
                   Property & <br />
                   <span className="text-orange-500">Building Materials</span>
                 </h1>
 
-                <div className="grid grid-cols-2 gap-x-3 gap-y-3 mb-5 w-fit">
+                <div className="grid grid-cols-2 gap-x-2.5 gap-y-3.5 mb-6 w-fit">
                   {[
                     { icon: ShieldCheck, label: 'BEST QUALITY\nPRODUCTS' },
                     { icon: IndianRupee, label: 'LOWEST\nPRICE' },
@@ -228,10 +228,10 @@ const Home = () => {
                     { icon: Headphones, label: '24X7\nSUPPORT' },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-white/10 backdrop-blur-sm flex items-center justify-center text-white border border-white/5">
-                        <item.icon size={12} strokeWidth={2.5} />
+                      <div className="w-7 h-7 rounded-lg bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/5 shrink-0">
+                        <item.icon size={13} strokeWidth={2.5} />
                       </div>
-                      <span className="text-white font-black uppercase leading-tight tracking-wider" style={{ fontSize: 'clamp(6.5px, 1.5vw, 8.5px)' }}>
+                      <span className="text-white font-bold uppercase leading-[1.1] tracking-wider" style={{ fontSize: 'clamp(7.5px, 1.8vw, 9.5px)' }}>
                         {item.label}
                       </span>
                     </div>
@@ -241,12 +241,12 @@ const Home = () => {
                 <button
                   className="w-fit bg-[#fa8639] text-white rounded-xl font-black flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-orange-500/20"
                   style={{
-                    padding: 'clamp(8px, 2.5vw, 11px) clamp(18px, 4.5vw, 30px)',
+                    padding: 'clamp(10px, 2.8vw, 12px) clamp(20px, 5vw, 35px)',
                     fontSize: 'clamp(11px, 3.2vw, 13px)'
                   }}
                 >
                   Explore Now
-                  <ChevronRight strokeWidth={4} size={14} />
+                  <ChevronRight strokeWidth={4} size={15} />
                 </button>
               </div>
             </div>

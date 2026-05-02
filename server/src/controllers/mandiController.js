@@ -45,7 +45,7 @@ const getSellerDashboard = async (req, res) => {
 const updateProductInventory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { price, stock, availability } = req.body;
+    const { price, stock, availability, status } = req.body;
     const sellerId = req.user.id;
 
     const product = await MandiListing.findOne({ _id: id, partner_id: sellerId });
@@ -60,6 +60,7 @@ const updateProductInventory = async (req, res) => {
     }
     if (stock !== undefined) product.stock_quantity = stock;
     if (availability !== undefined) product.availability_status = availability;
+    if (status !== undefined) product.status = status;
 
     await product.save();
 
@@ -88,8 +89,7 @@ const getMarketplaceHome = async (req, res) => {
     const featuredDeals = await Promise.all(categories.map(async (cat) => {
       const bestPrice = await MandiListing.findOne({ 
         category_id: cat._id, 
-        status: 'active',
-        stock_quantity: { $gt: 0 }
+        status: 'active'
       })
       .sort({ 'pricing.price_per_unit': 1 })
       .select('title pricing material_name thumbnail');
@@ -123,15 +123,24 @@ const getMarketplaceHome = async (req, res) => {
 const getCategoryListings = async (req, res) => {
   try {
     const { id } = req.params;
-    const listings = await MandiListing.find({ 
-      category_id: id, 
-      status: 'active',
-      stock_quantity: { $gt: 0 }
-    })
-    .sort({ 'pricing.price_per_unit': 1 })
-    .populate('partner_id', 'name'); // Show seller name but maybe not full details yet
+    
+    const [category, listings] = await Promise.all([
+      Category.findById(id),
+      MandiListing.find({ 
+        category_id: id, 
+        status: 'active'
+      })
+      .sort({ 'pricing.price_per_unit': 1 })
+      .populate('partner_id', 'name profile') // Populate profile for business name
+    ]);
 
-    res.status(200).json({ success: true, data: listings });
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        category,
+        listings
+      } 
+    });
   } catch (error) {
     console.error("Category Listings Error:", error);
     res.status(500).json({ success: false, message: 'Error fetching category products.' });

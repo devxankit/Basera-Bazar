@@ -213,10 +213,10 @@ export default function MandiMarketplace() {
             <div className="flex items-center gap-2.5">
                <div className="flex flex-col leading-none">
                   <div className="flex items-center gap-0.5">
-                     <span className="font-black text-orange-500" style={{ fontSize: 'clamp(15px, 5vw, 19px)' }}>बसेरा</span>
-                     <span className="font-black text-[#1f2355] uppercase ml-0.5" style={{ fontSize: 'clamp(15px, 5vw, 19px)' }}>BAZAR</span>
+                     <span className="font-bold text-orange-500" style={{ fontSize: 'clamp(15px, 5vw, 19px)' }}>बसेरा</span>
+                     <span className="font-bold text-[#1f2355] uppercase ml-0.5" style={{ fontSize: 'clamp(15px, 5vw, 19px)' }}>BAZAR</span>
                   </div>
-                  <p className="font-semibold text-orange-500 tracking-tight" style={{ fontSize: 'clamp(7px, 2vw, 9px)' }}>Building better, together</p>
+                  <p className="font-medium text-orange-500 tracking-tight" style={{ fontSize: 'clamp(7px, 2vw, 9px)' }}>Building better, together</p>
                </div>
             </div>
             <div className="flex items-center gap-2">
@@ -373,7 +373,7 @@ export default function MandiMarketplace() {
                   <div className="text-orange-500">
                      <item.icon size={15} strokeWidth={2.5} />
                   </div>
-                  <p className="font-black text-white text-center leading-tight px-1" style={{ fontSize: 'clamp(7.5px, 2.2vw, 9.5px)' }}>{item.title}</p>
+                  <p className="font-bold text-white text-center leading-tight px-1" style={{ fontSize: 'clamp(7.5px, 2.2vw, 9.5px)' }}>{item.title}</p>
                   <p className="font-medium text-slate-400 text-center leading-none" style={{ fontSize: 'clamp(6px, 1.8vw, 7.5px)' }}>{item.sub}</p>
                </div>
             ))}
@@ -382,7 +382,7 @@ export default function MandiMarketplace() {
          {/* ── SHOP BY CATEGORY ── */}
          <div className="mt-5 px-4">
             <div className="flex items-center justify-between mb-3">
-               <h2 className="font-black text-[#1f2355]" style={{ fontSize: 'clamp(14px, 4.5vw, 18px)' }}>Shop by Category</h2>
+               <h2 className="font-bold text-[#1f2355]" style={{ fontSize: 'clamp(14px, 4.5vw, 18px)' }}>Shop by Category</h2>
             </div>
             <div className="grid grid-cols-4 gap-y-6 gap-x-2 pb-2">
                {loadingCategories ? (
@@ -431,7 +431,7 @@ export default function MandiMarketplace() {
          {/* ── TOP SELLING PRODUCTS ── */}
          <div className="mt-5 pb-4">
             <div className="px-4 flex items-center justify-between mb-3">
-               <h2 className="font-black text-[#1f2355]" style={{ fontSize: 'clamp(14px, 4.5vw, 18px)' }}>Top Selling Products</h2>
+               <h2 className="font-bold text-[#1f2355]" style={{ fontSize: 'clamp(14px, 4.5vw, 18px)' }}>Top Selling Products</h2>
             </div>
             <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-2">
                {topProducts.map((product) => (

@@ -74,7 +74,7 @@ export default function PartnerProfile() {
           >
             <ArrowLeft size={20} />
           </button>
-          <h2 className="text-[16px] font-black text-[#001b4e] uppercase tracking-widest">Profile Hub</h2>
+          <h2 className="text-[16px] font-bold text-[#001b4e] uppercase tracking-widest">Profile Hub</h2>
         </div>
         <button 
           onClick={() => navigate('/partner/edit-profile')}
@@ -90,13 +90,13 @@ export default function PartnerProfile() {
           <div className="w-20 h-20 bg-[#001b4e] rounded-full flex items-center justify-center text-white text-[28px] font-bold mb-3 shadow-lg shadow-blue-900/20">
             {partner.name?.charAt(0)}
           </div>
-          <h2 className="text-[20px] font-black text-[#001b4e] uppercase tracking-tight">{partner.name}</h2>
+          <h2 className="text-[20px] font-bold text-[#001b4e] uppercase tracking-tight">{partner.name}</h2>
           <div className="text-slate-400 text-[12px] font-bold uppercase tracking-wider mt-0.5">{partner.email}</div>
           <div className="text-slate-400 text-[12px] font-bold uppercase tracking-wider">{partner.phone}</div>
           
           <div className="flex flex-wrap justify-center gap-1.5 mt-5">
             {partnerRoles.map(r => (
-              <div key={r} className="bg-slate-50 text-[#001b4e] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-slate-100 flex items-center gap-2">
+              <div key={r} className="bg-slate-50 text-[#001b4e] px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-100 flex items-center gap-2">
                 {getRoleLabel(r)}
                 {partnerRoles.length > 1 && (
                   <button onClick={() => setShowDeleteRoleModal(r)} className="text-[#001b4e]/30 hover:text-red-500">
@@ -154,7 +154,7 @@ export default function PartnerProfile() {
         {/* Logout */}
         <button 
           onClick={() => setShowLogoutModal(true)}
-          className="w-full bg-rose-50 text-rose-600 py-4.5 rounded-xl font-black text-[13px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-3 border border-rose-100 shadow-sm"
+          className="w-full bg-rose-50 text-rose-600 py-4.5 rounded-xl font-bold text-[13px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-3 border border-rose-100 shadow-sm"
         >
           <LogOut size={18} />
           Logout Session
@@ -212,7 +212,7 @@ export default function PartnerProfile() {
 
 function SectionTitle({ title }) {
   return (
-    <div className="px-1 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] opacity-60">{title}</div>
+    <div className="px-1 text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">{title}</div>
   );
 }
 
@@ -224,7 +224,7 @@ function MenuOption({ icon, label, onClick }) {
     >
       <div className="flex items-center gap-3.5">
         <div className="p-2 bg-slate-50 text-slate-400 group-hover:text-[#001b4e] group-hover:bg-indigo-50 rounded-lg transition-all">{React.cloneElement(icon, { size: 18 })}</div>
-        <span className="text-[14px] font-black text-[#001b4e] uppercase tracking-tight transition-colors">{label}</span>
+        <span className="text-[14px] font-bold text-[#001b4e] uppercase tracking-tight transition-colors">{label}</span>
       </div>
       <ChevronRight size={16} className="text-slate-300 group-hover:text-[#001b4e] transition-colors" />
     </button>

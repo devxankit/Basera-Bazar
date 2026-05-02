@@ -308,7 +308,7 @@ const BrowseCategory = () => {
           <button onClick={() => navigate('/cart')} className="relative w-9 h-9 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355] active:scale-90 transition-all border border-slate-100">
             <ShoppingCart size={18} strokeWidth={2.5} />
             {Object.keys(cart).length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full text-[9px] text-white font-black flex items-center justify-center border-2 border-white shadow-sm">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full text-[9px] text-white font-bold flex items-center justify-center border-2 border-white shadow-sm">
                 {Object.values(cart).reduce((sum, item) => sum + item.qty, 0)}
               </span>
             )}
@@ -395,22 +395,34 @@ const BrowseCategory = () => {
       )}
 
       {/* ── FILTER & SORT BAR ── */}
-      <div className="px-4 py-4 flex items-center justify-between bg-white border-b border-slate-50 sticky top-[125px] z-30">
-        <div className="flex gap-2.5 flex-grow max-w-[80%]">
-          <button onClick={() => setIsFilterOpen(true)} className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 text-[13px] font-black text-[#1f2355] active:scale-95 transition-all">
-            <Filter size={16} strokeWidth={2.5} /> Filter
+      <div className={cn(
+        "px-3 py-2.5 flex items-center justify-between bg-white border-b border-slate-50 sticky z-30 transition-all",
+        isMandi ? "top-[125px]" : "top-[68px]"
+      )}>
+        <div className="flex gap-2 flex-grow min-w-0">
+          <button 
+            onClick={() => setIsFilterOpen(true)} 
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100 text-[12px] font-semibold text-[#1f2355] active:scale-95 transition-all shrink-0"
+          >
+            <Filter size={15} strokeWidth={2} />
+            <span className="hidden xs:inline">Filter</span>
           </button>
-          <button onClick={() => setIsSortOpen(true)} className="flex-grow flex items-center justify-between px-5 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 text-[13px] font-black text-[#1f2355] active:scale-95 transition-all">
-            <span className="truncate">Sort By: {sortBy.split(':')[0]}</span>
-            <ChevronRight size={14} className="rotate-90 opacity-40 ml-1" />
+          
+          <button 
+            onClick={() => setIsSortOpen(true)} 
+            className="flex-grow flex items-center justify-between px-3 py-2 bg-slate-50 rounded-xl border border-slate-100 text-[12px] font-semibold text-[#1f2355] active:scale-95 transition-all min-w-0"
+          >
+            <span className="truncate">Sort: {sortBy.split(':')[0]}</span>
+            <ChevronRight size={14} className="rotate-90 opacity-40 ml-1 shrink-0" />
           </button>
         </div>
-        <div className="flex bg-slate-50 border border-slate-100 rounded-xl p-1.5 ml-3">
+
+        <div className="flex bg-slate-50 border border-slate-100 rounded-xl p-1 ml-2 shrink-0">
           <button onClick={() => setIsGridView(false)} className={cn('p-1.5 rounded-lg transition-all', !isGridView ? 'bg-white text-orange-500 shadow-sm' : 'text-slate-400')}>
-            <List size={18} strokeWidth={2.5} />
+            <List size={16} strokeWidth={2} />
           </button>
           <button onClick={() => setIsGridView(true)} className={cn('p-1.5 rounded-lg transition-all', isGridView ? 'bg-white text-orange-500 shadow-sm' : 'text-slate-400')}>
-            <LayoutGrid size={18} strokeWidth={2.5} />
+            <LayoutGrid size={16} strokeWidth={2} />
           </button>
         </div>
       </div>
@@ -425,22 +437,56 @@ const BrowseCategory = () => {
           {items.length > 0 ? (
             items.map((item) => (
               isService ? (
-                /* Service Card */
-                <div key={item.id} onClick={() => navigate(`/service/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl overflow-hidden flex h-36 active:scale-[0.98] transition-all">
-                   <div className="w-36 bg-slate-50 overflow-hidden relative shrink-0">
-                      <img src={item.image} className="w-full h-full object-cover" alt={item.title} />
+                /* Service Card - Responsive to Grid/List */
+                <div 
+                  key={item.id} 
+                  onClick={() => navigate(`/service/${item.id}`)} 
+                  className={cn(
+                    "bg-white border border-slate-100 shadow-sm rounded-3xl overflow-hidden active:scale-[0.98] transition-all group hover:shadow-md flex",
+                    isGridView ? "flex-col" : "flex-row h-auto min-h-[150px]"
+                  )}
+                >
+                   <div className={cn(
+                     "bg-slate-50 overflow-hidden relative shrink-0",
+                     isGridView ? "w-full aspect-[4/3]" : "w-36 xs:w-40"
+                   )}>
+                      <img src={item.image || '/placeholder-service.png'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={item.title} />
+                      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-lg shadow-sm border border-white/20">
+                         <Star size={10} className="fill-orange-400 text-orange-400" />
+                      </div>
                    </div>
                    <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
-                      <div>
-                        <h3 className="font-bold text-[#1f2355] text-[15px] leading-tight line-clamp-2">{item.title}</h3>
-                        <div className="flex items-center gap-1 mt-1">
-                          <MapPin size={10} className="text-orange-500" />
-                          <span className="text-[10px] text-slate-400 font-bold truncate">{item.location || 'Bihar'}</span>
+                      <div className="space-y-1.5">
+                        <h3 className={cn(
+                          "font-bold text-[#1f2355] leading-[1.3] group-hover:text-orange-500 transition-colors",
+                          isGridView ? "text-[14px] line-clamp-1" : "text-[16px] line-clamp-2"
+                        )}>
+                          {item.title}
+                        </h3>
+                        <div className="flex items-center gap-1.5 opacity-60">
+                          <MapPin size={12} className="text-orange-500" />
+                          <span className="text-[11px] text-[#1f2355] font-bold truncate tracking-tight">{item.location || 'Muzaffarpur, Bihar'}</span>
                         </div>
                       </div>
-                      <div className="flex justify-between items-end">
-                         <span className="font-black text-[#1f2355] text-[18px]">₹{item.price?.value}</span>
-                         <button className="text-[11px] font-black text-orange-500 uppercase tracking-wider">Book Now</button>
+                      <div className={cn(
+                        "flex justify-between items-center",
+                        isGridView ? "mt-2 pt-2 border-t border-slate-50 flex-col gap-2 items-start" : "mt-3 pt-3 border-t border-slate-50"
+                      )}>
+                         <div className="flex flex-col">
+                            <span className={cn(
+                              "font-semibold text-[#1f2355] tracking-tight leading-none",
+                              isGridView ? "text-[14px]" : "text-[clamp(15px,4.5vw,18px)]"
+                            )}>
+                              {item.price?.value > 0 ? `₹${item.price.value.toLocaleString()}` : 'Get Quote'}
+                            </span>
+                            {item.price?.value > 0 && !isGridView && <span className="text-[9px] font-bold text-slate-400 uppercase mt-1">Starting Price</span>}
+                         </div>
+                         <button className={cn(
+                           "rounded-xl bg-orange-50 text-orange-600 font-bold uppercase tracking-widest hover:bg-orange-500 hover:text-white transition-all",
+                           isGridView ? "w-full py-2 text-[10px]" : "h-9 px-4 text-[11px]"
+                         )}>
+                            Book Now
+                         </button>
                       </div>
                    </div>
                 </div>
@@ -463,12 +509,9 @@ const BrowseCategory = () => {
                   <div className="flex-1 p-4 xs:p-5 flex flex-col justify-between min-w-0">
                     <div>
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-black text-[#1f2355] text-[15px] xs:text-[18px] leading-tight line-clamp-2 flex-1">
+                        <h3 className="font-bold text-[#1f2355] text-[15px] xs:text-[18px] leading-tight line-clamp-2 flex-1">
                           {item.title}
                         </h3>
-                        <button className="text-slate-300 hover:text-red-500 transition-colors shrink-0">
-                          <Heart size={20} />
-                        </button>
                       </div>
                       <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tight truncate opacity-80">
                         {item.material_name || 'Premium Material'} • Top Rated Choice
@@ -519,15 +562,15 @@ const BrowseCategory = () => {
                 <div key={item.id} onClick={() => navigate(`/products/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl overflow-hidden flex flex-col h-auto active:scale-[0.98] transition-all group">
                    <div className="aspect-[16/10] relative overflow-hidden">
                       <img src={item.image || item.images?.[0]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={item.title} />
-                      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[10px] font-black uppercase text-[#1f2355]">
+                      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[9px] font-bold uppercase text-[#1f2355]">
                         {item.type || 'Property'}
                       </div>
                    </div>
-                   <div className="p-5">
-                      <h3 className="font-black text-[#1f2355] text-[17px] leading-tight line-clamp-1">{item.title}</h3>
-                      <div className="mt-4 flex justify-between items-center pt-4 border-t border-slate-50">
-                        <span className="font-black text-[#1f2355] text-[20px]">₹{item.price?.value.toLocaleString()}</span>
-                        <span className="text-[11px] font-black text-orange-500 uppercase tracking-widest">Details</span>
+                   <div className="p-4 xs:p-5">
+                      <h3 className="font-bold text-[#1f2355] text-[15px] xs:text-[17px] leading-tight line-clamp-2 min-h-[40px]">{item.title}</h3>
+                      <div className="mt-3 flex justify-between items-center pt-3 border-t border-slate-50">
+                        <span className="font-bold text-[#1f2355] text-[18px] xs:text-[20px]">₹{item.price?.value.toLocaleString()}</span>
+                        <span className="text-[10px] xs:text-[11px] font-bold text-orange-500 uppercase tracking-widest">Details</span>
                       </div>
                    </div>
                 </div>

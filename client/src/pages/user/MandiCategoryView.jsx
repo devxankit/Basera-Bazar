@@ -84,7 +84,7 @@ export default function MandiCategoryView() {
                   <div>
                      <span className="bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded mb-2 inline-block">Best Value Today</span>
                      <h2 className="text-[20px] font-bold italic line-clamp-1">{data.listings[0].title}</h2>
-                     <p className="text-white/60 text-[12px] mt-1">by {data.listings[0].seller_id?.mandi_profile?.business_name || 'Verified Seller'}</p>
+                     <p className="text-white/60 text-[12px] mt-1">by {data.listings[0].partner_id?.profile?.mandi_profile?.business_name || 'Verified Seller'}</p>
                   </div>
                   <div className="text-right">
                      <div className="text-[22px] font-bold">₹{data.listings[0].pricing.price_per_unit}</div>
@@ -121,7 +121,7 @@ export default function MandiCategoryView() {
                            </div>
                            <div className="flex items-center gap-2 mt-1">
                               <Building2 size={12} className="text-slate-300" />
-                              <span className="text-[11px] font-medium text-slate-400 line-clamp-1">{listing.seller_id?.mandi_profile?.business_name || 'Seller'}</span>
+                              <span className="text-[11px] font-medium text-slate-400 line-clamp-1">{listing.partner_id?.profile?.mandi_profile?.business_name || 'Seller'}</span>
                            </div>
                         </div>
 

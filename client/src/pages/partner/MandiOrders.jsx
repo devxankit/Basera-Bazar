@@ -61,7 +61,7 @@ export default function MandiOrders() {
   };
 
   return (
-    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-[#f8fafc] font-sans pb-32">
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-[#f8fafc] font-sans pb-10">
       {/* Header */}
       <div className="bg-white px-5 py-2.5 sticky top-0 z-50 border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-3 mb-4 mt-1">
@@ -71,7 +71,7 @@ export default function MandiOrders() {
           >
             <ArrowLeft size={20} />
           </button>
-          <h2 className="text-[16px] font-black text-[#001b4e] uppercase tracking-widest">Market Orders</h2>
+          <h2 className="text-[16px] font-bold text-[#001b4e] uppercase tracking-widest">Market Orders</h2>
         </div>
 
         {/* Compact Search Bar */}
@@ -84,14 +84,14 @@ export default function MandiOrders() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by Order ID or Item..." 
-            className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 pl-11 pr-4 text-[13px] font-bold uppercase tracking-tight outline-none focus:bg-white focus:border-blue-200 transition-all placeholder:text-slate-200 placeholder:font-black"
+            className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2 pl-11 pr-4 text-[13px] font-bold uppercase tracking-tight outline-none focus:bg-white focus:border-blue-200 transition-all placeholder:text-slate-200 placeholder:font-bold"
           />
         </div>
       </div>
 
-      <div className="p-5">
+      <div className="p-3">
         {/* Filter Tabs */}
-        <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-6 pb-1">
+        <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-4 pb-1">
           <FilterTab active={filter === 'all'} label="All" count={orders.length} onClick={() => setFilter('all')} />
           <FilterTab active={filter === 'pending'} label="Pending" count={orders.filter(o => o.items.some(i => ['pending', 'contacted', 'processing'].includes(i.status))).length} onClick={() => setFilter('pending')} />
           <FilterTab active={filter === 'shipped'} label="Shipped" count={orders.filter(o => o.items.some(i => i.status === 'shipped')).length} onClick={() => setFilter('shipped')} />
@@ -109,7 +109,7 @@ export default function MandiOrders() {
              <h3 className="text-[14px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">No orders found</h3>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filteredOrders.map((order, idx) => (
               <motion.div 
                 key={order._id}
@@ -120,22 +120,22 @@ export default function MandiOrders() {
                 className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden active:scale-[0.99] transition-all cursor-pointer"
               >
                 {/* Order Header */}
-                <div className="px-4 py-3 bg-slate-50/50 border-b border-slate-50 flex items-center justify-between">
+                <div className="px-3 py-2 bg-slate-50/50 border-b border-slate-50 flex items-center justify-between">
                    <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-[#001b4e] font-black text-[15px] shadow-sm border border-slate-100 shrink-0">
                          {(order.shipping_address?.full_name || order.user_id?.name || 'C')[0]}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-[14px] font-black text-[#001b4e] leading-tight uppercase tracking-tight truncate">
+                        <h4 className="text-[14px] font-bold text-[#001b4e] leading-tight uppercase tracking-tight truncate">
                           {order.shipping_address?.full_name || order.user_id?.name || 'Customer'}
                         </h4>
                         <div className="flex items-center gap-2 mt-1">
-                           <span className="text-blue-600 text-[10px] font-black tracking-widest">#{order._id.slice(-8).toUpperCase()}</span>
+                           <span className="text-blue-600 text-[10px] font-bold tracking-widest">#{order._id.slice(-8).toUpperCase()}</span>
                         </div>
                       </div>
                    </div>
                    <div className="flex flex-col items-end shrink-0">
-                      <span className="text-slate-300 text-[9px] font-black uppercase tracking-tighter opacity-60">
+                      <span className="text-slate-500 text-[9px] font-bold uppercase tracking-tighter">
                          {new Date(order.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
                       </span>
                       <ChevronRight size={18} className="text-slate-200 mt-1" />
@@ -143,7 +143,7 @@ export default function MandiOrders() {
                 </div>
 
                 {/* Items Preview */}
-                <div className="p-4 space-y-3">
+                <div className="p-3 space-y-2">
                    {order.items.map((item, iIdx) => {
                      const status = getStatusBadge(item.status);
                      return (
@@ -151,18 +151,18 @@ export default function MandiOrders() {
                           <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden shrink-0 shadow-sm">
                              <img src={item.productId?.thumbnail || item.thumbnail} alt="" className="w-full h-full object-cover" />
                           </div>
-                          <div className="flex-grow min-w-0">
+                           <div className="flex-grow min-w-0">
                              <div className="flex items-center justify-between gap-2 mb-1.5">
-                                <h5 className="text-[13px] font-black text-[#001b4e] uppercase tracking-tight truncate">{item.name}</h5>
-                                <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 shadow-sm ${status.className}`}>
+                                <h5 className="text-[13px] font-bold text-[#001b4e] uppercase tracking-tight truncate">{item.name}</h5>
+                                <div className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest shrink-0 shadow-sm ${status.className}`}>
                                    {status.label}
                                 </div>
                              </div>
                              <div className="flex items-center justify-between">
-                                <div className="text-[10px] font-black text-slate-300 uppercase tracking-tight">
-                                   {item.qty} {item.unit} <span className="text-slate-100 mx-1">×</span> ₹{item.price}
+                                <div className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">
+                                   {item.qty} {item.unit} <span className="text-slate-400 mx-1">×</span> ₹{item.price}
                                 </div>
-                                <div className="text-[15px] font-black text-blue-600 tracking-tighter leading-none">₹{(item.price * item.qty).toLocaleString()}</div>
+                                <div className="text-[15px] font-bold text-blue-600 tracking-tighter leading-none">₹{(item.price * item.qty).toLocaleString()}</div>
                              </div>
                           </div>
                        </div>
@@ -170,9 +170,9 @@ export default function MandiOrders() {
                    })}
                    
                    {/* Logistics Row */}
-                   <div className="mt-4 flex items-center gap-2 pt-3 border-t border-slate-50">
+                   <div className="mt-2 flex items-center gap-2 pt-2 border-t border-slate-50">
                       <MapPin size={12} className="text-rose-500 shrink-0" />
-                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-tight truncate opacity-60">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight truncate">
                          Ship to: {order.shipping_address?.city}, {order.shipping_address?.state}
                       </span>
                    </div>
@@ -190,15 +190,15 @@ function FilterTab({ active, label, count, onClick }) {
   return (
     <button 
       onClick={onClick}
-      className={`px-4 py-2 rounded-xl whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border ${
+      className={`px-4 py-2 rounded-xl whitespace-nowrap text-[11px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 border ${
         active 
           ? 'bg-[#001b4e] text-white border-[#001b4e] shadow-md shadow-blue-900/10' 
-          : 'bg-white text-slate-300 border-slate-100 hover:bg-slate-50'
+          : 'bg-white text-slate-500 border-slate-100 hover:bg-slate-50'
       }`}
     >
       {label}
       {count > 0 && (
-        <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-300'}`}>
+        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'}`}>
           {count}
         </span>
       )}

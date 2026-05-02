@@ -202,19 +202,7 @@ export default function AdminMandiBazar() {
     }
   };
 
-  const handleToggleProductStatus = async (product) => {
-    try {
-      setLoading(true);
-      const nextStatus = product.status === 'active' ? 'pending_approval' : 'active';
-      await api.put(`/listings/${product._id}`, { status: nextStatus });
-      fetchData();
-    } catch (err) {
-      console.error("Status update error:", err);
-      alert("Failed: " + (err.response?.data?.message || err.message));
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const kycColumns = [
     { 
@@ -423,19 +411,56 @@ export default function AdminMandiBazar() {
     }
   ];
 
+  const handleToggleProductStatus = async (product) => {
+    try {
+      setLoading(true);
+      const nextStatus = product.status === 'active' ? 'inactive' : 'active';
+      await api.put(`/listings/${product._id}`, { status: nextStatus });
+      fetchData();
+    } catch (err) {
+      console.error("Status update error:", err);
+      alert("Failed: " + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const productColumns = [
     {
       header: 'MATERIAL INFO',
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 overflow-hidden shrink-0 shadow-sm">
-             <img src={row.thumbnail} className="w-full h-full object-cover" />
+             <img src={row.thumbnail || '/placeholder-material.png'} className="w-full h-full object-cover" />
           </div>
           <div className="min-w-0">
              <p className="font-bold text-slate-900 truncate tracking-tight">{row.title}</p>
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{row.material_name}</p>
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">ID: {row._id.slice(-6).toUpperCase()}</p>
           </div>
         </div>
+      )
+    },
+    {
+      header: 'CATEGORY',
+      render: (row) => (
+        <span className="font-bold text-slate-700 text-[11px] uppercase tracking-wider">{row.material_name || 'N/A'}</span>
+      )
+    },
+    {
+      header: 'TYPE & SUBTYPE',
+      render: (row) => (
+        <div className="flex flex-col">
+           <span className="font-bold text-slate-700 text-[11px] uppercase tracking-wider">{row.type_name || 'N/A'}</span>
+           <span className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">{row.sub_type_name || '-'}</span>
+        </div>
+      )
+    },
+    {
+      header: 'BRAND',
+      render: (row) => (
+        <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-[10px] font-black text-slate-600 uppercase tracking-widest border border-slate-200">
+           {row.brand_name || row.brand || 'UNBRANDED'}
+        </span>
       )
     },
     {
@@ -471,7 +496,7 @@ export default function AdminMandiBazar() {
             ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
             : 'bg-amber-50 text-amber-600 border-amber-100'
         }`}>
-          {row.status === 'active' ? 'Live' : 'Under Review'}
+          {row.status === 'active' ? 'Live' : 'Hidden'}
         </div>
       )
     },
@@ -487,7 +512,7 @@ export default function AdminMandiBazar() {
                : 'bg-emerald-600 text-white border-emerald-600 hover:bg-slate-900 shadow-md shadow-emerald-100'
              }`}
            >
-             {row.status === 'active' ? 'Deactivate' : 'Approve Listing'}
+             {row.status === 'active' ? 'Hide from Shop' : 'Make Live'}
            </button>
            <button 
              onClick={() => window.confirm("Permanently delete this listing?") && api.delete(`/listings/${row._id}`).then(() => fetchData()).catch(err => alert("Failed: " + (err.response?.data?.message || err.message)))}

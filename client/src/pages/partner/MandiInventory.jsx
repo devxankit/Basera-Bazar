@@ -71,6 +71,21 @@ export default function MandiInventory() {
     }
   };
 
+  const toggleStatus = async (id, currentStatus) => {
+    try {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      const res = await api.patch(`/mandi/products/${id}`, { status: newStatus });
+      if (res.data.success) {
+        setItems(prev => prev.map(item => 
+          (item.id || item._id) === id ? { ...item, status: newStatus } : item
+        ));
+      }
+    } catch (err) {
+      console.error("Toggle status error:", err);
+      alert("Failed to update product status.");
+    }
+  };
+
   const filteredItems = items.filter(item => {
     const matchesSearch = item.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          item.brand?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -78,7 +93,7 @@ export default function MandiInventory() {
     if (!matchesSearch) return false;
     if (filter === 'All') return true;
     if (filter === 'Active') return item.status === 'active';
-    if (filter === 'Pending') return item.status === 'pending_approval' || !item.status;
+    if (filter === 'Inactive') return item.status === 'inactive' || item.status === 'pending_approval';
     return true;
   });
 
@@ -93,14 +108,14 @@ export default function MandiInventory() {
           >
             <ArrowLeft size={22} />
           </button>
-          <h2 className="text-[18px] font-bold text-[#001b4e] uppercase tracking-tight">Mandi Inventory</h2>
+          <h2 className="text-[18px] font-semibold text-[#001b4e] uppercase tracking-tight">Mandi Inventory</h2>
           <div className="flex-grow" />
           <button 
             onClick={() => setShowTypeManager(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 text-blue-600 rounded-lg border border-slate-100 hover:bg-blue-50 transition-all active:scale-95"
           >
             <LayoutGrid size={16} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Manage Types</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Manage Types</span>
           </button>
         </div>
 
@@ -122,11 +137,11 @@ export default function MandiInventory() {
       <div className="p-5">
         {/* Filter Tabs */}
         <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-6">
-          {['All', 'Active', 'Pending'].map(f => (
+          {['All', 'Active', 'Inactive'].map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all border ${
+              className={`px-4 py-2 rounded-xl text-[12px] font-semibold uppercase tracking-widest transition-all border ${
                 filter === f 
                   ? 'bg-[#001b4e] text-white border-[#001b4e] shadow-md' 
                   : 'bg-white text-slate-400 border-slate-100'
@@ -154,38 +169,50 @@ export default function MandiInventory() {
              </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-4">
             {filteredItems.map((item) => (
                <motion.div 
                 key={item.id || item._id}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden flex h-[130px]"
+                className={`bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[160px] transition-all ${item.status === 'inactive' ? 'opacity-70 bg-slate-50/50' : ''}`}
               >
-                {/* Thumbnail */}
-                <div className="w-[130px] h-full bg-slate-50 shrink-0 relative border-r border-slate-100/50">
-                   {item.thumbnail || item.image ? (
-                     <img src={item.thumbnail || item.image} alt="" className="w-full h-full object-cover" />
-                   ) : (
-                     <div className="w-full h-full flex items-center justify-center text-slate-200">
-                        <Package size={32} />
+                <div className="flex h-[110px]">
+                  {/* Thumbnail */}
+                  <div className="w-[110px] h-full bg-slate-50 shrink-0 relative border-r border-slate-100/50">
+                     {item.thumbnail || item.image ? (
+                       <img src={item.thumbnail || item.image} alt="" className="w-full h-full object-cover" />
+                     ) : (
+                       <div className="w-full h-full flex items-center justify-center text-slate-200">
+                          <Package size={32} />
+                       </div>
+                     )}
+                     <div className={`absolute top-2 left-2 px-1.5 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-widest text-white shadow-sm ${item.status === 'active' ? 'bg-[#00c853]' : 'bg-slate-400'}`}>
+                        {item.status === 'active' ? 'Live' : 'Hidden'}
                      </div>
-                   )}
-                   <div className={`absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest text-white shadow-md ${item.status === 'active' ? 'bg-[#00c853]' : 'bg-[#ffab00]'}`}>
-                      {item.status || 'PENDING'}
-                   </div>
-                </div>
+                  </div>
 
-                {/* Info */}
-                <div className="flex-grow p-4 min-w-0 flex flex-col justify-between">
-                   <div className="min-w-0">
+                  {/* Info */}
+                  <div className="flex-grow p-4 min-w-0 flex flex-col">
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest truncate">{item.brand || 'UNBRANDED'}</span>
-                        <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">#{item.id?.slice(-4).toUpperCase() || 'NEW'}</span>
+                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest truncate">{item.brand || 'UNBRANDED'}</span>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); toggleStatus(item.id || item._id, item.status); }}
+                          className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all active:scale-95 ${
+                            item.status === 'active' 
+                            ? 'bg-emerald-50 border-emerald-100 text-emerald-600' 
+                            : 'bg-slate-50 border-slate-200 text-slate-400'
+                          }`}
+                        >
+                          <Activity size={10} className={item.status === 'active' ? 'animate-pulse' : ''} />
+                          <span className="text-[8px] font-bold uppercase tracking-widest">
+                            {item.status === 'active' ? 'Deactivate' : 'Activate'}
+                          </span>
+                        </button>
                       </div>
-                      <h4 className="text-[15px] font-black text-[#001b4e] uppercase tracking-tight truncate leading-tight mb-1.5">{item.title}</h4>
-                      <div className="flex items-baseline gap-1.5">
-                         <span className="text-[18px] font-black text-[#001b4e] tracking-tighter">
+                      <h4 className="text-[15px] font-bold text-[#001b4e] uppercase tracking-tight truncate leading-tight mb-1.5">{item.title}</h4>
+                      <div className="flex items-baseline gap-1.5 mt-auto">
+                         <span className="text-[18px] font-bold text-[#001b4e] tracking-tighter">
                             ₹{typeof item.price === 'object' 
                                ? Number(item.price.value || 0).toLocaleString() 
                                : Number(item.price || 0).toLocaleString()}
@@ -194,27 +221,31 @@ export default function MandiInventory() {
                             / {typeof item.price === 'object' ? (item.price.unit || item.unit || 'unit') : (item.unit || 'unit')}
                          </span>
                       </div>
-                   </div>
+                  </div>
+                </div>
 
-                   <div className="flex items-center justify-between border-t border-slate-50 pt-2.5 mt-1">
-                      <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                <div className="px-4 py-3 bg-slate-50/30 border-t border-slate-50 flex items-center justify-between">
+                   <div className="flex items-center gap-4">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                         <Box size={12} className="text-slate-300" />
                          Stock: <span className={item.stock > 10 ? 'text-blue-600' : 'text-rose-600'}>{item.stock || 0}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                         <button 
-                           onClick={() => navigate(`/partner/add-product?edit=${item.id || item._id}`)}
-                           className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-600 rounded-xl border border-slate-100 hover:bg-blue-50 hover:text-blue-600 transition-all active:scale-95"
-                         >
-                            <Edit size={12} />
-                            <span className="text-[9px] font-black uppercase tracking-widest pt-0.5">Edit</span>
-                         </button>
-                         <button 
-                           onClick={(e) => handleDelete(e, item.id || item._id)}
-                           className="p-2 bg-rose-50 text-rose-500 rounded-xl border border-rose-100 active:scale-90 transition-all"
-                         >
-                            <Trash2 size={12} />
-                         </button>
-                      </div>
+                      <div className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">#{item.id?.slice(-4).toUpperCase() || 'NEW'}</div>
+                   </div>
+                   <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => navigate(`/partner/add-product?edit=${item.id || item._id}`)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-slate-600 rounded-xl border border-slate-100 hover:bg-blue-50 hover:text-blue-600 transition-all active:scale-95 shadow-sm"
+                      >
+                         <Edit size={12} />
+                         <span className="text-[9px] font-bold uppercase tracking-widest pt-0.5">Edit Product</span>
+                      </button>
+                      <button 
+                        onClick={(e) => handleDelete(e, item.id || item._id)}
+                        className="p-2 bg-rose-50 text-rose-500 rounded-xl border border-rose-100 active:scale-90 transition-all shadow-sm"
+                      >
+                         <Trash2 size={12} />
+                      </button>
                    </div>
                 </div>
               </motion.div>
@@ -230,7 +261,7 @@ export default function MandiInventory() {
           className="bg-[#001b4e] text-white rounded-2xl flex items-center gap-2 px-5 py-4 shadow-2xl shadow-blue-900/40 active:scale-90 transition-all"
         >
           <Plus size={22} strokeWidth={3} />
-          <span className="text-[12px] font-black uppercase tracking-widest">Add Product</span>
+          <span className="text-[12px] font-bold uppercase tracking-widest">Add Product</span>
         </button>
       </div>
 
