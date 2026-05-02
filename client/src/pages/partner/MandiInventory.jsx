@@ -25,6 +25,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { db } from '../../services/DataEngine';
+import PartnerCategoryManager from '../../components/partner/PartnerCategoryManager';
 
 export default function MandiInventory() {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export default function MandiInventory() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showTypeManager, setShowTypeManager] = useState(false);
 
   useEffect(() => {
     fetchMyProducts();
@@ -92,6 +94,14 @@ export default function MandiInventory() {
             <ArrowLeft size={22} />
           </button>
           <h2 className="text-[18px] font-bold text-[#001b4e] uppercase tracking-tight">Mandi Inventory</h2>
+          <div className="flex-grow" />
+          <button 
+            onClick={() => setShowTypeManager(true)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 text-blue-600 rounded-lg border border-slate-100 hover:bg-blue-50 transition-all active:scale-95"
+          >
+            <LayoutGrid size={16} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Manage Types</span>
+          </button>
         </div>
 
         {/* Search */}
@@ -146,63 +156,63 @@ export default function MandiInventory() {
         ) : (
           <div className="grid grid-cols-1 gap-3">
             {filteredItems.map((item) => (
-              <motion.div 
+               <motion.div 
                 key={item.id || item._id}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex h-[100px]"
+                className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden flex h-[130px]"
               >
                 {/* Thumbnail */}
-                <div className="w-[100px] h-full bg-slate-50 shrink-0 relative border-r border-slate-50">
+                <div className="w-[130px] h-full bg-slate-50 shrink-0 relative border-r border-slate-100/50">
                    {item.thumbnail || item.image ? (
                      <img src={item.thumbnail || item.image} alt="" className="w-full h-full object-cover" />
                    ) : (
                      <div className="w-full h-full flex items-center justify-center text-slate-200">
-                        <Package size={24} />
+                        <Package size={32} />
                      </div>
                    )}
-                   <div className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest text-white shadow-sm ${item.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`}>
+                   <div className={`absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest text-white shadow-md ${item.status === 'active' ? 'bg-[#00c853]' : 'bg-[#ffab00]'}`}>
                       {item.status || 'PENDING'}
                    </div>
                 </div>
 
                 {/* Info */}
-                <div className="flex-grow p-3 min-w-0 flex flex-col justify-between">
+                <div className="flex-grow p-4 min-w-0 flex flex-col justify-between">
                    <div className="min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest truncate">{item.brand || 'UNBRANDED'}</span>
-                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">#{item.id?.slice(-4).toUpperCase()}</span>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest truncate">{item.brand || 'UNBRANDED'}</span>
+                        <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">#{item.id?.slice(-4).toUpperCase() || 'NEW'}</span>
                       </div>
-                      <h4 className="text-[13px] font-black text-[#001b4e] uppercase tracking-tight truncate leading-tight mb-1">{item.title}</h4>
+                      <h4 className="text-[15px] font-black text-[#001b4e] uppercase tracking-tight truncate leading-tight mb-1.5">{item.title}</h4>
                       <div className="flex items-baseline gap-1.5">
-                         <span className="text-[15px] font-black text-[#001b4e] tracking-tighter">
+                         <span className="text-[18px] font-black text-[#001b4e] tracking-tighter">
                             ₹{typeof item.price === 'object' 
                                ? Number(item.price.value || 0).toLocaleString() 
                                : Number(item.price || 0).toLocaleString()}
                          </span>
-                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                             / {typeof item.price === 'object' ? (item.price.unit || item.unit || 'unit') : (item.unit || 'unit')}
                          </span>
                       </div>
                    </div>
 
-                   <div className="flex items-center justify-between border-t border-slate-50 pt-1.5 mt-1">
-                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                   <div className="flex items-center justify-between border-t border-slate-50 pt-2.5 mt-1">
+                      <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
                          Stock: <span className={item.stock > 10 ? 'text-blue-600' : 'text-rose-600'}>{item.stock || 0}</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                          <button 
                            onClick={() => navigate(`/partner/add-product?edit=${item.id || item._id}`)}
-                           className="flex items-center gap-1 px-2 py-1 bg-slate-50 text-slate-600 rounded border border-slate-100 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                           className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-600 rounded-xl border border-slate-100 hover:bg-blue-50 hover:text-blue-600 transition-all active:scale-95"
                          >
-                            <Edit size={10} />
-                            <span className="text-[8px] font-black uppercase tracking-widest pt-0.5">Edit</span>
+                            <Edit size={12} />
+                            <span className="text-[9px] font-black uppercase tracking-widest pt-0.5">Edit</span>
                          </button>
                          <button 
                            onClick={(e) => handleDelete(e, item.id || item._id)}
-                           className="p-1 bg-rose-50 text-rose-500 rounded border border-rose-100 active:scale-90 transition-all"
+                           className="p-2 bg-rose-50 text-rose-500 rounded-xl border border-rose-100 active:scale-90 transition-all"
                          >
-                            <Trash2 size={10} />
+                            <Trash2 size={12} />
                          </button>
                       </div>
                    </div>
@@ -214,12 +224,22 @@ export default function MandiInventory() {
       </div>
 
       {/* Floating Add Button */}
-      <button 
-        onClick={() => navigate('/partner/add-product')}
-        className="fixed bottom-32 right-6 w-14 h-14 bg-[#001b4e] text-white rounded-full flex items-center justify-center shadow-xl shadow-blue-900/30 active:scale-90 transition-all z-[60]"
-      >
-        <Plus size={28} />
-      </button>
+      <div className="fixed bottom-24 z-[60] left-1/2 -translate-x-1/2 w-full max-w-md px-5 flex justify-end">
+        <button 
+          onClick={() => navigate('/partner/add-product')}
+          className="bg-[#001b4e] text-white rounded-2xl flex items-center gap-2 px-5 py-4 shadow-2xl shadow-blue-900/40 active:scale-90 transition-all"
+        >
+          <Plus size={22} strokeWidth={3} />
+          <span className="text-[12px] font-black uppercase tracking-widest">Add Product</span>
+        </button>
+      </div>
+
+      {/* Type Manager Modal */}
+      <AnimatePresence>
+        {showTypeManager && (
+          <PartnerCategoryManager onClose={() => setShowTypeManager(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

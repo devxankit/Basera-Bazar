@@ -127,6 +127,15 @@ const mandiListingSchema = new mongoose.Schema({
   material_name: { type: String, required: true }, // e.g., "Bricks"
   description: { type: String },
   brand: { type: String },
+  type_name: { type: String, default: null },      // e.g., "Red Brick"
+  sub_type_name: { type: String, default: null },   // e.g., "9 inch"
+  brand_name: { type: String, default: null },      // e.g., "Ambuja"
+  address: {
+    state: { type: String },
+    district: { type: String },
+    full_address: { type: String },
+    pincode: { type: String }
+  },
   thumbnail: { type: String },
   pricing: {
     unit: { type: String, required: true },

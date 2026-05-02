@@ -22,6 +22,7 @@ const categorySchema = new mongoose.Schema({
     required: true
   },
   parent_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null }, // Hierarchy support
+  partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', default: null }, // For seller-specific custom types
   description: { type: String }, // For marketplace SEO and internal notes
   icon: { type: String }, // For frontend display
   mandi_icon: { type: String }, // Specific image for Mandi Bazar

@@ -14,15 +14,27 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem('basera_cart', JSON.stringify(cart));
   }, [cart]);
 
+  /**
+   * addToCart supports composite keys for attribute-based variants.
+   * If the product has a `_cartKey`, use that; otherwise fall back to `_id`.
+   * The product's selectedType, selectedSubType, selectedBrand are stored alongside.
+   */
   const addToCart = (product) => {
     setCart((prev) => {
-      const currentQty = prev[product._id]?.qty || 0;
-      if (currentQty >= (product.inventory?.quantity || 100)) return prev; // Avoid exceeding stock if applicable
+      const cartKey = product._cartKey || product._id;
+      const currentQty = prev[cartKey]?.qty || 0;
+      if (currentQty >= (product.inventory?.quantity || 100)) return prev;
       return {
         ...prev,
-        [product._id]: {
-          item: product,
-          qty: currentQty + 1
+        [cartKey]: {
+          item: {
+            ...product,
+            _cartKey: cartKey
+          },
+          qty: currentQty + 1,
+          selectedType: product.selectedType || prev[cartKey]?.selectedType || product.type_name || null,
+          selectedSubType: product.selectedSubType || prev[cartKey]?.selectedSubType || product.sub_type_name || null,
+          selectedBrand: product.selectedBrand || prev[cartKey]?.selectedBrand || product.brand_name || product.brand || null
         }
       };
     });

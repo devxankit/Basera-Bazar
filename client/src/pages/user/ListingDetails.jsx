@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
-import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star, ShoppingCart, Plus, Minus, Package } from 'lucide-react';
+import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star, ShoppingCart, Plus, Minus, Package, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { clsx } from 'clsx';
@@ -45,6 +45,15 @@ const ListingDetails = () => {
 
   const isSupplier = listing?.category === 'supplier' || listing?.isPartner;
 
+  // Attribute-based variation system
+  const [isVariationModalOpen, setIsVariationModalOpen] = useState(false);
+  const [categoryAttributes, setCategoryAttributes] = useState({ types: [], sub_types: [], brands: [] });
+  const [allCategoryListings, setAllCategoryListings] = useState([]);
+  const [loadingVariations, setLoadingVariations] = useState(false);
+  const [selectedType, setSelectedType] = useState('');
+  const [selectedSubType, setSelectedSubType] = useState('');
+  const [selectedBrand, setSelectedBrand] = useState('');
+  const [matchedListing, setMatchedListing] = useState(null);
 
   useEffect(() => {
     let interval;
@@ -55,6 +64,77 @@ const ListingDetails = () => {
     }
     return () => clearInterval(interval);
   }, [otpTimer]);
+
+  // Fetch attributes and all listings for the category when modal opens
+  const fetchAttributesForCategory = async () => {
+    if (!listing || !isMandi) return;
+    try {
+      setLoadingVariations(true);
+      const categoryId = listing.category_id?._id || listing.category_id;
+      
+      // Fetch attributes (deduplicated across all sellers)
+      const attrRes = await api.get(`/listings/seller-attributes?category_id=${categoryId}`);
+      
+      // Fetch all mandi listings for this category (across all sellers)
+      const listRes = await api.get(`/listings/mandi?category_id=${categoryId}`);
+      
+      let activeListings = [];
+      if (listRes.data.success) {
+        activeListings = listRes.data.data;
+        setAllCategoryListings(activeListings);
+      }
+
+      if (attrRes.data.success) {
+        const all = attrRes.data.data;
+        
+        // Extract available attribute names from the active listings
+        const availableTypes = new Set(activeListings.map(l => l.type_name?.toLowerCase()).filter(Boolean));
+        const availableSubTypes = new Set(activeListings.map(l => l.sub_type_name?.toLowerCase()).filter(Boolean));
+        const availableBrands = new Set(activeListings.map(l => (l.brand_name || l.brand)?.toLowerCase()).filter(Boolean));
+
+        setCategoryAttributes({
+          types: all.filter(a => a.attribute_type === 'type' && availableTypes.has(a.name.toLowerCase())),
+          sub_types: all.filter(a => a.attribute_type === 'sub_type' && availableSubTypes.has(a.name.toLowerCase())),
+          brands: all.filter(a => a.attribute_type === 'brand' && availableBrands.has(a.name.toLowerCase()))
+        });
+      }
+
+      // Pre-select current listing's attributes if they exist
+      setSelectedType(listing.type_name || '');
+      setSelectedSubType(listing.sub_type_name || '');
+      setSelectedBrand(listing.brand_name || listing.brand || '');
+    } catch (err) {
+      console.error("Error fetching attributes:", err);
+    } finally {
+      setLoadingVariations(false);
+    }
+  };
+
+  // Find cheapest matching listing whenever selection changes
+  useEffect(() => {
+    if (allCategoryListings.length === 0) return;
+    
+    let candidates = [...allCategoryListings];
+    
+    if (selectedType) {
+      candidates = candidates.filter(l => l.type_name?.toLowerCase() === selectedType.toLowerCase());
+    }
+    if (selectedSubType) {
+      candidates = candidates.filter(l => l.sub_type_name?.toLowerCase() === selectedSubType.toLowerCase());
+    }
+    if (selectedBrand) {
+      candidates = candidates.filter(l => (l.brand_name || l.brand || '').toLowerCase() === selectedBrand.toLowerCase());
+    }
+
+    // Sort by price ascending — cheapest first
+    candidates.sort((a, b) => {
+      const priceA = a.pricing?.price_per_unit || 0;
+      const priceB = b.pricing?.price_per_unit || 0;
+      return priceA - priceB;
+    });
+
+    setMatchedListing(candidates.length > 0 ? candidates[0] : null);
+  }, [selectedType, selectedSubType, selectedBrand, allCategoryListings]);
 
   const handleSendOtp = async () => {
     if (enquiryData.phone.length < 10) {
@@ -472,7 +552,9 @@ const ListingDetails = () => {
                       {isMandi ? (
                         [
                           { label: 'Material Name', value: listing.material_name || listing.title },
-                          { label: 'Product Type', value: listing.category || 'Mandi' },
+                          { label: 'Product Type', value: listing.type_name || listing.category || 'Mandi' },
+                          ...(listing.sub_type_name ? [{ label: 'Sub-Type', value: listing.sub_type_name }] : []),
+                          ...(listing.brand_name || listing.brand ? [{ label: 'Brand', value: listing.brand_name || listing.brand }] : []),
                           { label: 'Stock Available', value: listing.stock_quantity ? `${listing.stock_quantity} ${listing.pricing?.unit || 'Units'}` : 'In Stock' }
                         ].map((detail, idx) => (
                           <div key={idx} className="flex flex-row items-center justify-between py-0.5">
@@ -794,7 +876,10 @@ const ListingDetails = () => {
                       </button>
                       <span className="w-12 text-center text-[16px] font-black text-[#1f2355]">{cart[listing.id].qty}</span>
                       <button 
-                        onClick={() => addToCart(listing)}
+                        onClick={() => {
+                          fetchAttributesForCategory();
+                          setIsVariationModalOpen(true);
+                        }}
                         className="flex-1 h-full flex items-center justify-center text-[#1f2355] hover:bg-indigo-100 active:scale-90 transition-all"
                       >
                         <Plus size={20} strokeWidth={3} />
@@ -819,7 +904,10 @@ const ListingDetails = () => {
               ) : (
                 <div className="flex w-full gap-3">
                   <button 
-                    onClick={() => addToCart(listing)}
+                    onClick={() => {
+                      fetchAttributesForCategory();
+                      setIsVariationModalOpen(true);
+                    }}
                     className="flex-1 bg-emerald-600 text-white h-[52px] rounded-full font-black text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 active:scale-95 transition-all"
                   >
                     <ShoppingCart size={18} strokeWidth={3} />
@@ -1033,6 +1121,205 @@ const ListingDetails = () => {
           </div>
         </div>
       )}
+
+      {/* Mandi Attribute Selection Modal */}
+      <AnimatePresence>
+        {isVariationModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 md:p-6">
+             <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               onClick={() => setIsVariationModalOpen(false)}
+               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+             />
+             <motion.div 
+               initial={{ y: '100%' }}
+               animate={{ y: 0 }}
+               exit={{ y: '100%' }}
+               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+               className="bg-white w-full max-w-md rounded-t-[32px] md:rounded-[32px] overflow-hidden relative z-10 flex flex-col max-h-[85vh]"
+             >
+                <div className="p-6 pb-3 border-b border-slate-100 flex items-center justify-between">
+                   <div>
+                      <h2 className="text-[20px] font-black text-[#001b4e] uppercase tracking-tight">Choose Options</h2>
+                      <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{listing.material_name || listing.title}</p>
+                   </div>
+                   <button 
+                     onClick={() => setIsVariationModalOpen(false)}
+                     className="p-2 bg-slate-100 rounded-full text-slate-400 hover:text-rose-500 transition-colors"
+                   >
+                      <X size={20} />
+                   </button>
+                </div>
+
+                <div className="p-6 overflow-y-auto space-y-5">
+                   {loadingVariations ? (
+                      <div className="flex flex-col items-center py-12 gap-4">
+                         <Loader2 className="animate-spin text-blue-600" size={32} />
+                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading options...</span>
+                      </div>
+                   ) : (
+                      <>
+                        {/* Type Dropdown */}
+                        {categoryAttributes.types.length > 0 && (
+                          <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Type *</label>
+                            <select
+                              value={selectedType}
+                              onChange={(e) => { setSelectedType(e.target.value); setSelectedSubType(''); }}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-[14px] font-bold text-[#001b4e] outline-none focus:border-blue-500 transition-all"
+                            >
+                              <option value="">All Types</option>
+                              {categoryAttributes.types.map(t => (
+                                <option key={t._id} value={t.name}>{t.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Sub-Type Dropdown — only show sub-types matching selected type */}
+                        {selectedType && categoryAttributes.sub_types.filter(st => st.parent_name?.toLowerCase() === selectedType.toLowerCase()).length > 0 && (() => {
+                          let possibleListings = allCategoryListings;
+                          if (selectedType) {
+                            possibleListings = possibleListings.filter(l => l.type_name?.toLowerCase() === selectedType.toLowerCase());
+                          }
+                          const availableSubTypesForSelection = new Set(possibleListings.map(l => l.sub_type_name?.toLowerCase()).filter(Boolean));
+                          
+                          if (availableSubTypesForSelection.size === 0) return null;
+
+                          return (
+                            <div>
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Sub-Type</label>
+                              <select
+                                value={selectedSubType}
+                                onChange={(e) => { setSelectedSubType(e.target.value); setSelectedBrand(''); }}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-[14px] font-bold text-[#001b4e] outline-none focus:border-orange-500 transition-all"
+                              >
+                                <option value="">All Sub-Types</option>
+                                {categoryAttributes.sub_types
+                                  .filter(st => st.parent_name?.toLowerCase() === selectedType.toLowerCase() && availableSubTypesForSelection.has(st.name.toLowerCase()))
+                                  .map(st => (
+                                    <option key={st._id} value={st.name}>{st.name}</option>
+                                  ))
+                                }
+                              </select>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Brand Dropdown */}
+                        {categoryAttributes.brands.length > 0 && (() => {
+                          // Filter brands that actually exist for the currently selected type & sub-type
+                          let possibleListings = allCategoryListings;
+                          if (selectedType) {
+                            possibleListings = possibleListings.filter(l => l.type_name?.toLowerCase() === selectedType.toLowerCase());
+                          }
+                          if (selectedSubType) {
+                            possibleListings = possibleListings.filter(l => l.sub_type_name?.toLowerCase() === selectedSubType.toLowerCase());
+                          }
+                          const availableBrandsForSelection = new Set(possibleListings.map(l => (l.brand_name || l.brand)?.toLowerCase()).filter(Boolean));
+                          
+                          // If no brands are available for this specific combination, don't show the dropdown
+                          if (availableBrandsForSelection.size === 0) return null;
+
+                          return (
+                            <div>
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Brand</label>
+                              <select
+                                value={selectedBrand}
+                                onChange={(e) => setSelectedBrand(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-[14px] font-bold text-[#001b4e] outline-none focus:border-emerald-500 transition-all"
+                              >
+                                <option value="">All Brands</option>
+                                {categoryAttributes.brands
+                                  .filter(b => availableBrandsForSelection.has(b.name.toLowerCase()))
+                                  .map(b => (
+                                    <option key={b._id} value={b.name}>{b.name}</option>
+                                  ))}
+                              </select>
+                            </div>
+                          );
+                        })()}
+
+                        {/* No attributes at all */}
+                        {categoryAttributes.types.length === 0 && categoryAttributes.brands.length === 0 && (
+                          <div className="py-6 text-center space-y-3">
+                             <Package size={32} className="mx-auto text-slate-200" />
+                             <p className="text-slate-400 font-bold text-[13px]">No options available for this category.</p>
+                          </div>
+                        )}
+
+                        {/* Matched Listing Preview */}
+                        {matchedListing && (
+                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-100">
+                            <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">Best Price Match</div>
+                            <div className="flex items-center gap-3">
+                              {matchedListing.thumbnail && (
+                                <img src={matchedListing.thumbnail} alt="" className="w-14 h-14 rounded-xl object-cover" />
+                              )}
+                              <div className="flex-grow">
+                                <h4 className="text-[14px] font-black text-[#001b4e] leading-tight">{matchedListing.title}</h4>
+                                <div className="flex items-baseline gap-1.5 mt-1">
+                                  <span className="text-[20px] font-black text-blue-600">₹{(matchedListing.pricing?.price_per_unit || 0).toLocaleString()}</span>
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">/ {matchedListing.pricing?.unit || 'unit'}</span>
+                                </div>
+                                {matchedListing.type_name && <span className="text-[10px] font-bold text-slate-500 uppercase">{matchedListing.type_name}{matchedListing.sub_type_name ? ` · ${matchedListing.sub_type_name}` : ''}{matchedListing.brand_name ? ` · ${matchedListing.brand_name}` : ''}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* No match found */}
+                        {!matchedListing && (selectedType || selectedSubType || selectedBrand) && !loadingVariations && (
+                          <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100 text-center">
+                            <p className="text-amber-700 font-bold text-[12px]">No product available for this combination.</p>
+                            <p className="text-amber-600 font-medium text-[11px] mt-1">Try different options.</p>
+                          </div>
+                        )}
+                      </>
+                   )}
+                </div>
+
+                <div className="p-6 bg-slate-50 border-t border-slate-100 space-y-3">
+                   {/* Quick Add Current Item */}
+                   <button 
+                     onClick={() => {
+                        addToCart(listing);
+                        setIsVariationModalOpen(false);
+                     }}
+                     className="w-full bg-white text-[#001b4e] py-3 rounded-2xl font-black text-[13px] uppercase tracking-widest border-2 border-dashed border-slate-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+                   >
+                      <Plus size={16} />
+                      Add Current Item (₹{(listing.pricing?.price_per_unit || listing.price?.value || 0).toLocaleString()})
+                   </button>
+
+                   {/* Add Matched */}
+                   <button 
+                     disabled={!matchedListing}
+                     onClick={() => {
+                        // Add the matched cheapest listing to cart
+                        const productToAdd = {
+                          ...matchedListing,
+                          _id: matchedListing._id,
+                          id: matchedListing._id,
+                          _cartKey: `${matchedListing._id}_${selectedType}_${selectedSubType}_${selectedBrand}`,
+                          selectedType, selectedSubType, selectedBrand
+                        };
+                        addToCart(productToAdd);
+                        setIsVariationModalOpen(false);
+                     }}
+                     className="w-full bg-[#001b4e] text-white py-4 rounded-2xl font-black text-[14px] uppercase tracking-[0.1em] shadow-xl shadow-blue-900/20 disabled:opacity-40 active:scale-95 transition-all flex items-center justify-center gap-3"
+                   >
+                      <ShoppingCart size={18} />
+                      {matchedListing ? `Add Selected · ₹${(matchedListing.pricing?.price_per_unit || 0).toLocaleString()}` : 'Select Options Above'}
+                   </button>
+                </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
 
       {/* Lightbox Modal */}
       <AnimatePresence>

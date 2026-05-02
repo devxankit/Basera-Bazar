@@ -50,9 +50,11 @@ export default function CartPage() {
             </div>
             
             <AnimatePresence>
-              {cartItems.map((c) => (
+              {cartItems.map((c) => {
+                const cartKey = c.item._cartKey || c.item._id;
+                return (
                 <motion.div 
-                  key={c.item._id}
+                  key={cartKey}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
@@ -60,7 +62,7 @@ export default function CartPage() {
                 >
                   <div className="w-20 h-20 bg-slate-50 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-100">
                       <img 
-                        src={c.item.image || (c.item.images && c.item.images[0]) || '/default-product-image.png'} 
+                        src={c.item.thumbnail || c.item.image || (c.item.images && c.item.images[0]) || '/default-product-image.png'} 
                         alt={c.item.title} 
                         className="w-full h-full object-cover"
                         onError={(e) => { e.target.onerror = null; e.target.src = '/default-product-image.png'; }}
@@ -69,9 +71,25 @@ export default function CartPage() {
                   
                   <div className="flex-grow flex flex-col justify-between py-0.5">
                     <div className="flex justify-between items-start gap-2">
-                      <h3 className="text-[14px] font-bold text-slate-800 leading-tight line-clamp-2">{c.item.title}</h3>
+                      <div>
+                        <h3 className="text-[14px] font-bold text-slate-800 leading-tight line-clamp-2">{c.item.title}</h3>
+                        {/* Attribute badges */}
+                        {(c.selectedType || c.selectedSubType || c.selectedBrand) && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {c.selectedType && (
+                              <span className="text-[9px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wide">{c.selectedType}</span>
+                            )}
+                            {c.selectedSubType && (
+                              <span className="text-[9px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full uppercase tracking-wide">{c.selectedSubType}</span>
+                            )}
+                            {c.selectedBrand && (
+                              <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full uppercase tracking-wide">{c.selectedBrand}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <button 
-                        onClick={() => deleteFromCart(c.item._id)}
+                        onClick={() => deleteFromCart(cartKey)}
                         className="p-1.5 text-red-400 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
                       >
                         <Trash2 size={14} />
@@ -88,7 +106,7 @@ export default function CartPage() {
                       
                       <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1">
                         <button 
-                          onClick={() => removeFromCart(c.item._id)}
+                          onClick={() => removeFromCart(cartKey)}
                           className="w-7 h-7 flex items-center justify-center text-slate-600 active:bg-slate-200 rounded-md transition-colors"
                         >
                           <Minus size={14} />
@@ -104,7 +122,8 @@ export default function CartPage() {
                     </div>
                   </div>
                 </motion.div>
-              ))}
+                );
+              })}
             </AnimatePresence>
 
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mt-6 space-y-4">

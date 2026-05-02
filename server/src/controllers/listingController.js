@@ -109,7 +109,7 @@ const getNearbyServices = async (req, res) => {
  */
 const getMandiListings = async (req, res) => {
   try {
-    const { category_id } = req.query;
+    const { category_id, partner_id } = req.query;
     const query = { deleted_at: null };
     if (process.env.NODE_ENV === 'development') {
       // In dev, show almost everything to help debugging
@@ -117,6 +117,15 @@ const getMandiListings = async (req, res) => {
     } else {
       query.status = 'active';
     }
+
+    if (partner_id) {
+      try {
+        query.partner_id = new mongoose.Types.ObjectId(partner_id);
+      } catch (e) {
+        // ignore invalid partner_id
+      }
+    }
+
     if (category_id) {
       try {
         const oid = new mongoose.Types.ObjectId(category_id);
@@ -349,7 +358,7 @@ const getListingById = async (req, res) => {
     
     const listing = await ServiceListing.findById(id).populate(populateOptions) ||
                     await PropertyListing.findById(id).populate(populateOptions) ||
-                    await MandiListing.findById(id).populate(populateOptions);
+                    await MandiListing.findById(id).populate(populateOptions).populate('category_id').populate('subcategory_id');
 
     if (!listing) {
       return res.status(404).json({ success: false, message: 'Listing not found.' });
@@ -516,16 +525,27 @@ const getPublicBanners = async (req, res) => {
  */
 const getPublicCategories = async (req, res) => {
   try {
-    const { type, parent_id } = req.query;
+    const { type, parent_id, partner_id } = req.query;
     
     const query = { is_active: true };
     if (type) query.type = type;
-    if (parent_id) {
-      query.parent_id = parent_id;
-    } else if (type !== 'product' && type !== 'material' && type !== 'supplier') {
-      // For non-mandi types, default to top-level categories only
-      // For mandi (product/material), return ALL categories regardless of hierarchy
+    
+    // Handle hierarchy
+    if (parent_id !== undefined) {
+      query.parent_id = parent_id === 'null' ? null : parent_id;
+    } else {
       query.parent_id = null;
+    }
+
+    // Handle partner-specific categories
+    // Logic: Return global categories (partner_id: null) OR those belonging to the specific partner
+    if (partner_id) {
+      query.$or = [
+        { partner_id: null },
+        { partner_id: partner_id }
+      ];
+    } else {
+      query.partner_id = null;
     }
 
     const categories = await Category.find(query).sort({ name: 1 });
@@ -732,23 +752,44 @@ const deleteListing = async (req, res) => {
 const createMandiListing = async (req, res) => {
   try {
     const partnerId = req.user.id;
-    const { title, material_name, category_id, subcategory_id, brand, description, thumbnail, pricing, stock_quantity, location, state, district, pincode } = req.body;
+    const { 
+      title, 
+      material_name, 
+      material_id, // category_id from frontend
+      grade_id,    // subcategory_id from frontend
+      brand, 
+      type_name,
+      sub_type_name,
+      brand_name,
+      description, 
+      thumbnail, 
+      price,       // top-level from frontend
+      unit,        // top-level from frontend
+      stock,       // stock_quantity from frontend
+      location, 
+      state, 
+      district, 
+      pincode 
+    } = req.body;
 
     const newMandiItem = await MandiListing.create({
       partner_id: partnerId,
-      category_id,
-      subcategory_id,
+      category_id: material_id || req.body.category_id,
+      subcategory_id: grade_id || req.body.subcategory_id || null,
       brand,
+      type_name: type_name || null,
+      sub_type_name: sub_type_name || null,
+      brand_name: brand_name || brand || null,
       title,
-      material_name,
+      material_name: material_name || "Material",
       description,
       thumbnail,
       pricing: {
-        unit: pricing?.unit || 'Piece',
-        price_per_unit: Number(pricing?.price_per_unit || 0),
+        unit: unit || req.body.pricing?.unit || 'Piece',
+        price_per_unit: Number(price || req.body.pricing?.price_per_unit || 0),
         effective_date: Date.now()
       },
-      stock_quantity: Number(stock_quantity || 0),
+      stock_quantity: Number(stock || req.body.stock_quantity || 0),
       address: {
         state,
         district,
@@ -756,15 +797,73 @@ const createMandiListing = async (req, res) => {
         pincode
       },
       location: location || { type: 'Point', coordinates: [0, 0] },
-      status: 'pending_approval'
+      status: 'active'
     });
 
-    res.status(201).json({ success: true, message: 'Material listed successfully. Pending approval.', data: newMandiItem });
+    res.status(201).json({ success: true, message: 'Material listed successfully.', data: newMandiItem });
   } catch (error) {
     console.error("Error creating Mandi listing:", error);
     res.status(500).json({ success: false, message: 'Server error creating mandi listing.', error: error.message });
   }
 };
+
+/**
+ * @desc    Partner creates a custom category/type
+ * @route   POST /api/listings/categories
+ * @access  Private (Partner)
+ */
+const createPartnerCategory = async (req, res) => {
+  try {
+    const { name, parent_id, type } = req.body;
+    const partner_id = req.user.id;
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Category name is required' });
+    }
+
+    // Generate slug: lowercase, replace spaces with hyphens, remove special characters
+    const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
+
+    const newCategory = await Category.create({
+      name,
+      slug,
+      parent_id: parent_id || null,
+      type: type || 'supplier',
+      partner_id,
+      is_active: true
+    });
+
+    res.status(201).json({ success: true, data: newCategory });
+  } catch (error) {
+    console.error("Error creating partner category:", error);
+    res.status(500).json({ success: false, message: 'Server error creating category.', error: error.message });
+  }
+};
+
+/**
+ * @desc    Partner deletes their custom category
+ * @route   DELETE /api/listings/categories/:id
+ * @access  Private (Partner)
+ */
+const deletePartnerCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const partner_id = req.user.id;
+
+    const category = await Category.findOne({ _id: id, partner_id });
+    if (!category) {
+      return res.status(404).json({ success: false, message: 'Category not found or unauthorized' });
+    }
+
+    await Category.findByIdAndDelete(id);
+    res.status(200).json({ success: true, message: 'Category deleted' });
+  } catch (error) {
+    console.error("Error deleting partner category:", error);
+    res.status(500).json({ success: false, message: 'Server error deleting category.' });
+  }
+};
+
+const SellerAttribute = require('../models/SellerAttribute');
 
 /**
  * @desc    Record interaction on a listing (view, enquiry, call, whatsapp_click)
@@ -812,6 +911,164 @@ const recordListingInteraction = async (req, res) => {
   }
 };
 
+// ============================================================================
+// SELLER ATTRIBUTE ENDPOINTS (Types, Sub-Types, Brands)
+// ============================================================================
+
+/**
+ * @desc    Create a seller attribute (type, sub_type, or brand)
+ * @route   POST /api/listings/seller-attributes
+ * @access  Private (Partner)
+ */
+const createSellerAttribute = async (req, res) => {
+  try {
+    const partner_id = req.user.id;
+    const { category_id, attribute_type, name, parent_attribute_id } = req.body;
+
+    if (!category_id || !attribute_type || !name) {
+      return res.status(400).json({ success: false, message: 'category_id, attribute_type, and name are required.' });
+    }
+
+    if (!['type', 'sub_type', 'brand'].includes(attribute_type)) {
+      return res.status(400).json({ success: false, message: 'attribute_type must be type, sub_type, or brand.' });
+    }
+
+    // For sub_type, parent_attribute_id is required (points to a "type" attribute)
+    if (attribute_type === 'sub_type' && !parent_attribute_id) {
+      return res.status(400).json({ success: false, message: 'parent_attribute_id is required for sub_type.' });
+    }
+
+    // Manual duplicate check including parent_attribute_id
+    const existingQuery = {
+      partner_id,
+      category_id,
+      attribute_type,
+      name: name.trim()
+    };
+    // For sub_types, same name under different parent types is allowed
+    if (attribute_type === 'sub_type') {
+      existingQuery.parent_attribute_id = parent_attribute_id;
+    }
+    const existing = await SellerAttribute.findOne(existingQuery);
+    if (existing) {
+      return res.status(409).json({ success: false, message: 'This attribute already exists for this category.' });
+    }
+
+    const attr = await SellerAttribute.create({
+      partner_id,
+      category_id,
+      attribute_type,
+      name: name.trim(),
+      parent_attribute_id: parent_attribute_id || null
+    });
+
+    res.status(201).json({ success: true, data: attr });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ success: false, message: 'This attribute already exists for this category.' });
+    }
+    console.error("Error creating seller attribute:", error);
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+/**
+ * @desc    Get seller's own attributes (for seller dashboard)
+ * @route   GET /api/listings/seller-attributes/my?category_id=X
+ * @access  Private (Partner)
+ */
+const getMySellerAttributes = async (req, res) => {
+  try {
+    const partner_id = req.user.id;
+    const { category_id } = req.query;
+
+    const query = { partner_id, is_active: true };
+    if (category_id) query.category_id = category_id;
+
+    const attrs = await SellerAttribute.find(query)
+      .populate('category_id', 'name')
+      .populate('parent_attribute_id', 'name')
+      .sort({ attribute_type: 1, name: 1 });
+
+    res.status(200).json({ success: true, count: attrs.length, data: attrs });
+  } catch (error) {
+    console.error("Error fetching my seller attributes:", error);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+/**
+ * @desc    Public: get all unique attributes for a category (aggregated across sellers)
+ * @route   GET /api/listings/seller-attributes?category_id=X
+ * @access  Public
+ */
+const getSellerAttributes = async (req, res) => {
+  try {
+    const { category_id, partner_id, attribute_type } = req.query;
+
+    if (!category_id) {
+      return res.status(400).json({ success: false, message: 'category_id is required.' });
+    }
+
+    const query = { category_id, is_active: true };
+    if (partner_id) query.partner_id = partner_id;
+    if (attribute_type) query.attribute_type = attribute_type;
+
+    const attrs = await SellerAttribute.find(query)
+      .populate('parent_attribute_id', 'name')
+      .sort({ attribute_type: 1, name: 1 });
+
+    // Deduplicate by name + attribute_type for public view
+    const uniqueMap = {};
+    attrs.forEach(attr => {
+      const key = `${attr.attribute_type}_${attr.name.toLowerCase()}${attr.parent_attribute_id ? '_' + attr.parent_attribute_id.name : ''}`;
+      if (!uniqueMap[key]) {
+        uniqueMap[key] = {
+          _id: attr._id,
+          name: attr.name,
+          attribute_type: attr.attribute_type,
+          parent_name: attr.parent_attribute_id?.name || null,
+          parent_attribute_id: attr.parent_attribute_id?._id || null
+        };
+      }
+    });
+
+    res.status(200).json({ success: true, data: Object.values(uniqueMap) });
+  } catch (error) {
+    console.error("Error fetching seller attributes:", error);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+/**
+ * @desc    Delete a seller attribute
+ * @route   DELETE /api/listings/seller-attributes/:id
+ * @access  Private (Partner)
+ */
+const deleteSellerAttribute = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const partner_id = req.user.id;
+
+    const attr = await SellerAttribute.findOne({ _id: id, partner_id });
+    if (!attr) {
+      return res.status(404).json({ success: false, message: 'Attribute not found or unauthorized.' });
+    }
+
+    // If deleting a type, also delete its sub-types
+    if (attr.attribute_type === 'type') {
+      await SellerAttribute.deleteMany({ parent_attribute_id: attr._id, partner_id });
+    }
+
+    await SellerAttribute.findByIdAndDelete(id);
+
+    res.status(200).json({ success: true, message: 'Attribute deleted.' });
+  } catch (error) {
+    console.error("Error deleting seller attribute:", error);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
 module.exports = {
   getNearbyServices,
   getMandiListings,
@@ -825,5 +1082,12 @@ module.exports = {
   getMyListings,
   updateListing,
   deleteListing,
-  recordListingInteraction
+  recordListingInteraction,
+  createPartnerCategory,
+  deletePartnerCategory,
+  createSellerAttribute,
+  getMySellerAttributes,
+  getSellerAttributes,
+  deleteSellerAttribute
 };
+

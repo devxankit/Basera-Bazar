@@ -64,7 +64,10 @@ export default function MandiCheckout() {
             title: c.item.title,
             price: c.item.pricing?.price_per_unit || c.item.price?.value,
             qty: c.qty,
-            unit: c.item.pricing?.unit || 'Unit'
+            unit: c.item.pricing?.unit || 'Unit',
+            type_name: c.selectedType || c.item.type_name || null,
+            sub_type_name: c.selectedSubType || c.item.sub_type_name || null,
+            brand_name: c.selectedBrand || c.item.brand_name || null
          }));
 
          // Generate random 6-digit OTP for delivery verification
@@ -215,8 +218,17 @@ export default function MandiCheckout() {
                      <h3 className="text-[18px] font-bold text-[#001b4e] border-b border-slate-50 pb-4">Order Summary</h3>
                      <div className="space-y-4">
                         {Object.values(cart).map((c, i) => (
-                           <div key={i} className="flex justify-between items-center text-[14px]">
-                              <div className="text-slate-800 font-bold">{c.item.title} <span className="text-slate-400 font-medium">x {c.qty}</span></div>
+                           <div key={i} className="flex justify-between items-start text-[14px]">
+                              <div>
+                                <div className="text-slate-800 font-bold">{c.item.title} <span className="text-slate-400 font-medium">x {c.qty}</span></div>
+                                {(c.selectedType || c.selectedSubType || c.selectedBrand) && (
+                                  <div className="flex flex-wrap gap-1 mt-0.5">
+                                    {c.selectedType && <span className="text-[9px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">{c.selectedType}</span>}
+                                    {c.selectedSubType && <span className="text-[9px] font-bold bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-full">{c.selectedSubType}</span>}
+                                    {c.selectedBrand && <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-full">{c.selectedBrand}</span>}
+                                  </div>
+                                )}
+                              </div>
                               <div className="font-bold text-[#001b4e]">₹{ (c.item.pricing?.price_per_unit || c.item.price?.value) * c.qty}</div>
                            </div>
                         ))}
