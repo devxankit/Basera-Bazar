@@ -2,6 +2,7 @@ const { ServiceListing, PropertyListing, MandiListing } = require('../models/Lis
 const { Category } = require('../models/System');
 const { Subscription } = require('../models/Finance');
 const { Partner } = require('../models/Partner');
+const { getMandiLimits, enforceMandiLimits } = require('../utils/subscriptionUtils');
 
 const mongoose = require('mongoose');
 
@@ -129,6 +130,11 @@ const getMandiListings = async (req, res) => {
       } catch (e) {
         // invalid ObjectId — ignore category filter
       }
+    }
+
+    if (partner_id) {
+       // Auto-enforce limits if we're viewing a specific partner's items (dashboard context)
+       await enforceMandiLimits(partner_id);
     }
 
     const mandiItems = await MandiListing.find(query)
@@ -772,8 +778,41 @@ const createMandiListing = async (req, res) => {
       location, 
       state, 
       district, 
-      pincode 
+      pincode,
+      is_featured 
     } = req.body;
+
+    // ── SUBSCRIPTION CHECK ──
+    const limits = await getMandiLimits(partnerId);
+    
+    // Check Listing Count Limit
+    const activeCount = await MandiListing.countDocuments({ 
+      partner_id: partnerId, 
+      status: 'active',
+      deleted_at: null 
+    });
+
+    if (limits.listings !== -1 && activeCount >= limits.listings) {
+      return res.status(403).json({ 
+        success: false, 
+        message: `Limit reached! Your current plan (${limits.plan_name}) allows only ${limits.listings} active listing. Please upgrade to Pro for more.`,
+        limit_reached: true
+      });
+    }
+
+    // Check Featured Limit
+    let finalFeatured = is_featured || false;
+    if (finalFeatured && limits.featured !== -1) {
+      const featuredCount = await MandiListing.countDocuments({
+        partner_id: partnerId,
+        is_featured: true,
+        status: 'active',
+        deleted_at: null
+      });
+      if (featuredCount >= limits.featured) {
+        finalFeatured = false; // Silently disable or reject? I'll disable to allow creation.
+      }
+    }
 
     const newMandiItem = await MandiListing.create({
       partner_id: partnerId,
@@ -800,7 +839,8 @@ const createMandiListing = async (req, res) => {
         pincode
       },
       location: location || { type: 'Point', coordinates: [0, 0] },
-      status: 'active'
+      status: 'active',
+      is_featured: finalFeatured
     });
 
     res.status(201).json({ success: true, message: 'Material listed successfully.', data: newMandiItem });

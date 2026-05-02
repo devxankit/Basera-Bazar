@@ -109,24 +109,29 @@ export default function PartnerProfile() {
         </div>
 
         {/* Subscription Highlight */}
-        {!isIncomplete && (
-          <div 
-            onClick={() => navigate('/partner/subscription')}
-            className="bg-[#001b4e] rounded-2xl p-6 text-white flex items-center justify-between shadow-xl shadow-blue-900/20 relative overflow-hidden active:scale-95 transition-all"
-          >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8 blur-xl" />
-            <div className="flex items-center gap-4 relative z-10">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <Crown size={24} className="text-yellow-400" />
+        <div 
+          onClick={() => navigate('/partner/subscription')}
+          className="bg-[#001b4e] rounded-2xl p-6 text-white flex items-center justify-between shadow-xl shadow-blue-900/20 relative overflow-hidden active:scale-95 transition-all"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8 blur-xl" />
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+              <Crown size={24} className={`${partner.active_subscription_id ? 'text-yellow-400' : 'text-slate-400'}`} />
+            </div>
+            <div>
+              <div className="text-[14px] font-bold uppercase tracking-wider opacity-60">
+                {partner.active_subscription_id ? 'Active Plan' : 'No Active Plan'}
               </div>
-              <div>
-                <div className="text-[14px] font-bold uppercase tracking-wider opacity-60">Active Plan</div>
-                <div className="text-[18px] font-bold">Standard Free</div>
+              <div className="text-[18px] font-bold uppercase tracking-tight">
+                {partner.active_subscription_id?.plan_snapshot?.name || 'Free Trail'}
               </div>
             </div>
-            <ChevronRight size={24} className="opacity-40" />
           </div>
-        )}
+          <div className="flex flex-col items-end gap-1 relative z-10">
+             <div className="px-2 py-0.5 bg-white/10 rounded text-[8px] font-black uppercase tracking-widest border border-white/10">Manage</div>
+             <ChevronRight size={20} className="opacity-40" />
+          </div>
+        </div>
 
         {/* Menu Sections */}
         <div className="space-y-4">
@@ -134,6 +139,7 @@ export default function PartnerProfile() {
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <MenuOption icon={<Clock size={20} />} label="Order History" onClick={() => navigate('/partner/mandi/orders-history')} />
             <MenuOption icon={<Trophy size={20} />} label="My Rewards" onClick={() => navigate('/partner/milestones')} />
+            <MenuOption icon={<CreditCard size={20} />} label="My Subscription" onClick={() => navigate('/partner/subscription')} />
             <MenuOption icon={<AlertCircle size={20} />} label="Penalties" onClick={() => navigate('/partner/mandi/penalties')} />
             <MenuOption icon={<HelpCircle size={20} />} label="Support Center" onClick={() => navigate('/partner/help')} />
           </div>

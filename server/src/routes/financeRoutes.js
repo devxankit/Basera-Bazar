@@ -1,12 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { mockCreateRazorpayOrder, mockRazorpayWebhook } = require('../controllers/financeController');
+const { initiateSubscription, verifySubscription } = require('../controllers/financeController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
-// Mock Checkout relies on the partner being logged in
-router.post('/checkout/mock', protect, authorizeRoles('partner'), mockCreateRazorpayOrder);
-
-// The webhook is public so the pseudo-Razorpay server can hit it
-router.post('/webhook/mock', mockRazorpayWebhook);
+// Subscription Routes
+router.post('/subscription/initiate', protect, authorizeRoles('partner'), initiateSubscription);
+router.post('/subscription/verify', protect, authorizeRoles('partner'), verifySubscription);
 
 module.exports = router;

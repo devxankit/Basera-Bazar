@@ -3,7 +3,8 @@ import {
   ArrowLeft, History, CheckCircle2, 
   Calendar, Clock, Star, 
   Package, Users, ChevronRight,
-  TrendingUp, Activity, X, Info, Zap, Loader2
+  TrendingUp, Activity, X, Info, Zap, Loader2,
+  CheckCircle, ShieldCheck, ZapOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +19,10 @@ export default function PartnerSubscription() {
   const [showHistory, setShowHistory] = useState(false);
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [showSimModal, setShowSimModal] = useState(false);
+  const [simOrderData, setSimOrderData] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -80,9 +85,80 @@ export default function PartnerSubscription() {
     }
   };
 
-  const handleSubscribe = (plan) => {
-    setSelectedPlan(plan);
-    setShowSubscribeModal(true);
+  const handleSubscribe = async (plan) => {
+    try {
+      setSubmitting(true);
+      setSelectedPlan(plan);
+
+      // 1. Create Order on Backend
+      const res = await api.post('/finance/subscription/initiate', { plan_id: plan._id });
+      if (!res.data.success) throw new Error("Initialization failed");
+
+      const orderData = res.data;
+
+      // 2. Open Razorpay Checkout (or Simulate if keys missing)
+      if (orderData.key === 'rzp_test_mock') {
+        setSimOrderData(orderData);
+        setShowSimModal(true);
+        setSubmitting(false);
+        return;
+      }
+
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: "INR",
+        name: "Basera Bazar",
+        description: `Subscription: ${plan.name}`,
+        image: "https://res.cloudinary.com/dbqsy9vvt/image/upload/v1714570000/logos/logo_main.png",
+        order_id: orderData.order_id,
+        handler: async function (response) {
+          handlePaymentSuccess(response, plan);
+        },
+        prefill: {
+          name: partner.name,
+          email: partner.email,
+          contact: partner.phone
+        },
+        theme: { color: "#001b4e" },
+        modal: {
+          ondismiss: function() {
+            setSubmitting(false);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
+    } catch (err) {
+      console.error("Subscription Error:", err);
+      alert(err.response?.data?.message || "Something went wrong. Please try again.");
+      setSubmitting(false);
+    }
+  };
+
+  const handlePaymentSuccess = async (response, plan) => {
+    try {
+      setSubmitting(true);
+      // 3. Verify Payment
+      const verifyRes = await api.post('/finance/subscription/verify', {
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature,
+        plan_id: plan._id
+      });
+
+      if (verifyRes.data.success) {
+        setSuccess(true);
+        setShowSubscribeModal(false);
+        setShowSimModal(false);
+      }
+    } catch (err) {
+      alert("Payment verification failed. Please contact support.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -220,12 +296,16 @@ export default function PartnerSubscription() {
                  </div>
 
                  {!isCurrent && (
-                   <button 
-                     onClick={() => handleSubscribe(plan)}
-                     className="w-full h-11 bg-[#001b4e] text-white rounded-lg font-black text-[12px] uppercase tracking-widest active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20"
-                   >
-                     Subscribe Plan <ChevronRight size={14} />
-                   </button>
+                    <button 
+                      onClick={() => {
+                        setSelectedPlan(plan);
+                        setShowSubscribeModal(true);
+                      }}
+                      disabled={submitting}
+                      className="w-full h-11 bg-[#001b4e] text-white rounded-lg font-black text-[12px] uppercase tracking-widest active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 disabled:opacity-50"
+                    >
+                      {submitting && selectedPlan?._id === plan._id ? <Loader2 size={14} className="animate-spin" /> : <>Subscribe Plan <ChevronRight size={14} /></>}
+                    </button>
                  )}
                </div>
              );
@@ -235,6 +315,57 @@ export default function PartnerSubscription() {
 
       {/* Modals & Overlays */}
       <AnimatePresence>
+        {showSimModal && simOrderData && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-[#001b4e]/80 backdrop-blur-xl">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center border-4 border-yellow-400">
+               <div className="w-16 h-16 bg-yellow-50 text-yellow-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <ZapOff size={32} />
+               </div>
+               <h3 className="text-[20px] font-black text-[#001b4e] uppercase tracking-tight mb-2">Simulated Payment</h3>
+               <p className="text-slate-400 text-[12px] font-bold uppercase tracking-tight opacity-70 leading-relaxed mb-8">
+                 Razorpay credentials are not set in .env. You are in simulation mode. Click below to test the activation logic.
+               </p>
+               <div className="flex flex-col gap-3">
+                  <button 
+                    onClick={() => handlePaymentSuccess({
+                      razorpay_order_id: simOrderData.order_id,
+                      razorpay_payment_id: 'sim_pay_' + Date.now(),
+                      razorpay_signature: 'sim_sig_verified'
+                    }, selectedPlan)}
+                    disabled={submitting}
+                    className="w-full py-4 bg-emerald-500 text-white rounded-xl font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg"
+                  >
+                    {submitting ? 'Verifying...' : 'Simulate Success'}
+                  </button>
+                  <button onClick={() => setShowSimModal(false)} className="w-full py-4 text-slate-400 font-bold uppercase text-[12px]">Cancel Test</button>
+               </div>
+            </motion.div>
+          </div>
+        )}
+
+        {success && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-[#001b4e]/60 backdrop-blur-md">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl p-10 w-full max-w-sm shadow-2xl text-center">
+              <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <ShieldCheck size={40} />
+              </div>
+              <h3 className="text-[24px] font-black text-[#001b4e] uppercase tracking-tight mb-2">Payment Successful!</h3>
+              <p className="text-slate-400 text-[14px] font-bold uppercase tracking-tight opacity-60 leading-relaxed mb-8">
+                Your premium seller plan is now active. You can now enjoy full benefits.
+              </p>
+              <button 
+                onClick={() => {
+                  setSuccess(false);
+                  window.location.reload(); // Hard refresh to update auth state
+                }} 
+                className="w-full py-4.5 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-emerald-900/20"
+              >
+                Start Exploring
+              </button>
+            </motion.div>
+          </div>
+        )}
+
         {showSubscribeModal && selectedPlan && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#001b4e]/40 backdrop-blur-sm">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl text-center">
@@ -242,8 +373,17 @@ export default function PartnerSubscription() {
                 <Star size={32} fill="currentColor" />
               </div>
               <h3 className="text-[20px] font-black text-[#001b4e] uppercase tracking-tight mb-2">Join {selectedPlan.name}</h3>
-              <p className="text-slate-400 text-[13px] font-bold uppercase tracking-tight opacity-60 leading-relaxed mb-8">Contact our business team to activate your premium seller access.</p>
-              <button onClick={() => setShowSubscribeModal(false)} className="w-full py-4 bg-[#001b4e] text-white rounded-xl font-black uppercase tracking-widest active:scale-95 transition-all">Understood</button>
+              <p className="text-slate-400 text-[13px] font-bold uppercase tracking-tight opacity-60 leading-relaxed mb-8">Click confirm to proceed with payment via Razorpay.</p>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => handleSubscribe(selectedPlan)} 
+                  disabled={submitting}
+                  className="w-full py-4 bg-[#001b4e] text-white rounded-xl font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {submitting ? 'Connecting...' : 'Confirm & Pay'}
+                </button>
+                <button onClick={() => setShowSubscribeModal(false)} className="w-full py-4 text-slate-400 font-bold uppercase text-[12px]">Cancel</button>
+              </div>
             </motion.div>
           </div>
         )}

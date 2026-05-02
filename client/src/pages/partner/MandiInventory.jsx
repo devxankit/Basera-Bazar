@@ -18,7 +18,9 @@ import {
   MoreVertical,
   X,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Zap,
+  Info
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -35,10 +37,29 @@ export default function MandiInventory() {
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showTypeManager, setShowTypeManager] = useState(false);
+  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
 
   useEffect(() => {
     fetchMyProducts();
+    fetchSubscription();
   }, []);
+
+  const fetchSubscription = async () => {
+    try {
+      const res = await api.get('/partners/profile');
+      if (res.data.success) {
+        const partner = res.data.data;
+        const sub = partner.active_subscription_id;
+        setSubscriptionInfo({
+          isPro: !!sub && sub.plan_snapshot?.price > 0,
+          planName: sub?.plan_snapshot?.name || 'Free Trail',
+          limit: sub?.plan_snapshot?.listings_limit || 1
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching sub info:", err);
+    }
+  };
 
   const fetchMyProducts = async () => {
     try {
@@ -135,6 +156,37 @@ export default function MandiInventory() {
       </div>
 
       <div className="p-5">
+        {/* Pro Upgrade Banner */}
+        {subscriptionInfo && !subscriptionInfo.isPro && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-6 bg-[#001b4e] rounded-3xl p-5 text-white relative overflow-hidden shadow-xl shadow-blue-900/20"
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Zap size={64} fill="white" />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="bg-blue-500/20 p-1.5 rounded-lg border border-white/10">
+                  <TrendingUp size={16} className="text-blue-400" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400">Upgrade Required</span>
+              </div>
+              <h3 className="text-[16px] font-black uppercase tracking-tight mb-1">List Unlimited Products</h3>
+              <p className="text-white/50 text-[11px] font-bold uppercase tracking-tight leading-relaxed mb-4 max-w-[80%]">
+                Your current {subscriptionInfo.planName} allows only {subscriptionInfo.limit} active listing. Upgrade to Pro for full access.
+              </p>
+              <button 
+                onClick={() => navigate('/partner/subscription')}
+                className="bg-white text-[#001b4e] px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center gap-2 shadow-lg"
+              >
+                Go Pro Now <ChevronRight size={14} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Filter Tabs */}
         <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-6">
           {['All', 'Active', 'Inactive'].map(f => (
@@ -209,6 +261,16 @@ export default function MandiInventory() {
                             {item.status === 'active' ? 'Deactivate' : 'Activate'}
                           </span>
                         </button>
+                        {item.status === 'inactive' && !subscriptionInfo?.isPro && (
+                          <div className="group relative">
+                             <Info size={14} className="text-rose-500" />
+                             <div className="absolute bottom-full right-0 mb-2 w-48 bg-white p-3 rounded-xl shadow-2xl border border-slate-100 hidden group-hover:block z-[70]">
+                               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight leading-normal">
+                                 This product was deactivated because it exceeds your current plan's limit. Upgrade to Pro to activate it.
+                               </p>
+                             </div>
+                          </div>
+                        )}
                       </div>
                       <h4 className="text-[15px] font-bold text-[#001b4e] uppercase tracking-tight truncate leading-tight mb-1.5">{item.title}</h4>
                       <div className="flex items-baseline gap-1.5 mt-auto">

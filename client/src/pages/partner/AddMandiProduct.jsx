@@ -25,6 +25,7 @@ export default function AddMandiProduct() {
   const [sellerTypes, setSellerTypes] = useState([]);
   const [sellerSubTypes, setSellerSubTypes] = useState([]);
   const [sellerBrands, setSellerBrands] = useState([]);
+  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
 
   // Inline add state
   const [addingType, setAddingType] = useState(false);
@@ -47,13 +48,33 @@ export default function AddMandiProduct() {
     images: [],
     type_name: '',
     sub_type_name: '',
-    brand_name: ''
+    brand_name: '',
+    is_featured: false
   });
+
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   useEffect(() => {
     fetchCategories();
+    fetchSubscription();
     if (editId) fetchProductData();
   }, []);
+
+  const fetchSubscription = async () => {
+    try {
+      const res = await api.get('/partners/profile');
+      if (res.data.success) {
+        const partner = res.data.data;
+        const sub = partner.active_subscription_id;
+        setSubscriptionInfo({
+          isPro: !!sub && sub.plan_snapshot?.price > 0,
+          featuredLimit: sub?.plan_snapshot?.featured_listings_limit || 0
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching sub info:", err);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -192,7 +213,11 @@ export default function AddMandiProduct() {
       navigate('/partner/inventory');
     } catch (err) {
       console.error("Submit error:", err);
-      alert("Failed to save product.");
+      if (err.response?.status === 403 && err.response?.data?.limit_reached) {
+        setShowLimitModal(true);
+      } else {
+        alert(err.response?.data?.message || "Failed to save product.");
+      }
     } finally {
       setLoading(false);
     }
@@ -430,6 +455,36 @@ export default function AddMandiProduct() {
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 pl-10 pr-3 text-[14px] font-bold text-[#001b4e] outline-none focus:bg-white focus:border-blue-500/20" />
               </div>
             </div>
+
+            {/* Featured Listing Toggle */}
+            <div className={`p-4 rounded-xl border transition-all flex items-center justify-between ${formData.is_featured ? 'bg-blue-50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${formData.is_featured ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                   <Tag size={16} />
+                </div>
+                <div>
+                   <div className="flex items-center gap-2">
+                     <span className="text-[12px] font-black text-[#001b4e] uppercase tracking-tight">Featured Listing</span>
+                     {subscriptionInfo && !subscriptionInfo.isPro && (
+                       <span className="bg-[#001b4e] text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest">Pro</span>
+                     )}
+                   </div>
+                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Boost visibility in marketplace</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  if (subscriptionInfo && !subscriptionInfo.isPro) {
+                    setShowLimitModal(true);
+                  } else {
+                    setFormData({...formData, is_featured: !formData.is_featured});
+                  }
+                }}
+                className={`w-12 h-6 rounded-full relative transition-all ${formData.is_featured ? 'bg-blue-600' : 'bg-slate-200'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.is_featured ? 'right-1' : 'left-1'}`} />
+              </button>
+            </div>
           </motion.div>
         )}
 
@@ -484,6 +539,36 @@ export default function AddMandiProduct() {
           </motion.div>
         )}
       </div>
+      {/* Limit Reached Modal */}
+      <AnimatePresence>
+        {showLimitModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#001b4e]/40 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <Box size={32} />
+              </div>
+              <h3 className="text-[20px] font-black text-[#001b4e] uppercase tracking-tight mb-2">Listing Limit Reached</h3>
+              <p className="text-slate-400 text-[13px] font-bold uppercase tracking-tight opacity-60 leading-relaxed mb-8">
+                Your current plan allows only 1 active listing. Upgrade to Pro to list unlimited materials.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => navigate('/partner/subscription')}
+                  className="w-full py-4 bg-[#001b4e] text-white rounded-xl font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-blue-900/20"
+                >
+                  Upgrade to Pro
+                </button>
+                <button 
+                  onClick={() => setShowLimitModal(false)}
+                  className="w-full py-4 bg-slate-50 text-slate-400 rounded-xl font-black uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Maybe Later
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
