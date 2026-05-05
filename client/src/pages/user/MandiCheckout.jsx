@@ -51,7 +51,28 @@ export default function MandiCheckout() {
       return new Set(sellerIds.filter(Boolean)).size;
    };
 
-   const tokenAmount = config.token_amount * getUniqueSellersCount();
+   const getCalculatedTokenAmount = () => {
+      if (!config.categories) return config.token_amount * getUniqueSellersCount();
+
+      let totalToken = 0;
+      Object.values(cart).forEach(c => {
+         const itemPrice = c.item.pricing?.price_per_unit || c.item.price?.value || 0;
+         const itemTotal = itemPrice * c.qty;
+         
+         // Find category percentage
+         const categoryId = c.item.category_id?._id || c.item.category_id;
+         const catConfig = config.categories.find(cat => cat.id === categoryId);
+         const percentage = catConfig ? Number(catConfig.percentage) : (config.commission_rate || 0);
+         
+         totalToken += (itemTotal * (percentage / 100));
+      });
+
+      // Business logic: Ensure at least the fallback token amount if calculation is 0
+      if (totalToken <= 0) return config.token_amount * getUniqueSellersCount();
+      return Math.round(totalToken);
+   };
+
+   const tokenAmount = getCalculatedTokenAmount();
    const remainingAmount = total - tokenAmount;
 
    const handleCreateOrder = async () => {
@@ -60,20 +81,10 @@ export default function MandiCheckout() {
 
          const orderItems = Object.values(cart).map(c => ({
             productId: c.item._id || c.item.id,
-            seller_id: c.item.seller_id?._id || c.item.seller_id || c.item.partner_id || c.item.owner?.id,
-            title: c.item.title,
-            price: c.item.pricing?.price_per_unit || c.item.price?.value,
-            qty: c.qty,
-            unit: c.item.pricing?.unit || 'Unit',
-            type_name: c.selectedType || c.item.type_name || null,
-            sub_type_name: c.selectedSubType || c.item.sub_type_name || null,
-            brand_name: c.selectedBrand || c.item.brand_name || null
+            qty: c.qty
          }));
 
-         // Generate random 6-digit OTP for delivery verification
-         const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-         setDeliveryOtp(generatedOtp);
-
+         // 1. Create Order and Get Razorpay Intent
          const res = await api.post('/orders/checkout', {
             items: orderItems,
             shipping_address: {
@@ -83,23 +94,58 @@ export default function MandiCheckout() {
                city: address.city,
                state: address.state,
                pincode: address.pincode
-            },
-            payment_method: 'online',
-            total_amount: total,
-            token_amount: tokenAmount,
-            remaining_amount: remainingAmount,
-            delivery_otp: generatedOtp 
+            }
          });
 
          if (res.data.success) {
-            setOrderData(res.data.data);
-            clearCart();
-            setStep(3);
+            const { razorpay_order_id, payment_amount, key, order } = res.data.data;
+
+            // 2. Open Razorpay Modal
+            const options = {
+               key: key,
+               amount: payment_amount * 100,
+               currency: "INR",
+               name: "Basera Bazar",
+               description: "Marketplace Booking Token",
+               order_id: razorpay_order_id,
+               handler: async (response) => {
+                  try {
+                     setLoading(true);
+                     // 3. Verify Payment
+                     const verifyRes = await api.post('/orders/payment/verify', {
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_signature: response.razorpay_signature
+                     });
+
+                     if (verifyRes.data.success) {
+                        setOrderData({ order });
+                        setDeliveryOtp(order.items[0]?.delivery_otp || "Verified");
+                        clearCart();
+                        setStep(3);
+                     }
+                  } catch (err) {
+                     alert("Payment verification failed. Please contact support.");
+                  } finally {
+                     setLoading(false);
+                  }
+               },
+               prefill: {
+                  name: address.receiver_name,
+                  contact: address.receiver_phone
+               },
+               theme: { color: "#001b4e" },
+               modal: {
+                  ondismiss: () => setLoading(false)
+               }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
          }
       } catch (err) {
          const errorMsg = err.response?.data?.message || "Order failed";
-         const errorDetail = err.response?.data?.error_detail ? JSON.stringify(err.response.data.error_detail) : "";
-         alert(`${errorMsg} ${errorDetail}`);
+         alert(errorMsg);
       } finally {
          setLoading(false);
       }
@@ -243,7 +289,7 @@ export default function MandiCheckout() {
                            <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-2xl">
                               <div className="flex-1">
                                  <span className="text-[#001b4e] font-black uppercase tracking-widest text-[10px] block">Marketplace Booking Token</span>
-                                 <span className="text-[10px] text-indigo-500 font-bold italic">{getUniqueSellersCount()} Sellers × ₹{config.token_amount}</span>
+                                 <span className="text-[10px] text-indigo-500 font-bold italic">Calculated based on product categories</span>
                               </div>
                               <span className="text-[24px] font-black text-[#001b4e]">₹{tokenAmount}</span>
                            </div>

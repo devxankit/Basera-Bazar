@@ -4,7 +4,31 @@ const Order = require('../models/Order');
 const { MandiListing } = require('../models/Listing');
 const { Partner } = require('../models/Partner');
 const { RazorpayOrder, Transaction } = require('../models/Finance');
-const { AppConfig } = require('../models/System');
+const { AppConfig, Category } = require('../models/System');
+const axios = require('axios');
+
+/**
+ * @desc    Create Marketplace Order (Initiate Payment)
+ * @route   POST /api/orders/checkout
+ * @access  Private (User Token Required)
+ */
+/**
+ * Helper to create Razorpay Order via axios
+ */
+const createRPOrder = async (amount, currency = 'INR') => {
+  const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString('base64');
+  const response = await axios.post('https://api.razorpay.com/v1/orders', {
+    amount: Math.round(amount * 100), // Razorpay expects paise
+    currency,
+    receipt: `mandi_${Date.now()}`
+  }, {
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  return response.data;
+};
 
 /**
  * @desc    Create Marketplace Order (Initiate Payment)
@@ -20,12 +44,20 @@ const createMarketplaceOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cart is empty' });
     }
 
+    // Fetch Global Fallbacks
+    const tokenConfig = await AppConfig.findOne({ key: 'mandi_token_amount' });
+    const commissionConfig = await AppConfig.findOne({ key: 'mandi_commission_rate' });
+    
+    const globalDefaultRate = commissionConfig ? Number(commissionConfig.value) : 0;
+    const globalFallbackToken = tokenConfig ? Number(tokenConfig.value) : 500;
+
     let totalAmount = 0;
+    let totalBookingToken = 0;
     const processedItems = [];
 
-    // 1. Validate Stock and Calculate Total
+    // 1. Validate Stock and Calculate Commissions per Category
     for (const item of items) {
-      const product = await MandiListing.findById(item.productId || item.product_id);
+      const product = await MandiListing.findById(item.productId || item.product_id).populate('category_id');
       if (!product) {
         return res.status(404).json({ success: false, message: `Product ${item.productId || item.product_id} not found` });
       }
@@ -38,7 +70,14 @@ const createMarketplaceOrder = async (req, res) => {
       }
 
       const itemTotal = product.pricing.price_per_unit * item.qty;
+      
+      // Calculate dynamic commission
+      // Use category percentage, fallback to global default
+      const categoryRate = product.category_id?.mandi_commission_percentage ?? globalDefaultRate;
+      const itemCommission = itemTotal * (categoryRate / 100);
+      
       totalAmount += itemTotal;
+      totalBookingToken += itemCommission;
 
       processedItems.push({
         productId: product._id,
@@ -48,47 +87,52 @@ const createMarketplaceOrder = async (req, res) => {
         price: product.pricing.price_per_unit,
         unit: product.pricing.unit,
         status: 'pending',
+        commission_rate: categoryRate,
+        commission_amount: itemCommission,
         delivery_otp: Math.floor(100000 + Math.random() * 900000).toString()
       });
     }
 
-    // 2. Fetch Global Token Amount from Config
-    const tokenConfig = await AppConfig.findOne({ key: 'mandi_token_amount' });
-    const baseToken = tokenConfig ? Number(tokenConfig.value) : 500; // Fallback to 500
+    // Ensure we don't have a zero token if there are unique sellers (Business logic fallback)
+    if (totalBookingToken <= 0) {
+      const uniqueSellersSize = new Set(processedItems.map(item => item.seller_id.toString())).size;
+      totalBookingToken = globalFallbackToken * uniqueSellersSize;
+    }
 
-    // Compute unique sellers
-    const uniqueSellersSize = new Set(processedItems.map(item => item.seller_id.toString())).size;
-    const bookingToken = baseToken * uniqueSellersSize;
-
-    // 3. Create Razorpay order for ONLY the Token Amount (in paisa for Razorpay)
-    const fakeRazorpayOrderId = `order_${crypto.randomBytes(8).toString('hex')}`;
+    // 2. Create Razorpay order (Actual or Mock)
+    let rpOrder;
+    const hasKeys = process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_ID !== 'your_razorpay_key_id';
     
-    // 4. Create Marketplace Order with Token Payment Intent
+    if (hasKeys) {
+      rpOrder = await createRPOrder(totalBookingToken);
+    } else {
+      rpOrder = { id: `order_mock_${crypto.randomBytes(8).toString('hex')}`, amount: totalBookingToken * 100 };
+    }
+    
+    // 3. Create Marketplace Order record
     const orderId = `BSR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    console.log(`Creating marketplace order with ${processedItems.length} items`);
     const newOrder = await Order.create({
       order_id: orderId,
       user_id: userId,
       items: processedItems,
-      total_amount: totalAmount, // Full value of goods
+      total_amount: totalAmount,
       shipping_address,
       billing_address,
       token_payment: {
-        amount: bookingToken,
-        razorpay_order_id: fakeRazorpayOrderId,
+        amount: totalBookingToken,
+        razorpay_order_id: rpOrder.id,
         status: 'pending'
       },
       status: 'pending'
     });
-    console.log(`Successfully created order: ${newOrder._id}`);
 
-    // 5. Record the Razorpay intent for the Token Amount
+    // 4. Record the Razorpay intent
     await RazorpayOrder.create({
-      razorpay_order_id: fakeRazorpayOrderId,
+      razorpay_order_id: rpOrder.id,
       entity_type: 'user',
       entity_id: userId,
       purpose: `mandi_token_${newOrder._id}`,
-      amount: bookingToken,
+      amount: totalBookingToken,
       status: 'created'
     });
 
@@ -96,22 +140,17 @@ const createMarketplaceOrder = async (req, res) => {
       success: true,
       data: {
         order: newOrder,
-        razorpay_order_id: fakeRazorpayOrderId,
-        payment_amount: bookingToken // Customer only pays this now
+        razorpay_order_id: rpOrder.id,
+        payment_amount: totalBookingToken,
+        key: hasKeys ? process.env.RAZORPAY_KEY_ID : 'rzp_test_mock'
       }
     });
 
   } catch (error) {
-    console.error("Detailed Create Order Error:", {
-      message: error.message,
-      stack: error.stack,
-      body: req.body,
-      userId: req.user?.id
-    });
+    console.error("Order Creation Error:", error);
     res.status(500).json({ 
       success: false, 
-      message: error.message || 'Error creating order.',
-      error_detail: error.name === 'ValidationError' ? error.errors : null
+      message: error.message || 'Error creating order.'
     });
   }
 };
@@ -123,7 +162,21 @@ const createMarketplaceOrder = async (req, res) => {
  */
 const verifyMarketplacePayment = async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    // 1. Signature Verification (Only if not mock)
+    const isMock = razorpay_order_id.startsWith('order_mock_');
+    if (!isMock) {
+      const body = razorpay_order_id + "|" + razorpay_payment_id;
+      const expectedSignature = crypto
+        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+        .update(body.toString())
+        .digest('hex');
+
+      if (expectedSignature !== razorpay_signature) {
+        return res.status(400).json({ success: false, message: 'Invalid payment signature' });
+      }
+    }
 
     const rzOrder = await RazorpayOrder.findOne({ razorpay_order_id });
     if (!rzOrder) {
@@ -153,7 +206,6 @@ const verifyMarketplacePayment = async (req, res) => {
 
     // 4. Reduce Stock (The lead is now committed)
     for (let item of order.items) {
-      const MandiListing = mongoose.model('Listing'); // Use correct model name
       await MandiListing.findByIdAndUpdate(item.productId, {
         $inc: { stock_quantity: -item.qty }
       });
@@ -267,12 +319,14 @@ const updateLeadStatus = async (req, res) => {
 
     // Handle Seller Cancellation Penalty
     if (status === 'cancelled') {
-        const tokenConfig = await AppConfig.findOne({ key: 'mandi_token_amount' });
-        const penaltyAmount = tokenConfig ? Number(tokenConfig.value) : 500;
+        // Penalty is now exactly the commission amount lost from this item
+        const penaltyAmount = item.commission_amount || 0;
         
-        await Partner.findByIdAndUpdate(sellerId, {
-          $inc: { 'profile.mandi_profile.penalty_due': penaltyAmount }
-        });
+        if (penaltyAmount > 0) {
+          await Partner.findByIdAndUpdate(sellerId, {
+            $inc: { 'profile.mandi_profile.penalty_due': penaltyAmount }
+          });
+        }
     }
 
     await order.save();
@@ -444,7 +498,7 @@ const resendOrderOTP = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Order already delivered.' });
     }
 
-    const customerPhone = order.user_id?.phone;
+    const customerPhone = order.shipping_address?.phone || order.user_id?.phone;
     if (!customerPhone) {
       return res.status(400).json({ success: false, message: 'Customer phone not found.' });
     }

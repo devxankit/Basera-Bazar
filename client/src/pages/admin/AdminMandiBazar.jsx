@@ -44,6 +44,8 @@ export default function AdminMandiBazar() {
   const [data, setData] = useState([]);
   const [commission, setCommission] = useState(10);
   const [tokenAmount, setTokenAmount] = useState(500);
+  const [globalCommission, setGlobalCommission] = useState(0);
+  const [categories, setCategories] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
@@ -88,6 +90,8 @@ export default function AdminMandiBazar() {
         const res = await api.get('/admin/mandi/settings');
         if (res.data.success) {
           setTokenAmount(res.data.data.token_amount);
+          setGlobalCommission(res.data.data.commission_rate || 0);
+          setCategories(res.data.data.categories || []);
         }
       } else if (activeTab === 'orders') {
         const res = await api.get('/admin/marketplace/orders'); // Corrected path
@@ -159,14 +163,26 @@ export default function AdminMandiBazar() {
     try {
       setLoading(true);
       await api.put('/admin/mandi/settings', { 
-        token_amount: Number(tokenAmount)
+        token_amount: Number(tokenAmount),
+        commission_rate: Number(globalCommission),
+        category_commissions: categories.map(cat => ({
+          id: cat.id,
+          percentage: Number(cat.percentage)
+        }))
       });
-      alert("Mandi settings updated successfully!");
+      alert("Mandi economics updated successfully!");
+      fetchData();
     } catch (err) {
-      alert("Update failed");
+      alert("Update failed: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCategoryPercentageChange = (id, value) => {
+    setCategories(prev => prev.map(cat => 
+      cat.id === id ? { ...cat, percentage: value } : cat
+    ));
   };
 
   const handleSaveMilestoneConfig = async () => {
@@ -829,22 +845,22 @@ export default function AdminMandiBazar() {
         )}
 
         {activeTab === 'commission' && (
-          <motion.div key="commission" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="max-w-2xl mx-auto">
+          <motion.div key="commission" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="max-w-4xl mx-auto space-y-8">
+             {/* Global Economics */}
              <div className="bg-white rounded-3xl shadow-sm p-10 border border-slate-100">
                 <div className="flex items-center gap-4 mb-10">
                    <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-inner">
-                      <Settings size={28} />
+                      <TrendingUp size={28} />
                    </div>
                    <div>
                       <h3 className="text-xl font-black text-slate-900 tracking-tight">Marketplace Economics</h3>
-                      <p className="text-sm font-medium text-slate-400">Configure global booking fees and transaction commissions.</p>
+                      <p className="text-sm font-medium text-slate-400">Configure booking fees and category-based commissions.</p>
                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                   {/* Token Amount */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
                    <div className="space-y-3">
-                      <label className={labelClass}>Booking Token Amount (₹) per Seller</label>
+                      <label className={labelClass}>Global Fallback Token (₹)</label>
                       <div className="relative">
                          <input 
                            type="number" 
@@ -854,18 +870,65 @@ export default function AdminMandiBazar() {
                          />
                          <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 font-bold text-xl">₹</div>
                       </div>
-                      <p className="text-[10px] text-slate-400 font-bold px-1 italic">Non-refundable fee paid by customer per seller.</p>
+                      <p className="text-[10px] text-slate-400 font-bold px-1 italic">Used if category percentage logic results in ₹0 fee.</p>
+                   </div>
+
+                   <div className="space-y-3">
+                      <label className={labelClass}>Global Default Commission (%)</label>
+                      <div className="relative">
+                         <input 
+                           type="number" 
+                           value={globalCommission}
+                           onChange={e => setGlobalCommission(e.target.value)}
+                           className="w-full h-16 px-6 bg-slate-50 border-none rounded-2xl text-2xl font-black text-[#001b4e] outline-none ring-2 ring-transparent focus:ring-indigo-500/10 transition-all font-mono"
+                         />
+                         <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 font-bold text-xl">%</div>
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-bold px-1 italic">Default % for categories not listed below.</p>
+                   </div>
+                </div>
+             </div>
+
+             {/* Category Specific Commissions */}
+             <div className="bg-white rounded-3xl shadow-sm p-10 border border-slate-100">
+                <div className="flex items-center gap-4 mb-10">
+                   <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-inner">
+                      <Box size={28} />
+                   </div>
+                   <div>
+                      <h3 className="text-xl font-black text-slate-900 tracking-tight">Category Commissions</h3>
+                      <p className="text-sm font-medium text-slate-400">Set specific percentage commissions for different material types.</p>
                    </div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+                   {categories.map((cat) => (
+                      <div key={cat.id} className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between gap-4">
+                         <div className="flex-1">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Material</span>
+                            <span className="text-sm font-bold text-[#001b4e]">{cat.name}</span>
+                         </div>
+                         <div className="w-32 relative">
+                            <input 
+                              type="number" 
+                              step="0.1"
+                              value={cat.percentage}
+                              onChange={e => handleCategoryPercentageChange(cat.id, e.target.value)}
+                              className="w-full h-12 pl-4 pr-10 bg-white border border-slate-200 rounded-xl text-lg font-black text-indigo-600 outline-none focus:border-indigo-500 transition-all font-mono"
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 font-bold">%</div>
+                         </div>
+                      </div>
+                   ))}
+                </div>
 
                 <button 
                   onClick={handleUpdateSettings}
                   disabled={loading}
-                  className="w-full h-16 bg-indigo-600 hover:bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 transition-all flex items-center justify-center gap-3 active:scale-95"
+                  className="w-full h-16 bg-[#001b4e] hover:bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 transition-all flex items-center justify-center gap-3 active:scale-95"
                 >
                    {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                   Save Marketplace Configuration
+                   Update Economics Configuration
                 </button>
              </div>
           </motion.div>

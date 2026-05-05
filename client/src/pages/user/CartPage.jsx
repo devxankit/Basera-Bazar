@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
 import { ShoppingCart, ArrowLeft, Trash2, Plus, Minus, ChevronRight, PackageOpen } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,8 +11,45 @@ export default function CartPage() {
 
   const cartItems = Object.values(cart);
   
-  const uniqueSellersCount = new Set(cartItems.map(c => c.item.owner?.id || c.item.partner_id || c.item.seller_id).filter(Boolean)).size || 1;
-  const tokenAmount = uniqueSellersCount * 500;
+  const [config, setConfig] = React.useState({ token_amount: 500 });
+
+  React.useEffect(() => {
+    const fetchConfig = async () => {
+       try {
+          const res = await api.get('/admin/mandi/settings'); 
+          if (res.data.success) setConfig(res.data.data);
+       } catch (err) { console.error("Error fetching config", err); }
+    };
+    fetchConfig();
+  }, []);
+
+  const getUniqueSellersCount = () => {
+    const sellerIds = cartItems.map(c => c.item.owner?.id || c.item.partner_id || c.item.seller_id);
+    return new Set(sellerIds.filter(Boolean)).size || 1;
+  };
+
+  const getCalculatedTokenAmount = () => {
+    if (!config.categories) return config.token_amount * getUniqueSellersCount();
+
+    let totalToken = 0;
+    cartItems.forEach(c => {
+       const itemPrice = c.item.pricing?.price_per_unit || c.item.price?.value || 0;
+       const itemTotal = itemPrice * c.qty;
+       
+       // Find category percentage
+       const categoryId = c.item.category_id?._id || c.item.category_id;
+       const catConfig = config.categories.find(cat => cat.id === categoryId);
+       const percentage = catConfig ? Number(catConfig.percentage) : (config.commission_rate || 0);
+       
+       totalToken += (itemTotal * (percentage / 100));
+    });
+
+    // Business logic: Ensure at least the fallback token amount if calculation is 0
+    if (totalToken <= 0) return config.token_amount * getUniqueSellersCount();
+    return Math.round(totalToken);
+  };
+
+  const tokenAmount = getCalculatedTokenAmount();
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24">

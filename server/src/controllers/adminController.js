@@ -2222,27 +2222,36 @@ const getMandiSettings = async (req, res) => {
   try {
     const tokenAmount = await AppConfig.findOne({ key: 'mandi_token_amount' });
     const commissionRate = await AppConfig.findOne({ key: 'mandi_commission_rate' });
+    
+    // Fetch all supplier categories to manage their individual commissions
+    const categories = await Category.find({ type: 'supplier', parent_id: null }).select('name mandi_commission_percentage');
 
     res.status(200).json({
       success: true,
       data: {
         token_amount: tokenAmount ? tokenAmount.value : 500, // Default 500
-        commission_rate: commissionRate ? commissionRate.value : 10 // Default 10%
+        commission_rate: commissionRate ? commissionRate.value : 0, // Default 0% fallback
+        categories: categories.map(cat => ({
+          id: cat._id,
+          name: cat.name,
+          percentage: cat.mandi_commission_percentage || 0
+        }))
       }
     });
   } catch (error) {
+    console.error("Get settings error:", error);
     res.status(500).json({ success: false, message: 'Error fetching Mandi settings.' });
   }
 };
 
 const updateMandiSettings = async (req, res) => {
   try {
-    const { token_amount, commission_rate } = req.body;
+    const { token_amount, commission_rate, category_commissions } = req.body;
 
     if (token_amount !== undefined) {
       await AppConfig.findOneAndUpdate(
         { key: 'mandi_token_amount' },
-        { value: Number(token_amount), description: 'Non-refundable booking fee for Mandi items' },
+        { value: Number(token_amount), description: 'Non-refundable booking fee for Mandi items (Fallback)' },
         { upsert: true, new: true }
       );
     }
@@ -2250,13 +2259,27 @@ const updateMandiSettings = async (req, res) => {
     if (commission_rate !== undefined) {
       await AppConfig.findOneAndUpdate(
         { key: 'mandi_commission_rate' },
-        { value: Number(commission_rate), description: 'Global commission rate for Mandi Marketplace' },
+        { value: Number(commission_rate), description: 'Global default commission rate for Mandi Marketplace (%)' },
         { upsert: true, new: true }
       );
     }
 
+    // Handle bulk category commission updates
+    if (category_commissions && Array.isArray(category_commissions)) {
+      const bulkOps = category_commissions.map(cc => ({
+        updateOne: {
+          filter: { _id: cc.id },
+          update: { $set: { mandi_commission_percentage: Number(cc.percentage) } }
+        }
+      }));
+      if (bulkOps.length > 0) {
+        await Category.bulkWrite(bulkOps);
+      }
+    }
+
     res.status(200).json({ success: true, message: 'Mandi settings updated successfully.' });
   } catch (error) {
+    console.error("Update settings error:", error);
     res.status(500).json({ success: false, message: 'Error updating Mandi settings.' });
   }
 };

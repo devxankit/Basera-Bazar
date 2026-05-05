@@ -26,7 +26,8 @@ const categorySchema = new mongoose.Schema({
   description: { type: String }, // For marketplace SEO and internal notes
   icon: { type: String }, // For frontend display
   mandi_icon: { type: String }, // Specific image for Mandi Bazar
-  is_active: { type: Boolean, default: true }
+  is_active: { type: Boolean, default: true },
+  mandi_commission_percentage: { type: Number, default: 0 }
 }, { timestamps: true });
 
 const bannerSchema = new mongoose.Schema({
