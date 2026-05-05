@@ -48,9 +48,10 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const handleAccountDeletedConfirm = () => {
+    const isPartnerRoute = window.location.pathname.startsWith('/partner');
     setAccountDeleted(false);
     logout();
-    window.location.href = '/login';
+    window.location.href = isPartnerRoute ? '/partner/login' : '/login';
   };
 
   useEffect(() => {

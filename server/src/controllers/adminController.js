@@ -1051,13 +1051,14 @@ const getUsers = async (req, res) => {
           const roleMap = {
             'property_agent': 'Agent',
             'supplier': 'Supplier',
-            'mandi_seller': 'Supplier', // Or 'Mandi Seller'
+            'mandi_seller': 'Seller',
             'service_provider': 'Service Provider'
           };
           displayRoles = [...new Set(p.roles.map(r => roleMap[r]).filter(Boolean))];
         } else {
           const fallbackRole = p.role || (p.partner_type === 'property_agent' ? 'Agent' :
-            p.partner_type === 'supplier' || p.partner_type === 'mandi_seller' ? 'Supplier' :
+            p.partner_type === 'supplier' ? 'Supplier' :
+            p.partner_type === 'mandi_seller' ? 'Seller' :
               'Service Provider');
           displayRoles = [fallbackRole];
         }

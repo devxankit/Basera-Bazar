@@ -16,7 +16,8 @@ import {
   Star,
   Settings,
   UserCircle,
-  ShoppingBag
+  ShoppingBag,
+  AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,7 +27,7 @@ import logo from '../../assets/baseralogo.png';
 
 export default function PartnerHome() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [stats, setStats] = useState({
     total_listings: 0,
     total_leads: 0,
@@ -45,6 +46,9 @@ export default function PartnerHome() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
+        // Sync user profile to get latest onboarding_status
+        await refreshUser();
+        
         const [statsRes, activityRes] = await Promise.all([
           api.get('/partners/stats'),
           api.get('/partners/activities')
@@ -63,7 +67,19 @@ export default function PartnerHome() {
     };
 
     fetchDashboardData();
-  }, [user, navigate]);
+
+    // Polling for status updates if not approved
+    let interval;
+    if (user.onboarding_status !== 'approved') {
+      interval = setInterval(() => {
+        refreshUser();
+      }, 30000); // 30 seconds
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [user.id, user.onboarding_status, navigate]);
 
   if (!user) return null;
 
@@ -121,15 +137,47 @@ export default function PartnerHome() {
 
       <div className="p-6 space-y-8">
         {/* Welcome Section */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-[28px] font-bold text-[#001b4e] tracking-tight">Hello, {partner.name?.split(' ')[0]} 👋</h2>
-            <p className="text-slate-500 text-[15px] mt-1 font-medium">Here's what's happening with your account.</p>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-[28px] font-bold text-[#001b4e] tracking-tight">Hello, {partner.name?.split(' ')[0]} 👋</h2>
+              <p className="text-slate-500 text-[15px] mt-1 font-medium">Here's what's happening with your account.</p>
+            </div>
+            <div className="px-3 py-1 bg-white border border-slate-200 rounded-full flex items-center gap-2 shadow-sm">
+              <div className={`w-2 h-2 rounded-full animate-pulse ${user.onboarding_status === 'approved' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{role.split('_')[0]} Mode</span>
+            </div>
           </div>
-          <div className="px-3 py-1 bg-white border border-slate-200 rounded-full flex items-center gap-2 shadow-sm">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{role.split('_')[0]} Mode</span>
-          </div>
+
+          {/* Verification Banner */}
+          {user.onboarding_status !== 'approved' && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-4"
+            >
+              <div className="p-2 bg-amber-500 text-white rounded-xl">
+                <AlertCircle size={20} />
+              </div>
+                <div className="flex-grow">
+                  <h3 className="text-amber-900 font-bold text-[14px]">
+                    {user.onboarding_status === 'incomplete' ? 'Verification Required' : 'Verification Pending'}
+                  </h3>
+                  <p className="text-amber-700 text-[12px] leading-tight mt-1">
+                    {user.onboarding_status === 'incomplete' 
+                      ? 'Please complete your KYC profile to start listing products.' 
+                      : 'Admin is reviewing your documents. You will be able to list products once approved.'}
+                  </p>
+                  <button 
+                    onClick={() => navigate('/partner/onboarding')}
+                    className="mt-2 text-[11px] font-black uppercase text-amber-900 hover:underline flex items-center gap-1"
+                  >
+                    {user.onboarding_status === 'incomplete' ? 'Complete Profile' : 'Update Documents'}
+                    <ChevronRight size={12} />
+                  </button>
+                </div>
+            </motion.div>
+          )}
         </div>
 
         {/* Stats Grid */}
@@ -162,6 +210,7 @@ export default function PartnerHome() {
               icon={<Plus size={24} />} 
               color="bg-[#001b4e]" 
               onClick={() => navigate('/partner/add-product')}
+              disabled={user.onboarding_status !== 'approved'}
             />
             <ActionCard 
               title="View Inventory" 
@@ -224,11 +273,11 @@ export default function PartnerHome() {
   );
 }
 
-function ActionCard({ title, icon, color, onClick }) {
+function ActionCard({ title, icon, color, onClick, disabled }) {
   return (
     <button 
-      onClick={onClick}
-      className={`${color} p-5 rounded-2xl text-white flex flex-col items-start gap-4 active:scale-95 transition-all shadow-lg text-left w-full`}
+      onClick={disabled ? () => alert("Verification Required: Please wait for Admin approval to list products.") : onClick}
+      className={`${disabled ? 'bg-slate-400 cursor-not-allowed opacity-80' : color} p-5 rounded-2xl text-white flex flex-col items-start gap-4 active:scale-95 transition-all shadow-lg text-left w-full`}
     >
       <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
         {icon}

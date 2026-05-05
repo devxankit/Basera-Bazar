@@ -37,60 +37,84 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
 
       <div className="space-y-6">
         {/* PAN Card */}
-        <div className="space-y-2">
-          <label className="text-[13px] font-bold text-slate-700 ml-1">PAN Card Image</label>
-          <input type="file" ref={panInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'panImage')} />
-          <div 
-            onClick={() => panInputRef.current.click()}
-            className="w-full h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"
-          >
-            {formData.panImage ? (
-              <img src={formData.panImage} className="w-full h-full object-cover" alt="PAN" />
-            ) : (
-              <>
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                  <Camera size={20} className="text-slate-400" />
-                </div>
-                <span className="text-[13px] font-bold text-slate-400">Upload PAN Card</span>
-              </>
-            )}
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[13px] font-bold text-slate-700 ml-1">PAN Card Number</label>
+            <input 
+              type="text" 
+              value={formData.pan}
+              onChange={(e) => setFormData(prev => ({ ...prev, pan: e.target.value.toUpperCase() }))}
+              placeholder="ABCDE1234F"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[13px] font-bold text-slate-700 ml-1">PAN Card Image</label>
+            <input type="file" ref={panInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'panImage')} />
+            <div 
+              onClick={() => panInputRef.current.click()}
+              className="w-full h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"
+            >
+              {formData.panImage ? (
+                <img src={formData.panImage} className="w-full h-full object-cover" alt="PAN" />
+              ) : (
+                <>
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                    <Camera size={20} className="text-slate-400" />
+                  </div>
+                  <span className="text-[13px] font-bold text-slate-400">Upload PAN Card</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Aadhar Cards */}
-        <div className="space-y-2">
-          <label className="text-[13px] font-bold text-slate-700 ml-1">Aadhar Card Images</label>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <input type="file" ref={aadharFrontRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharFront')} />
-              <div 
-                onClick={() => aadharFrontRef.current.click()}
-                className="h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"
-              >
-                {formData.aadharFront ? (
-                  <img src={formData.aadharFront} className="w-full h-full object-cover" alt="Aadhar Front" />
-                ) : (
-                  <>
-                    <Camera size={20} className="text-slate-300" />
-                    <span className="text-[11px] font-bold text-slate-400 text-center px-2">Front Side</span>
-                  </>
-                )}
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[13px] font-bold text-slate-700 ml-1">Aadhar Card Number</label>
+            <input 
+              type="text" 
+              value={formData.aadhar}
+              onChange={(e) => setFormData(prev => ({ ...prev, aadhar: e.target.value }))}
+              placeholder="1234 5678 9012"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[13px] font-bold text-slate-700 ml-1">Aadhar Card Images</label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <input type="file" ref={aadharFrontRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharFront')} />
+                <div 
+                  onClick={() => aadharFrontRef.current.click()}
+                  className="h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"
+                >
+                  {formData.aadharFront ? (
+                    <img src={formData.aadharFront} className="w-full h-full object-cover" alt="Aadhar Front" />
+                  ) : (
+                    <>
+                      <Camera size={20} className="text-slate-300" />
+                      <span className="text-[11px] font-bold text-slate-400 text-center px-2">Front Side</span>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="space-y-2">
-              <input type="file" ref={aadharBackRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharBack')} />
-              <div 
-                onClick={() => aadharBackRef.current.click()}
-                className="h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"
-              >
-                {formData.aadharBack ? (
-                  <img src={formData.aadharBack} className="w-full h-full object-cover" alt="Aadhar Back" />
-                ) : (
-                  <>
-                    <Camera size={20} className="text-slate-300" />
-                    <span className="text-[11px] font-bold text-slate-400 text-center px-2">Back Side</span>
-                  </>
-                )}
+              <div className="space-y-2">
+                <input type="file" ref={aadharBackRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharBack')} />
+                <div 
+                  onClick={() => aadharBackRef.current.click()}
+                  className="h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"
+                >
+                  {formData.aadharBack ? (
+                    <img src={formData.aadharBack} className="w-full h-full object-cover" alt="Aadhar Back" />
+                  ) : (
+                    <>
+                      <Camera size={20} className="text-slate-300" />
+                      <span className="text-[11px] font-bold text-slate-400 text-center px-2">Back Side</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -98,23 +122,35 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
 
         {/* GST Certificate */}
         {isMandiOrSupplier && (
-          <div className="space-y-2">
-            <label className="text-[13px] font-bold text-slate-700 ml-1">GST Certificate</label>
-            <input type="file" ref={gstInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'gstImage')} />
-            <div 
-              onClick={() => gstInputRef.current.click()}
-              className="w-full h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"
-            >
-              {formData.gstImage ? (
-                <img src={formData.gstImage} className="w-full h-full object-cover" alt="GST" />
-              ) : (
-                <>
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                    <FileText size={20} className="text-slate-400" />
-                  </div>
-                  <span className="text-[13px] font-bold text-slate-400">Upload GST Certificate</span>
-                </>
-              )}
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-bold text-slate-700 ml-1">GST Number (Optional)</label>
+              <input 
+                type="text" 
+                value={formData.gst}
+                onChange={(e) => setFormData(prev => ({ ...prev, gst: e.target.value.toUpperCase() }))}
+                placeholder="22AAAAA0000A1Z5"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-bold text-slate-700 ml-1">GST Certificate</label>
+              <input type="file" ref={gstInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'gstImage')} />
+              <div 
+                onClick={() => gstInputRef.current.click()}
+                className="w-full h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"
+              >
+                {formData.gstImage ? (
+                  <img src={formData.gstImage} className="w-full h-full object-cover" alt="GST" />
+                ) : (
+                  <>
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                      <FileText size={20} className="text-slate-400" />
+                    </div>
+                    <span className="text-[13px] font-bold text-slate-400">Upload GST Certificate</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}

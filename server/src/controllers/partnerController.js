@@ -116,42 +116,59 @@ const getMyPartnerProfile = async (req, res) => {
  */
 const getPartnerStats = async (req, res) => {
   try {
-    const partnerId = req.user._id;
+    const partnerId = req.user.id;
+
+    const partner = await Partner.findById(partnerId);
+    if (!partner) return res.status(404).json({ success: false, message: 'Partner not found' });
+
+    const role = partner.active_role || partner.partner_type;
 
     // 1. Get Listing Stats
     const modelMap = {
       'property_agent': PropertyListing,
       'service_provider': ServiceListing,
-      'supplier': null // Suppliers no longer have individual listings to track stats for
+      'mandi_seller': MandiListing,
+      'supplier': null
     };
 
-    const partner = await Partner.findById(partnerId);
-    if (!partner) return res.status(404).json({ success: false, message: 'Partner not found' });
+    const ListingModel = modelMap[role] || PropertyListing;
 
-    const ListingModel = modelMap[partner.active_role || partner.partner_type] || PropertyListing;
-
-    let total = 0, active = 0, pending = 0, featured = 0;
+    let totalListings = 0;
     if (ListingModel) {
-      const stats = await Promise.all([
-        ListingModel.countDocuments({ partner_id: partnerId }),
-        ListingModel.countDocuments({ partner_id: partnerId, status: 'active' }),
-        ListingModel.countDocuments({ partner_id: partnerId, status: 'pending_approval' }),
-        ListingModel.countDocuments({ partner_id: partnerId, is_featured: true })
-      ]);
-      [total, active, pending, featured] = stats;
+      totalListings = await ListingModel.countDocuments({ partner_id: partnerId });
     }
 
     // 2. Get Inquiry/Leads Stats
-    const [totalLeads, unreadLeads] = await Promise.all([
-      Enquiry.countDocuments({ partner_id: partnerId }),
-      Enquiry.countDocuments({ partner_id: partnerId, is_read: false })
-    ]);
+    const totalLeads = await Enquiry.countDocuments({ partner_id: partnerId });
+
+    // 3. Get Order Stats (Specifically for Mandi Sellers)
+    let activeOrders = 0;
+    let totalEarnings = 0;
+
+    const orders = await Order.find({ 'items.seller_id': partnerId });
+    
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        if (item.seller_id.toString() === partnerId.toString()) {
+          // Count active orders
+          if (['pending', 'accepted', 'processing', 'shipped'].includes(item.status)) {
+            activeOrders++;
+          }
+          // Sum up earnings from delivered items
+          if (item.status === 'delivered') {
+            totalEarnings += (item.price * item.qty);
+          }
+        }
+      });
+    });
 
     res.status(200).json({
       success: true,
       data: {
-        listings: { total, active, pending, featured },
-        leads: { total: totalLeads, unread: unreadLeads }
+        total_listings: totalListings,
+        total_leads: totalLeads,
+        active_orders: activeOrders,
+        earnings: totalEarnings
       }
     });
 
@@ -378,11 +395,9 @@ const getPublicPartners = async (req, res) => {
       ];
     }
 
-    // Filter by location (Skipped in development to show all data)
-    if (process.env.NODE_ENV !== 'development') {
-      if (district) query.district = new RegExp(district, 'i');
-      if (state) query.state = new RegExp(state, 'i');
-    }
+    // Filter by location
+    if (district) query.district = new RegExp(district, 'i');
+    if (state) query.state = new RegExp(state, 'i');
 
     // Search by name or business name
     if (search) {

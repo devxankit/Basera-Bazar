@@ -20,6 +20,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { useCart } from '../../context/CartContext';
+import { useLocationContext } from '../../context/LocationContext';
 
 export default function MandiCategoryView() {
   const navigate = useNavigate();
@@ -27,11 +28,15 @@ export default function MandiCategoryView() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const { cart, addToCart, removeFromCart, cartTotal, cartCount } = useCart();
+  const { location } = useLocationContext();
 
   useEffect(() => {
     const fetchCategoryListings = async () => {
       try {
-        const res = await api.get(`/mandi/marketplace/category/${id}`);
+        const district = location?.district || '';
+        const state = location?.state || '';
+        const params = `?district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}`;
+        const res = await api.get(`/mandi/marketplace/category/${id}${params}`);
         setData(res.data.data);
       } catch (err) {
         console.error(err);
@@ -40,7 +45,7 @@ export default function MandiCategoryView() {
       }
     };
     fetchCategoryListings();
-  }, [id]);
+  }, [id, location?.district, location?.state]);
 
   const updateCart = (product, delta) => {
     // Cart logic is now handled by context

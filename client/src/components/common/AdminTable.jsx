@@ -27,7 +27,7 @@ export default function AdminTable({
   const paginatedData = data.slice(startIndex, endIndex);
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 transition-all overflow-hidden">
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 transition-all">
       {/* Table Header */}
       <div className="px-6 py-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {title && <h2 className="text-xl font-black text-slate-900 tracking-tight">{title}</h2>}
@@ -54,7 +54,7 @@ export default function AdminTable({
       </div>
 
       {/* Table Content */}
-      <div className="overflow-x-auto custom-scrollbar">
+      <div className="overflow-x-auto custom-scrollbar min-h-[450px]">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50/30">

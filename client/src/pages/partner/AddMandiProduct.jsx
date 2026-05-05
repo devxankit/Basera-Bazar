@@ -68,7 +68,9 @@ export default function AddMandiProduct() {
         const sub = partner.active_subscription_id;
         setSubscriptionInfo({
           isPro: !!sub && sub.plan_snapshot?.price > 0,
-          featuredLimit: sub?.plan_snapshot?.featured_listings_limit || 0
+          featuredLimit: sub?.plan_snapshot?.featured_listings_limit || 0,
+          district: partner.district,
+          state: partner.state
         });
       }
     } catch (err) {
@@ -268,6 +270,21 @@ export default function AddMandiProduct() {
             ))}
           </div>
         </div>
+        
+        {/* Location Info Note */}
+        {subscriptionInfo?.district && (
+          <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100 flex items-start gap-3">
+            <div className="bg-blue-600 p-1.5 rounded-lg text-white mt-0.5">
+              <Box size={14} />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-[#001b4e] uppercase tracking-tight">Listing Location</p>
+              <p className="text-[10px] text-blue-600 font-bold opacity-80 leading-relaxed mt-0.5">
+                This product will be visible to customers in <span className="underline">{subscriptionInfo.district}, {subscriptionInfo.state}</span>.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* STEP 2: Type */}
         {formData.material_id && (

@@ -61,9 +61,13 @@ export default function MandiMarketplace() {
       const fetchData = async () => {
          try {
             setLoadingCategories(true);
+            const district = location?.district || '';
+            const state = location?.state || '';
+            const locationParams = `?district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}`;
+
             const [mandiRes, supplierRes, bannerRes] = await Promise.all([
-               api.get('/mandi/marketplace/home'),
-               api.get('/listings/categories?type=supplier'),
+               api.get(`/mandi/marketplace/home${locationParams}`),
+               api.get(`/listings/categories?type=supplier&district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}`),
                api.get('/listings/banners')
             ]);
 
@@ -93,7 +97,7 @@ export default function MandiMarketplace() {
          }
       };
       fetchData();
-   }, []);
+   }, [location?.district, location?.state]);
 
    // Auto-slide effect
    useEffect(() => {

@@ -139,4 +139,20 @@ const optionalProtect = async (req, res, next) => {
   next();
 };
 
-module.exports = { protect, authorizeRoles, optionalProtect };
+/**
+ * Middleware: Verify Approved Partner
+ * This checks if the partner has completed onboarding and is approved by admin.
+ */
+const verifyApproved = (req, res, next) => {
+  if (req.user.role === 'partner') {
+    if (req.user.onboarding_status !== 'approved') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Your account is not yet verified by the Admin. Please complete your profile and wait for approval.'
+      });
+    }
+  }
+  next();
+};
+
+module.exports = { protect, authorizeRoles, optionalProtect, verifyApproved };

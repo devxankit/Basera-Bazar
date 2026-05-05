@@ -150,22 +150,21 @@ export default function PartnerRegistration() {
         district: formData.district,
         address: formData.address,
         pincode: formData.pincode,
-        mandi_profile: backendRole === 'mandi_seller' ? {
-          business_name: formData.businessName,
-          business_logo: logoUrl,
-          business_description: formData.businessDescription
-        } : undefined,
-        kyc: {
-          pan_number: formData.pan,
-          pan_image: panUrl,
-          aadhar_number: formData.aadhar,
-          aadhar_front_image: aadharFrontUrl,
-          aadhar_back_image: aadharBackUrl,
-          gst_number: formData.gst,
-          gst_image: gstUrl
-        },
-        onboarding_status: 'pending_approval'
+        'kyc.pan_number': formData.pan,
+        'kyc.pan_image': panUrl,
+        'kyc.aadhar_number': formData.aadhar,
+        'kyc.aadhar_front_image': aadharFrontUrl,
+        'kyc.aadhar_back_image': aadharBackUrl,
+        'kyc.gst_number': formData.gst,
+        'kyc.gst_image': gstUrl,
+        onboarding_status: (panUrl && formData.pan && aadharFrontUrl && formData.aadhar) ? 'pending_approval' : 'incomplete'
       };
+
+      if (backendRole === 'mandi_seller') {
+        updatePayload['profile.mandi_profile.business_name'] = formData.businessName;
+        updatePayload['profile.mandi_profile.business_logo'] = logoUrl;
+        updatePayload['profile.mandi_profile.business_description'] = formData.businessDescription;
+      }
 
       await api.put('/auth/profile', updatePayload);
 

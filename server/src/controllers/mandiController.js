@@ -85,14 +85,29 @@ const getMarketplaceHome = async (req, res) => {
       is_active: true 
     });
 
+    const { district, state } = req.query;
+    const locationFilter = {};
+    if (district) {
+      locationFilter['address.district'] = { $regex: new RegExp(`^${district}$`, 'i') };
+    } else if (state) {
+      locationFilter['address.state'] = { $regex: new RegExp(`^${state}$`, 'i') };
+    }
+
     // 2. Fetch "Best Deal" for each category to show on the main marketplace
     const featuredDeals = await Promise.all(categories.map(async (cat) => {
-      const bestPrice = await MandiListing.findOne({ 
+      const query = { 
         category_id: cat._id, 
-        status: 'active'
-      })
+        status: 'active',
+        ...locationFilter
+      };
+
+      let bestPrice = await MandiListing.findOne(query)
       .sort({ 'pricing.price_per_unit': 1 })
-      .select('title pricing material_name thumbnail');
+      .select('title pricing material_name thumbnail address');
+      
+      // Fallback to national if no local deals found? 
+      // User requested strict, but usually a "Top Selling" section should have content.
+      // However, to fix the specific issue "Muzaffarpur showing in Jaipur", we MUST be strict if location is provided.
       
       return {
         category: cat.name,
@@ -123,13 +138,21 @@ const getMarketplaceHome = async (req, res) => {
 const getCategoryListings = async (req, res) => {
   try {
     const { id } = req.params;
+    const { district, state } = req.query;
+    const query = { 
+      category_id: id, 
+      status: 'active'
+    };
+
+    if (district) {
+      query['address.district'] = { $regex: new RegExp(`^${district}$`, 'i') };
+    } else if (state) {
+      query['address.state'] = { $regex: new RegExp(`^${state}$`, 'i') };
+    }
     
     const [category, listings] = await Promise.all([
       Category.findById(id),
-      MandiListing.find({ 
-        category_id: id, 
-        status: 'active'
-      })
+      MandiListing.find(query)
       .sort({ 'pricing.price_per_unit': 1 })
       .populate('partner_id', 'name profile') // Populate profile for business name
     ]);

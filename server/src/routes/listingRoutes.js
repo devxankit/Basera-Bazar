@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const listingController = require('../controllers/listingController');
 
-const { protect, authorizeRoles, optionalProtect } = require('../middlewares/authMiddleware');
+const { protect, authorizeRoles, optionalProtect, verifyApproved } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
 const debounceMiddleware = require('../middlewares/debounceMiddleware');
 
@@ -19,15 +19,15 @@ router.get('/seller-attributes', debounceMiddleware, listingController.getSeller
 // private routes (Partner specific) — MUST be before /:id catch-all!
 router.get('/my', protect, authorizeRoles('partner'), listingController.getMyListings);
 router.get('/seller-attributes/my', protect, authorizeRoles('partner'), listingController.getMySellerAttributes);
-router.post('/properties', protect, authorizeRoles('partner'), listingController.createPropertyListing);
-router.post('/services', protect, authorizeRoles('partner'), listingController.createServiceListing);
-router.post('/mandi', protect, authorizeRoles('partner'), listingController.createMandiListing);
-router.post('/categories', protect, authorizeRoles('partner'), listingController.createPartnerCategory);
-router.delete('/categories/:id', protect, authorizeRoles('partner'), listingController.deletePartnerCategory);
-router.post('/seller-attributes', protect, authorizeRoles('partner'), listingController.createSellerAttribute);
-router.delete('/seller-attributes/:id', protect, authorizeRoles('partner'), listingController.deleteSellerAttribute);
+router.post('/properties', protect, authorizeRoles('partner'), verifyApproved, listingController.createPropertyListing);
+router.post('/services', protect, authorizeRoles('partner'), verifyApproved, listingController.createServiceListing);
+router.post('/mandi', protect, authorizeRoles('partner'), verifyApproved, listingController.createMandiListing);
+router.post('/categories', protect, authorizeRoles('partner'), verifyApproved, listingController.createPartnerCategory);
+router.delete('/categories/:id', protect, authorizeRoles('partner'), verifyApproved, listingController.deletePartnerCategory);
+router.post('/seller-attributes', protect, authorizeRoles('partner'), verifyApproved, listingController.createSellerAttribute);
+router.delete('/seller-attributes/:id', protect, authorizeRoles('partner'), verifyApproved, listingController.deleteSellerAttribute);
 
-router.put('/:id', protect, authorizeRoles('partner', 'admin', 'super_admin', 'SuperAdmin', 'Admin'), listingController.updateListing);
+router.put('/:id', protect, authorizeRoles('partner', 'admin', 'super_admin', 'SuperAdmin', 'Admin'), verifyApproved, listingController.updateListing);
 router.delete('/:id', protect, authorizeRoles('partner', 'admin', 'super_admin', 'SuperAdmin', 'Admin'), listingController.deleteListing);
 
 // Parameterized catch-all — MUST be LAST

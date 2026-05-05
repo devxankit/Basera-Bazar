@@ -7,48 +7,39 @@ const { getMandiLimits, enforceMandiLimits } = require('../utils/subscriptionUti
 const mongoose = require('mongoose');
 
 /**
- * Helper to build proximity aggregation pipeline
+ * Helper to build a reliable location-based query.
+ * Uses address.district and address.state for filtering since
+ * geo coordinates are often [0,0] for older listings.
+ * Priority: exact district > same state > national (if no location given)
  */
-const buildProximityPipeline = (lat, lng, userDistrict, userState, radiusKm = 300) => {
-  const latitude = parseFloat(lat);
-  const longitude = parseFloat(lng);
+const buildLocationQuery = (district, state) => {
+  if (!district && !state) return {};
+  if (district) return { 'address.district': { $regex: new RegExp(district, 'i') } };
+  if (state) return { 'address.state': { $regex: new RegExp(state, 'i') } };
+  return {};
+};
 
-  // Robust check for valid coordinates
-  if (isNaN(latitude) || isNaN(longitude)) {
-     throw new Error("Invalid coordinates provided for proximity search.");
-  }
+/**
+ * Sort listings by location priority:
+ * 2 = same district, 1 = same state, 0 = other
+ */
+const sortByLocationPriority = (items, district, state) => {
+  if (!district && !state) return items;
+  return items.sort((a, b) => {
+    const getScore = (item) => {
+      // Support both Partner (top-level) and Listing (address sub-object) schemas
+      const d = (item.address?.district || item.district || '').toLowerCase();
+      const s = (item.address?.state || item.state || '').toLowerCase();
+      
+      const targetD = (district || '').toLowerCase();
+      const targetS = (state || '').toLowerCase();
 
-  return [
-    {
-      $geoNear: {
-        near: { type: "Point", coordinates: [longitude, latitude] },
-        distanceField: "distance",
-        maxDistance: (process.env.NODE_ENV === 'development' ? 20000 : parseFloat(radiusKm)) * 1000,
-        query: { status: 'active' },
-        spherical: true
-      }
-    },
-    {
-      $addFields: {
-        priorityScore: {
-          $cond: {
-            if: { $eq: ["$address.district", userDistrict] },
-            then: 2,
-            else: {
-              $cond: {
-                if: { $eq: ["$address.state", userState] },
-                then: 1,
-                else: 0
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      $sort: { priorityScore: -1, distance: 1 }
-    }
-  ];
+      if (targetD && d === targetD) return 2;
+      if (targetS && s === targetS) return 1;
+      return 0;
+    };
+    return getScore(b) - getScore(a);
+  });
 };
 
 /**
@@ -58,42 +49,24 @@ const buildProximityPipeline = (lat, lng, userDistrict, userState, radiusKm = 30
  */
 const getNearbyServices = async (req, res) => {
   try {
-    const { lat, lng, district, state, radius = 300 } = req.query;
+    const { district, state } = req.query;
 
-    const latitude = parseFloat(lat);
-    const longitude = parseFloat(lng);
+    const query = { status: 'active' };
 
-    if (isNaN(latitude) || isNaN(longitude)) {
-      // Fallback to basic find if no location provided
-      const query = process.env.NODE_ENV === 'development' 
-        ? { status: { $in: ['active', 'pending_approval'] } }
-        : { status: 'active' };
-      const services = await ServiceListing.find(query).limit(20);
-      return res.status(200).json({ success: true, count: services.length, data: services });
+    // Apply location filter using district/state text matching
+    if (district) {
+      query['address.district'] = { $regex: new RegExp(district, 'i') };
+    } else if (state) {
+      query['address.state'] = { $regex: new RegExp(state, 'i') };
     }
 
-    const pipeline = buildProximityPipeline(lat, lng, district, state, radius);
-    
-    // Add population for partner data in aggregation
-    pipeline.push({
-      $lookup: {
-        from: 'partners',
-        localField: 'partner_id',
-        foreignField: '_id',
-        as: 'partner_id'
-      }
-    });
-    pipeline.push({ $unwind: '$partner_id' });
-    pipeline.push({
-      $project: {
-        'partner_id.password': 0,
-        'partner_id.kyc': 0
-      }
-    });
+    const services = await ServiceListing.find(query)
+      .populate({ path: 'partner_id', select: 'name phone email role profile createdAt' })
+      .sort({ createdAt: -1 })
+      .limit(20);
 
-    const services = await ServiceListing.aggregate(pipeline);
-
-    res.status(200).json({ success: true, count: services.length, data: services });
+    const sorted = sortByLocationPriority(services.map(s => s.toObject()), district, state);
+    res.status(200).json({ success: true, count: sorted.length, data: sorted });
 
   } catch (error) {
     console.error("Error in getNearbyServices:", error);
@@ -108,42 +81,43 @@ const getNearbyServices = async (req, res) => {
  */
 const getMandiListings = async (req, res) => {
   try {
-    const { category_id, partner_id } = req.query;
-    const query = { deleted_at: null };
-    query.status = 'active';
+    const { category_id, partner_id, district, state } = req.query;
+    const query = { deleted_at: null, status: 'active' };
 
     if (partner_id) {
       try {
         query.partner_id = new mongoose.Types.ObjectId(partner_id);
-      } catch (e) {
-        // ignore invalid partner_id
-      }
+      } catch (e) { /* ignore invalid partner_id */ }
     }
 
     if (category_id) {
       try {
         const oid = new mongoose.Types.ObjectId(category_id);
-        query.$or = [
-          { category_id: oid },
-          { subcategory_id: oid }
-        ];
-      } catch (e) {
-        // invalid ObjectId — ignore category filter
-      }
+        query.$or = [{ category_id: oid }, { subcategory_id: oid }];
+      } catch (e) { /* ignore invalid category_id */ }
     }
 
     if (partner_id) {
-       // Auto-enforce limits if we're viewing a specific partner's items (dashboard context)
-       await enforceMandiLimits(partner_id);
+      await enforceMandiLimits(partner_id);
     }
+
+    // Apply location filter using district/state text matching
+    if (!partner_id) { // Don't filter by location when viewing a specific partner's items
+      if (district) {
+        query['address.district'] = { $regex: new RegExp(district, 'i') };
+      } else if (state) {
+        query['address.state'] = { $regex: new RegExp(state, 'i') };
+      }
+    }
+
+    console.log(`[MandiListings] Query with location filter:`, JSON.stringify(query));
 
     const mandiItems = await MandiListing.find(query)
       .populate('category_id', 'name icon mandi_icon type')
       .sort({ createdAt: -1 });
 
-    console.log(`[MandiDebug] Found ${mandiItems.length} items for query:`, JSON.stringify(query));
-
-    res.status(200).json({ success: true, count: mandiItems.length, data: mandiItems });
+    const sorted = sortByLocationPriority(mandiItems.map(m => m.toObject ? m.toObject() : m), district, state);
+    res.status(200).json({ success: true, count: sorted.length, data: sorted });
 
   } catch (error) {
     console.error("Error in getMandiListings:", error);
@@ -398,115 +372,74 @@ const getListingById = async (req, res) => {
  */
 const getAllListings = async (req, res) => {
   try {
-    const { category, limit = 10, lat, lng, district, state, is_featured, partner_id } = req.query;
-    let results = [];
-
-    const latitude = parseFloat(lat);
-    const longitude = parseFloat(lng);
-    const hasLocation = !isNaN(latitude) && !isNaN(longitude);
-    const proximityRadius = 300;
+    const { category, limit = 20, district, state, is_featured, partner_id } = req.query;
+    const hasLocation = !!(district || state);
 
     const fetchCategory = async (Model, modelName) => {
-      const query = { status: 'active' };
+      // Base query: only active items/partners
+      const query = modelName === 'Partner' 
+        ? { onboarding_status: 'approved', is_active: true }
+        : { status: 'active' };
 
-      if (is_featured === 'true') {
-        query.is_featured = true;
-      }
-      if (partner_id) {
-        query.partner_id = partner_id;
+      if (is_featured === 'true') query.is_featured = true;
+      if (partner_id) query.partner_id = partner_id;
+
+      // Apply strict location filtering when location is provided
+      if (hasLocation && !partner_id) {
+        // Different models use different paths for district/state
+        const pathPrefix = modelName === 'Partner' ? '' : 'address.';
+        
+        if (district) {
+          query[`${pathPrefix}district`] = { $regex: new RegExp(`^${district}$`, 'i') };
+        } else if (state) {
+          query[`${pathPrefix}state`] = { $regex: new RegExp(`^${state}$`, 'i') };
+        }
       }
 
-      // Add special sorting for top selling/best sellers
       let sort = { createdAt: -1 };
       if (modelName === 'MandiListing' || category === 'mandi') {
         sort = { 'stats.enquiries': -1, 'stats.views': -1, createdAt: -1 };
       }
 
-      if (hasLocation && process.env.NODE_ENV !== 'development') {
-        const pipeline = buildProximityPipeline(latitude, longitude, district, state, proximityRadius);
-        // Add the extra filters to the aggregation pipeline
-        const matchStage = { $match: query };
-        pipeline.splice(1, 0, matchStage); // Insert after $geoNear
+      console.log(`[getAllListings] Query for ${modelName}:`, JSON.stringify(query));
 
-        // Add population for partner data in aggregation
-        pipeline.push({
-          $lookup: {
-            from: 'partners',
-            localField: 'partner_id',
-            foreignField: '_id',
-            as: 'partner_id'
-          }
-        });
-        pipeline.push({ $unwind: { path: '$partner_id', preserveNullAndEmptyArrays: true } });
-        pipeline.push({
-          $lookup: {
-            from: 'categories',
-            localField: 'category_id',
-            foreignField: '_id',
-            as: 'category_id'
-          }
-        });
-        pipeline.push({ $unwind: { path: '$category_id', preserveNullAndEmptyArrays: true } });
+      const items = await Model.find(query)
+        .populate({ path: 'partner_id', select: 'name phone email role default_location profile createdAt' })
+        .populate('category_id')
+        .populate('subcategory_id')
+        .sort(sort)
+        .limit(parseInt(limit));
 
-        pipeline.push({
-          $lookup: {
-            from: 'categories',
-            localField: 'subcategory_id',
-            foreignField: '_id',
-            as: 'subcategory_id'
-          }
-        });
-        pipeline.push({ $unwind: { path: '$subcategory_id', preserveNullAndEmptyArrays: true } });
-
-        pipeline.push({
-          $project: {
-            'partner_id.password': 0,
-            'partner_id.kyc': 0
-          }
-        });
-
-        if (limit) pipeline.push({ $limit: parseInt(limit) });
-        return await Model.aggregate(pipeline);
-      } else {
-        return await Model.find(query)
-          .populate({ path: 'partner_id', select: 'name phone email role default_location profile createdAt' })
-          .populate('category_id')
-          .populate('subcategory_id')
-          .sort(sort)
-          .limit(parseInt(limit));
-      }
+      return items.map(i => i.toObject ? i.toObject() : i);
     };
+
+    let results = [];
 
     if (!category || category === 'property') {
       const properties = await fetchCategory(PropertyListing, 'PropertyListing');
       results = [...results, ...properties];
     }
-
     if (!category || category === 'service') {
       const services = await fetchCategory(ServiceListing, 'ServiceListing');
       results = [...results, ...services];
     }
-
     if (!category || category === 'mandi') {
       const mandiItems = await fetchCategory(MandiListing, 'MandiListing');
       results = [...results, ...mandiItems];
     }
-
-
-
-    // Sort combined results by distance if location was provided
-    if (hasLocation) {
-      results.sort((a, b) => (a.priorityScore === b.priorityScore) ? (a.distance - b.distance) : (b.priorityScore - a.priorityScore));
+    if (category === 'supplier') {
+      const suppliers = await fetchCategory(Partner, 'Partner');
+      results = [...results, ...suppliers];
     }
 
-    res.status(200).json({
-      success: true,
-      count: results.length,
-      data: results
-    });
+    // Sort combined results by location priority
+    const sorted = sortByLocationPriority(results, district, state);
+
+    console.log(`[getAllListings] district=${district} state=${state} → returning ${sorted.length} results`);
+
+    res.status(200).json({ success: true, count: sorted.length, data: sorted });
   } catch (error) {
     console.error("CRITICAL: Error in getAllListings:", error.message);
-    console.error("Stack:", error.stack);
     res.status(500).json({ success: false, message: `Server error: ${error.message}` });
   }
 };
@@ -564,27 +497,35 @@ const getPublicCategories = async (req, res) => {
     if (type === 'property') ListingModel = PropertyListing;
     else if (type === 'service') ListingModel = ServiceListing;
 
+    const { district, state } = req.query;
+    const hasLocation = !!(district || state);
+
     const categoriesWithCounts = await Promise.all(categories.map(async (cat) => {
       let count = 0;
+      
+      const applyLocationFilter = (q, modelType) => {
+        if (!hasLocation) return q;
+        const prefix = modelType === 'Partner' ? '' : 'address.';
+        if (district) q[`${prefix}district`] = { $regex: new RegExp(`^${district}$`, 'i') };
+        else if (state) q[`${prefix}state`] = { $regex: new RegExp(`^${state}$`, 'i') };
+        return q;
+      };
+
       if (ListingModel) {
-        const countQuery = process.env.NODE_ENV === 'development'
-          ? { $or: [{ category_id: cat._id }, { subcategory_id: cat._id }], status: { $in: ['active', 'pending_approval'] } }
-          : { $or: [{ category_id: cat._id }, { subcategory_id: cat._id }], status: 'active' };
-        
+        let countQuery = { 
+          $or: [{ category_id: cat._id }, { subcategory_id: cat._id }], 
+          status: 'active' 
+        };
+        countQuery = applyLocationFilter(countQuery, 'Listing');
         count = await ListingModel.countDocuments(countQuery);
       } else if (type === 'supplier') {
-        const countQuery = process.env.NODE_ENV === 'development'
-          ? { 
-              $or: [{ roles: 'supplier' }, { partner_type: 'supplier' }],
-              'profile.supplier_profile.material_categories': cat.name,
-              onboarding_status: { $in: ['approved', 'pending_approval', 'incomplete'] }
-            }
-          : { 
-              $or: [{ roles: 'supplier' }, { partner_type: 'supplier' }],
-              'profile.supplier_profile.material_categories': cat.name,
-              onboarding_status: 'approved',
-              is_active: true
-            };
+        let countQuery = { 
+          $or: [{ roles: 'supplier' }, { partner_type: 'supplier' }],
+          'profile.supplier_profile.material_categories': cat.name,
+          onboarding_status: 'approved',
+          is_active: true
+        };
+        countQuery = applyLocationFilter(countQuery, 'Partner');
         count = await Partner.countDocuments(countQuery);
       }
       return { ...cat.toObject(), listing_count: count };
@@ -814,6 +755,24 @@ const createMandiListing = async (req, res) => {
       }
     }
 
+    // ── POPULATE LOCATION FROM PARTNER IF MISSING ──
+    let finalState = state;
+    let finalDistrict = district;
+    let finalPincode = pincode;
+    let finalLocation = location;
+    let finalAddress = req.body.location_text;
+
+    if (!finalState || !finalDistrict) {
+      const partner = await Partner.findById(partnerId);
+      if (partner) {
+        finalState = finalState || partner.state;
+        finalDistrict = finalDistrict || partner.district;
+        finalPincode = finalPincode || partner.pincode;
+        finalAddress = finalAddress || partner.address;
+        finalLocation = finalLocation || partner.location;
+      }
+    }
+
     const newMandiItem = await MandiListing.create({
       partner_id: partnerId,
       category_id: material_id || req.body.category_id,
@@ -833,12 +792,12 @@ const createMandiListing = async (req, res) => {
       },
       stock_quantity: Number(stock || req.body.stock_quantity || 0),
       address: {
-        state,
-        district,
-        full_address: req.body.location_text,
-        pincode
+        state: finalState,
+        district: finalDistrict,
+        full_address: finalAddress,
+        pincode: finalPincode
       },
-      location: location || { type: 'Point', coordinates: [0, 0] },
+      location: finalLocation || { type: 'Point', coordinates: [0, 0] },
       status: 'active',
       is_featured: finalFeatured
     });

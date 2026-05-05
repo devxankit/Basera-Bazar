@@ -9,8 +9,10 @@ import {
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { db } from '../../services/DataEngine';
+import { cacheService } from '../../services/CacheService';
 import { Star, MapPin as Pin, Heart, ShoppingCart, Plus, Minus } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useLocationContext } from '../../context/LocationContext';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -19,6 +21,7 @@ function cn(...inputs) {
 const Home = () => {
   const navigate = useNavigate();
   const { cart, addToCart, removeFromCart } = useCart();
+  const { location } = useLocationContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [featuredProperties, setFeaturedProperties] = useState([]);
@@ -30,11 +33,22 @@ const Home = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        // Build location params - district and state are the key filters
+        const locationParams = {};
+        if (location?.district) locationParams.district = location.district;
+        if (location?.state) locationParams.state = location.state;
+
+        // Invalidate old cached listings data to force fresh location-filtered fetch
+        cacheService.invalidate('all_listings_');
+        cacheService.invalidate('all_partners_');
+
+        console.log('[Home] Fetching with location params:', locationParams);
+
         const [props, servs, supps, mandi] = await Promise.all([
-          db.getAll('listings', { category: 'property', is_featured: 'true', limit: 8 }),
-          db.getAll('listings', { category: 'service', is_featured: 'true', limit: 8 }),
-          db.getAll('partners', { category: 'supplier', is_featured: 'true', limit: 8 }),
-          db.getAll('listings', { category: 'mandi', sort: 'top_selling', limit: 8 })
+          db.getAll('listings', { category: 'property', is_featured: 'true', limit: 8, ...locationParams }),
+          db.getAll('listings', { category: 'service', is_featured: 'true', limit: 8, ...locationParams }),
+          db.getAll('partners', { category: 'supplier', is_featured: 'true', limit: 8, ...locationParams }),
+          db.getAll('listings', { category: 'mandi', sort: 'top_selling', limit: 8, ...locationParams })
         ]);
         setFeaturedProperties(props);
         setFeaturedServices(servs);
@@ -47,7 +61,7 @@ const Home = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [location]);  // Re-fetch whenever user changes their location
 
   const categories = [
     {

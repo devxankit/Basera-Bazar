@@ -95,6 +95,8 @@ import MandiPenalties from './pages/partner/MandiPenalties';
 import PartnerMilestones from './pages/partner/PartnerMilestones';
 import PartnerOrderHistory from './pages/partner/PartnerOrderHistory';
 
+import PartnerOnboarding from './pages/partner/PartnerOnboarding';
+
 // --- SWITCHER COMPONENTS FOR UNIFIED URLS ---
 
 const PartnerInventorySwitcher = () => {
@@ -126,6 +128,20 @@ const AdminRoute = ({ children }) => {
   if (loading) return null;
   if (!isAuthenticated || user?.role !== 'super_admin') {
     return <Navigate to="/admin/login" replace />;
+  }
+  return children;
+};
+
+// Verified Partner Guard (Strictly enforces Admin Approval)
+const VerifiedPartnerRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return null;
+  if (!isAuthenticated || user?.role !== 'partner') {
+    return <Navigate to="/partner/login" replace />;
+  }
+  // Check if partner is approved by admin
+  if (user?.onboarding_status !== 'approved') {
+    return <Navigate to="/partner/home" replace />;
   }
   return children;
 };
@@ -316,6 +332,7 @@ function App() {
                 <PartnerHome />
               </PartnerLayout>
             } />
+            <Route path="/partner/onboarding" element={<PartnerOnboarding />} />
 
             {/* Real Partner Navigation Routes */}
             <Route path="/partner/inventory" element={
@@ -343,8 +360,16 @@ function App() {
                 <PartnerSubscription />
               </PartnerLayout>
             } />
-            <Route path="/partner/add-service" element={<AddService />} />
-            <Route path="/partner/add-property" element={<AddProperty />} />
+            <Route path="/partner/add-service" element={
+              <VerifiedPartnerRoute>
+                <AddService />
+              </VerifiedPartnerRoute>
+            } />
+            <Route path="/partner/add-property" element={
+              <VerifiedPartnerRoute>
+                <AddProperty />
+              </VerifiedPartnerRoute>
+            } />
 
             <Route path="/partner/service-details/:id" element={<PartnerServiceDetails />} />
             <Route path="/partner/lead-details/:id" element={<PartnerLeadDetails />} />
@@ -362,7 +387,11 @@ function App() {
             <Route path="/partner/mandi/dashboard" element={<Navigate to="/partner/home" replace />} />
             <Route path="/partner/mandi/inventory" element={<Navigate to="/partner/inventory" replace />} />
             
-            <Route path="/partner/add-product" element={<PartnerLayout><PartnerAddSwitcher /></PartnerLayout>} />
+            <Route path="/partner/add-product" element={
+              <VerifiedPartnerRoute>
+                <PartnerLayout><PartnerAddSwitcher /></PartnerLayout>
+              </VerifiedPartnerRoute>
+            } />
             <Route path="/partner/mandi/add-product" element={<Navigate to="/partner/add-product" replace />} />
             
             <Route path="/partner/orders" element={<PartnerLayout><MandiOrders /></PartnerLayout>} />

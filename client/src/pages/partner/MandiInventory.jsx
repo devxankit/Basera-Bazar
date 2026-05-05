@@ -214,8 +214,14 @@ export default function MandiInventory() {
              <Package size={64} className="text-slate-200 mb-6" />
              <h3 className="text-[18px] font-bold text-slate-400 uppercase tracking-tight">Inventory Empty</h3>
              <button 
-               onClick={() => navigate('/partner/add-product')}
-               className="mt-4 text-blue-600 font-bold uppercase text-[12px] tracking-widest hover:underline"
+               onClick={() => {
+                 if (user.onboarding_status !== 'approved') {
+                   alert("Verification Required: Please wait for Admin approval to list products.");
+                   return;
+                 }
+                 navigate('/partner/add-product');
+               }}
+               className={`mt-4 ${user.onboarding_status === 'approved' ? 'text-blue-600 hover:underline' : 'text-slate-400 cursor-not-allowed'} font-bold uppercase text-[12px] tracking-widest`}
              >
                Add First Product
              </button>
@@ -319,8 +325,14 @@ export default function MandiInventory() {
       {/* Floating Add Button */}
       <div className="fixed bottom-24 z-[60] left-1/2 -translate-x-1/2 w-full max-w-md px-5 flex justify-end">
         <button 
-          onClick={() => navigate('/partner/add-product')}
-          className="bg-[#001b4e] text-white rounded-2xl flex items-center gap-2 px-5 py-4 shadow-2xl shadow-blue-900/40 active:scale-90 transition-all"
+          onClick={() => {
+            if (user.onboarding_status !== 'approved') {
+              alert("Verification Required: You will be able to add products once the Admin approves your account.");
+              return;
+            }
+            navigate('/partner/add-product');
+          }}
+          className={`${user.onboarding_status === 'approved' ? 'bg-[#001b4e]' : 'bg-slate-400 cursor-not-allowed'} text-white rounded-2xl flex items-center gap-2 px-5 py-4 shadow-2xl shadow-blue-900/40 active:scale-90 transition-all`}
         >
           <Plus size={22} strokeWidth={3} />
           <span className="text-[12px] font-bold uppercase tracking-widest">Add Product</span>

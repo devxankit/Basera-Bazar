@@ -41,7 +41,7 @@ export default function AdminUsers() {
     fetchUsers();
   }, []);
 
-  const filterTabs = ['All', 'Admin', 'Agent', 'Supplier', 'Service Provider', 'Customer'];
+  const filterTabs = ['All', 'Admin', 'Agent', 'Supplier', 'Seller', 'Service Provider', 'Customer'];
 
   const filteredData = users.filter(user => {
     // 1. Role Filtering (Robust case-insensitive check)
@@ -99,6 +99,7 @@ export default function AdminUsers() {
                 const colorClass = 
                   r === 'Agent' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
                   r === 'Supplier' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                  r === 'Seller' ? 'bg-orange-50 text-orange-600 border-orange-100' :
                   r === 'Service Provider' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                   'bg-slate-50 text-slate-600 border-slate-200';
                   
@@ -118,6 +119,7 @@ export default function AdminUsers() {
             displayRole === 'Agent' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
             displayRole === 'Customer' ? 'bg-slate-50 text-slate-600 border-slate-200' :
             displayRole === 'Supplier' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+            displayRole === 'Seller' ? 'bg-orange-50 text-orange-600 border-orange-100' :
             'bg-emerald-50 text-emerald-600 border-emerald-100'
           }`}>
             {displayRole}
@@ -160,29 +162,8 @@ export default function AdminUsers() {
     },
     { 
       header: 'ACTIONS', 
-      render: (row) => (
+      render: (row, index) => (
         <div className="flex items-center gap-3 relative">
-          {/* Feature Icon (Star) */}
-          <button 
-            onClick={async () => {
-              try {
-                await api.put(`/admin/users/${row._id}`, { is_featured: !row.is_featured });
-                refreshAdminCache();
-                window.location.reload(); // Simplest way to update since it's a large component
-              } catch (err) {
-                alert('Failed to update featured status.');
-              }
-            }}
-            className={`w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-95 group/star relative ${
-              row.is_featured ? 'bg-amber-100 text-amber-600 border-2 border-amber-400 shadow-md' : 'bg-white border-2 border-slate-200 text-slate-300 hover:border-amber-400 hover:text-amber-400'
-            }`}
-          >
-            <Star size={18} fill={row.is_featured ? "currentColor" : "none"} />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/star:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              {row.is_featured ? 'Remove Featured' : 'Mark Featured'}
-            </span>
-          </button>
-
           {/* View Icon (Eye) */}
           <button 
             onClick={() => navigate(`/admin/users/view/${row._id}`)}
@@ -221,10 +202,12 @@ export default function AdminUsers() {
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setActiveMenu(null)} />
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    initial={{ opacity: 0, scale: 0.95, y: (index > 5 || (index > filteredData.length - 3 && filteredData.length > 2)) ? 10 : -10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                    className="absolute right-0 mt-3 w-48 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 py-3 z-20"
+                    exit={{ opacity: 0, scale: 0.95, y: (index > 5 || (index > filteredData.length - 3 && filteredData.length > 2)) ? 10 : -10 }}
+                    className={`absolute right-0 w-48 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 py-3 z-20 ${
+                      (index > 5 || (index > filteredData.length - 3 && filteredData.length > 2)) ? 'bottom-full mb-3' : 'top-full mt-3'
+                    }`}
                   >
                     <button 
                       onClick={() => navigate(`/admin/users/subscriptions/${row._id}`)}
