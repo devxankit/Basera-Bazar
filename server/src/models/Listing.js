@@ -88,14 +88,14 @@ const propertyListingSchema = new mongoose.Schema({
   details: {
     area: { 
       value: { type: Number },
-      unit: { type: String, enum: ['sqft', 'sqyrd', 'sqmt', 'acre', 'sq. ft.', 'sq. m.', 'dismil', 'gaj', 'bigha', 'katha', 'Sqft', 'Sq. Ft.', 'Gaj', 'Dismil', 'Acre', 'Bigha', 'Katha', 'sq. ft.'], default: 'sqft' },
+      unit: { type: String, enum: ['', 'sqft', 'Sqft', 'Sq.ft', 'sqyrd', 'sqmt', 'acre', 'sq. ft.', 'sq. m.', 'dismil', 'gaj', 'bigha', 'katha', 'Sq. Ft.', 'Gaj', 'Dismil', 'Acre', 'Bigha', 'Katha'], default: 'sqft' },
       super_built_up_area: { type: Number },
       carpet_area: { type: Number }
     },
     bhk: { type: Number },
     bathrooms: { type: Number },
     washrooms: { type: Number },
-    furnishing: { type: String, enum: ['unfurnished', 'semi-furnished', 'fully-furnished', 'Unfurnished', 'Semi Furnished', 'Fully Furnished'], default: 'unfurnished' },
+    furnishing: { type: String, enum: ['', 'unfurnished', 'semi-furnished', 'fully-furnished', 'Unfurnished', 'Semi Furnished', 'Fully Furnished'], default: 'unfurnished' },
     floor_number: { type: Number },
     total_floors: { type: Number },
     parking: { type: String, enum: ['none', 'covered', 'open'], default: 'none' },

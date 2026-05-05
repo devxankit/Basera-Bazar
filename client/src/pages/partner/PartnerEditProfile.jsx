@@ -27,7 +27,9 @@ export default function PartnerEditProfile() {
     businessName: '',
     email: '',
     role: '',
-    category: ''
+    category: '',
+    businessDescription: '',
+    businessLogo: ''
   });
 
   useEffect(() => {
@@ -38,7 +40,10 @@ export default function PartnerEditProfile() {
         businessName: user.businessName || '',
         email: user.email || '',
         role: user.role || '',
-        category: user.category || ''
+        category: user.category || '',
+        businessName: user.businessName || user.business_name || '',
+        businessDescription: user.business_description || '',
+        businessLogo: user.business_logo || ''
       });
     } else {
       navigate('/partner/login');
@@ -54,8 +59,9 @@ export default function PartnerEditProfile() {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        // For roles like Supplier, we might need business info
-        ...(formData.businessName && { businessName: formData.businessName }),
+        business_name: formData.businessName,
+        business_description: formData.businessDescription,
+        business_logo: formData.businessLogo,
         ...(formData.category && { category: formData.category })
       });
 
@@ -124,6 +130,55 @@ export default function PartnerEditProfile() {
             <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Partner Account</div>
           </div>
 
+          {/* Logo Upload Section */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Business Logo</label>
+            <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+              <div className="w-16 h-16 bg-slate-50 rounded-lg flex items-center justify-center overflow-hidden border border-slate-100">
+                {formData.businessLogo ? (
+                  <img src={formData.businessLogo} alt="Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <Building2 size={24} className="text-slate-200" />
+                )}
+              </div>
+              <div className="flex-1">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = async (e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                           // For now we use base64, but in production we'd upload to Cloudinary
+                           setFormData({ ...formData, businessLogo: event.target.result });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    };
+                    input.click();
+                  }}
+                  className="text-[12px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                >
+                  {formData.businessLogo ? 'Change Logo' : 'Upload Business Logo'}
+                </button>
+                <div className="text-[10px] text-slate-400 mt-0.5">JPG, PNG or SVG. Max 2MB.</div>
+              </div>
+              {formData.businessLogo && (
+                <button 
+                  type="button"
+                  onClick={() => setFormData({ ...formData, businessLogo: '' })}
+                  className="p-1.5 text-slate-300 hover:text-rose-500 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-4">
             <InputField 
               icon={<User size={18} />} 
@@ -152,13 +207,30 @@ export default function PartnerEditProfile() {
             />
 
             {formData.role !== 'agent' && (
-              <InputField 
-                icon={<Building2 size={18} />} 
-                label="Business Name" 
-                value={formData.businessName}
-                onChange={(v) => setFormData({...formData, businessName: v})}
-                placeholder="Enter your business name"
-              />
+              <>
+                <InputField 
+                  icon={<Building2 size={18} />} 
+                  label="Business Name" 
+                  value={formData.businessName}
+                  onChange={(v) => setFormData({...formData, businessName: v})}
+                  placeholder="Enter your business name"
+                />
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Business Description</label>
+                  <div className="relative group">
+                    <div className="absolute top-4 left-4 text-slate-400 group-focus-within:text-[#001b4e] transition-colors">
+                      <Edit2 size={16} />
+                    </div>
+                    <textarea 
+                      value={formData.businessDescription}
+                      onChange={(e) => setFormData({...formData, businessDescription: e.target.value})}
+                      placeholder="Tell us about your business..."
+                      className="w-full bg-white rounded-xl py-3.5 pl-11 pr-4 text-[14px] shadow-sm border border-slate-100 outline-none focus:ring-2 focus:ring-blue-500/5 focus:border-blue-500/20 transition-all font-bold text-[#001b4e] min-h-[120px] resize-none"
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             {formData.role === 'supplier' && (

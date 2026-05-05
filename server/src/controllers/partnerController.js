@@ -567,6 +567,58 @@ const toggleFeature = async (req, res) => {
   }
 };
 
+const { getPartnerLimits, checkListingLimit, checkFeaturedLimit } = require('../utils/subscriptionUtils');
+
+/**
+ * @desc    Get subscription limits and current usage for partner
+ * @route   GET /api/partners/subscription/limits
+ * @access  Private (Partner)
+ */
+const getPartnerSubscriptionLimits = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    
+    const limits = await getPartnerLimits(partnerId);
+    const listingCheck = await checkListingLimit(partnerId);
+    const featuredCheck = await checkFeaturedLimit(partnerId);
+
+    // Count active listings for UI breakdown
+    const activeCounts = {
+      properties: await PropertyListing.countDocuments({ partner_id: partnerId, status: { $ne: 'deleted' }, deleted_at: null }),
+      services: await ServiceListing.countDocuments({ partner_id: partnerId, status: { $ne: 'deleted' }, deleted_at: null }),
+      mandi: await MandiListing.countDocuments({ partner_id: partnerId, status: { $ne: 'deleted' }, deleted_at: null })
+    };
+
+    const totalActive = activeCounts.properties + activeCounts.services + activeCounts.mandi;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        plan_name: limits.plan_name,
+        limits: {
+          listings: limits.listings,
+          featured: limits.featured,
+          leads: limits.leads
+        },
+        usage: {
+          total_active_listings: totalActive,
+          active_breakdown: activeCounts,
+          is_listing_limit_reached: !listingCheck.allowed,
+          is_featured_limit_reached: !featuredCheck.allowed
+        },
+        messages: {
+          listing: listingCheck.message,
+          featured: featuredCheck.message
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching partner limits:", error);
+    res.status(500).json({ success: false, message: 'Server error fetching limits.' });
+  }
+};
+
 module.exports = {
   onboardPartner,
   getMyPartnerProfile,
@@ -578,5 +630,6 @@ module.exports = {
   getPublicPartners,
   getPublicPartnerById,
   getPartnerSubscriptionPlans,
-  toggleFeature
+  toggleFeature,
+  getPartnerSubscriptionLimits
 };

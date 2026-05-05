@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const axios = require('axios');
-const { RazorpayOrder, Subscription, SubscriptionPlan } = require('../models/Finance');
+const { RazorpayOrder, Subscription, SubscriptionPlan, Transaction } = require('../models/Finance');
 const { Partner } = require('../models/Partner');
 
 /**
@@ -118,12 +118,24 @@ const verifySubscription = async (req, res) => {
       status: 'active',
       starts_at: startsAt,
       ends_at: endsAt,
-      granted_by_admin: false
+      granted_by_admin: false,
+      cancel_at_period_end: false // Reset on new activation
     });
 
     // 4. Update Partner Profile
     await Partner.findByIdAndUpdate(partnerId, {
       active_subscription_id: subscription._id
+    });
+
+    // 5. Create Transaction Record for Payment History
+    await Transaction.create({
+      partner_id: partnerId,
+      type: 'subscription_payment',
+      amount: plan.price,
+      direction: 'debit',
+      status: 'success',
+      razorpay_order_id: order?._id,
+      reference_id: subscription._id
     });
 
     res.status(200).json({ 
@@ -138,9 +150,91 @@ const verifySubscription = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get My Transactions
+ * @route   GET /api/finance/transactions
+ * @access  Private (Partner)
+ */
+const getMyTransactions = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    let transactions = await Transaction.find({ partner_id: partnerId }).sort({ createdAt: -1 });
+
+    // Backfill: If no transactions found but partner has an active subscription, create one for them
+    if (transactions.length === 0) {
+      const { Partner } = require('../models/Partner');
+      const partner = await Partner.findById(partnerId).populate('active_subscription_id');
+      
+      if (partner && partner.active_subscription_id) {
+        const sub = partner.active_subscription_id;
+        try {
+          const newTx = await Transaction.create({
+            partner_id: partnerId,
+            amount: sub.plan_snapshot?.price || 0,
+            currency: 'INR',
+            status: 'success',
+            type: 'subscription_payment',
+            direction: 'debit',
+            description: `Initial payment for ${sub.plan_snapshot?.name || 'Package'}`,
+            payment_method: 'razorpay',
+            createdAt: sub.starts_at // Use the subscription start date
+          });
+          transactions = [newTx];
+        } catch (txErr) {
+          console.error(`[Finance] Failed to create backfill transaction:`, txErr);
+        }
+      }
+    }
+
+    res.status(200).json({ success: true, count: transactions.length, data: transactions });
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+/**
+ * @desc    Cancel Subscription (Set to not renew at end of period)
+ * @route   POST /api/finance/subscription/cancel
+ * @access  Private (Partner)
+ */
+const cancelSubscription = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+
+    const subscription = await Subscription.findOne({
+      partner_id: partnerId,
+      status: 'active'
+    });
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, message: 'No active subscription found to cancel.' });
+    }
+
+    if (subscription.cancel_at_period_end) {
+      return res.status(400).json({ success: false, message: 'Subscription is already scheduled for cancellation.' });
+    }
+
+    subscription.cancel_at_period_end = true;
+    await subscription.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Your subscription will remain active until ${new Date(subscription.ends_at).toLocaleDateString()}, after which it will not renew.`,
+      data: subscription
+    });
+
+  } catch (error) {
+    console.error("Cancellation Error:", error);
+    res.status(500).json({ success: false, message: 'Failed to cancel subscription' });
+  }
+};
+
 module.exports = {
   initiateSubscription,
   verifySubscription,
+  cancelSubscription,
+  getMyTransactions,
   // Keep mock for internal tests if needed
   mockCreateRazorpayOrder: async (req, res) => res.json({ message: 'Use real initiate route' }),
   mockRazorpayWebhook: async (req, res) => res.json({ message: 'Use real verify route' })

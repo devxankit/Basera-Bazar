@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { initiateSubscription, verifySubscription } = require('../controllers/financeController');
+const { initiateSubscription, verifySubscription, cancelSubscription, getMyTransactions } = require('../controllers/financeController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
 // Subscription Routes
 router.post('/subscription/initiate', protect, authorizeRoles('partner'), initiateSubscription);
 router.post('/subscription/verify', protect, authorizeRoles('partner'), verifySubscription);
+router.post('/subscription/cancel', protect, authorizeRoles('partner'), cancelSubscription);
+router.get('/transactions', protect, authorizeRoles('partner'), getMyTransactions);
 
 module.exports = router;

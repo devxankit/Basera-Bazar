@@ -393,6 +393,13 @@ const updateProfile = async (req, res) => {
       }
     }
 
+    // Explicitly handle partner-specific root fields if provided
+    if (isPartner) {
+      if (req.body.business_name) updateData.business_name = req.body.business_name;
+      if (req.body.business_description) updateData.business_description = req.body.business_description;
+      if (req.body.business_logo) updateData.business_logo = req.body.business_logo;
+    }
+
     const updated = await Model.findByIdAndUpdate(
       req.user._id,
       { $set: updateData },

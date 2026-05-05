@@ -92,6 +92,8 @@ const partnerSchema = new mongoose.Schema({
     enum: ['service_provider', 'property_agent', 'supplier', 'mandi_seller'],
     default: null // The currently active view in the partner app
   },
+  business_name: { type: String, trim: true },
+  business_description: { type: String, trim: true },
   role: {
     type: String,
     enum: ['Agent', 'Supplier', 'Service Provider'],

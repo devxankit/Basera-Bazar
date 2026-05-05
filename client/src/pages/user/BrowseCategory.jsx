@@ -5,7 +5,7 @@ import {
   ArrowLeft, Search, Filter, Map, LayoutGrid, Building2,
   ChevronRight, MapPin, Package, Star, Phone, MessageSquare, Clock, Award, X, Navigation, Send,
   ListFilter, History, TrendingUp, TrendingDown, Ruler, Maximize, Check, List, CheckCircle2, Store, Briefcase,
-  Bed, Bath, ArrowRight, Heart, Plus, ShoppingCart, Minus, Truck, FileText, MoreVertical
+  Bed, Bath, ArrowRight, Heart, Plus, ShoppingCart, Minus, Truck, FileText, MoreVertical, Megaphone, Users, Zap, Tag
 } from 'lucide-react';
 import { useLocationContext } from '../../context/LocationContext';
 import { useCart } from '../../context/CartContext';
@@ -428,26 +428,80 @@ const BrowseCategory = () => {
       {/* ── RESULTS LISTING ── */}
       {/* Broadcast Lead Banner - Fixed Size & Theme Matching */}
       {(category === 'service' || category === 'supplier') && (
-        <div 
-          className="mx-4 mb-6 bg-white border border-indigo-100 rounded-[24px] p-4 flex items-center gap-4 shadow-[0_8px_25px_rgb(79,70,229,0.05)] cursor-pointer active:scale-[0.98] transition-all group"
-          onClick={() => navigate(`/broadcast-lead?type=${category}`)}
-        >
-          <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
-            <Send size={20} strokeWidth={2.5} />
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Broadcast Feature</span>
-              <span className="w-1 h-1 bg-indigo-200 rounded-full" />
-              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Free</span>
+        <div className="mx-4 mb-6 relative bg-white border border-slate-100 rounded-[32px] p-5 pb-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+          {/* Background Decors */}
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-orange-50 rounded-full opacity-50 blur-2xl pointer-events-none" />
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-50 rounded-full opacity-50 blur-2xl pointer-events-none" />
+
+          {/* Header Section */}
+          <div className="relative z-10 flex gap-3">
+            {/* Megaphone Area */}
+            <div className="flex flex-col items-center gap-1">
+              <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center border-4 border-white shadow-sm shrink-0 relative">
+                <Megaphone className="text-orange-500" size={30} strokeWidth={2} fill="#f97316" fillOpacity={0.2} />
+                {/* Decorative lines */}
+                <div className="absolute top-1 right-1 w-1.5 h-0.5 bg-orange-400 rotate-45 rounded-full" />
+                <div className="absolute top-3 -right-1.5 w-1.5 h-0.5 bg-orange-400 rotate-12 rounded-full" />
+              </div>
+              <span className="bg-emerald-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest shadow-sm">100% Free</span>
             </div>
-            <h3 className="text-[#1f2355] font-black text-[14px] uppercase leading-tight truncate">Inform all local {category}s</h3>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-tight mt-0.5">Send requirement & get the best quotes</p>
+
+            {/* Text Area */}
+            <div className="flex-1 pt-0">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">Broadcast Feature</span>
+                <span className="border border-emerald-500 text-emerald-600 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Free</span>
+              </div>
+              <h2 className="text-[22px] xs:text-[26px] font-black text-[#1f2355] leading-tight tracking-tight">
+                Get Providers<br />in <span className="text-orange-500">One Click</span>
+              </h2>
+              <p className="text-[#4a5578] font-bold text-[13px] mt-0.5">Send Requirement</p>
+            </div>
+            
+            {/* Paper Plane Area */}
+            <div className="w-12 flex items-start justify-end pt-2 opacity-80 shrink-0">
+              <Send className="text-indigo-500 -rotate-12" size={28} strokeWidth={2} fill="#6366f1" fillOpacity={0.2} />
+            </div>
           </div>
 
-          <div className="p-2 bg-slate-50 rounded-xl text-slate-400 group-hover:text-indigo-600 transition-colors">
-            <ChevronRight size={18} strokeWidth={3} />
+          {/* Features Section */}
+          <div className="relative z-10 mt-5 grid grid-cols-4 gap-1 bg-white rounded-2xl border border-slate-100 p-1.5 shadow-sm">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-1.5 p-1.5 text-center md:text-left">
+              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
+                <Users size={14} className="text-indigo-600 md:w-4 md:h-4" />
+              </div>
+              <span className="text-[9px] md:text-[11px] font-bold text-[#1f2355] leading-[1.1]">Multiple<br className="md:hidden" /> Providers</span>
+            </div>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-1.5 p-1.5 text-center md:text-left border-l border-slate-50">
+              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                <Award size={14} className="text-emerald-600 md:w-4 md:h-4" />
+              </div>
+              <span className="text-[9px] md:text-[11px] font-bold text-[#1f2355] leading-[1.1]">Verified<br className="md:hidden" /> Providers</span>
+            </div>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-1.5 p-1.5 text-center md:text-left border-l border-slate-50">
+              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-orange-50 flex items-center justify-center shrink-0">
+                <Zap size={14} className="text-orange-500 fill-orange-500 md:w-4 md:h-4" />
+              </div>
+              <span className="text-[9px] md:text-[11px] font-bold text-[#1f2355] leading-[1.1]">Fast<br className="md:hidden" /> Response</span>
+            </div>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-1.5 p-1.5 text-center md:text-left border-l border-slate-50">
+              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                <Tag size={14} className="text-blue-600 fill-blue-600 md:w-4 md:h-4" />
+              </div>
+              <span className="text-[9px] md:text-[11px] font-bold text-[#1f2355] leading-[1.1]">Best<br className="md:hidden" /> Quotes</span>
+            </div>
+          </div>
+
+          {/* Button Section */}
+          <div className="relative z-10 mt-4">
+            <button 
+              onClick={() => navigate(`/broadcast-lead?type=${category}`)}
+              className="w-full h-12 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl shadow-[0_4px_15px_rgb(249,115,22,0.3)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] group"
+            >
+              <Send size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+              <span className="font-black text-[15px]">Send Requirement</span>
+              <ArrowRight size={18} className="ml-1 opacity-80" />
+            </button>
           </div>
         </div>
       )}

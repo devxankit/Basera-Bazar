@@ -5,5 +5,6 @@ const { protect } = require('../middlewares/authMiddleware');
 
 router.post('/broadcast', protect, leadController.createBroadcastLead);
 router.get('/partner', protect, leadController.getPartnerLeads);
+router.get('/partner/:id', protect, leadController.getPartnerLeadById);
 
 module.exports = router;

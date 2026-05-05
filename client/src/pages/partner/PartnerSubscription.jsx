@@ -4,7 +4,7 @@ import {
   Calendar, Clock, Star, 
   Package, Users, ChevronRight,
   TrendingUp, Activity, X, Info, Zap, Loader2,
-  ShieldCheck, ZapOff
+  ShieldCheck, ZapOff, Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -21,8 +21,12 @@ export default function PartnerSubscription() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [showSimModal, setShowSimModal] = useState(false);
   const [simOrderData, setSimOrderData] = useState(null);
+  const [showSimModal, setShowSimModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [transactions, setTransactions] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -161,6 +165,23 @@ export default function PartnerSubscription() {
     }
   };
 
+  const handleCancelSubscription = async () => {
+    try {
+      setCancelling(true);
+      const res = await api.post('/finance/subscription/cancel');
+      if (res.data.success) {
+        alert(res.data.message);
+        setShowCancelModal(false);
+        window.location.reload(); // Refresh to update user state
+      }
+    } catch (err) {
+      console.error("Cancellation Error:", err);
+      alert(err.response?.data?.message || "Failed to cancel subscription.");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center">
@@ -182,7 +203,20 @@ export default function PartnerSubscription() {
         </button>
         <h2 className="text-[16px] font-black text-[#001b4e] uppercase tracking-widest">Subscription</h2>
         <button 
-          onClick={() => setShowHistory(true)}
+          onClick={async () => {
+            setShowHistory(true);
+            setLoadingHistory(true);
+            try {
+              const res = await api.get('/finance/transactions');
+              if (res.data.success) {
+                setTransactions(res.data.data);
+              }
+            } catch (err) {
+              console.error("Error fetching transactions:", err);
+            } finally {
+              setLoadingHistory(false);
+            }
+          }}
           className="p-1.5 text-[#001b4e] hover:bg-slate-50 rounded-xl transition-colors active:scale-95"
         >
           <History size={20} />
@@ -220,10 +254,19 @@ export default function PartnerSubscription() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Expiry Date</div>
+                <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">
+                  {partner.active_subscription_id?.cancel_at_period_end ? 'Access Until' : 'Expiry Date'}
+                </div>
                 <div className="text-[15px] font-black tracking-tight">{planInfo.endDate}</div>
               </div>
             </div>
+
+            {partner.active_subscription_id?.cancel_at_period_end && (
+              <div className="mt-4 px-3 py-2 bg-red-500/20 border border-red-500/20 rounded-lg flex items-center gap-2">
+                <Clock size={14} className="text-red-200" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-red-100">Scheduled for cancellation</span>
+              </div>
+            )}
           </div>
         </motion.div>
 
@@ -268,6 +311,8 @@ export default function PartnerSubscription() {
 
            {plans.map((plan, idx) => {
              const isCurrent = plan.name === currentPlanName;
+             const isFree = plan.price === 0 || plan.name?.toLowerCase().includes('free');
+             
              return (
                <div 
                  key={plan._id || idx} 
@@ -295,7 +340,23 @@ export default function PartnerSubscription() {
                     <FeatureItem label="Premium Support" />
                  </div>
 
-                 {!isCurrent && (
+                 {isCurrent ? (
+                    <>
+                      {isActivePro ? (
+                        <button 
+                          onClick={() => setShowCancelModal(true)}
+                          disabled={partner.active_subscription_id?.cancel_at_period_end}
+                          className="w-full h-11 border-2 border-red-100 text-red-500 rounded-lg font-black text-[12px] uppercase tracking-widest active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-red-50 disabled:opacity-50 mt-2"
+                        >
+                          {partner.active_subscription_id?.cancel_at_period_end ? 'Cancellation Pending' : 'Cancel Subscription'}
+                        </button>
+                      ) : (
+                        <div className="w-full py-3 bg-emerald-50 text-emerald-600 rounded-lg text-center text-[11px] font-black uppercase tracking-widest border border-emerald-100">
+                           Fully Active
+                        </div>
+                      )}
+                    </>
+                 ) : (
                     <button 
                       onClick={() => {
                         setSelectedPlan(plan);
@@ -388,6 +449,30 @@ export default function PartnerSubscription() {
           </div>
         )}
 
+        {showCancelModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-red-900/20 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl text-center">
+              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <Clock size={32} />
+              </div>
+              <h3 className="text-[20px] font-black text-[#001b4e] uppercase tracking-tight mb-2">Cancel Subscription?</h3>
+              <p className="text-slate-400 text-[13px] font-bold uppercase tracking-tight opacity-60 leading-relaxed mb-8">
+                Your benefits will continue until the end of your current cycle ({planInfo.endDate}). You won't be charged again.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={handleCancelSubscription} 
+                  disabled={cancelling}
+                  className="w-full py-4 bg-red-500 text-white rounded-xl font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {cancelling ? 'Processing...' : 'Yes, Cancel at End'}
+                </button>
+                <button onClick={() => setShowCancelModal(false)} className="w-full py-4 text-slate-400 font-bold uppercase text-[12px]">Keep My Plan</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {showHistory && (
           <div className="fixed inset-0 z-[100] flex items-end justify-center">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowHistory(false)} className="absolute inset-0 bg-[#001b4e]/40 backdrop-blur-sm" />
@@ -399,9 +484,73 @@ export default function PartnerSubscription() {
                   <X size={20} />
                 </button>
               </div>
-              <div className="py-20 text-center opacity-30">
-                 <History size={64} className="mx-auto mb-4 text-slate-200" />
-                 <p className="text-[12px] font-black uppercase tracking-widest">No transaction history</p>
+              <div className="max-h-[60vh] overflow-y-auto space-y-3 px-1 pb-10 custom-scrollbar">
+                {loadingHistory ? (
+                  <div className="py-20 text-center">
+                    <Loader2 className="animate-spin mx-auto text-blue-500/20 mb-4" size={32} />
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Syncing Records...</p>
+                  </div>
+                ) : transactions.length > 0 ? (
+                  transactions.map((tx, idx) => (
+                    <motion.div 
+                      key={tx._id || idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="group relative bg-white rounded-[24px] p-5 border border-slate-100 hover:border-blue-500/20 hover:shadow-xl hover:shadow-blue-900/5 transition-all duration-300"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300 ${
+                            tx.status === 'success' || tx.status === 'captured' 
+                              ? 'bg-emerald-50 text-emerald-600' 
+                              : 'bg-rose-50 text-rose-500'
+                          }`}>
+                            {tx.type === 'subscription_payment' ? <Building2 size={20} /> : <Zap size={20} />}
+                          </div>
+                          <div>
+                            <div className="text-[14px] font-black text-[#001b4e] tracking-tight mb-0.5">
+                              {tx.type === 'subscription_payment' ? 'Premium Plan Active' : tx.type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                {new Date(tx.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </span>
+                              <span className="w-1 h-1 rounded-full bg-slate-200" />
+                              <span className="text-[10px] font-bold text-slate-400">
+                                {new Date(tx.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[18px] font-black text-[#001b4e] tracking-tighter">
+                            ₹{tx.amount.toLocaleString()}
+                          </div>
+                          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest mt-1 ${
+                            tx.status === 'success' || tx.status === 'captured'
+                              ? 'bg-emerald-500/10 text-emerald-600'
+                              : 'bg-rose-500/10 text-rose-600'
+                          }`}>
+                            <div className={`w-1 h-1 rounded-full ${tx.status === 'success' || tx.status === 'captured' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                            {tx.status}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Subtle hover effect background */}
+                      <div className="absolute inset-0 rounded-[24px] bg-gradient-to-br from-blue-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="py-20 text-center">
+                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100">
+                      <History size={32} className="text-slate-200" />
+                    </div>
+                    <h3 className="text-[16px] font-black text-[#001b4e] uppercase tracking-widest mb-2">No Transactions</h3>
+                    <p className="text-[12px] text-slate-400 font-medium px-10">Your payment history will appear here once you join a plan.</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>

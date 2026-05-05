@@ -2,6 +2,7 @@ const { Enquiry } = require('../models/Enquiry');
 const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const { Partner } = require('../models/Partner');
 const { Notification } = require('../models/System');
+const { getPartnerLimits, getActiveSubscription } = require('../utils/subscriptionUtils');
 
 /**
  * @desc    Submit a new Enquiry for a listing
@@ -124,10 +125,30 @@ const getPartnerInquiries = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(parseInt(limit) || 50);
 
+    // 2. Check Subscription Limits
+    const limits = await getPartnerLimits(req.user._id);
+    const sub = await getActiveSubscription(req.user._id);
+    const usage = sub?.usage?.enquiries_received_this_month || 0;
+    const limitReached = limits.leads !== -1 && usage >= limits.leads;
+
+    // 3. Redact if limit reached
+    const processedInquiries = inquiries.map(inq => {
+      const obj = inq.toObject();
+      if (limitReached) {
+        if (obj.user_details) {
+          obj.user_details.phone = obj.user_details.phone?.substring(0, 3) + '*******';
+          obj.user_details.email = obj.user_details.email ? '*******@' + (obj.user_details.email.split('@')[1] || 'hidden.com') : null;
+        }
+        obj.limitReached = true;
+      }
+      return obj;
+    });
+
     res.status(200).json({ 
       success: true, 
-      count: inquiries.length, 
-      data: inquiries 
+      count: processedInquiries.length, 
+      data: processedInquiries,
+      limitReached
     });
   } catch (error) {
     console.error("Error getting partner inquiries:", error);
@@ -154,13 +175,41 @@ const getInquiryById = async (req, res) => {
     }
 
     // Mark as read if it was new
-    if (!inquiry.is_read) {
-      inquiry.is_read = true;
-      if (inquiry.status === 'new') inquiry.status = 'read';
-      await inquiry.save();
+    const limits = await getPartnerLimits(req.user._id);
+    const sub = await getActiveSubscription(req.user._id);
+    
+    let limitReached = false;
+    if (limits.leads !== -1) {
+      const usage = sub?.usage?.enquiries_received_this_month || 0;
+      if (usage >= limits.leads && !inquiry.is_read) {
+        limitReached = true;
+      }
     }
 
-    res.status(200).json({ success: true, data: inquiry });
+    if (!inquiry.is_read) {
+      if (!limitReached) {
+        // Increment usage ONLY if we are allowing them to see it
+        if (sub) {
+          sub.usage.enquiries_received_this_month = (sub.usage.enquiries_received_this_month || 0) + 1;
+          await sub.save();
+        }
+        inquiry.is_read = true;
+        if (inquiry.status === 'new') inquiry.status = 'read';
+        await inquiry.save();
+      }
+    }
+
+    const data = inquiry.toObject();
+    if (limitReached) {
+      // Redact sensitive info
+      if (data.user_details) {
+        data.user_details.phone = data.user_details.phone.substring(0, 3) + '*******';
+        data.user_details.email = '*******@' + (data.user_details.email.split('@')[1] || 'hidden.com');
+      }
+      data.limitReached = true;
+    }
+
+    res.status(200).json({ success: true, data });
   } catch (error) {
     console.error("Error fetching lead detail:", error);
     res.status(500).json({ success: false, message: 'Error fetching lead details.' });

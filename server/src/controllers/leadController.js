@@ -1,6 +1,7 @@
 const BroadcastLead = require('../models/BroadcastLead');
 const { Partner } = require('../models/Partner');
 const { createNotification } = require('../utils/notificationHelper');
+const { getPartnerLimits, getActiveSubscription } = require('../utils/subscriptionUtils');
 
 /**
  * @desc    Create a broadcast lead and notify local partners
@@ -105,14 +106,66 @@ exports.getPartnerLeads = async (req, res) => {
 
     const leads = await BroadcastLead.find(query).sort({ createdAt: -1 });
 
+    // Check limits
+    const limits = await getPartnerLimits(req.user.id);
+    const sub = await getActiveSubscription(req.user.id);
+    const usage = sub?.usage?.enquiries_received_this_month || 0;
+    const limitReached = limits.leads !== -1 && usage >= limits.leads;
+
+    // Redact if limit reached
+    const processedLeads = leads.map(l => {
+      const obj = l.toObject();
+      if (limitReached) {
+        obj.phone = obj.phone.substring(0, 3) + '*******';
+        obj.email = obj.email ? '*******@' + (obj.email.split('@')[1] || 'hidden.com') : null;
+        obj.limitReached = true;
+      }
+      return obj;
+    });
+
     res.status(200).json({
       success: true,
-      count: leads.length,
-      data: leads
+      count: processedLeads.length,
+      data: processedLeads,
+      limitReached
     });
 
   } catch (error) {
     console.error("Error in getPartnerLeads:", error);
     res.status(500).json({ success: false, message: 'Server error fetching leads.' });
+  }
+};
+/**
+ * @desc    Get broadcast lead details for partner
+ * @route   GET /api/leads/partner/:id
+ * @access  Private (Partner)
+ */
+exports.getPartnerLeadById = async (req, res) => {
+  try {
+    const lead = await BroadcastLead.findById(req.params.id);
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found.' });
+
+    // Check limits
+    const limits = await getPartnerLimits(req.user.id);
+    const sub = await getActiveSubscription(req.user.id);
+    const usage = sub?.usage?.enquiries_received_this_month || 0;
+    
+    // For broadcast leads, we don't have a per-partner "read" status in the model
+    // So we just check if the limit is reached.
+    // Note: This is simpler than Enquiries which track "read" status.
+    const limitReached = limits.leads !== -1 && usage >= limits.leads;
+
+    const data = lead.toObject();
+    if (limitReached) {
+      data.phone = data.phone.substring(0, 3) + '*******';
+      data.email = data.email ? '*******@' + (data.email.split('@')[1] || 'hidden.com') : null;
+      data.limitReached = true;
+    }
+
+    res.status(200).json({ success: true, data });
+
+  } catch (error) {
+    console.error("Error in getPartnerLeadById:", error);
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 };

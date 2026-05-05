@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   ArrowLeft, Building2, Package, MapPin, CheckCircle2,
   Trash2, UploadCloud, Info, Check, Plus, Camera, Navigation, Hash, 
-  Settings
+  Settings, Loader2
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -202,6 +202,7 @@ export default function AddProduct() {
 
   const [detecting, setDetecting] = useState(false);
   const handleDetectLocation = () => {
+    if (isSubmitting) return;
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser");
       return;
@@ -259,6 +260,7 @@ export default function AddProduct() {
   };
 
   const submitFinalProduct = async () => {
+    if (isSubmitting) return; // Prevent double submission
     try {
       setIsSubmitting(true);
       
@@ -418,9 +420,11 @@ export default function AddProduct() {
                 <button 
                   onClick={submitFinalProduct}
                   disabled={isSubmitting}
-                  className="w-full bg-[#001b4e] text-white py-4 rounded-xl font-bold text-[16px] shadow-lg shadow-blue-900/30 active:scale-95 transition-all disabled:opacity-50"
+                  className={`w-full py-4 rounded-xl font-bold text-[16px] shadow-lg active:scale-95 transition-all flex items-center justify-center gap-3 ${
+                    isSubmitting ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-[#001b4e] text-white shadow-blue-900/30'
+                  }`}
                 >
-                  {isSubmitting ? 'Processing...' : 'Yes, List My Product'}
+                  {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Yes, List My Product'}
                 </button>
                 <button 
                   onClick={() => setShowConfirmModal(false)}

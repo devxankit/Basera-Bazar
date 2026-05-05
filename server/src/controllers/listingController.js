@@ -2,7 +2,7 @@ const { ServiceListing, PropertyListing, MandiListing } = require('../models/Lis
 const { Category } = require('../models/System');
 const { Subscription } = require('../models/Finance');
 const { Partner } = require('../models/Partner');
-const { getMandiLimits, enforceMandiLimits } = require('../utils/subscriptionUtils');
+const { getPartnerLimits, checkListingLimit, checkFeaturedLimit } = require('../utils/subscriptionUtils');
 
 const mongoose = require('mongoose');
 
@@ -137,6 +137,12 @@ const createPropertyListing = async (req, res) => {
     const partnerPhone = req.user.phone;
     const item = req.body;
 
+    // 1. Check Subscription Limit
+    const limitCheck = await checkListingLimit(partnerId);
+    if (!limitCheck.allowed) {
+      return res.status(403).json({ success: false, message: limitCheck.message });
+    }
+
     const title = item.title || 'Untitled Property';
     const description = item.description || item.details?.description || '';
     
@@ -235,6 +241,13 @@ const createServiceListing = async (req, res) => {
   try {
     const partnerId = req.user.id;
     const partnerPhone = req.user.phone;
+
+    // 1. Check Subscription Limit
+    const limitCheck = await checkListingLimit(partnerId);
+    if (!limitCheck.allowed) {
+      return res.status(403).json({ success: false, message: limitCheck.message });
+    }
+
     const { 
       title, description, category, category_id, subcategory_id,
       shortDescription, detailedDescription, experience, details, 
@@ -374,12 +387,25 @@ const getListingById = async (req, res) => {
  */
 const getAllListings = async (req, res) => {
   try {
-    console.log(`[getAllListings] Incoming Params:`, req.query);
-    const { category, limit = 20, district, state, is_featured, partner_id, q } = req.query;
+    const fs = require('fs');
+    fs.appendFileSync('debug_listings.txt', `[${new Date().toISOString()}] getAllListings called with ${JSON.stringify(req.query)}\n`);
+    let { category, limit = 20, district, state, is_featured, partner_id, q } = req.query;
+    
+    // SANITIZATION: Prevent "undefined" or "null" strings from breaking queries
+    if (district === 'undefined' || district === 'null') district = null;
+    if (state === 'undefined' || state === 'null') state = null;
+    if (q === 'undefined' || q === 'null') q = null;
+    if (partner_id === 'undefined' || partner_id === 'null') partner_id = null;
+
     const hasLocation = !!(district || state);
     const searchQuery = q || req.query.search;
 
     const fetchCategory = async (Model, modelName) => {
+      if (!Model || typeof Model.find !== 'function') {
+        const fs = require('fs');
+        fs.appendFileSync('error_listings.txt', `[${new Date().toISOString()}] Model ${modelName} is INVALID: ${typeof Model}\n`);
+        throw new Error(`Model ${modelName} is not correctly imported. This is likely a circular dependency issue.`);
+      }
       // Base query: only active items/partners
       const query = modelName === 'Partner' 
         ? { onboarding_status: 'approved', is_active: true }
@@ -425,7 +451,7 @@ const getAllListings = async (req, res) => {
         sort = { 'stats.enquiries': -1, 'stats.views': -1, createdAt: -1 };
       }
 
-      console.log(`[getAllListings] Query for ${modelName}:`, JSON.stringify(query));
+      fs.appendFileSync('debug_listings.txt', `[${new Date().toISOString()}] Query for ${modelName}: ${JSON.stringify(query)}\n`);
 
       const items = await Model.find(query)
         .populate({ path: 'partner_id', select: 'name phone email role default_location profile createdAt' })
@@ -433,6 +459,8 @@ const getAllListings = async (req, res) => {
         .populate('subcategory_id')
         .sort(sort)
         .limit(parseInt(limit));
+      
+      fs.appendFileSync('debug_listings.txt', `[${new Date().toISOString()}] ${modelName} items found: ${items.length}\n`);
 
       return items.map(i => {
         const doc = i.toObject ? i.toObject() : i;
@@ -475,6 +503,8 @@ const getAllListings = async (req, res) => {
 
     res.status(200).json({ success: true, count: sorted.length, data: sorted });
   } catch (error) {
+    const fs = require('fs');
+    fs.appendFileSync('error_listings.txt', `[${new Date().toISOString()}] CRITICAL: Error in getAllListings: ${error.message}\n${error.stack}\n`);
     console.error("CRITICAL: Error in getAllListings:", error.message);
     res.status(500).json({ success: false, message: `Server error: ${error.message}` });
   }
@@ -617,6 +647,8 @@ const getMyListings = async (req, res) => {
       data: combined
     });
   } catch (error) {
+    const fs = require('fs');
+    fs.appendFileSync('error_listings.txt', `[${new Date().toISOString()}] Error in getMyListings: ${error.message}\n${error.stack}\n`);
     console.error("Error in getMyListings:", error);
     res.status(500).json({ success: false, message: 'Server error fetching your listings.' });
   }
@@ -738,6 +770,13 @@ const deleteListing = async (req, res) => {
 const createMandiListing = async (req, res) => {
   try {
     const partnerId = req.user.id;
+
+    // 1. Check Subscription Limit
+    const limitCheck = await checkListingLimit(partnerId);
+    if (!limitCheck.allowed) {
+      return res.status(403).json({ success: false, message: limitCheck.message });
+    }
+
     const { 
       title, 
       material_name, 
@@ -1107,6 +1146,52 @@ const deleteSellerAttribute = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Toggle featured status of a listing
+ * @route   PATCH /api/listings/:id/featured
+ * @access  Private (Partner)
+ */
+const toggleFeaturedListing = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    const { id } = req.params;
+    
+    // 1. Find the listing across models
+    let listing = await PropertyListing.findById(id) || await ServiceListing.findById(id) || await MandiListing.findById(id);
+    if (!listing) return res.status(404).json({ success: false, message: 'Listing not found' });
+
+    // 2. Security Check
+    if (listing.partner_id.toString() !== partnerId.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // Determine target state: use body if provided, else toggle
+    const targetState = req.body.is_featured !== undefined ? !!req.body.is_featured : !listing.is_featured;
+
+    // 3. If turning ON, check limit
+    if (targetState && !listing.is_featured) {
+      const limitCheck = await checkFeaturedLimit(partnerId);
+      if (!limitCheck.allowed) {
+        return res.status(403).json({ success: false, message: limitCheck.message });
+      }
+    }
+
+    // 4. Update
+    listing.is_featured = targetState;
+    await listing.save();
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Listing is now ${listing.is_featured ? 'featured' : 'not featured'}.`,
+      data: listing 
+    });
+
+  } catch (error) {
+    console.error("Error toggling featured status:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getNearbyServices,
   getMandiListings,
@@ -1126,6 +1211,7 @@ module.exports = {
   createSellerAttribute,
   getMySellerAttributes,
   getSellerAttributes,
-  deleteSellerAttribute
+  deleteSellerAttribute,
+  toggleFeaturedListing
 };
 

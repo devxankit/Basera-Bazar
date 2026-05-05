@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Phone, Mail, MessageSquare, 
   Calendar, Trash2, CheckCircle2, AlertTriangle,
-  Package, User, ExternalLink, Tag, Loader2
+  Package, User, ExternalLink, Tag, Loader2,
+  ShieldCheck, Zap
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -121,18 +122,38 @@ export default function PartnerLeadDetails() {
            </div>
 
            <div className="grid grid-cols-2 gap-3 relative z-10">
-              <ContactAction 
-                icon={<Phone size={14} />} 
-                label="Call Now" 
-                href={`tel:${lead.user_details?.phone}`} 
-                color="bg-blue-50 text-blue-600 border-blue-100/50" 
-              />
-              <ContactAction 
-                icon={<MessageSquare size={14} />} 
-                label="WhatsApp" 
-                href={`https://wa.me/${lead.user_details?.phone}`} 
-                color="bg-emerald-50 text-emerald-600 border-emerald-100/50" 
-              />
+              {lead.limitReached ? (
+                <div className="col-span-2 bg-rose-50 border border-rose-100 rounded-xl p-4 text-center space-y-3">
+                  <div className="flex items-center justify-center gap-2 text-rose-500 mb-1">
+                    <ShieldCheck size={18} />
+                    <span className="text-[12px] font-black uppercase tracking-widest">Access Restricted</span>
+                  </div>
+                  <p className="text-[11px] text-rose-700 font-bold uppercase leading-relaxed tracking-tight px-2">
+                    You've reached your monthly lead limit. Upgrade to Pro to view customer contact details.
+                  </p>
+                  <button 
+                    onClick={() => navigate('/partner/subscription')}
+                    className="w-full bg-rose-600 text-white py-3 rounded-lg font-black text-[11px] uppercase tracking-widest shadow-lg shadow-rose-900/10 active:scale-95 transition-all"
+                  >
+                    Upgrade Now
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <ContactAction 
+                    icon={<Phone size={14} />} 
+                    label="Call Now" 
+                    href={`tel:${lead.user_details?.phone}`} 
+                    color="bg-blue-50 text-blue-600 border-blue-100/50" 
+                  />
+                  <ContactAction 
+                    icon={<MessageSquare size={14} />} 
+                    label="WhatsApp" 
+                    href={`https://wa.me/${lead.user_details?.phone}`} 
+                    color="bg-emerald-50 text-emerald-600 border-emerald-100/50" 
+                  />
+                </>
+              )}
            </div>
         </div>
 
@@ -181,13 +202,23 @@ export default function PartnerLeadDetails() {
       {/* Floating Toolbar */}
       <div className="fixed bottom-0 left-0 right-0 p-5 z-50 pointer-events-none">
           <div className="max-w-md mx-auto bg-white/90 backdrop-blur-xl border border-slate-100 shadow-[0_-8px_32px_rgba(0,27,78,0.1)] rounded-[24px] p-4 flex gap-3 pointer-events-auto">
-              <a 
-                href={`tel:${lead.user_details?.phone}`}
-                className="flex-[3] h-12 bg-[#001b4e] text-white rounded-xl shadow-lg shadow-blue-900/20 flex items-center justify-center gap-3 font-black text-[13px] uppercase tracking-widest active:scale-95 transition-all"
-              >
-                 <Phone size={16} />
-                 Initiate Call
-              </a>
+              {lead.limitReached ? (
+                <button 
+                  onClick={() => navigate('/partner/subscription')}
+                  className="flex-[3] h-12 bg-rose-600 text-white rounded-xl shadow-lg shadow-rose-900/20 flex items-center justify-center gap-3 font-black text-[13px] uppercase tracking-widest active:scale-95 transition-all"
+                >
+                   <Zap size={16} fill="currentColor" />
+                   Upgrade for Leads
+                </button>
+              ) : (
+                <a 
+                  href={`tel:${lead.user_details?.phone}`}
+                  className="flex-[3] h-12 bg-[#001b4e] text-white rounded-xl shadow-lg shadow-blue-900/20 flex items-center justify-center gap-3 font-black text-[13px] uppercase tracking-widest active:scale-95 transition-all"
+                >
+                   <Phone size={16} />
+                   Initiate Call
+                </a>
+              )}
               <button 
                 onClick={() => updateStatus(lead.status === 'contacted' ? 'new' : 'contacted')}
                 disabled={updating}

@@ -28,6 +28,7 @@ router.post('/seller-attributes', protect, authorizeRoles('partner'), verifyAppr
 router.delete('/seller-attributes/:id', protect, authorizeRoles('partner'), verifyApproved, listingController.deleteSellerAttribute);
 
 router.put('/:id', protect, authorizeRoles('partner', 'admin', 'super_admin', 'SuperAdmin', 'Admin'), verifyApproved, listingController.updateListing);
+router.patch('/:id/toggle-featured', protect, authorizeRoles('partner'), verifyApproved, listingController.toggleFeaturedListing);
 router.delete('/:id', protect, authorizeRoles('partner', 'admin', 'super_admin', 'SuperAdmin', 'Admin'), listingController.deleteListing);
 
 // Parameterized catch-all — MUST be LAST

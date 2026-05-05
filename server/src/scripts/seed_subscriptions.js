@@ -12,8 +12,8 @@ async function seedData() {
     // 1. Create Mock Plans
     const plansData = [
       {
-        name: 'Free Trail',
-        applicable_to: ['service_provider', 'property_agent', 'supplier'],
+        name: 'Free Trial',
+        applicable_to: ['service_provider', 'property_agent', 'supplier', 'mandi_seller'],
         duration_days: 30,
         price: 0,
         listings_limit: 1,
@@ -24,7 +24,7 @@ async function seedData() {
       },
       {
         name: 'Gold Package',
-        applicable_to: ['service_provider', 'property_agent', 'supplier'],
+        applicable_to: ['service_provider', 'property_agent', 'supplier', 'mandi_seller'],
         duration_days: 365,
         price: 9999,
         listings_limit: 100,

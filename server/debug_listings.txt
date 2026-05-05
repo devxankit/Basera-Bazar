@@ -1,1 +1,9 @@
-Type: property, Count: 10, Query: {}
+Type: property, Count: 10, Query: {}[2026-05-05T13:37:35.520Z] getAllListings called with {"category":"property","is_featured":"true","limit":"8","district":"Muzaffarpur","state":"Bihar"}
+[2026-05-05T13:37:35.521Z] Query for PropertyListing: {"status":"active","is_featured":true,"address.district":{"$regex":{}}}
+[2026-05-05T13:37:35.527Z] getAllListings called with {"category":"service","is_featured":"true","limit":"8","district":"Muzaffarpur","state":"Bihar"}
+[2026-05-05T13:37:35.527Z] Query for ServiceListing: {"status":"active","is_featured":true,"address.district":{"$regex":{}}}
+[2026-05-05T13:37:35.571Z] ServiceListing items found: 0
+[2026-05-05T13:37:35.598Z] PropertyListing items found: 6
+[2026-05-05T13:37:52.954Z] getAllListings called with {"category":"service","district":"Muzaffarpur","state":"Bihar","locationType":"current","searchRadius":"25km","minExperience":"Any","featuredOnly":"false","minProducts":"Any","verifiedSupplier":"false","wholesaleOnly":"false","emiAvailable":"false"}
+[2026-05-05T13:37:52.957Z] Query for ServiceListing: {"status":"active","address.district":{"$regex":{}}}
+[2026-05-05T13:37:53.104Z] ServiceListing items found: 4

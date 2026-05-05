@@ -235,27 +235,33 @@ class DataEngine {
     const cacheKey = `all_${table}_${queryParams}`;
 
     return cacheService.get(cacheKey, async () => {
-      // Mapping table names to backend routes
-      if (table === 'listings') {
-        const isMandi = params.category === 'mandi';
-        let endpoint = isMandi ? `/listings/mandi?${queryParams}` : `/listings?${queryParams}`;
-        const response = await api.get(endpoint);
-        return (response.data.data || []).map(this._normalize).filter(Boolean);
-      }
-      
-      if (table === 'partners') {
-        const response = await api.get(`/partners/public?${queryParams}`);
-        return (response.data.data || []).map(this._normalize).filter(Boolean);
-      }
+      try {
+        // Mapping table names to backend routes
+        if (table === 'listings') {
+          const isMandi = params.category === 'mandi';
+          let endpoint = isMandi ? `/listings/mandi?${queryParams}` : `/listings?${queryParams}`;
+          const response = await api.get(endpoint);
+          return (response.data.data || []).map(this._normalize).filter(Boolean);
+        }
+        
+        if (table === 'partners') {
+          const response = await api.get(`/partners/public?${queryParams}`);
+          return (response.data.data || []).map(this._normalize).filter(Boolean);
+        }
 
-      if (table === 'banners') {
-        const response = await api.get('/listings/banners');
-        return (response.data.data || []).map(this._normalize.bind(this)).filter(Boolean);
-      }
+        if (table === 'banners') {
+          const response = await api.get('/listings/banners');
+          return (response.data.data || []).map(this._normalize.bind(this)).filter(Boolean);
+        }
 
-      if (table === 'leads') {
-        const response = await api.get('/users/enquiries');
-        return (response.data.data || []).map(this._normalize.bind(this)).filter(Boolean);
+        if (table === 'leads') {
+          const response = await api.get('/users/enquiries');
+          return (response.data.data || []).map(this._normalize.bind(this)).filter(Boolean);
+        }
+      } catch (error) {
+        console.error(`[DataEngine] Error fetching ${table}:`, error.message);
+        // Return empty array on network/server error to prevent UI crashes
+        return [];
       }
 
       return [];

@@ -9,10 +9,11 @@ import {
   ChevronRight,
   Edit,
   Trash2,
-  MapPin,
-  BedDouble,
-  Square,
-  AlertCircle
+  MapPin, 
+  BedDouble, 
+  Square, 
+  AlertCircle,
+  Star
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -26,6 +27,12 @@ export default function PartnerInventory() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
+  const [subscriptionLimits, setSubscriptionLimits] = useState({
+    canFeature: true,
+    message: '',
+    featuredUsed: 0,
+    featuredLimit: 0
+  });
 
   useEffect(() => {
     if (!user) {
@@ -49,7 +56,25 @@ export default function PartnerInventory() {
     };
 
     fetchMyListings();
+    fetchSubscriptionLimits();
   }, [user, navigate]);
+
+  const fetchSubscriptionLimits = async () => {
+    try {
+      const res = await api.get('/partners/subscription/limits');
+      if (res.data.success) {
+        const { usage, messages } = res.data.data;
+        setSubscriptionLimits({
+          canFeature: !usage.is_featured_limit_reached,
+          message: messages.featured,
+          featuredUsed: usage.featured_listings_used,
+          featuredLimit: usage.featured_listings_limit
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching limits:", err);
+    }
+  };
 
   if (!user) return null;
   const partner = user;
@@ -126,6 +151,35 @@ export default function PartnerInventory() {
         console.error("Error deleting listing:", err);
         alert("Failed to delete listing. Please try again.");
       }
+    }
+  };
+
+  const handleToggleFeatured = async (e, item) => {
+    e.stopPropagation();
+    const isCurrentlyFeatured = item.isFeatured === true || item.is_featured === true;
+    
+    // If trying to feature and limit reached
+    if (!isCurrentlyFeatured && !subscriptionLimits.canFeature) {
+      alert(subscriptionLimits.message || "Featured limit reached! Un-feature another item to feature this one.");
+      return;
+    }
+
+    try {
+      const res = await api.patch(`/listings/${item.id || item._id}/toggle-featured`);
+      if (res.data.success) {
+        // Update local state
+        setItems(prev => prev.map(i => {
+          if ((i.id || i._id) === (item.id || item._id)) {
+            return { ...i, isFeatured: res.data.data.is_featured };
+          }
+          return i;
+        }));
+        // Refresh limits
+        fetchSubscriptionLimits();
+      }
+    } catch (err) {
+      console.error("Toggle featured error:", err);
+      alert(err.response?.data?.message || "Failed to update featured status");
     }
   };
 
@@ -296,6 +350,17 @@ export default function PartnerInventory() {
                     </div>
  
                     <div className="flex items-center gap-1">
+                       <button 
+                          onClick={(e) => handleToggleFeatured(e, item)}
+                          className={`h-6 w-6 xs:h-7 xs:w-7 mm:h-9 mm:w-9 flex items-center justify-center rounded-lg mm:rounded-xl transition-all transform active:scale-90 border ${
+                             (item.isFeatured || item.is_featured) 
+                               ? 'bg-amber-100 text-amber-500 border-amber-200' 
+                               : 'bg-slate-50 text-slate-300 border-slate-100 hover:text-amber-500 hover:bg-amber-50'
+                          }`}
+                          title={(item.isFeatured || item.is_featured) ? "Un-feature" : "Mark as Featured"}
+                       >
+                          <Star size={10} xs:size={12} fill={(item.isFeatured || item.is_featured) ? 'currentColor' : 'none'} />
+                       </button>
                        <button 
                           onClick={(e) => handleEdit(e, item)}
                           className="h-6 w-6 xs:h-7 xs:w-7 mm:h-9 mm:w-9 flex items-center justify-center bg-blue-50 text-blue-600 rounded-lg mm:rounded-xl hover:bg-blue-600 hover:text-white transition-all transform active:scale-90 border border-blue-100/30"

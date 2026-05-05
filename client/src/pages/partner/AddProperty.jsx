@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   ArrowLeft, Home, MapPin, Search, Map, ChevronDown, CheckCircle2,
   Trash2, UploadCloud, Info, BedDouble, Bath, Users, Square, Navigation, 
-  Building2, Camera, Star, AlertCircle, X, Triangle, Check, Car, Bike
+  Building2, Camera, Star, AlertCircle, X, Triangle, Check, Car, Bike, Loader2
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,6 +29,12 @@ export default function AddProperty() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
+  const [subscriptionLimits, setSubscriptionLimits] = useState({
+    canAddListing: true,
+    canFeature: false,   // LOCKED BY DEFAULT
+    message: '',
+    planName: 'Verifying...'
+  });
   
   const [formData, setFormData] = useState({
     // Step 1: Essential Details
@@ -80,6 +86,27 @@ export default function AddProperty() {
   });
 
   useEffect(() => {
+    fetchSubscriptionLimits();
+  }, []);
+
+  const fetchSubscriptionLimits = async () => {
+    try {
+      const res = await api.get('/partners/subscription/limits');
+      if (res.data.success && res.data.data) {
+        const { usage, plan_name, messages } = res.data.data;
+        setSubscriptionLimits({
+          canAddListing: usage ? !usage.is_listing_limit_reached : true,
+          canFeature: usage ? !usage.is_featured_limit_reached : false,
+          message: messages?.listing || '',
+          planName: plan_name || 'Basic'
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching limits:", err);
+    }
+  };
+
+  useEffect(() => {
     if (!user) {
       navigate('/partner/login');
       return;
@@ -89,7 +116,7 @@ export default function AddProperty() {
       const fetchProperty = async () => {
         try {
           const res = await api.get(`/listings/${editId}`);
-          if (res.data.success) {
+          if (res.data.success && res.data.data) {
             const data = res.data.data;
             // Map backend schema back to frontend formData
             setFormData(prev => ({
@@ -181,7 +208,7 @@ export default function AddProperty() {
     const fetchParentCategories = async () => {
       try {
         const res = await api.get('/listings/categories?type=property');
-        if (res.data.success) {
+        if (res.data.success && res.data.data) {
           setParentCategories(res.data.data);
         }
       } catch (err) {
@@ -196,7 +223,7 @@ export default function AddProperty() {
       const fetchSubCategories = async () => {
         try {
           const res = await api.get(`/listings/categories?type=property&parent_id=${formData.categoryId}`);
-          if (res.data.success) {
+          if (res.data.success && res.data.data) {
             setSubCategories(res.data.data);
           }
         } catch (err) {
@@ -383,6 +410,7 @@ export default function AddProperty() {
   };
 
   const submitFinalProperty = async () => {
+    if (isSubmitting) return; // Prevent multiple submissions
     try {
       setIsSubmitting(true);
       
@@ -515,6 +543,26 @@ export default function AddProperty() {
 
       {/* Form Content */}
       <div className="p-5 max-w-lg mx-auto">
+        {/* Subscription Limit Warning */}
+        {!subscriptionLimits.canAddListing && !editId && (
+          <div className="mb-6 bg-rose-50 border border-rose-100 rounded-2xl p-5 space-y-4 shadow-sm shadow-rose-900/5">
+            <div className="flex gap-3">
+              <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={20} />
+              <div className="text-left">
+                <h4 className="text-[15px] font-black text-rose-900 uppercase tracking-tight">Listing Limit Reached</h4>
+                <p className="text-[13px] text-rose-700 leading-relaxed font-medium mt-1">
+                  {subscriptionLimits.message || "Your current plan limit has been reached. Please upgrade your plan or delete an existing listing to add a new property."}
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={() => navigate('/partner/subscription')}
+              className="w-full bg-rose-600 text-white py-3 rounded-xl font-bold text-[13px] uppercase tracking-widest shadow-lg shadow-rose-900/20 active:scale-95 transition-all"
+            >
+              Upgrade Plan Now
+            </button>
+          </div>
+        )}
         <AnimatePresence mode="popLayout">
           <motion.div
             key={activeStep}
@@ -546,7 +594,14 @@ export default function AddProperty() {
               />
             )}
             {activeStep === 4 && (
-              <StepFour formData={formData} handleChange={handleChange} handleFileChange={handleFileChange} removeImage={removeImage} uploadingImage={uploadingImage} />
+              <StepFour 
+                formData={formData} 
+                handleChange={handleChange} 
+                handleFileChange={handleFileChange} 
+                removeImage={removeImage} 
+                uploadingImage={uploadingImage}
+                subscriptionLimits={subscriptionLimits}
+              />
             )}
           </motion.div>
         </AnimatePresence>
@@ -603,9 +658,12 @@ export default function AddProperty() {
               <div className="space-y-3">
                 <button 
                   onClick={submitFinalProperty}
-                  className="w-full bg-[#fa8639] text-white py-4 rounded-xl font-bold text-[16px] shadow-lg shadow-orange-500/30 active:scale-95 transition-all"
+                  disabled={isSubmitting}
+                  className={`w-full py-4 rounded-xl font-bold text-[16px] shadow-lg active:scale-95 transition-all flex items-center justify-center gap-3 ${
+                    isSubmitting ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-[#fa8639] text-white shadow-orange-500/30'
+                  }`}
                 >
-                  Yes, List My Property
+                  {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Yes, List My Property'}
                 </button>
                 <button 
                   onClick={() => setShowConfirmModal(false)}
@@ -683,7 +741,7 @@ function StepOne({ formData, handleChange, handleCategorySelect, handleSubCatego
                 className="w-full bg-white border border-slate-200 rounded-xl py-3.5 pr-10 text-[14px] font-medium outline-none appearance-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all pl-11"
               >
                 <option value="" disabled hidden>Select Category</option>
-                {parentCategories.map((cat) => (
+                {(parentCategories || []).map((cat) => (
                   <option key={cat._id} value={cat._id}>{cat.name}</option>
                 ))}
               </select>
@@ -703,7 +761,7 @@ function StepOne({ formData, handleChange, handleCategorySelect, handleSubCatego
                   className="w-full bg-white border border-slate-200 rounded-xl py-3.5 pr-10 text-[14px] font-medium outline-none appearance-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all pl-11"
                 >
                   <option value="" disabled hidden>Select Sub Category</option>
-                  {subCategories.map((cat) => (
+                  {(subCategories || []).map((cat) => (
                     <option key={cat._id} value={cat._id}>{cat.name}</option>
                   ))}
                 </select>
@@ -955,7 +1013,9 @@ function StepThree({ formData, handleChange, handleSelect, handleFetchCoordinate
 // -------------------------------------------------------------
 // STEP 4 COMPONENTS
 // -------------------------------------------------------------
-function StepFour({ formData, handleChange, handleFileChange, removeImage, uploadingImage }) {
+function StepFour({ formData, handleChange, handleFileChange, removeImage, uploadingImage, subscriptionLimits }) {
+  // Safe defaults - if limits are not loaded or canFeature is false, it stays false.
+  const limits = subscriptionLimits || { canFeature: false };
   return (
     <div className="space-y-6">
       <SectionCard title="Property Images" icon={<Camera size={18} className="text-blue-500" />}>
@@ -1052,17 +1112,48 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage, uploa
       </SectionCard>
 
       <SectionCard title="Listing Options" icon={<Star size={18} className="text-yellow-500 fill-yellow-500" />}>
-         <div className="flex items-center justify-between p-5 border border-yellow-200 rounded-2xl bg-[#fffef5] shadow-sm">
+         <div className={`flex items-center justify-between p-5 border rounded-2xl shadow-sm transition-all ${
+           (!limits.canFeature && !formData.isFeatured) 
+             ? 'bg-slate-50 border-slate-200 grayscale opacity-70' 
+             : 'bg-[#fffef5] border-yellow-200'
+         }`}>
             <div className="flex items-start gap-4">
-               <div className="mt-0.5"><Star size={20} className="text-yellow-500 fill-yellow-500"/></div>
+               <div className="mt-0.5">
+                 {(!limits.canFeature && !formData.isFeatured) 
+                   ? <Info size={20} className="text-slate-400"/> 
+                   : <Star size={20} className="text-yellow-500 fill-yellow-500"/>
+                 }
+               </div>
                <div>
-                  <div className="text-[15px] font-bold text-[#001b4e]">Mark as Featured Property</div>
-                  <div className="text-[12px] text-slate-500 font-medium mt-1 leading-snug">Featured properties appear prominently in search results and get more visibility</div>
+                  <div className={`text-[15px] font-bold ${(!limits.canFeature && !formData.isFeatured) ? 'text-slate-500' : 'text-[#001b4e]'}`}>
+                    Mark as Featured Property
+                  </div>
+                  <div className="text-[12px] text-slate-500 font-medium mt-1 leading-snug">
+                    {!limits.canFeature && !formData.isFeatured 
+                      ? "Upgrade your plan to unlock featured listings!" 
+                      : "Featured properties appear prominently in search results and get more visibility"}
+                  </div>
                </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer shrink-0">
-              <input type="checkbox" name="isFeatured" checked={formData.isFeatured} onChange={handleChange} className="sr-only peer" />
-              <div className="w-12 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-yellow-500"></div>
+            <label className={`relative inline-flex items-center shrink-0 ${(!limits.canFeature && !formData.isFeatured) ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+               <input 
+                 type="checkbox" 
+                 name="isFeatured" 
+                 checked={formData.isFeatured} 
+                 disabled={!limits.canFeature && !formData.isFeatured}
+                 onChange={(e) => {
+                   if (!limits.canFeature && e.target.checked && !formData.isFeatured) {
+                     return;
+                   }
+                   handleChange(e);
+                 }} 
+                 className="sr-only peer" 
+               />
+               <div className={`w-12 h-7 rounded-full peer peer-focus:outline-none after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white ${
+                 (!limits.canFeature && !formData.isFeatured)
+                   ? 'bg-slate-200'
+                   : 'bg-slate-200 peer-checked:bg-yellow-500'
+               }`}></div>
             </label>
          </div>
       </SectionCard>

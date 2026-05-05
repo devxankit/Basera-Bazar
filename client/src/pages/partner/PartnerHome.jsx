@@ -17,7 +17,8 @@ import {
   Settings,
   UserCircle,
   ShoppingBag,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -36,6 +37,7 @@ export default function PartnerHome() {
   });
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [subscriptionLimits, setSubscriptionLimits] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -49,13 +51,15 @@ export default function PartnerHome() {
         // Sync user profile to get latest onboarding_status
         await refreshUser();
         
-        const [statsRes, activityRes] = await Promise.all([
+        const [statsRes, activityRes, limitsRes] = await Promise.all([
           api.get('/partners/stats'),
-          api.get('/partners/activities')
+          api.get('/partners/activities'),
+          api.get('/partners/subscription/limits')
         ]);
         
         if (statsRes.data.success) setStats(statsRes.data.data);
         if (activityRes.data.success) setActivities(activityRes.data.data.slice(0, 5));
+        if (limitsRes.data.success) setSubscriptionLimits(limitsRes.data.data);
       } catch (err) {
         console.error("Dashboard data fetch error:", err);
         // Fallback to local activities if API fails
@@ -149,33 +153,62 @@ export default function PartnerHome() {
             </div>
           </div>
 
-          {/* Verification Banner */}
-          {user.onboarding_status !== 'approved' && (
+          {/* Subscription Status Card */}
+          {subscriptionLimits && (
             <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-4 p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-4"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              onClick={() => navigate('/partner/subscription')}
+              className="mt-6 bg-white border border-slate-100 rounded-3xl p-5 shadow-sm shadow-blue-900/5 relative overflow-hidden group active:scale-95 transition-all cursor-pointer"
             >
-              <div className="p-2 bg-amber-500 text-white rounded-xl">
-                <AlertCircle size={20} />
-              </div>
-                <div className="flex-grow">
-                  <h3 className="text-amber-900 font-bold text-[14px]">
-                    {user.onboarding_status === 'incomplete' ? 'Verification Required' : 'Verification Pending'}
-                  </h3>
-                  <p className="text-amber-700 text-[12px] leading-tight mt-1">
-                    {user.onboarding_status === 'incomplete' 
-                      ? 'Please complete your KYC profile to start listing products.' 
-                      : 'Admin is reviewing your documents. You will be able to list products once approved.'}
-                  </p>
-                  <button 
-                    onClick={() => navigate('/partner/onboarding')}
-                    className="mt-2 text-[11px] font-black uppercase text-amber-900 hover:underline flex items-center gap-1"
-                  >
-                    {user.onboarding_status === 'incomplete' ? 'Complete Profile' : 'Update Documents'}
-                    <ChevronRight size={12} />
-                  </button>
-                </div>
+               <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:scale-110 transition-transform">
+                  <ShieldCheck size={80} />
+               </div>
+               
+               <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                     <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                        <Zap size={16} fill="currentColor" />
+                     </div>
+                     <span className="text-[12px] font-black text-[#001b4e] uppercase tracking-widest">{subscriptionLimits.planName || 'Active Plan'}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-blue-600 font-bold text-[10px] uppercase tracking-widest">
+                     Upgrade <ArrowUpRight size={12} />
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                     <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                        <span>Listings</span>
+                        <span className={subscriptionLimits.usage.is_listing_limit_reached ? 'text-rose-500' : 'text-slate-900'}>
+                           {subscriptionLimits.usage.listings_created}/{subscriptionLimits.usage.listings_limit === -1 ? '∞' : subscriptionLimits.usage.listings_limit}
+                        </span>
+                     </div>
+                     <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, (subscriptionLimits.usage.listings_created / (subscriptionLimits.usage.listings_limit === -1 ? 100 : subscriptionLimits.usage.listings_limit)) * 100)}%` }}
+                          className={`h-full rounded-full ${subscriptionLimits.usage.is_listing_limit_reached ? 'bg-rose-500' : 'bg-blue-600'}`}
+                        />
+                     </div>
+                  </div>
+                  <div className="space-y-1.5">
+                     <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                        <span>Leads</span>
+                        <span className={subscriptionLimits.usage.is_lead_limit_reached ? 'text-rose-500' : 'text-slate-900'}>
+                           {subscriptionLimits.usage.enquiries_received_this_month}/{subscriptionLimits.usage.enquiries_received_limit === -1 ? '∞' : subscriptionLimits.usage.enquiries_received_limit}
+                        </span>
+                     </div>
+                     <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, (subscriptionLimits.usage.enquiries_received_this_month / (subscriptionLimits.usage.enquiries_received_limit === -1 ? 100 : subscriptionLimits.usage.enquiries_received_limit)) * 100)}%` }}
+                          className={`h-full rounded-full ${subscriptionLimits.usage.is_lead_limit_reached ? 'bg-rose-500' : 'bg-orange-500'}`}
+                        />
+                     </div>
+                  </div>
+               </div>
             </motion.div>
           )}
         </div>

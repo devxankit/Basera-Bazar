@@ -1236,16 +1236,27 @@ const updateListingStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid status transition.' });
     }
 
-    // Identify and update
-    let listing = await PropertyListing.findById(id) || await ServiceListing.findById(id) || await SupplierListing.findById(id);
+    // Identify the Model
+    let Model = mongoose.model('PropertyListing');
+    let listing = await Model.findById(id);
+
+    if (!listing) {
+      Model = mongoose.model('ServiceListing');
+      listing = await Model.findById(id);
+    }
+    if (!listing) {
+      Model = mongoose.model('SupplierListing');
+      listing = await Model.findById(id);
+    }
 
     if (!listing) return res.status(404).json({ success: false, message: 'Listing not found.' });
 
-    listing.status = status;
-    if (status_reason !== undefined) listing.status_reason = status_reason;
-    if (status === 'deleted') listing.deleted_at = new Date();
+    const updateFields = { status };
+    if (status_reason !== undefined) updateFields.status_reason = status_reason;
+    if (status === 'deleted') updateFields.deleted_at = new Date();
 
-    await listing.save();
+    // Use findByIdAndUpdate to bypass full document validation on legacy/malformed data
+    listing = await Model.findByIdAndUpdate(id, { $set: updateFields }, { new: true });
 
     // NEW: Notify partner if approved
     if (status === 'active' && listing.partner_id) {
@@ -1269,7 +1280,7 @@ const updateListingStatus = async (req, res) => {
     res.status(200).json({ success: true, message: `Listing marked as ${status}`, data: listing });
   } catch (error) {
     console.error("Error updating status:", error);
-    res.status(500).json({ success: false, message: 'Error updating listing status.' });
+    res.status(500).json({ success: false, message: 'Error updating listing status.', error: error.message });
   }
 };
 

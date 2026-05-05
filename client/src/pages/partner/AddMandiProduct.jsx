@@ -53,12 +53,35 @@ export default function AddMandiProduct() {
   });
 
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [subscriptionLimits, setSubscriptionLimits] = useState({
+    canAddListing: true,
+    canFeature: true,
+    message: '',
+    planName: 'Loading...'
+  });
 
   useEffect(() => {
     fetchCategories();
-    fetchSubscription();
+    fetchSubscriptionLimits();
     if (editId) fetchProductData();
   }, []);
+
+  const fetchSubscriptionLimits = async () => {
+    try {
+      const res = await api.get('/partners/subscription/limits');
+      if (res.data.success) {
+        const { usage, plan_name, messages } = res.data.data;
+        setSubscriptionLimits({
+          canAddListing: !usage.is_listing_limit_reached,
+          canFeature: !usage.is_featured_limit_reached,
+          message: messages.listing,
+          planName: plan_name
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching limits:", err);
+    }
+  };
 
   const fetchSubscription = async () => {
     try {
@@ -248,6 +271,26 @@ export default function AddMandiProduct() {
       </div>
 
       <div className="p-5 space-y-5">
+        {/* Subscription Limit Warning */}
+        {!subscriptionLimits.canAddListing && !editId && (
+          <div className="bg-rose-50 border border-rose-100 rounded-2xl p-5 space-y-4 shadow-sm shadow-rose-900/5">
+            <div className="flex gap-3">
+              <Tag className="text-rose-500 shrink-0 mt-0.5" size={20} />
+              <div className="text-left">
+                <h4 className="text-[15px] font-black text-rose-900 uppercase tracking-tight">Listing Limit Reached</h4>
+                <p className="text-[13px] text-rose-700 leading-relaxed font-medium mt-1">
+                  {subscriptionLimits.message || "Your current plan limit has been reached. Please upgrade your plan or delete an existing product to add a new one."}
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={() => navigate('/partner/subscription')}
+              className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold text-[13px] uppercase tracking-widest shadow-lg shadow-rose-900/20 active:scale-95 transition-all"
+            >
+              Upgrade Plan Now
+            </button>
+          </div>
+        )}
 
         {/* STEP 1: Product Category */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-3">
@@ -491,13 +534,13 @@ export default function AddMandiProduct() {
               </div>
               <button 
                 onClick={() => {
-                  if (subscriptionInfo && !subscriptionInfo.isPro) {
-                    setShowLimitModal(true);
+                  if (!subscriptionLimits.canFeature && !formData.is_featured) {
+                    alert(subscriptionLimits.message || "Featured limit reached! Upgrade to feature more.");
                   } else {
                     setFormData({...formData, is_featured: !formData.is_featured});
                   }
                 }}
-                className={`w-12 h-6 rounded-full relative transition-all ${formData.is_featured ? 'bg-blue-600' : 'bg-slate-200'}`}
+                className={`w-12 h-6 rounded-full relative transition-all ${formData.is_featured ? 'bg-blue-600' : 'bg-slate-200'} ${(!subscriptionLimits.canFeature && !formData.is_featured) ? 'opacity-50 grayscale' : ''}`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.is_featured ? 'right-1' : 'left-1'}`} />
               </button>

@@ -12,7 +12,8 @@ const {
   getPublicPartnerById,
   getPartnerSubscriptionPlans,
   toggleFeature,
-  getActivities
+  getActivities,
+  getPartnerSubscriptionLimits
 } = require('../controllers/partnerController');
 
 // Import our security middlewares!
@@ -92,6 +93,13 @@ router.get(
   protect,
   authorizeRoles('partner'),
   getActivities
+);
+
+router.get(
+  '/subscription/limits',
+  protect,
+  authorizeRoles('partner'),
+  getPartnerSubscriptionLimits
 );
 
 module.exports = router;

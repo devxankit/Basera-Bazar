@@ -59,6 +59,12 @@ export default function AddService() {
   const [activeStep, setActiveStep] = useState(1);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subscriptionLimits, setSubscriptionLimits] = useState({
+    canAddListing: true,
+    canFeature: true,
+    message: '',
+    planName: 'Loading...'
+  });
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
 
@@ -73,6 +79,27 @@ export default function AddService() {
     };
     fetchTopCats();
   }, []);
+
+  useEffect(() => {
+    fetchSubscriptionLimits();
+  }, []);
+
+  const fetchSubscriptionLimits = async () => {
+    try {
+      const res = await api.get('/partners/subscription/limits');
+      if (res.data.success) {
+        const { usage, plan_name, messages } = res.data.data;
+        setSubscriptionLimits({
+          canAddListing: !usage.is_listing_limit_reached,
+          canFeature: !usage.is_featured_limit_reached,
+          message: messages.listing,
+          planName: plan_name
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching limits:", err);
+    }
+  };
 
   useEffect(() => {
     if (!user) {
@@ -154,12 +181,8 @@ export default function AddService() {
     } else if (name === 'district') {
       setFormData(prev => ({ ...prev, district: value, city: prev.city || value }));
     } else if (name === 'is_featured') {
-      const sub = user?.active_subscription_id;
-      const limit = sub?.plan_snapshot?.featured_listings_limit || 0;
-      const used = sub?.usage?.featured_listings_used || 0;
-      
-      if (e.target.checked && limit !== -1 && used >= limit) {
-        alert(`You have reached your featured listings limit of ${limit}. Please upgrade your plan to feature more services.`);
+      if (e.target.checked && !subscriptionLimits.canFeature && !formData.is_featured) {
+        alert(subscriptionLimits.message || `You have reached your featured listings limit. Please upgrade your plan to feature more services.`);
         return;
       }
       setFormData(prev => ({ ...prev, [name]: e.target.checked }));
@@ -387,6 +410,27 @@ export default function AddService() {
       </div>
 
       <div className="p-6 space-y-8">
+        {/* Subscription Limit Warning */}
+        {!subscriptionLimits.canAddListing && !editId && (
+          <div className="bg-rose-50 border border-rose-100 rounded-2xl p-5 space-y-4 shadow-sm shadow-rose-900/5">
+            <div className="flex gap-3">
+              <Star className="text-rose-500 shrink-0 mt-0.5" size={20} />
+              <div className="text-left">
+                <h4 className="text-[15px] font-black text-rose-900 uppercase tracking-tight">Listing Limit Reached</h4>
+                <p className="text-[13px] text-rose-700 leading-relaxed font-medium mt-1">
+                  {subscriptionLimits.message || "Your current plan limit has been reached. Please upgrade your plan or delete an existing service to add a new one."}
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={() => navigate('/partner/subscription')}
+              className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold text-[13px] uppercase tracking-widest shadow-lg shadow-rose-900/20 active:scale-95 transition-all"
+            >
+              Upgrade Plan Now
+            </button>
+          </div>
+        )}
+
         {/* Info Banner */}
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex gap-3">
           <Info className="text-blue-500 shrink-0 mt-0.5" size={20} />
@@ -725,11 +769,12 @@ export default function AddService() {
                 )}
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label className={`relative inline-flex items-center cursor-pointer ${(!subscriptionLimits.canFeature && !formData.is_featured) ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}>
               <input 
                 type="checkbox" 
                 name="is_featured"
                 checked={formData.is_featured}
+                disabled={!subscriptionLimits.canFeature && !formData.is_featured}
                 onChange={handleChange}
                 className="sr-only peer" 
               />

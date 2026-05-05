@@ -41,7 +41,8 @@ const subscriptionSchema = new mongoose.Schema({
     usage_reset_at: { type: Date }
   },
   razorpay_subscription_id: { type: String },
-  granted_by_admin: { type: Boolean, default: false } // Manual bypass
+  granted_by_admin: { type: Boolean, default: false }, // Manual bypass
+  cancel_at_period_end: { type: Boolean, default: false } // For proper cancellation flow
 }, { timestamps: true });
 subscriptionSchema.index({ ends_at: 1 }); // Expiry cron index
 
@@ -84,6 +85,7 @@ const transactionSchema = new mongoose.Schema({
     required: true
   },
   razorpay_order_id: { type: mongoose.Schema.Types.ObjectId, ref: 'RazorpayOrder' }, // Nullable if admin credit
+  partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // The partner/user who made the transaction
   reference_id: { type: mongoose.Schema.Types.ObjectId } // Polymorphic logic
 }, { timestamps: true });
 
