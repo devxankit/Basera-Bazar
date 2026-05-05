@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Search, Filter, Eye, Trash2, Mail, Phone, Calendar, 
   ChevronDown, RotateCcw, Loader2, CheckCircle2, User,
-  MessageSquare, ShieldCheck, MailSearch
+  MessageSquare, ShieldCheck, MailSearch, Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
@@ -127,6 +127,9 @@ const AdminLeads = () => {
       case 'service': return `/admin/services/view/${lead.listing_id}`;
       case 'mandi': return `/admin/mandi-bazar`;
       case 'supplier': return `/admin/products/view/${lead.listing_id}`;
+      case 'broadcast_service':
+      case 'broadcast_supplier':
+        return `/admin/leads/view/${lead._id}?broadcast=true`;
       default: return `/admin/leads`;
     }
   };
@@ -136,7 +139,7 @@ const AdminLeads = () => {
       <div className="max-w-[1600px] mx-auto px-6 space-y-6">
         
         {/* Header Section */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between mb-8 gap-6">
             <div>
                <h1 className="text-3xl font-bold text-slate-800 tracking-tight uppercase">Lead Pipeline</h1>
                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-2 italic">
@@ -144,15 +147,41 @@ const AdminLeads = () => {
                </p>
             </div>
            
-           <div className="flex items-center gap-3">
+           <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+              {/* Quick Search Input */}
+              <div className="relative flex-1 lg:w-80 group">
+                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                 <input 
+                   type="text"
+                   placeholder="Search by name, phone, or ID..."
+                   value={filters.search}
+                   onChange={(e) => setFilters({...filters, search: e.target.value})}
+                   className="w-full bg-white border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm group-hover:border-slate-300"
+                 />
+              </div>
+
+              {/* Broadcast Quick Filter Toggle */}
+              <button 
+                 onClick={() => setFilters({...filters, type: filters.type === 'broadcast' ? 'all' : 'broadcast'})}
+                 className={cn(
+                   "px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-2.5 transition-all shadow-sm border",
+                   filters.type === 'broadcast' 
+                     ? "bg-purple-600 text-white border-purple-600 shadow-purple-100" 
+                     : "bg-white text-slate-600 border-slate-200 hover:border-purple-200 hover:bg-purple-50/30"
+                 )}
+              >
+                 <Activity size={16} className={cn(filters.type === 'broadcast' ? "animate-pulse" : "text-purple-500")} />
+                 {filters.type === 'broadcast' ? 'Showing Broadcast Only' : 'Filter Broadcast'}
+              </button>
+
               <button 
                 onClick={() => fetchData()}
-                className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 transition-all hover:border-indigo-100 shadow-sm"
+                className="p-3.5 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-indigo-600 transition-all hover:border-indigo-100 shadow-sm"
               >
                 <RotateCcw size={18} />
               </button>
-               <div className="px-6 py-3 bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-xl shadow-indigo-100 uppercase tracking-widest flex items-center gap-2">
-                  <ShieldCheck size={16} /> Admin access - Unlimited Leads
+               <div className="px-6 py-3.5 bg-indigo-600 text-white font-bold text-xs rounded-2xl shadow-xl shadow-indigo-100 uppercase tracking-widest flex items-center gap-2">
+                  <ShieldCheck size={16} /> Admin access
                </div>
            </div>
         </div>
@@ -226,6 +255,7 @@ const AdminLeads = () => {
                         <option value="property">Property Inquiry</option>
                         <option value="supplier">Material Inquiry</option>
                         <option value="mandi">Mandi Inquiry</option>
+                        <option value="broadcast">Broadcast Requirement</option>
                       </select>
                     </div>
 
@@ -422,11 +452,12 @@ const AdminLeads = () => {
                          <div className="flex flex-col gap-2">
                              <div className={cn(
                                 "px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest self-start flex items-center gap-1.5",
+                                lead.is_broadcast ? "bg-purple-50 text-purple-600 border border-purple-100" :
                                 lead.enquiry_type === 'service' ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
                                 lead.enquiry_type === 'property' ? "bg-blue-50 text-blue-600 border border-blue-100" :
                                 "bg-orange-50 text-orange-600 border border-orange-100"
                              )}>
-                                <CheckCircle2 size={12} /> {lead.enquiry_type}
+                                <CheckCircle2 size={12} /> {lead.is_broadcast ? 'BROADCAST' : lead.enquiry_type}
                              </div>
                              <button 
                                 onClick={() => navigate(getListingUrl(lead))}

@@ -8,6 +8,7 @@ const { Transaction, SubscriptionPlan } = require('../models/Finance');
 const { Category, Banner, AppConfig } = require('../models/System');
 const { ActivityLog, logActivity } = require('../utils/activityLogger');
 const Order = require('../models/Order');
+const BroadcastLead = require('../models/BroadcastLead');
 const { createNotification } = require('../utils/notificationHelper');
 
 // Helper to get ISO Week number
@@ -1376,16 +1377,72 @@ const getLeads = async (req, res) => {
       if (dateTo) query.createdAt.$lte = new Date(dateTo);
     }
 
-    // Fetch leads with population
-    let leads = await Enquiry.find(query)
-      .populate('user_id', 'name phone email createdAt')
-      .populate('partner_id', 'name phone role profileImage')
-      .sort({ createdAt: -1 });
+    // Fetch leads (Enquiries) with population
+    let enquiries = [];
+    if (!type || type === 'all' || (type !== 'broadcast' && type !== 'service' && type !== 'supplier' && type !== 'mandi' && type !== 'property')) {
+       // This handles the case where we want standard leads
+       // If type is specifically one of the broadcast types, we might still want to fetch enquiries of that type
+    }
+    
+    // Actually, let's simplify the logic:
+    let enquiryQuery = { ...query };
+    if (type === 'broadcast') {
+        // If searching specifically for broadcast, don't fetch any standard enquiries
+        enquiries = [];
+    } else {
+        enquiries = await Enquiry.find(enquiryQuery)
+          .populate('user_id', 'name phone email createdAt')
+          .populate('partner_id', 'name phone role profileImage')
+          .sort({ createdAt: -1 });
+    }
+
+    // 2. Fetch Broadcast Leads if type is compatible
+    let broadcastLeads = [];
+    if (!type || type === 'all' || type === 'broadcast' || type === 'service' || type === 'supplier') {
+      let broadcastQuery = {};
+      if (type === 'service') broadcastQuery.target_category = 'service';
+      if (type === 'supplier') broadcastQuery.target_category = 'supplier';
+      // if type === 'broadcast' or 'all' or !type, we fetch all broadcast leads
+      
+      // Date range for broadcast
+      if (dateFrom || dateTo) {
+        broadcastQuery.createdAt = {};
+        if (dateFrom) broadcastQuery.createdAt.$gte = new Date(dateFrom);
+        if (dateTo) broadcastQuery.createdAt.$lte = new Date(dateTo);
+      }
+
+      broadcastLeads = await BroadcastLead.find(broadcastQuery)
+        .populate('user_id', 'name phone email createdAt')
+        .sort({ createdAt: -1 });
+    }
+
+    // 3. Normalize Broadcast Leads to match Enquiry shape
+    const normalizedBroadcast = broadcastLeads.map(lead => ({
+      ...lead.toObject(),
+      enquiry_type: `broadcast_${lead.target_category}`,
+      user_details: {
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone
+      },
+      message: lead.requirement_details || 'Broadcast Requirement',
+      listing_snapshot: {
+        title: `BROADCAST: ${lead.target_category.toUpperCase()}`,
+        category: lead.target_category
+      },
+      is_read: false, // Default for broadcast
+      contact_status: 'new',
+      is_broadcast: true // Flag for frontend
+    }));
+
+    // 4. Merge all leads
+    let allLeads = [...enquiries, ...normalizedBroadcast];
 
     // Client-side filtering for complex search and nested fields
     if (role || search || owner) {
       const searchText = (search || '').toLowerCase();
-      leads = leads.filter(lead => {
+      allLeads = allLeads.filter(lead => {
+        // Broadcast leads don't have a single partner_id initially
         const matchesRole = !role || role === 'all' || (lead.partner_id && (lead.partner_id.role === role || (role === 'ServiceProvider' && lead.partner_id.role === 'service_provider')));
         const matchesOwner = !owner || owner === 'all' || (lead.partner_id && lead.partner_id._id.toString() === owner);
 
@@ -1395,6 +1452,8 @@ const getLeads = async (req, res) => {
             (lead.user_id.email || '').toLowerCase().includes(searchText) ||
             (lead.user_id.phone || '').includes(searchText)
           )) ||
+          ((lead.name || '').toLowerCase().includes(searchText)) ||
+          ((lead.phone || '').includes(searchText)) ||
           (lead.listing_snapshot && lead.listing_snapshot.title && lead.listing_snapshot.title.toLowerCase().includes(searchText)) ||
           (lead._id.toString().includes(searchText));
 
@@ -1402,28 +1461,25 @@ const getLeads = async (req, res) => {
       });
     }
 
-    // IMPORTANT: Capture raw user_ids BEFORE populate overwrites them with null (for deleted users).
-    // We build a map of lead._id -> raw user_id ObjectId from a lean (un-populated) query.
-    const rawLeadData = await Enquiry.find(query).select('user_id').lean();
-    const rawUserIdMap = {};
-    rawLeadData.forEach(r => { rawUserIdMap[r._id.toString()] = r.user_id; });
+    // Sort combined results by date
+    allLeads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // Add historical metrics for each lead using the reliable raw user_id
-    const leadsWithMetrics = await Promise.all(leads.map(async (lead) => {
-      const rawUserId = rawUserIdMap[lead._id.toString()];
+    // IMPORTANT: Capture raw user_ids for metrics
+    const enquiriesWithMetrics = await Promise.all(allLeads.map(async (lead) => {
+      const rawUserId = lead.user_id?._id || lead.user_id;
       const total_user_inquiries = rawUserId
         ? await Enquiry.countDocuments({ user_id: rawUserId })
         : 0;
       return {
-        ...lead.toObject(),
+        ... (lead.toObject ? lead.toObject() : lead),
         total_user_inquiries
       };
     }));
 
     res.status(200).json({
       success: true,
-      count: leads.length,
-      data: leadsWithMetrics
+      count: allLeads.length,
+      data: enquiriesWithMetrics
     });
   } catch (error) {
     console.error("Error fetching leads:", error);
@@ -1433,17 +1489,54 @@ const getLeads = async (req, res) => {
 
 const getLeadById = async (req, res) => {
   try {
-    // IMPORTANT: First fetch the raw document to capture the user_id ObjectId
-    // BEFORE populate runs. If the user account was deleted, populate returns null
-    // which breaks countDocuments (it returns 0 instead of the real count).
-    const rawLead = await Enquiry.findById(req.params.id).lean();
-    if (!rawLead) return res.status(404).json({ success: false, message: 'Lead not found' });
+    const { id } = req.params;
+    const { broadcast } = req.query;
+
+    if (broadcast === 'true') {
+      const lead = await BroadcastLead.findById(id)
+        .populate('user_id', 'name phone email createdAt');
+      
+      if (!lead) return res.status(404).json({ success: false, message: 'Broadcast lead not found' });
+
+      // Normalize for response
+      const normalized = {
+        ...lead.toObject(),
+        is_broadcast: true,
+        enquiry_type: `broadcast_${lead.target_category}`,
+        user_details: {
+          name: lead.name,
+          email: lead.email,
+          phone: lead.phone
+        },
+        message: lead.requirement_details
+      };
+
+      return res.status(200).json({ success: true, data: normalized });
+    }
+
+    // Default to Enquiry
+    const rawLead = await Enquiry.findById(id).lean();
+    if (!rawLead) {
+      // Fallback: check if it's a broadcast lead without the flag
+      const bLead = await BroadcastLead.findById(id).populate('user_id', 'name phone email createdAt');
+      if (bLead) {
+        const normalized = {
+          ...bLead.toObject(),
+          is_broadcast: true,
+          enquiry_type: `broadcast_${bLead.target_category}`,
+          user_details: { name: bLead.name, email: bLead.email, phone: bLead.phone },
+          message: bLead.requirement_details
+        };
+        return res.status(200).json({ success: true, data: normalized });
+      }
+      return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
 
     // Capture the raw user_id ObjectId — this is always reliable
     const rawUserId = rawLead.user_id;
 
     // Now fetch the full populated lead for the response
-    const lead = await Enquiry.findById(req.params.id)
+    const lead = await Enquiry.findById(id)
       .populate('user_id', 'name phone email createdAt')
       .populate('partner_id', 'name phone role email profileImage createdAt')
       .populate('mandi_assignment.assigned_to_partner_id', 'name phone role profileImage');
@@ -1466,6 +1559,7 @@ const getLeadById = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error("Error fetching lead detail:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

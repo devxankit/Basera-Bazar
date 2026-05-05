@@ -39,6 +39,7 @@ const adminMarketplaceRoutes = require('./routes/adminMarketplaceRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const pushRoutes = require('./routes/pushRoutes');
 const milestoneRoutes = require('./routes/milestoneRoutes');
+const leadRoutes = require('./routes/leadRoutes');
 
 // -----------------------------------------------------
 // MOUNT ROUTES
@@ -60,6 +61,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/milestones', milestoneRoutes);
 app.use('/api/admin/marketplace', adminMarketplaceRoutes);
+app.use('/api/leads', leadRoutes);
 
 // Health check endpoint
 app.get('/api/status', (req, res) => {

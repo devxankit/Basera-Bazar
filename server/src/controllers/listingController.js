@@ -372,8 +372,10 @@ const getListingById = async (req, res) => {
  */
 const getAllListings = async (req, res) => {
   try {
-    const { category, limit = 20, district, state, is_featured, partner_id } = req.query;
+    console.log(`[getAllListings] Incoming Params:`, req.query);
+    const { category, limit = 20, district, state, is_featured, partner_id, q } = req.query;
     const hasLocation = !!(district || state);
+    const searchQuery = q || req.query.search;
 
     const fetchCategory = async (Model, modelName) => {
       // Base query: only active items/partners
@@ -390,9 +392,29 @@ const getAllListings = async (req, res) => {
         const pathPrefix = modelName === 'Partner' ? '' : 'address.';
         
         if (district) {
-          query[`${pathPrefix}district`] = { $regex: new RegExp(`^${district}$`, 'i') };
+          query[`${pathPrefix}district`] = { $regex: new RegExp(district, 'i') };
         } else if (state) {
-          query[`${pathPrefix}state`] = { $regex: new RegExp(`^${state}$`, 'i') };
+          query[`${pathPrefix}state`] = { $regex: new RegExp(state, 'i') };
+        }
+      }
+
+      // ── TEXT SEARCH SUPPORT ──
+      if (searchQuery) {
+        const regex = { $regex: new RegExp(searchQuery, 'i') };
+        if (modelName === 'Partner') {
+          query.$or = [
+            { name: regex },
+            { 'profile.supplier_profile.business_name': regex },
+            { 'profile.mandi_profile.business_name': regex },
+            { district: regex }
+          ];
+        } else {
+          query.$or = [
+            { title: regex },
+            { description: regex },
+            { 'address.district': regex },
+            { material_name: regex }
+          ];
         }
       }
 
@@ -410,24 +432,36 @@ const getAllListings = async (req, res) => {
         .sort(sort)
         .limit(parseInt(limit));
 
-      return items.map(i => i.toObject ? i.toObject() : i);
+      return items.map(i => {
+        const doc = i.toObject ? i.toObject() : i;
+        if (!doc.category) {
+          if (modelName === 'PropertyListing') doc.category = 'property';
+          else if (modelName === 'ServiceListing') doc.category = 'service';
+          else if (modelName === 'MandiListing') doc.category = 'mandi';
+          else if (modelName === 'Partner') doc.category = 'supplier';
+        }
+        return doc;
+      });
     };
 
     let results = [];
 
-    if (!category || category === 'property') {
+    // If searching, we fetch from all categories by default unless one is specified
+    const targetCategories = category && category !== 'all' ? [category] : ['property', 'service', 'mandi', 'supplier'];
+
+    if (targetCategories.includes('property')) {
       const properties = await fetchCategory(PropertyListing, 'PropertyListing');
       results = [...results, ...properties];
     }
-    if (!category || category === 'service') {
+    if (targetCategories.includes('service')) {
       const services = await fetchCategory(ServiceListing, 'ServiceListing');
       results = [...results, ...services];
     }
-    if (!category || category === 'mandi') {
+    if (targetCategories.includes('mandi')) {
       const mandiItems = await fetchCategory(MandiListing, 'MandiListing');
       results = [...results, ...mandiItems];
     }
-    if (category === 'supplier') {
+    if (targetCategories.includes('supplier')) {
       const suppliers = await fetchCategory(Partner, 'Partner');
       results = [...results, ...suppliers];
     }
@@ -435,7 +469,7 @@ const getAllListings = async (req, res) => {
     // Sort combined results by location priority
     const sorted = sortByLocationPriority(results, district, state);
 
-    console.log(`[getAllListings] district=${district} state=${state} → returning ${sorted.length} results`);
+    console.log(`[getAllListings] q=${searchQuery} district=${district} state=${state} → returning ${sorted.length} results`);
 
     res.status(200).json({ success: true, count: sorted.length, data: sorted });
   } catch (error) {
@@ -506,8 +540,8 @@ const getPublicCategories = async (req, res) => {
       const applyLocationFilter = (q, modelType) => {
         if (!hasLocation) return q;
         const prefix = modelType === 'Partner' ? '' : 'address.';
-        if (district) q[`${prefix}district`] = { $regex: new RegExp(`^${district}$`, 'i') };
-        else if (state) q[`${prefix}state`] = { $regex: new RegExp(`^${state}$`, 'i') };
+        if (district) q[`${prefix}district`] = { $regex: new RegExp(district, 'i') };
+        else if (state) q[`${prefix}state`] = { $regex: new RegExp(state, 'i') };
         return q;
       };
 

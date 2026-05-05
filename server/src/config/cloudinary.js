@@ -23,7 +23,7 @@ const storage = new CloudinaryStorage({
     folder: 'basera_bazar_uploads', 
     
     // Explicitly support both JPG and JPEG, and set resource_type to auto
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'], 
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'], 
     resource_type: 'auto',
     
     // Optional setting: You can add transformations here (e.g., resizing before saving)

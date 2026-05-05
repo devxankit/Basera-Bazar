@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
 import { 
   ArrowLeft, Search, Filter, Map, LayoutGrid, Building2,
-  ChevronRight, MapPin, Package, Star, Phone, MessageSquare, Clock, Award, X, Navigation,
+  ChevronRight, MapPin, Package, Star, Phone, MessageSquare, Clock, Award, X, Navigation, Send,
   ListFilter, History, TrendingUp, TrendingDown, Ruler, Maximize, Check, List, CheckCircle2, Store, Briefcase,
   Bed, Bath, ArrowRight, Heart, Plus, ShoppingCart, Minus, Truck, FileText, MoreVertical
 } from 'lucide-react';
@@ -203,16 +203,8 @@ const BrowseCategory = () => {
       const table = category === 'supplier' ? 'partners' : 'listings';
       let data = await db.getAll(table, params);
       
-      // Filter by search query
-      if (searchQuery.trim() !== '') {
-        const query = searchQuery.toLowerCase();
-        data = data.filter(item => 
-          item.title?.toLowerCase().includes(query) ||
-          (item.display_location || "").toLowerCase().includes(query) ||
-          item.businessName?.toLowerCase().includes(query) ||
-          item.details?.propertyType?.toLowerCase().includes(query)
-        );
-      }
+      // Client-side filtering is now reduced since backend handles most q/is_featured/location logic
+      // But we keep some specific filters if they aren't fully supported by backend getAll yet
 
       // Apply Advanced Filters
       if (activeFilters.propertyFor) {
@@ -428,6 +420,31 @@ const BrowseCategory = () => {
       </div>
 
       {/* ── RESULTS LISTING ── */}
+      {/* Broadcast Lead Banner - Fixed Size & Theme Matching */}
+      {(category === 'service' || category === 'supplier') && (
+        <div 
+          className="mx-4 mb-6 bg-white border border-indigo-100 rounded-[24px] p-4 flex items-center gap-4 shadow-[0_8px_25px_rgb(79,70,229,0.05)] cursor-pointer active:scale-[0.98] transition-all group"
+          onClick={() => navigate(`/broadcast-lead?type=${category}`)}
+        >
+          <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+            <Send size={20} strokeWidth={2.5} />
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Broadcast Feature</span>
+              <span className="w-1 h-1 bg-indigo-200 rounded-full" />
+              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Free</span>
+            </div>
+            <h3 className="text-[#1f2355] font-black text-[14px] uppercase leading-tight truncate">Inform all local {category}s</h3>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-tight mt-0.5">Send requirement & get the best quotes</p>
+          </div>
+
+          <div className="p-2 bg-slate-50 rounded-xl text-slate-400 group-hover:text-indigo-600 transition-colors">
+            <ChevronRight size={18} strokeWidth={3} />
+          </div>
+        </div>
+      )}
       <Skeleton name="browse-results-grid" loading={loading}>
         <div className="flex-grow bg-white pb-40">
           <div className={cn(
@@ -435,8 +452,14 @@ const BrowseCategory = () => {
             isMandi ? "space-y-5" : (isGridView ? 'grid grid-cols-2 gap-4' : 'space-y-4')
           )}>
           {items.length > 0 ? (
-            items.map((item) => (
-              isService ? (
+            items.map((item) => {
+              const itemType = item.category || category;
+              const isItemService = itemType === 'service';
+              const isItemMandi = itemType === 'mandi';
+              const isItemSupplier = itemType === 'supplier';
+              const isItemProperty = itemType === 'property';
+
+              if (isItemService) return (
                 /* Service Card - Responsive to Grid/List */
                 <div 
                   key={item.id} 
@@ -490,7 +513,9 @@ const BrowseCategory = () => {
                       </div>
                    </div>
                 </div>
-              ) : isMandi ? (
+              );
+
+              if (isItemMandi) return (
                 /* ── NEW MANDI LIST CARD ── */
                 <div
                   key={item.id}
@@ -525,7 +550,7 @@ const BrowseCategory = () => {
 
                     <div className="flex items-end justify-between mt-auto gap-3">
                       <div className="flex flex-col">
-                        <span className="text-[#1f2355] font-black text-[20px] xs:text-[22px] leading-none tracking-tight">₹{item.price?.value.toLocaleString()}</span>
+                        <span className="text-[#1f2355] font-black text-[20px] xs:text-[22px] leading-none tracking-tight">₹{item.price?.value?.toLocaleString()}</span>
                         <span className="text-slate-400 text-[9px] font-black uppercase tracking-tighter mt-1 opacity-70">/ {item.price?.unit || 'Ton'}</span>
                       </div>
                       
@@ -543,7 +568,9 @@ const BrowseCategory = () => {
                     </div>
                   </div>
                 </div>
-              ) : isSupplier ? (
+              );
+
+              if (isItemSupplier) return (
                 /* Supplier Card */
                 <div key={item.id} onClick={() => navigate(`/products/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl p-5 flex gap-5 active:scale-[0.98] transition-all">
                   <div className="w-24 h-24 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
@@ -557,8 +584,10 @@ const BrowseCategory = () => {
                     </div>
                   </div>
                 </div>
-              ) : (
-                /* Property Card */
+              );
+
+              // Default: Property Card
+              return (
                 <div key={item.id} onClick={() => navigate(`/products/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl overflow-hidden flex flex-col h-auto active:scale-[0.98] transition-all group">
                    <div className="aspect-[16/10] relative overflow-hidden">
                       <img src={item.image || item.images?.[0]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={item.title} />
@@ -569,13 +598,13 @@ const BrowseCategory = () => {
                    <div className="p-4 xs:p-5">
                       <h3 className="font-bold text-[#1f2355] text-[15px] xs:text-[17px] leading-tight line-clamp-2 min-h-[40px]">{item.title}</h3>
                       <div className="mt-3 flex justify-between items-center pt-3 border-t border-slate-50">
-                        <span className="font-bold text-[#1f2355] text-[18px] xs:text-[20px]">₹{item.price?.value.toLocaleString()}</span>
+                        <span className="font-bold text-[#1f2355] text-[18px] xs:text-[20px]">₹{item.price?.value?.toLocaleString()}</span>
                         <span className="text-[10px] xs:text-[11px] font-bold text-orange-500 uppercase tracking-widest">Details</span>
                       </div>
                    </div>
                 </div>
-              )
-            ))
+              );
+            })
           ) : (
             <div className="py-20 text-center space-y-4 col-span-full">
               <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
@@ -1257,7 +1286,8 @@ const BrowseCategory = () => {
                 </label>
               </div>
               <div className="overflow-y-auto px-7 flex-grow pb-4">
-                <div className="grid grid-cols-2 gap-2 pt-2">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 pb-32">
                   {districtList.map(district => {
                     const isSelected = selectedDistricts.includes(district);
                     const isHome = district.toLowerCase() === homeCity.toLowerCase();

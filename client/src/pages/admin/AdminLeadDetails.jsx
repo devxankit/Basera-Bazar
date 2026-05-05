@@ -115,7 +115,12 @@ const AdminLeadDetails = () => {
                     <div className="flex items-center gap-2 mb-1">
                        <span className="text-[12px] font-medium text-slate-400 uppercase tracking-widest bg-slate-50 px-2.5 py-1 rounded border border-slate-100">Marketplace Intelligence</span>
                        <ChevronRight size={10} className="text-slate-300" />
-                       <span className="text-[12px] font-semibold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded border border-indigo-100">Lead BL-{lead._id.slice(-6).toUpperCase()}</span>
+                       <span className={cn(
+                         "text-[12px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded border",
+                         lead.is_broadcast ? "text-purple-600 bg-purple-50 border-purple-100" : "text-indigo-600 bg-indigo-50 border-indigo-100"
+                       )}>
+                         Lead {lead.is_broadcast ? 'BR' : 'BL'}-{lead._id.slice(-6).toUpperCase()}
+                       </span>
                     </div>
                     <h2 className="text-3xl font-semibold text-slate-900 tracking-tight leading-none">Inquiry Analysis</h2>
                     <p className="text-base font-medium text-slate-400">Deep diagnostic of inbound marketplace engagement</p>
@@ -284,18 +289,75 @@ const AdminLeadDetails = () => {
                <div className="mx-8 mb-8 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 overflow-hidden">
                   <div className="px-8 py-4 border-b border-slate-100 flex items-center gap-3">
                      <MessageSquare size={16} className="text-indigo-500 opacity-60" />
-                     <span className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mt-0.5">Customer Transcription</span>
+                     <span className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mt-0.5">
+                        {lead.is_broadcast ? 'Requirement Description' : 'Customer Transcription'}
+                     </span>
                   </div>
                   <div className="p-10">
                      <div className="relative">
                         <div className="absolute -left-4 -top-4 text-4xl text-indigo-100 font-serif leading-none italic">“</div>
                         <p className="text-xl font-semibold text-slate-700 leading-relaxed italic relative z-10 px-2 tracking-tight">
-                           {lead.content || 'I am interested in your service. Please provide more details and pricing information.'}
+                           {lead.message || lead.content || 'Interested in your service. Please provide more details.'}
                         </p>
                         <div className="absolute -right-4 -bottom-4 text-4xl text-indigo-100 font-serif leading-none italic rotate-180">“</div>
                      </div>
                   </div>
                </div>
+
+               {/* Broadcast Requirements Table (NEW) */}
+               {lead.is_broadcast && lead.products && lead.products.length > 0 && (
+                 <div className="mx-8 mb-8 bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                   <div className="px-8 py-4 bg-purple-50/50 border-b border-purple-100 flex items-center justify-between">
+                     <div className="flex items-center gap-3 text-purple-600">
+                        <Activity size={16} />
+                        <span className="text-[11px] font-bold uppercase tracking-widest">Requirement Items</span>
+                     </div>
+                   </div>
+                   <div className="p-0 overflow-x-auto">
+                     <table className="w-full text-left">
+                       <thead>
+                         <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                           <th className="px-8 py-4">Item Name</th>
+                           <th className="px-8 py-4 text-center">Quantity</th>
+                           <th className="px-8 py-4 text-right">Unit</th>
+                         </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-50">
+                         {lead.products.map((p, idx) => (
+                           <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                             <td className="px-8 py-4 text-sm font-bold text-slate-700">{p.item_name}</td>
+                             <td className="px-8 py-4 text-sm font-bold text-slate-700 text-center">{p.quantity}</td>
+                             <td className="px-8 py-4 text-sm font-bold text-slate-500 text-right uppercase tracking-widest">{p.unit}</td>
+                           </tr>
+                         ))}
+                       </tbody>
+                     </table>
+                   </div>
+                 </div>
+               )}
+
+               {/* Requirement Sheet / Document (NEW) */}
+               {lead.is_broadcast && lead.document_url && (
+                 <div className="mx-8 mb-8">
+                    <a 
+                      href={lead.document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-full p-6 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-3xl flex items-center justify-between group hover:shadow-lg hover:shadow-indigo-100 transition-all"
+                    >
+                       <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+                             <ExternalLink size={20} />
+                          </div>
+                          <div className="text-left">
+                             <p className="text-sm font-bold text-slate-800 tracking-tight">View Requirement Document</p>
+                             <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Formal Sheet / Requirement Photo</p>
+                          </div>
+                       </div>
+                       <ChevronRight className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" size={20} />
+                    </a>
+                 </div>
+               )}
             </div>
 
             {/* Bottom Controls */}

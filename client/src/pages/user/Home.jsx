@@ -297,7 +297,7 @@ const Home = () => {
       <div className="mb-8">
         <div className="px-4 flex items-center justify-between mb-4">
           <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Featured Properties</h2>
-          <button onClick={() => navigate('/category/property')} className="text-orange-500 font-black text-[11px] uppercase tracking-widest">View All</button>
+          <button onClick={() => navigate('/browse/property?featured=true')} className="text-orange-500 font-black text-[11px] uppercase tracking-widest">View All</button>
         </div>
         <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar">
           {featuredProperties.length > 0 ? featuredProperties.map((item) => (
@@ -342,7 +342,7 @@ const Home = () => {
             <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Top Rated Services</h2>
             <p className="text-slate-400 font-bold text-[10px] mt-1 uppercase tracking-wider">Expert Help at your doorstep</p>
           </div>
-          <button onClick={() => navigate('/category/service')} className="text-orange-500 font-black text-[10px] uppercase tracking-widest bg-orange-50 px-3 py-1.5 rounded-full">View All</button>
+          <button onClick={() => navigate('/browse/service?featured=true')} className="text-orange-500 font-black text-[11px] uppercase tracking-widest">View All</button>
         </div>
         <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar">
           {featuredServices.length > 0 ? featuredServices.map((item) => (
@@ -382,7 +382,7 @@ const Home = () => {
             <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Mandi Best Sellers</h2>
             <p className="text-slate-400 font-bold text-[10px] mt-1 uppercase tracking-wider">Top items from Basera Bazar</p>
           </div>
-          <button onClick={() => navigate('/mandi-bazar')} className="text-orange-500 font-black text-[10px] uppercase tracking-widest bg-orange-50 px-3 py-1.5 rounded-full">View All</button>
+          <button onClick={() => navigate('/browse/mandi?featured=true')} className="text-orange-500 font-black text-[10px] uppercase tracking-widest bg-orange-50 px-4 py-1.5 rounded-full border border-orange-100">View All</button>
         </div>
         <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar">
           {featuredMandi.length > 0 ? featuredMandi.map((item) => (
@@ -447,7 +447,7 @@ const Home = () => {
             <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Featured Suppliers</h2>
             <p className="text-slate-400 font-bold text-[10px] mt-1 uppercase tracking-wider">Top Industry Partners</p>
           </div>
-          <button onClick={() => navigate('/category/supplier')} className="text-orange-500 font-black text-[10px] uppercase tracking-widest bg-orange-50 px-3 py-1.5 rounded-full">View All</button>
+          <button onClick={() => navigate('/browse/supplier?featured=true')} className="text-orange-500 font-black text-[10px] uppercase tracking-widest bg-orange-50 px-3 py-1.5 rounded-full">View All</button>
         </div>
         <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar">
           {featuredSuppliers.length > 0 ? featuredSuppliers.map((item) => (

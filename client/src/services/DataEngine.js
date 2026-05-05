@@ -107,6 +107,13 @@ class DataEngine {
       } else if (item.listing_type || item.listing_intent || item.property_type) {
         normalized.category = 'property';
         normalized.serviceType = item.property_type || item.listing_type || 'Property';
+        // Map listing_intent to match BrowseCategory.jsx filter values ('forsale', 'forrent')
+        normalized.type = item.listing_intent === 'sell' ? 'forsale' : (item.listing_intent === 'rent' ? 'forrent' : item.listing_intent);
+        normalized.details = {
+          ...item.details,
+          propertyType: item.property_type?.toLowerCase(),
+          bedrooms: (item.details?.bhk || item.bhk) ? `${item.details?.bhk || item.bhk}BHK` : null
+        };
       } else if (item.service_type || item.portfolio_images || item.years_of_experience !== undefined || item.experience !== undefined) {
         normalized.category = 'service';
         normalized.serviceType = item.service_type || 'Service';
@@ -212,7 +219,15 @@ class DataEngine {
   }
 
   async getAll(table, params = {}) {
-    const queryParams = new URLSearchParams(params).toString();
+    // Clean up params: remove null/undefined values to avoid stringifying them as "null" or "undefined"
+    const cleanParams = Object.entries(params).reduce((acc, [key, value]) => {
+      if (value !== null && value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+
+    const queryParams = new URLSearchParams(cleanParams).toString();
     const cacheKey = `all_${table}_${queryParams}`;
 
     return cacheService.get(cacheKey, async () => {
@@ -269,12 +284,20 @@ class DataEngine {
       
       const formData = new FormData();
       formData.append('image', optimizedFile);
-      const response = await api.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const response = await api.post('/upload', formData);
       return response.data; // { success: true, url: "..." }
     } catch (error) {
       console.error("Upload error:", error);
+      throw error;
+    }
+  }
+
+  async broadcastLead(payload) {
+    try {
+      const response = await api.post('/leads/broadcast', payload);
+      return response.data;
+    } catch (error) {
+      console.error("Broadcast lead error:", error);
       throw error;
     }
   }

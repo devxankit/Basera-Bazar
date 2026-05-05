@@ -21,6 +21,7 @@ import CartPage from './pages/user/CartPage';
 import SignUp from './pages/auth/SignUp';
 import ServiceProfile from './pages/user/ServiceProfile';
 import UserProfile from './pages/user/UserProfile';
+import LeadSubmission from './pages/user/LeadSubmission';
 import EditProfile from './pages/user/EditProfile';
 import Notifications from './pages/user/Notifications';
 import PartnerLogin from './pages/partner/PartnerLogin';
@@ -192,7 +193,8 @@ const UserLayout = ({ children }) => {
   const isEnquiries = location.pathname.startsWith('/profile/my-enquiries');
   const isEditProfile = location.pathname === '/profile/edit';
   const isMandiCheckout = location.pathname === '/mandi-bazar/checkout';
-  const showBottomNav = !isDetail && !isCart && !isNotifications && !isProfile && !isOrders && !isEnquiries && !isEditProfile && !isMandiCheckout;
+  const isBroadcastLead = location.pathname === '/broadcast-lead';
+  const showBottomNav = !isDetail && !isCart && !isNotifications && !isProfile && !isOrders && !isEnquiries && !isEditProfile && !isMandiCheckout && !isBroadcastLead;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
@@ -285,6 +287,11 @@ function App() {
               <UserLayout>
                 <BrowseCategory />
               </UserLayout>
+            } />
+            <Route path="/broadcast-lead" element={
+              <ProtectedRoute>
+                <LeadSubmission />
+              </ProtectedRoute>
             } />
 
             {/* Basera Bazar Customer Routes */}

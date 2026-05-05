@@ -1,0 +1,118 @@
+const BroadcastLead = require('../models/BroadcastLead');
+const { Partner } = require('../models/Partner');
+const { createNotification } = require('../utils/notificationHelper');
+
+/**
+ * @desc    Create a broadcast lead and notify local partners
+ * @route   POST /api/leads/broadcast
+ * @access  Private (User)
+ */
+exports.createBroadcastLead = async (req, res) => {
+  try {
+    const { 
+      name, phone, email, 
+      state, district, full_address,
+      products, requirement_details, document_url,
+      target_category 
+    } = req.body;
+
+    const lead = await BroadcastLead.create({
+      user_id: req.user.id,
+      name,
+      phone,
+      email,
+      delivery_location: {
+        state,
+        district,
+        full_address
+      },
+      products,
+      requirement_details,
+      document_url,
+      target_category
+    });
+
+    // ── BROADCAST TO PARTNERS ──
+    // Find partners in the same district and category
+    // For 'service', match partner_type: 'service_provider'
+    // For 'supplier', match partner_type: 'supplier' or 'mandi_seller'
+    
+    let partnerTypeFilter = [];
+    if (target_category === 'service') {
+      partnerTypeFilter = ['service_provider'];
+    } else {
+      partnerTypeFilter = ['supplier', 'mandi_seller'];
+    }
+
+    const localPartners = await Partner.find({
+      district: { $regex: new RegExp(district, 'i') },
+      partner_type: { $in: partnerTypeFilter },
+      onboarding_status: 'approved',
+      is_active: true
+    }).select('_id name fcmTokens fcmTokenMobile');
+
+    console.log(`[BroadcastLead] Found ${localPartners.length} partners in ${district} for category ${target_category}`);
+
+    const notificationTitle = `New Requirement: ${target_category === 'service' ? 'Service' : 'Product'} Quotation Request`;
+    const notificationBody = `${name} is looking for ${products?.[0]?.item_name || 'materials'} in ${district}. Check details and contact now!`;
+
+    // Send notifications in parallel (ignoring failures for individual partners)
+    Promise.all(localPartners.map(partner => 
+      createNotification(
+        'partner', 
+        partner._id, 
+        notificationTitle, 
+        notificationBody, 
+        { type: 'broadcast_lead', lead_id: lead._id.toString() }
+      )
+    )).catch(err => console.error("[BroadcastLead] Notification error:", err));
+
+    res.status(201).json({
+      success: true,
+      message: `Lead broadcasted to ${localPartners.length} local providers.`,
+      data: lead
+    });
+
+  } catch (error) {
+    console.error("Error in createBroadcastLead:", error);
+    res.status(500).json({ success: false, message: 'Server error broadcasting lead.' });
+  }
+};
+
+/**
+ * @desc    Get broadcast leads for a partner's city
+ * @route   GET /api/leads/partner
+ * @access  Private (Partner)
+ */
+exports.getPartnerLeads = async (req, res) => {
+  try {
+    const partner = await Partner.findById(req.user.id);
+    if (!partner) {
+      return res.status(404).json({ success: false, message: 'Partner not found.' });
+    }
+
+    const query = {
+      'delivery_location.district': { $regex: new RegExp(partner.district, 'i') },
+      status: 'active'
+    };
+
+    // Filter by category relevance
+    if (partner.partner_type === 'service_provider') {
+      query.target_category = 'service';
+    } else if (['supplier', 'mandi_seller'].includes(partner.partner_type)) {
+      query.target_category = 'supplier';
+    }
+
+    const leads = await BroadcastLead.find(query).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: leads.length,
+      data: leads
+    });
+
+  } catch (error) {
+    console.error("Error in getPartnerLeads:", error);
+    res.status(500).json({ success: false, message: 'Server error fetching leads.' });
+  }
+};
