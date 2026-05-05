@@ -63,7 +63,8 @@ const BrowseCategory = () => {
     supplierCategory: null,
     minProducts: 'Any',
     verifiedSupplier: false,
-    wholesaleOnly: false
+    wholesaleOnly: false,
+    emiAvailable: false
   });
 
   // Sync filters with URL search params (handles internal navigation)
@@ -160,7 +161,8 @@ const BrowseCategory = () => {
       supplierCategory: null,
       minProducts: 'Any',
       verifiedSupplier: false,
-      wholesaleOnly: false
+      wholesaleOnly: false,
+      emiAvailable: false
     });
   };
 
@@ -227,6 +229,10 @@ const BrowseCategory = () => {
            const yrs = parseInt(item.experience);
            return !isNaN(yrs) && yrs >= expReq;
         });
+      }
+      
+      if (activeFilters.emiAvailable) {
+        data = data.filter(item => item.emiAvailable === true);
       }
       
       // Sort Logic
@@ -591,8 +597,16 @@ const BrowseCategory = () => {
                 <div key={item.id} onClick={() => navigate(`/products/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl overflow-hidden flex flex-col h-auto active:scale-[0.98] transition-all group">
                    <div className="aspect-[16/10] relative overflow-hidden">
                       <img src={item.image || item.images?.[0]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={item.title} />
-                      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[9px] font-bold uppercase text-[#1f2355]">
-                        {item.type || 'Property'}
+                      <div className="absolute top-4 left-4 flex flex-col gap-2">
+                        <div className="bg-white/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[9px] font-bold uppercase text-[#1f2355] w-fit">
+                          {item.type || 'Property'}
+                        </div>
+                        {item.emiAvailable && (
+                          <div className="bg-green-500/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[9px] font-bold uppercase text-white w-fit flex items-center gap-1">
+                             <CheckCircle2 size={10} />
+                             EMI Available
+                          </div>
+                        )}
                       </div>
                    </div>
                    <div className="p-4 xs:p-5">
@@ -1060,7 +1074,8 @@ const BrowseCategory = () => {
                 <div className="space-y-4">
                   {[
                     { label: 'Car Parking', key: 'carParking' },
-                    { label: 'Bike Parking', key: 'bikeParking' }
+                    { label: 'Bike Parking', key: 'bikeParking' },
+                    { label: 'EMI Available', key: 'emiAvailable' }
                   ].map(f => (
                     <div key={f.label} className="flex items-center justify-between">
                       <span className="text-[#4a5578] font-medium text-[15px]">{f.label}</span>

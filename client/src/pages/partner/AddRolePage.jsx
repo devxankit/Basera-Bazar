@@ -77,7 +77,16 @@ export default function AddRolePage() {
   const [selectedRole, setSelectedRole] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [switching, setSwitching] = useState(null);
+  const [refreshing, setRefreshing] = useState(true);
   const [success, setSuccess] = useState(false);
+
+  React.useEffect(() => {
+    const sync = async () => {
+      await refreshUser();
+      setRefreshing(false);
+    };
+    sync();
+  }, []);
 
   const [step, setStep] = useState(1); // 1: Select/Switch Role, 2: Role Details, 3: KYC/GST, 4: Subscription Required
   const [profileData, setProfileData] = useState({
@@ -98,9 +107,12 @@ export default function AddRolePage() {
   
   const availableRoles = ALL_ROLES.filter(role => {
     if (currentRoles.includes(role.id)) return false;
-    const hasPendingRequest = user?.role_requests?.some(r => r.role === role.id && r.status === 'pending');
-    return !hasPendingRequest;
+    return true;
   });
+
+  const getPendingRequest = (roleId) => {
+    return user?.role_requests?.find(r => r.role === roleId && r.status === 'pending');
+  };
 
   const handleSwitchRole = async (roleId) => {
     if (roleId === activeRole) return;
@@ -222,6 +234,15 @@ export default function AddRolePage() {
       setSubmitting(false);
     }
   };
+
+  if (refreshing) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center font-sans">
+        <Loader2 size={40} className="text-blue-500 animate-spin mb-4" />
+        <p className="text-slate-400 text-[12px] font-bold uppercase tracking-widest opacity-60">Synchronizing Profile...</p>
+      </div>
+    );
+  }
 
   if (success) {
     return (
@@ -345,38 +366,54 @@ export default function AddRolePage() {
                 ) : (
                   <div className="space-y-3">
                     {availableRoles.map((role) => {
-                      const isSelected = selectedRole === role.id;
-                      const theme = themeMap[role.theme];
-                      return (
-                        <button
-                          key={role.id}
-                          onClick={() => setSelectedRole(isSelected ? null : role.id)}
-                          className={`w-full flex items-center gap-4 p-4 rounded-[24px] border-2 transition-all text-left ${
-                            isSelected 
-                              ? `${theme.active} shadow-lg scale-[1.02]` 
-                              : 'border-slate-50 bg-white hover:border-slate-100'
-                          }`}
-                        >
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300 ${
-                            isSelected ? theme.iconBg : theme.iconIdle
-                          }`}>
-                            {role.icon}
-                          </div>
-                          <div className="flex-grow min-w-0">
-                            <h3 className="text-[14px] font-black text-[#001b4e] mb-0.5 uppercase tracking-tight leading-none">{role.title}</h3>
-                            <p className="text-slate-400 text-[10px] font-medium leading-snug uppercase tracking-tight opacity-60">{role.description}</p>
-                          </div>
-                          <div className="shrink-0 pr-1">
-                            {isSelected ? (
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${theme.check}`}>
-                                <Check size={14} strokeWidth={4} />
-                              </div>
-                            ) : (
-                              <div className="w-5 h-5 border-2 border-slate-100 rounded-full" />
-                            )}
-                          </div>
-                        </button>
-                      );
+                        const isSelected = selectedRole === role.id;
+                        const theme = themeMap[role.theme];
+                        const pendingRequest = getPendingRequest(role.id);
+                        
+                        return (
+                          <button
+                            key={role.id}
+                            disabled={pendingRequest}
+                            onClick={() => setSelectedRole(isSelected ? null : role.id)}
+                            className={`w-full flex items-center gap-4 p-4 rounded-[24px] border-2 transition-all text-left ${
+                              isSelected 
+                                ? `${theme.active} shadow-lg scale-[1.02]` 
+                                : pendingRequest
+                                ? 'border-slate-50 bg-slate-50/50 opacity-80'
+                                : 'border-slate-50 bg-white hover:border-slate-100'
+                            }`}
+                          >
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300 ${
+                              isSelected ? theme.iconBg : theme.iconIdle
+                            }`}>
+                              {role.icon}
+                            </div>
+                            <div className="flex-grow min-w-0">
+                              <h3 className="text-[14px] font-black text-[#001b4e] mb-0.5 uppercase tracking-tight leading-none">
+                                {role.title}
+                                {pendingRequest && (
+                                  <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-600 text-[9px] font-black rounded-full">Pending</span>
+                                )}
+                              </h3>
+                              <p className="text-slate-400 text-[10px] font-medium leading-snug uppercase tracking-tight opacity-60">
+                                {pendingRequest ? 'Request submitted and awaiting admin review.' : role.description}
+                              </p>
+                            </div>
+                            <div className="shrink-0 pr-1">
+                              {isSelected ? (
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${theme.check}`}>
+                                  <Check size={14} strokeWidth={4} />
+                                </div>
+                              ) : pendingRequest ? (
+                                <div className="w-5 h-5 flex items-center justify-center text-amber-500">
+                                  <Loader2 size={16} className="animate-spin" />
+                                </div>
+                              ) : (
+                                <div className="w-5 h-5 border-2 border-slate-100 rounded-full" />
+                              )}
+                            </div>
+                          </button>
+                        );
                     })}
                   </div>
                 )}

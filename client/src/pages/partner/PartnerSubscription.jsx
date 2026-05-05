@@ -4,7 +4,7 @@ import {
   Calendar, Clock, Star, 
   Package, Users, ChevronRight,
   TrendingUp, Activity, X, Info, Zap, Loader2,
-  CheckCircle, ShieldCheck, ZapOff
+  ShieldCheck, ZapOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';

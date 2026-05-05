@@ -486,7 +486,7 @@ const getUserDetail = async (req, res) => {
  */
 const createUser = async (req, res) => {
   try {
-    const { name, email, phone, role, password, partner_type, image, business_logo } = req.body;
+    const { name, email, phone, role, password, partner_type, roles, image, business_logo } = req.body;
 
     // 1. Validation
     if (!name || !phone || !role || !password) {
@@ -551,7 +551,7 @@ const createUser = async (req, res) => {
       newAccount = await Partner.create({
         name, phone, email: email?.toLowerCase(), password,
         partner_type: pType,
-        roles: [pType],
+        roles: (roles && roles.length > 0) ? roles : [pType],
         active_role: pType,
         role,
         state: req.body.state,
@@ -2192,7 +2192,7 @@ const createPropertyListing = async (req, res) => {
     const {
       title, description, property_type, listing_intent, partner_id,
       category_id, subcategory_id, images, thumbnail, is_featured,
-      status, location, address, pricing, details
+      status, location, address, pricing, details, emi_available, emi_details
     } = req.body;
 
     const newProperty = await PropertyListing.create({
@@ -2210,7 +2210,9 @@ const createPropertyListing = async (req, res) => {
       location: location || { type: 'Point', coordinates: [77.1025, 28.7041] },
       address: address || {},
       pricing: pricing || {},
-      details: details || {}
+      details: details || {},
+      emi_available: emi_available || false,
+      emi_details: emi_details || ''
     });
 
     res.status(201).json({ success: true, message: 'Property entry finalized in marketplace registry.', data: newProperty });

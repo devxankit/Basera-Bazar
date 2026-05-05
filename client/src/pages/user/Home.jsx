@@ -311,8 +311,16 @@ const Home = () => {
                 <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md rounded-full w-7 h-7 flex items-center justify-center text-slate-400">
                   <Heart size={14} />
                 </div>
-                <div className="absolute bottom-2 left-2 bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
-                  {item.serviceType || 'Property'}
+                <div className="absolute bottom-2 left-2 flex flex-col gap-1.5">
+                   <div className="bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase w-fit">
+                     {item.serviceType || 'Property'}
+                   </div>
+                   {item.emiAvailable && (
+                     <div className="bg-green-500/95 backdrop-blur text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase w-fit flex items-center gap-1">
+                        <CheckCircle2 size={8} />
+                        EMI Available
+                     </div>
+                   )}
                 </div>
               </div>
               <div className="p-3">

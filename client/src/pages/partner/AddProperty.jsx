@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   ArrowLeft, Home, MapPin, Search, Map, ChevronDown, CheckCircle2,
-  Trash2, UploadCloud, Info, BedDouble, Bath, Users, Square, Navigation, CheckCircle,
+  Trash2, UploadCloud, Info, BedDouble, Bath, Users, Square, Navigation, 
   Building2, Camera, Star, AlertCircle, X, Triangle, Check, Car, Bike
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -74,7 +74,9 @@ export default function AddProperty() {
     // Step 4: Images & Options
     thumbnail: null,
     images: [],
-    isFeatured: false
+    isFeatured: false,
+    emiAvailable: false,
+    emiDetails: ''
   });
 
   useEffect(() => {
@@ -127,7 +129,9 @@ export default function AddProperty() {
               
               latitude: data.location?.coordinates?.[1] || '',
               longitude: data.location?.coordinates?.[0] || '',
-              isFeatured: data.is_featured || false
+              isFeatured: data.is_featured || false,
+              emiAvailable: data.emi_available || false,
+              emiDetails: data.emi_details || ''
             }));
           }
         } catch (err) {
@@ -407,7 +411,9 @@ export default function AddProperty() {
           value: formData.price,
           unit: formData.intention === 'For Sale' ? 'L' : '/mo'
         },
-        location_text: `${formData.completeAddress}, ${formData.city || formData.district}, ${formData.state}`
+        location_text: `${formData.completeAddress}, ${formData.city || formData.district}, ${formData.state}`,
+        emi_available: formData.emiAvailable,
+        emi_details: formData.emiDetails
       };
 
       // 3. Create/Update Listing via API
@@ -799,6 +805,33 @@ function StepTwo({ formData, handleChange, handleSelect }) {
                   <input type="checkbox" name="bachelorsAllowed" checked={formData.bachelorsAllowed} onChange={handleChange} className="sr-only peer" />
                   <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
+             </div>
+           )}
+           
+           <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                 <CheckCircle2 size={18} className="text-slate-400"/>
+                 <div>
+                    <div className="text-[14px] font-bold text-[#001b4e]">EMI Available</div>
+                    <div className="text-[11px] text-slate-400 font-medium">Is this property available on EMI?</div>
+                 </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="emiAvailable" checked={formData.emiAvailable} onChange={handleChange} className="sr-only peer" />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+           </div>
+
+           {formData.emiAvailable && (
+             <div className="animate-in fade-in slide-in-from-top-2">
+                <InputField 
+                 label="EMI Details (Optional)" 
+                 name="emiDetails" 
+                 value={formData.emiDetails} 
+                 icon={<Info size={14} />} 
+                 placeholder="Ex: HDFC, SBI bank loans available" 
+                 onChange={handleChange} 
+                />
              </div>
            )}
          </div>

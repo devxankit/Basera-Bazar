@@ -102,6 +102,7 @@ const propertyListingSchema = new mongoose.Schema({
     facing: { type: String, enum: ['north', 'south', 'east', 'west', 'no-preference'], default: 'no-preference' },
     possession: { type: String, enum: ['ready', 'under-construction'], default: 'ready' }
   },
+  thumbnail: { type: String },
   images: [{ type: String }],
   status: {
     type: String,
@@ -110,6 +111,8 @@ const propertyListingSchema = new mongoose.Schema({
   },
   status_reason: { type: String },
   is_featured: { type: Boolean, default: false },
+  emi_available: { type: Boolean, default: false },
+  emi_details: { type: String },
   stats: {
     views: { type: Number, default: 0 },
     enquiries: { type: Number, default: 0 },

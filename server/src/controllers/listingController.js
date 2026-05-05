@@ -209,6 +209,8 @@ const createPropertyListing = async (req, res) => {
       details: safeDetails,
       images: item.images || [],
       thumbnail: item.image || item.thumbnail, 
+      emi_available: !!item.emiAvailable,
+      emi_details: item.emiDetails || '',
       status: 'pending_approval'
     });
 

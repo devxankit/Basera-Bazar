@@ -186,14 +186,14 @@ export default function PartnerServiceDetails() {
               </div>
               
               <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-                <DetailItem icon={<Square size={16} />} label="Built-up Area" value={service.details?.area?.value ? `${service.details.area.value} ${service.details.area.unit || 'sq.ft.'}` : '-'} />
-                <DetailItem icon={<Square size={16} />} label="Carpet Area" value={service.details?.area?.carpet_area ? `${service.details.area.carpet_area} ${service.details.area.unit || 'sqft'}` : '-'} />
-                <DetailItem icon={<BedDouble size={16} />} label="Bedrooms" value={service.details?.bhk ? `${service.details.bhk} BHK` : '-'} />
+                <DetailItem icon={<Square size={16} />} label="Built-up Area" value={service.area ? `${service.area} ${service.areaUnit || 'sq.ft.'}` : '-'} />
+                <DetailItem icon={<Square size={16} />} label="Carpet Area" value={service.details?.carpetArea || service.details?.area?.carpet_area || '-'} />
+                <DetailItem icon={<BedDouble size={16} />} label="Bedrooms" value={service.bhk ? `${service.bhk} BHK` : '-'} />
                 <DetailItem icon={<Bath size={16} />} label="Bathrooms" value={service.details?.bathrooms || '-'} />
-                <DetailItem icon={<Building2 size={16} />} label="Floor" value={service.details?.floor_number ? `${service.details.floor_number} of ${service.details.total_floors}` : '-'} />
+                <DetailItem icon={<Building2 size={16} />} label="Floor" value={service.details?.floorNumber || service.details?.floor_number ? `${service.details?.floorNumber || service.details?.floor_number} of ${service.details?.totalFloors || service.details?.total_floors}` : '-'} />
                 <DetailItem icon={<Home size={16} />} label="Furnishing" value={service.details?.furnishing || '-'} />
                 <DetailItem icon={<Navigation size={16} />} label="Facing" value={service.details?.facing || '-'} />
-                <DetailItem icon={<Users size={16} />} label="Status" value={service.details?.possession || '-'} />
+                <DetailItem icon={<Users size={16} />} label="Status" value={service.details?.possession || service.details?.constructionStatus || '-'} />
               </div>
 
               <div className="mt-8 pt-6 border-t border-slate-50">

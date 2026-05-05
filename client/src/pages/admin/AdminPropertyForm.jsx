@@ -53,7 +53,8 @@ export default function AdminPropertyForm() {
       bhk: '', bathrooms: '', washrooms: '', furnishing: 'unfurnished',
       floor_number: '', total_floors: '', parking: 'none', facing: 'no-preference', possession: 'ready'
     },
-    images: [], thumbnail: '', status: 'pending_approval', is_featured: false
+    images: [], thumbnail: '', status: 'pending_approval', is_featured: false,
+    emi_available: false, emi_details: ''
   });
 
   useEffect(() => {
@@ -122,7 +123,9 @@ export default function AdminPropertyForm() {
               images: d.images || [],
               thumbnail: d.thumbnail || '',
               status: d.status || 'pending_approval',
-              is_featured: d.is_featured || false
+              is_featured: d.is_featured || false,
+              emi_available: d.emi_available || false,
+              emi_details: d.emi_details || ''
             });
           }
         }
@@ -448,6 +451,28 @@ export default function AdminPropertyForm() {
                       <option value="inactive">Inactive</option>
                       <option value="sold_rented">Sold / Rented</option>
                    </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                   <div className="bg-slate-50 p-4 rounded-xl flex items-center justify-between border border-slate-100">
+                      <div className="flex items-center gap-3">
+                         <CheckCircle2 className={formData.emi_available ? 'text-emerald-500' : 'text-slate-300'} size={16} />
+                         <span className="text-xs font-black text-slate-700 uppercase tracking-widest">EMI Available</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={formData.emi_available} onChange={e => handleInputChange(e, 'emi_available')} className="sr-only peer" />
+                        <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-400"></div>
+                      </label>
+                   </div>
+                   {formData.emi_available && (
+                      <input 
+                        name="emi_details" 
+                        value={formData.emi_details} 
+                        onChange={handleInputChange} 
+                        className={inputClass} 
+                        placeholder="EMI Details (e.g. HDFC, SBI Bank)" 
+                      />
+                   )}
                 </div>
               </div>
 

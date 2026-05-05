@@ -124,6 +124,10 @@ class DataEngine {
       } else {
         normalized.category = 'property'; // default fallback
       }
+
+      // Add EMI Info
+      normalized.emiAvailable = !!item.emi_available;
+      normalized.emiDetails = item.emi_details || '';
     }
 
     // Normalize Location Display (PREVENTS OBJECT INJECTION CRASH)

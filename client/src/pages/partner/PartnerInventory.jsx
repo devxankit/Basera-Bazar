@@ -144,11 +144,13 @@ export default function PartnerInventory() {
   };
 
   const displayedItems = items.filter(item => {
-     // First filter by type matches the current view (Property Agent should only see properties, etc.)
-     if (actualRole.includes('agent') && item.type !== 'property') return false;
-     if (actualRole.includes('service') && item.type !== 'service') return false;
-     if (actualRole.includes('supplier') && item.type !== 'product') return false;
-     if (actualRole.includes('mandi') && item.type !== 'mandi_product') return false;
+     const itemCat = item.category || '';
+     const role = actualRole;
+
+     if (role.includes('agent') && itemCat !== 'property') return false;
+     if (role.includes('service') && itemCat !== 'service') return false;
+     if (role.includes('supplier') && !['supplier', 'mandi'].includes(itemCat)) return false;
+     if (role.includes('mandi') && itemCat !== 'mandi') return false;
 
      if (filter === 'All') return true;
      if (filter === 'Featured') return item.isFeatured === true;

@@ -450,6 +450,12 @@ const ListingDetails = () => {
                       </span>
                     </div>
                   )}
+                  {listing.emiAvailable && (
+                    <div className="flex items-center gap-1.5 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
+                      <ShieldCheck size={12} className="text-green-600" strokeWidth={2.5} />
+                      <span className="text-[11px] font-bold text-green-700 leading-none mt-0.5 uppercase tracking-wider">EMI AVAILABLE</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 pt-1">
@@ -581,7 +587,11 @@ const ListingDetails = () => {
                         [
                           { label: 'Property For', value: listing.type || 'N/A' },
                           { label: 'Property Type', value: listing.details?.propertyType || listing.category || 'N/A' },
-                          { label: 'Area', value: listing.details?.area ? `${listing.details.area} ${listing.details.areaUnit || ''}` : 'N/A' }
+                          { label: 'Area', value: listing.details?.area ? `${listing.details.area} ${listing.details.areaUnit || ''}` : 'N/A' },
+                          ...(listing.emiAvailable ? [
+                            { label: 'EMI / Loan', value: 'Available' },
+                            ...(listing.emiDetails ? [{ label: 'EMI Info', value: listing.emiDetails }] : [])
+                          ] : [])
                         ].map((detail, idx) => (
                           <div key={idx} className="flex flex-row items-center justify-between py-0.5">
                             <span className="text-[13px] font-medium text-[#64719b] capitalize w-1/3">{detail.label}</span>
