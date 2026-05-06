@@ -108,6 +108,26 @@ export default function PartnerProfile() {
           </div>
         </div>
 
+        {/* Role Credit Banner */}
+        {partner.role_credits > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => navigate('/partner/add-role')}
+            className="bg-gradient-to-r from-orange-400 to-rose-500 rounded-2xl p-5 text-white shadow-lg shadow-orange-100 flex items-center gap-4 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shrink-0">
+              <Gift size={24} />
+            </div>
+            <div className="flex-grow relative z-10">
+              <h4 className="font-black text-[13px] uppercase tracking-tight">You have {partner.role_credits} Free Role Credit{partner.role_credits > 1 ? 's' : ''}!</h4>
+              <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest mt-0.5">Claim your 1+1 offer now</p>
+            </div>
+            <ChevronRight size={20} className="text-white/50" />
+          </motion.div>
+        )}
+
         {/* Subscription Highlight */}
         <div 
           onClick={() => navigate('/partner/subscription')}

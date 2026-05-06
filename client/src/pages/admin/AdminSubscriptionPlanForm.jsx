@@ -65,7 +65,7 @@ export default function AdminSubscriptionPlanForm() {
     try {
       const payload = {
         ...formData,
-        applicable_to: [formData.applicable_to],
+        applicable_to: Array.isArray(formData.applicable_to) ? formData.applicable_to : [formData.applicable_to],
         listings_limit: unlimited.listings ? -1 : parseInt(formData.listings_limit),
         featured_listings_limit: unlimited.featured ? -1 : parseInt(formData.featured_listings_limit),
         leads_limit: unlimited.leads ? -1 : parseInt(formData.leads_limit),
@@ -137,7 +137,7 @@ export default function AdminSubscriptionPlanForm() {
 
               <form onSubmit={handleSubmit} className="p-8 space-y-8">
                  {/* Top Row: Name & Role */}
-                 <div className="grid grid-cols-2 gap-8">
+                 <div className="space-y-6">
                     <div className="space-y-2">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Plan Name <span className="text-rose-500 font-black">*</span></label>
                        <input 
@@ -149,25 +149,40 @@ export default function AdminSubscriptionPlanForm() {
                         className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-300"
                        />
                     </div>
-                    <div className="space-y-2">
-                       <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Target User Role <span className="text-rose-500 font-black">*</span></label>
-                       <select 
-                        required
-                        value={formData.applicable_to}
-                        onChange={(e) => setFormData({ ...formData, applicable_to: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all pr-10"
-                       >
-                         <option value="">Select Role</option>
-                         <option value="property_agent">Property Agent</option>
-                         <option value="service_provider">Service Provider</option>
-                         <option value="supplier">Supplier</option>
-                         <option value="mandi_seller">Mandi Seller</option>
-                       </select>
-                    </div>
-                 </div>
 
-                 {/* Price & Duration */}
-                 <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                    <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Target User Roles <span className="text-rose-500 font-black">*</span></label>
+                    <div className="grid grid-cols-2 gap-4">
+                      {[
+                        { id: 'property_agent', label: 'Property Agent' },
+                        { id: 'service_provider', label: 'Service Provider' },
+                        { id: 'supplier', label: 'Supplier' },
+                        { id: 'mandi_seller', label: 'Mandi Seller' },
+                      ].map((role) => (
+                        <label key={role.id} className="flex items-center gap-3 p-3 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition-all">
+                          <input 
+                            type="checkbox"
+                            checked={Array.isArray(formData.applicable_to) ? formData.applicable_to.includes(role.id) : formData.applicable_to === role.id}
+                            onChange={(e) => {
+                              const roles = Array.isArray(formData.applicable_to) ? [...formData.applicable_to] : (formData.applicable_to ? [formData.applicable_to] : []);
+                              if (e.target.checked) {
+                                roles.push(role.id);
+                              } else {
+                                const index = roles.indexOf(role.id);
+                                if (index > -1) roles.splice(index, 1);
+                              }
+                              setFormData({ ...formData, applicable_to: roles });
+                            }}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-0"
+                          />
+                          <span className="text-sm font-bold text-slate-700">{role.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Price & Duration */}
+                  <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-2">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Price (₹) <span className="text-rose-500 font-black">*</span></label>
                        <div className="relative">
@@ -331,8 +346,9 @@ export default function AdminSubscriptionPlanForm() {
                        </div>
                     </div>
                  </div>
+                  </div>
 
-                 {/* Form Actions Footer */}
+                  {/* Form Actions Footer */}
                  <div className="flex justify-end gap-3 pt-8">
                     <button 
                       type="button" 

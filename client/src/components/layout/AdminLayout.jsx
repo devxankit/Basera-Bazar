@@ -74,6 +74,7 @@ const navItems = [
     children: [
       { label: 'Manage Plans', path: '/admin/subscriptions/plans' },
       { label: 'All Subscriptions', path: '/admin/subscriptions' },
+      { label: 'Promotional Offers', path: '/admin/subscriptions/offers' },
     ]
   },
   { id: 'leads', label: 'Leads', path: '/admin/leads', icon: MessageSquare },

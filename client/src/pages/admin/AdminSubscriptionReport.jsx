@@ -5,6 +5,12 @@ import api from '../../services/api';
 
 export default function AdminSubscriptionReport() {
   const [data, setData] = useState([]);
+  const [summary, setSummary] = useState({
+    totalRevenue: 0,
+    activeSubscriptions: 0,
+    conversionRate: 0,
+    growthRate: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -12,11 +18,12 @@ export default function AdminSubscriptionReport() {
       try {
         const res = await api.get('/admin/reports/subscriptions');
         if (res.data.success) {
-          setData(res.data.data.map(item => ({
+          setData(res.data.data.history.map(item => ({
             month: item._id,
             revenue: item.revenue,
             count: item.count
           })));
+          setSummary(res.data.data.summary);
         }
       } catch (err) {
         console.error(err);
@@ -28,13 +35,13 @@ export default function AdminSubscriptionReport() {
   }, []);
 
   return (
-    <div className="space-y-8 pb-20 mt-4 animate-in fade-in duration-500">
+    <div className="space-y-8 pb-20 mt-4 animate-in fade-in duration-500 text-left">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Revenue Analytics & Growth</h1>
           <p className="text-slate-500 font-medium mt-1">Detailed growth analytics for premium plans and marketplace commissions.</p>
         </div>
-        <button className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 transition-all hover:bg-slate-800 active:scale-95">
+        <button className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 transition-all hover:bg-slate-800 active:scale-95 text-sm">
           <Download size={18} /> Download Full Report
         </button>
       </div>
@@ -42,13 +49,12 @@ export default function AdminSubscriptionReport() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-            <BadgePercent size={24} />
+            <IndianRupee size={24} />
           </div>
           <div>
             <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Total Revenue</p>
             <h3 className="text-3xl font-black text-slate-900 mt-1 flex items-center gap-1">
-              <IndianRupee size={24} className="text-slate-300" />
-              {data.reduce((sum, item) => sum + item.revenue, 0).toLocaleString()}
+               ₹{summary.totalRevenue.toLocaleString()}
             </h3>
           </div>
         </div>
@@ -58,7 +64,7 @@ export default function AdminSubscriptionReport() {
           </div>
           <div>
             <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Active Subscriptions</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1">{data.reduce((sum, item) => sum + item.count, 0)}</h3>
+            <h3 className="text-3xl font-black text-slate-900 mt-1">{summary.activeSubscriptions}</h3>
           </div>
         </div>
         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
@@ -67,7 +73,7 @@ export default function AdminSubscriptionReport() {
           </div>
           <div>
             <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Conversion Rate</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1">12.4%</h3>
+            <h3 className="text-3xl font-black text-slate-900 mt-1">{Number(summary.conversionRate).toFixed(1)}%</h3>
           </div>
         </div>
       </div>
@@ -76,8 +82,8 @@ export default function AdminSubscriptionReport() {
         <div className="flex items-center justify-between mb-10">
           <h2 className="text-xl font-black text-slate-900 tracking-tight">Revenue Trendline</h2>
           <div className="flex items-center gap-2">
-             <span className="flex items-center gap-1.5 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
-               <TrendingUp size={12} /> +15.4% YoY
+             <span className={`flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-full border ${Number(summary.growthRate) >= 0 ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-rose-600 bg-rose-50 border-rose-100'}`}>
+               {Number(summary.growthRate) >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />} {summary.growthRate}% Growth
              </span>
           </div>
         </div>

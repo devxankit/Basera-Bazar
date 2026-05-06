@@ -52,21 +52,31 @@ const {
   getMandiSettings,
   updateMandiSettings,
   processRoleRequest,
-  getRoleRequests
+  getRoleRequests,
+  getOfferConfig,
+  updateOfferConfig
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
 // TEST ROUTE NO AUTH
 router.get('/test-listings/:type', getListings);
 
-// ALL Admin routes must be protected and restricted solely to 'super_admin' roles
-router.use(protect);
-router.use(authorizeRoles('super_admin'));
+// Publicly readable system data
+// Partners need to see plans and active offers during registration
+router.get('/subscriptions/plans', getSubscriptionPlans);
+router.get('/system/offers', getOfferConfig);
 
+// ALL Admin routes below this point must be protected
+router.use(protect);
 // Dashboard Stats & Feeds
 router.get('/dashboard/stats', getDashboardStats);
 router.get('/dashboard/activities', getAdminActivities);
 router.get('/dashboard/pending/:type', getPendingApprovals);
+
+
+
+// ALL routes below this point are restricted solely to 'super_admin' roles
+router.use(authorizeRoles('super_admin'));
 
 // Admin Profile Management
 router.get('/profile/me', getAdminProfile);
@@ -136,9 +146,11 @@ router.post('/partners/role-request-action', processRoleRequest);
 router.get('/mandi/settings', getMandiSettings);
 router.put('/mandi/settings', updateMandiSettings);
 
+// Offer Management
+router.put('/system/offers', updateOfferConfig);
+
 // Dynamic Form Data Endpoints
 // Subscription Plan Management
-router.get('/subscriptions/plans', getSubscriptionPlans);
 router.get('/subscriptions/:id', getSubscriptionById);
 router.post('/subscriptions/plans', createSubscriptionPlan);
 router.put('/subscriptions/plans/:id', updateSubscriptionPlan);

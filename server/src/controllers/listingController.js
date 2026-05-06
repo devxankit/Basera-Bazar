@@ -427,6 +427,13 @@ const getAllListings = async (req, res) => {
         // For now, let's stick to IDs if available, but many frontend routes pass subCategory name
         query.service_type = { $regex: new RegExp(subCategory, 'i') };
       }
+
+      if (subCategory && modelName === 'PropertyListing') {
+        // Filter by property_type (enum in model)
+        // Robust matching: take the first part of the slug and match it against the enum
+        const primaryKeyword = subCategory.split(/[-_]/)[0];
+        query.property_type = { $regex: new RegExp(primaryKeyword, 'i') };
+      }
       
       // ── PROPERTY SPECIFIC FILTERING ──
       if (type && modelName === 'PropertyListing') {
@@ -605,6 +612,11 @@ const getPublicCategories = async (req, res) => {
           $or: [{ category_id: cat._id }, { subcategory_id: cat._id }], 
           status: 'active' 
         };
+
+        if (type === 'property' && cat.slug) {
+          const primaryKeyword = cat.slug.split(/[-_]/)[0];
+          countQuery.$or.push({ property_type: { $regex: new RegExp(primaryKeyword, 'i') } });
+        }
         countQuery = applyLocationFilter(countQuery, 'Listing');
         count = await ListingModel.countDocuments(countQuery);
       } else if (type === 'supplier') {

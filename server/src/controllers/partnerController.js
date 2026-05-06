@@ -218,6 +218,15 @@ const addRole = async (req, res) => {
       }
     }
 
+    // Check if user has role credits and wants to use them
+    const { use_role_credit } = req.body;
+    let is_free_upgrade = false;
+
+    if (use_role_credit && partner.role_credits > 0) {
+      is_free_upgrade = true;
+      partner.role_credits -= 1;
+    }
+
     // Add to role_requests as ALL role upgrades now require admin approval
     if (!partner.role_requests) partner.role_requests = [];
     partner.role_requests.push({
@@ -227,6 +236,7 @@ const addRole = async (req, res) => {
       gst_image: gst_image || undefined,
       rera_number: rera_number || undefined,
       rera_certificate_image: rera_certificate_image || undefined,
+      is_free_upgrade,
       submitted_at: new Date()
     });
 

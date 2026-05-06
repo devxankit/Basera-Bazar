@@ -111,7 +111,30 @@ const BrowseCategory = () => {
         }
       });
     }
-  }, [category, activeMandiCat]);
+
+    if (category === 'property') {
+      db.getCategories('property').then(cats => {
+        if (cats.length > 0) {
+          // Flatten categories to find the one matching slug
+          const allCats = [];
+          const flatten = (items) => {
+            items.forEach(item => {
+              allCats.push(item);
+              if (item.children) flatten(item.children);
+            });
+          };
+          flatten(cats);
+          
+          if (subCategory) {
+            const current = allCats.find(c => c.slug === subCategory);
+            if (current) setCurrentCategoryDetails(current);
+          } else {
+            setCurrentCategoryDetails({ name: 'All Properties' });
+          }
+        }
+      });
+    }
+  }, [category, activeMandiCat, subCategory]);
 
   // When mandi items load, derive any missing categories from the items themselves
   // This ensures the sidebar always reflects what's actually available
@@ -316,6 +339,23 @@ const BrowseCategory = () => {
           </button>
         </div>
       </div>
+
+      {/* ── PROPERTY HERO SECTION ── */}
+      {isProperty && currentCategoryDetails && (
+        <div className="px-4 pt-4 bg-white">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-[24px] font-black text-[#1f2355] uppercase tracking-tight">
+              {currentCategoryDetails.name}
+            </h1>
+            <span className="text-[12px] font-bold text-orange-500 bg-orange-50 px-3 py-1 rounded-full border border-orange-100 uppercase tracking-widest">
+              {items.length} {items.length === 1 ? 'Listing' : 'Listings'}
+            </span>
+          </div>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+            Discover the best {currentCategoryDetails.name.toLowerCase()} in your area
+          </p>
+        </div>
+      )}
 
       {/* ── MANDI HERO SECTION ── */}
       {isMandi && currentCategoryDetails && (

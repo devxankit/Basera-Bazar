@@ -5,6 +5,11 @@ import api from '../../services/api';
 
 export default function AdminUserReport() {
   const [data, setData] = useState([]);
+  const [summary, setSummary] = useState({
+    totalUsers: 0,
+    verifiedPercentage: 0,
+    growthRate: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -12,10 +17,11 @@ export default function AdminUserReport() {
       try {
         const res = await api.get('/admin/reports/users');
         if (res.data.success) {
-          setData(res.data.data.map(item => ({
+          setData(res.data.data.history.map(item => ({
             month: item._id,
             users: item.count
           })));
+          setSummary(res.data.data.summary);
         }
       } catch (err) {
         console.error(err);
@@ -29,13 +35,13 @@ export default function AdminUserReport() {
   const COLORS = ['#4f46e5', '#818cf8', '#a5b4fc', '#c7d2fe', '#e0e7ff'];
 
   return (
-    <div className="space-y-8 pb-20 mt-4 animate-in fade-in duration-500">
+    <div className="space-y-8 pb-20 mt-4 animate-in fade-in duration-500 text-left">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">User Logistics & Growth</h1>
-          <p className="text-slate-500 font-medium mt-1">Analyzing registration Velocity and user demographic trends.</p>
+          <p className="text-slate-500 font-medium mt-1">Analyzing registration velocity and user demographic trends.</p>
         </div>
-        <button className="flex items-center gap-2 px-6 py-3.5 bg-slate-100 text-slate-700 font-black rounded-2xl transition-all hover:bg-slate-200 active:scale-95">
+        <button className="flex items-center gap-2 px-6 py-3.5 bg-slate-100 text-slate-700 font-black rounded-2xl transition-all hover:bg-slate-200 active:scale-95 text-sm">
           <Download size={18} /> Export Analytics
         </button>
       </div>
@@ -46,8 +52,8 @@ export default function AdminUserReport() {
             <UserPlus size={24} />
           </div>
           <div>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">New Registrations</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1">{data.reduce((sum, item) => sum + item.users, 0)}</h3>
+            <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Total Registrations</p>
+            <h3 className="text-3xl font-black text-slate-900 mt-1">{summary.totalUsers}</h3>
           </div>
         </div>
         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
@@ -56,7 +62,7 @@ export default function AdminUserReport() {
           </div>
           <div>
             <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Verified Partners</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1">84.2%</h3>
+            <h3 className="text-3xl font-black text-slate-900 mt-1">{Number(summary.verifiedPercentage).toFixed(1)}%</h3>
           </div>
         </div>
         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
@@ -65,7 +71,9 @@ export default function AdminUserReport() {
           </div>
           <div>
             <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Growth Momentum</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1">+22%</h3>
+            <h3 className="text-3xl font-black text-slate-900 mt-1">
+               {Number(summary.growthRate) >= 0 ? '+' : ''}{summary.growthRate}%
+            </h3>
           </div>
         </div>
       </div>

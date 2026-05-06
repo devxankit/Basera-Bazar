@@ -65,6 +65,7 @@ import AdminSubscriptionPlans from './pages/admin/AdminSubscriptionPlans';
 import AdminSubscriptionPlanForm from './pages/admin/AdminSubscriptionPlanForm';
 import AdminAllSubscriptions from './pages/admin/AdminAllSubscriptions';
 import AdminCreateManualSubscription from './pages/admin/AdminCreateManualSubscription';
+import AdminOffers from './pages/admin/AdminOffers';
 import AdminLayout from './components/layout/AdminLayout';
 import AdminAllActivities from './pages/admin/AdminAllActivities';
 import AdminPendingProperties from './pages/admin/AdminPendingProperties';
@@ -754,6 +755,13 @@ function App() {
               <AdminRoute>
                 <AdminLayout>
                   <AdminSubscriptionPlanForm />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/subscriptions/offers" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminOffers />
                 </AdminLayout>
               </AdminRoute>
             } />

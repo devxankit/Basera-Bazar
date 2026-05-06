@@ -135,6 +135,7 @@ const partnerSchema = new mongoose.Schema({
     rera_number: { type: String },
     rera_certificate_image: { type: String },
     submitted_at: { type: Date, default: Date.now },
+    is_free_upgrade: { type: Boolean, default: false },
     reviewed_at: { type: Date },
     rejection_reason: { type: String }
   }],
@@ -174,6 +175,7 @@ const partnerSchema = new mongoose.Schema({
     used: { type: Number, default: 0 },
     expires_at: { type: Date }
   },
+  role_credits: { type: Number, default: 0 }, // For 1+1 role offer
   password: {
     type: String,
     default: null

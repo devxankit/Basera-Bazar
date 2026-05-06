@@ -1043,7 +1043,7 @@ const getPendingApprovals = async (req, res) => {
     } else if (type === 'others') {
       const [services, products] = await Promise.all([
         ServiceListing.find({ status: 'pending_approval' }).populate('partner_id', 'name phone'),
-        SupplierListing.find({ status: 'pending_approval' }).populate('partner_id', 'name phone')
+        MandiListing.find({ status: 'pending_approval' }).populate('partner_id', 'name phone')
       ]);
       listings = [...services.map(s => ({ ...s._doc, category: 'service' })), ...products.map(p => ({ ...p._doc, category: 'product' }))];
     } else {
@@ -1172,9 +1172,9 @@ const getListings = async (req, res) => {
     else if (type === 'service') listings = await ServiceListing.find(query).populate('partner_id', 'name phone').sort({ createdAt: -1 });
     else if (type === 'product') {
       // --- ONE TIME FORCE RESET ---
-      const testRow = await SupplierListing.findOne({ title: 'Ultra-Strong Portland Cement (Fixed)' });
+      const testRow = await MandiListing.findOne({ title: 'Ultra-Strong Portland Cement (Fixed)' });
       if (!testRow) {
-        await SupplierListing.deleteMany({}); // Wipe out the broken data completely.
+        await MandiListing.deleteMany({}); // Wipe out the broken data completely.
 
         const Partner = require('../models/Partner').Partner;
         const { Category } = require('../models/System');
@@ -1193,7 +1193,7 @@ const getListings = async (req, res) => {
         }
 
         if (partner && category) {
-          await SupplierListing.insertMany([
+          await MandiListing.insertMany([
             {
               partner_id: partner._id,
               title: 'Ultra-Strong Portland Cement (Fixed)',
@@ -1209,7 +1209,7 @@ const getListings = async (req, res) => {
       }
       // ------------------------------------
 
-      listings = await SupplierListing.find(query)
+      listings = await MandiListing.find(query)
         .populate('partner_id', 'name phone')
         .populate('category_id', 'name')
         .populate('subcategory_id', 'name')
@@ -1239,7 +1239,7 @@ const getListingDetail = async (req, res) => {
     // Check across all listing types
     let listing = await PropertyListing.findById(id).populate('partner_id', 'name phone email').populate('category_id subcategory_id');
     if (!listing) listing = await ServiceListing.findById(id).populate('partner_id', 'name phone email').populate('category_id');
-    if (!listing) listing = await SupplierListing.findById(id).populate('partner_id', 'name phone email');
+    if (!listing) listing = await MandiListing.findById(id).populate('partner_id', 'name phone email');
 
     if (!listing) {
       return res.status(404).json({ success: false, message: 'Listing not found.' });
@@ -1275,7 +1275,7 @@ const updateListingStatus = async (req, res) => {
       listing = await Model.findById(id);
     }
     if (!listing) {
-      Model = mongoose.model('SupplierListing');
+      Model = mongoose.model('MandiListing');
       listing = await Model.findById(id);
     }
 
@@ -1333,8 +1333,8 @@ const updateListing = async (req, res) => {
       Model = ServiceListing;
     }
     if (!listing) {
-      listing = await SupplierListing.findById(id);
-      Model = SupplierListing;
+      listing = await MandiListing.findById(id);
+      Model = MandiListing;
     }
 
     if (!listing) return res.status(404).json({ success: false, message: 'Listing not found.' });
@@ -1374,7 +1374,7 @@ const deleteListing = async (req, res) => {
     const { id } = req.params;
     const result = await PropertyListing.findByIdAndDelete(id) ||
       await ServiceListing.findByIdAndDelete(id) ||
-      await SupplierListing.findByIdAndDelete(id);
+      await MandiListing.findByIdAndDelete(id);
 
     if (!result) return res.status(404).json({ success: false, message: 'Listing not found.' });
 
@@ -1688,7 +1688,7 @@ const getSubscriptionById = async (req, res) => {
     const [propertyCount, serviceCount, supplierCount, featuredPropertyCount, featuredServiceCount, enquiryCount] = await Promise.all([
       PropertyListing.countDocuments({ partner_id: partnerId, createdAt: { $gte: startDate, $lte: endDate } }),
       ServiceListing.countDocuments({ partner_id: partnerId, createdAt: { $gte: startDate, $lte: endDate } }),
-      SupplierListing.countDocuments({ partner_id: partnerId, createdAt: { $gte: startDate, $lte: endDate } }),
+      MandiListing.countDocuments({ partner_id: partnerId, createdAt: { $gte: startDate, $lte: endDate } }),
       PropertyListing.countDocuments({ partner_id: partnerId, is_featured: true, createdAt: { $gte: startDate, $lte: endDate } }),
       ServiceListing.countDocuments({ partner_id: partnerId, is_featured: true, createdAt: { $gte: startDate, $lte: endDate } }),
       Enquiry.countDocuments({ partner_id: partnerId, createdAt: { $gte: startDate, $lte: endDate } })
@@ -1859,7 +1859,15 @@ const changeAdminPassword = async (req, res) => {
  */
 const getSubscriptionPlans = async (req, res) => {
   try {
-    const plans = await SubscriptionPlan.find().sort({ price: 1 });
+    const { role, active_only } = req.query;
+    const query = {};
+    
+    if (active_only === 'true') query.is_active = true;
+    if (role) {
+      query.applicable_to = role; // Mongoose handles array membership automatically for simple equality
+    }
+
+    const plans = await SubscriptionPlan.find(query).sort({ price: 1 });
     res.status(200).json({ success: true, count: plans.length, data: plans });
   } catch (error) {
     console.error("Error fetching plans:", error);
@@ -1940,7 +1948,7 @@ const getSystemCategories = async (req, res) => {
     // --- ADVANCED AUTO-MERGE & SANITIZATION ---
     // This ensures that "brick", "Bricks", "brick supplier" all become "brick"
     // and their listings are merged.
-    const { MandiListing, SupplierListing } = require('../models/Listing');
+    const { MandiListing } = require('../models/Listing');
     const { Partner } = require('../models/Partner');
 
     const nameMap = {}; // cleanName -> MasterCategory
@@ -2087,7 +2095,7 @@ const deleteCategory = async (req, res) => {
     const [propertyCount, serviceCount, supplierCount] = await Promise.all([
       PropertyListing.countDocuments({ $or: [{ category_id: id }, { subcategory_id: id }] }),
       ServiceListing.countDocuments({ $or: [{ category_id: id }, { subcategory_id: id }] }),
-      SupplierListing.countDocuments({ $or: [{ category_id: id }, { subcategory_id: id }] })
+      MandiListing.countDocuments({ $or: [{ category_id: id }, { subcategory_id: id }] })
     ]);
 
     const totalListings = propertyCount + serviceCount + supplierCount;
@@ -2186,36 +2194,95 @@ const deleteBanner = async (req, res) => {
 // REPORTS
 const getSubscriptionReport = async (req, res) => {
   try {
+    const { Subscription } = require('../models/Finance');
+    
     // Basic aggregation for report
-    const report = await Transaction.aggregate([
-      { $match: { status: 'success' } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-          revenue: { $sum: "$amount" },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: -1 } }
+    const [report, totalPartners, activeSubs, totalRevenue] = await Promise.all([
+      Transaction.aggregate([
+        { $match: { type: 'subscription_payment', status: 'success' } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+            revenue: { $sum: "$amount" },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      Partner.countDocuments(),
+      Subscription.countDocuments({ status: 'active' }),
+      Transaction.aggregate([
+        { $match: { status: 'success' } },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ])
     ]);
-    res.status(200).json({ success: true, data: report });
+
+    // Calculate growth
+    let growth = 0;
+    if (report.length >= 2) {
+      const lastMonth = report[report.length - 1].revenue;
+      const prevMonth = report[report.length - 2].revenue;
+      if (prevMonth > 0) {
+        growth = ((lastMonth - prevMonth) / prevMonth) * 100;
+      }
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        history: report,
+        summary: {
+          totalRevenue: totalRevenue[0]?.total || 0,
+          activeSubscriptions: activeSubs,
+          totalPartners: totalPartners,
+          conversionRate: totalPartners > 0 ? (activeSubs / totalPartners) * 100 : 0,
+          growthRate: growth.toFixed(1)
+        }
+      }
+    });
   } catch (error) {
+    console.error("Subscription report error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 const getUserReport = async (req, res) => {
   try {
-    const report = await User.aggregate([
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: -1 } }
+    const [history, totalPartners, verifiedPartners] = await Promise.all([
+      User.aggregate([
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      Partner.countDocuments(),
+      Partner.countDocuments({ onboarding_status: 'approved' })
     ]);
-    res.status(200).json({ success: true, data: report });
+
+    // Calculate growth
+    let growth = 0;
+    if (history.length >= 2) {
+      const lastMonth = history[history.length - 1].count;
+      const prevMonth = history[history.length - 2].count;
+      if (prevMonth > 0) {
+        growth = ((lastMonth - prevMonth) / prevMonth) * 100;
+      }
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        history,
+        summary: {
+          totalUsers: history.reduce((sum, item) => sum + item.count, 0),
+          verifiedPercentage: totalPartners > 0 ? (verifiedPartners / totalPartners) * 100 : 0,
+          growthRate: growth.toFixed(1)
+        }
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -2531,15 +2598,17 @@ const processRoleRequest = async (req, res) => {
     }
 
     if (action === 'approve') {
+      const request = partner.role_requests[requestIndex];
+
       // 1. Add role to roles array if not already there
       if (!partner.roles.includes(role)) {
         partner.roles.push(role);
       }
       
       // 2. Update status to approved
-      partner.role_requests[requestIndex].status = 'approved';
-      partner.role_requests[requestIndex].reviewed_at = new Date();
-      partner.role_requests[requestIndex].reviewed_by = adminId;
+      request.status = 'approved';
+      request.reviewed_at = new Date();
+      request.reviewed_by = adminId;
 
       // 3. Optional: Set active_role to the newly approved role
       partner.active_role = role;
@@ -2647,6 +2716,54 @@ const getRoleRequests = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get Offer Configurations
+ * @route   GET /api/admin/system/offers
+ */
+const getOfferConfig = async (req, res) => {
+  try {
+    const configs = await AppConfig.find({ 
+      key: { $in: ['OFFER_1_PLUS_1', 'FREE_TRIAL_CONFIG'] } 
+    });
+    
+    // Convert to easy-to-use object
+    const result = {};
+    configs.forEach(c => result[c.key] = c.value);
+    
+    // Default values if not found
+    if (!result.OFFER_1_PLUS_1) result.OFFER_1_PLUS_1 = { is_active: false, expiry: null };
+    if (!result.FREE_TRIAL_CONFIG) result.FREE_TRIAL_CONFIG = { duration_days: 30, listings_limit: 1, featured_listings_limit: 0 };
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc    Update Offer Configuration
+ * @route   PUT /api/admin/system/offers
+ */
+const updateOfferConfig = async (req, res) => {
+  try {
+    const { key, value } = req.body;
+    
+    if (!key || value === undefined) {
+      return res.status(400).json({ success: false, message: 'Please provide key and value' });
+    }
+
+    await AppConfig.findOneAndUpdate(
+      { key },
+      { value, updated_by: req.user._id },
+      { upsert: true, new: true }
+    );
+
+    res.status(200).json({ success: true, message: `${key} updated successfully` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   findNearestMandiSellers,
   assignMandiEnquiry,
@@ -2699,5 +2816,7 @@ module.exports = {
   getMandiSettings,
   updateMandiSettings,
   processRoleRequest,
-  getRoleRequests
+  getRoleRequests,
+  getOfferConfig,
+  updateOfferConfig
 };

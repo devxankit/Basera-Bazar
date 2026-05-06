@@ -75,6 +75,7 @@ export default function AddRolePage() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
   const [selectedRole, setSelectedRole] = useState(null);
+  const [useCredit, setUseCredit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [switching, setSwitching] = useState(null);
   const [refreshing, setRefreshing] = useState(true);
@@ -210,12 +211,20 @@ export default function AddRolePage() {
         gst_number: gstData.number,
         gst_image: gstData.image,
         rera_number: selectedRole === 'property_agent' ? profileData.rera_number : undefined,
-        rera_certificate_image: selectedRole === 'property_agent' ? profileData.rera_certificate_image : undefined
+        rera_certificate_image: selectedRole === 'property_agent' ? profileData.rera_certificate_image : undefined,
+        use_role_credit: useCredit
       };
 
       const res = await api.post('/partners/add-role', payload);
 
       if (res.data.success) {
+        if (useCredit) {
+          setSuccess(true);
+          await refreshUser();
+          setTimeout(() => navigate('/partner/home'), 2000);
+          return;
+        }
+
         if (['supplier', 'mandi_seller', 'property_agent'].includes(selectedRole)) {
           setStep(4);
           await refreshUser();
@@ -303,6 +312,34 @@ export default function AddRolePage() {
                     <Zap size={16} className="text-amber-500" />
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Modes</span>
                   </div>
+
+                  {user.role_credits > 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-4 bg-gradient-to-r from-orange-400 to-rose-500 rounded-2xl text-white shadow-lg shadow-orange-100 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Gift size={20} />
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-tight">1+1 Offer Active</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest opacity-80">You have {user.role_credits} free role credits</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-widest">Use Credit</span>
+                        <button 
+                          onClick={() => setUseCredit(!useCredit)}
+                          className={`w-10 h-6 rounded-full transition-colors relative ${useCredit ? 'bg-white' : 'bg-white/20'}`}
+                        >
+                          <motion.div 
+                            animate={{ x: useCredit ? 18 : 2 }}
+                            className={`absolute top-1 w-4 h-4 rounded-full ${useCredit ? 'bg-orange-500' : 'bg-white'}`}
+                          />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
                   
                   <div className="grid grid-cols-1 gap-3">
                     {currentRoles.map(roleId => {
@@ -552,10 +589,12 @@ export default function AddRolePage() {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 rounded-2xl p-4 flex gap-3 border border-blue-100">
-                  <FileText size={20} className="text-blue-500 shrink-0" />
-                  <p className="text-[11px] font-medium text-blue-700 leading-relaxed uppercase tracking-tight">
-                    Our team will verify your GST details within 24 hours to activate your professional listing.
+                <div className="bg-indigo-50 rounded-2xl p-4 flex gap-3 border border-indigo-100">
+                  <ShieldCheck size={20} className="text-indigo-500 shrink-0" />
+                  <p className="text-[11px] font-medium text-indigo-700 leading-relaxed uppercase tracking-tight">
+                    {useCredit 
+                      ? 'Using 1 Free Role Credit for this upgrade. No payment will be required after approval.' 
+                      : 'This role requires professional verification. Our team will review your details shortly.'}
                   </p>
                 </div>
               </div>

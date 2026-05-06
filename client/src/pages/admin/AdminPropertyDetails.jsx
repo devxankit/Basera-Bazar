@@ -127,6 +127,9 @@ export default function AdminPropertyDetails() {
 
    const status = statusMap[listing.status] || statusMap.draft;
 
+   const displayImages = [listing.thumbnail, ...(listing.images || [])].filter(img => img && typeof img === 'string');
+   const uniqueImages = [...new Set(displayImages)];
+
    return (
       <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
          <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
@@ -319,7 +322,7 @@ export default function AdminPropertyDetails() {
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0 }}
                               transition={{ duration: 0.5 }}
-                              src={listing.images?.[activeImage] || 'https://via.placeholder.com/800x450?text=No+Asset+Media'} 
+                              src={uniqueImages[activeImage] || 'https://via.placeholder.com/800x450?text=No+Asset+Media'} 
                               className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
                               alt="" 
                            />
@@ -333,13 +336,13 @@ export default function AdminPropertyDetails() {
                               </div>
                            )}
                            <div className="px-4 py-2 bg-indigo-600 text-white text-[11px] font-semibold uppercase tracking-[0.2em] rounded-xl shadow-lg flex items-center gap-2">
-                              <ImageIcon size={12} /> {listing.images?.length || 0} Assets
+                              <ImageIcon size={12} /> {uniqueImages.length} Assets
                            </div>
                         </div>
 
                         {/* Immersive Controls */}
                         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 p-2 bg-white/10 backdrop-blur-3xl rounded-3xl border border-white/10 z-20 animate-in fade-in slide-in-from-bottom-4 delay-300">
-                           {listing.images?.map((_, i) => (
+                           {uniqueImages.map((_, i) => (
                               <button 
                                  key={i}
                                  onClick={() => setActiveImage(i)}

@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const axios = require('axios');
 const { RazorpayOrder, Subscription, SubscriptionPlan, Transaction } = require('../models/Finance');
 const { Partner } = require('../models/Partner');
+const { AppConfig } = require('../models/System');
 
 /**
  * Helper to create Razorpay Order via axios
@@ -122,10 +123,31 @@ const verifySubscription = async (req, res) => {
       cancel_at_period_end: false // Reset on new activation
     });
 
-    // 4. Update Partner Profile
-    await Partner.findByIdAndUpdate(partnerId, {
+    // 4. Update Partner Profile & Grant Role Credit if 1+1 Offer is active
+    const updatePayload = {
       active_subscription_id: subscription._id
-    });
+    };
+
+    // Check for 1+1 Offer (Buy 1 role get 1 free)
+    // Only for premium plans (Price > 1)
+    if (plan.price > 1) {
+      const offerConfig = await AppConfig.findOne({ key: 'OFFER_1_PLUS_1' });
+      if (offerConfig && offerConfig.value?.is_active) {
+        // Increment role credits
+        await Partner.findByIdAndUpdate(partnerId, { 
+          $inc: { role_credits: 1 },
+          $set: { active_subscription_id: subscription._id }
+        });
+      } else {
+        await Partner.findByIdAndUpdate(partnerId, {
+          active_subscription_id: subscription._id
+        });
+      }
+    } else {
+      await Partner.findByIdAndUpdate(partnerId, {
+        active_subscription_id: subscription._id
+      });
+    }
 
     // 5. Create Transaction Record for Payment History
     await Transaction.create({
