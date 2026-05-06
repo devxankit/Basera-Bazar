@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { loadScript } from '../../utils/loadScript';
 
 export default function PartnerSubscription() {
   const navigate = useNavigate();
@@ -99,6 +100,12 @@ export default function PartnerSubscription() {
       if (!res.data.success) throw new Error("Initialization failed");
 
       const orderData = res.data;
+
+      // 1.5 Load Razorpay Script Dynamically
+      const isLoaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+      if (!isLoaded && orderData.key !== 'rzp_test_mock') {
+        throw new Error("Failed to load payment gateway. Please disable ad-blocker.");
+      }
 
       // 2. Open Razorpay Checkout (or Simulate if keys missing)
       if (orderData.key === 'rzp_test_mock') {

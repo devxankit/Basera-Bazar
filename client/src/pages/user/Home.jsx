@@ -48,7 +48,7 @@ const Home = () => {
           db.getAll('listings', { category: 'property', is_featured: 'true', limit: 8, ...locationParams }),
           db.getAll('listings', { category: 'service', is_featured: 'true', limit: 8, ...locationParams }),
           db.getAll('partners', { category: 'supplier', is_featured: 'true', limit: 8, ...locationParams }),
-          db.getAll('listings', { category: 'mandi', sort: 'top_selling', limit: 8, ...locationParams })
+          db.getAll('listings', { category: 'mandi', is_featured: 'true', limit: 8, ...locationParams })
         ]);
         setFeaturedProperties(props);
         setFeaturedServices(servs);

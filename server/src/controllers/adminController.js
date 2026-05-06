@@ -353,18 +353,51 @@ const getUserDetail = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 1. Find the basic account (check User and Partner)
+    // 1. Find the basic account (check User, Partner, and AdminUser)
     let account = await User.findById(id);
-    let partnerProfile = null;
+    let source = 'User';
 
     if (!account) {
       account = await Partner.findById(id);
-      if (account) partnerProfile = account; // It's a partner
+      if (account) source = 'Partner';
     }
 
     if (!account) {
-      return res.status(404).json({ success: false, message: 'User not found.' });
+      account = await AdminUser.findById(id);
+      if (account) source = 'AdminUser';
     }
+
+    if (!account) {
+      return res.status(404).json({ success: false, message: 'User profile not found in database registry.' });
+    }
+
+    const accountObj = account.toObject();
+    
+    // Standardize Roles
+    if (source === 'User') {
+      accountObj.displayRole = accountObj.role === 'user' ? 'Customer' : accountObj.role;
+    } else if (source === 'Partner') {
+      const roleMap = {
+        'property_agent': 'Agent',
+        'supplier': 'Supplier',
+        'mandi_seller': 'Seller',
+        'service_provider': 'Service Provider'
+      };
+      if (accountObj.roles && accountObj.roles.length > 0) {
+        accountObj.displayRoles = [...new Set(accountObj.roles.map(r => roleMap[r]).filter(Boolean))];
+      } else {
+        const fallbackRole = accountObj.role || (accountObj.partner_type === 'property_agent' ? 'Agent' :
+          accountObj.partner_type === 'supplier' ? 'Supplier' :
+          accountObj.partner_type === 'mandi_seller' ? 'Seller' :
+            'Service Provider');
+        accountObj.displayRoles = [fallbackRole];
+      }
+      accountObj.displayRole = accountObj.displayRoles.length === 1 ? accountObj.displayRoles[0] : accountObj.displayRoles.join(', ');
+    } else if (source === 'AdminUser') {
+      const role = (accountObj.role || '').toLowerCase();
+      accountObj.displayRole = (role === 'admin' || role === 'superadmin' || role === 'super_admin') ? 'Admin' : accountObj.role;
+    }
+    accountObj.source = source;
 
     // 2. Fetch Aggregated Activity Stats
     const [propertyCount, serviceCount, leadCount, activeSub] = await Promise.all([
@@ -442,7 +475,6 @@ const getUserDetail = async (req, res) => {
     }
 
     // 3. Construct the response matching the UI needs
-    const accountObj = account.toObject();
     const partnerProfileAlias = accountObj.partner_type ? {
       state: accountObj.state || '',
       city: accountObj.city || '',
@@ -1100,7 +1132,6 @@ const getUsers = async (req, res) => {
  */
 const getListings = async (req, res) => {
   try {
-    require('fs').writeFileSync('/Users/ujjawalmahawar/Desktop/Appzeto/BaseraBazar/server/debug_route_listings.txt', `Hit getListings with type: ${req.params.type}`);
     const { type } = req.params;
     const { category, category_id, subcategory, listing_intent, status, state, district, price_range, search } = req.query;
 
@@ -1188,7 +1219,6 @@ const getListings = async (req, res) => {
     }
     else return res.status(400).json({ success: false, message: 'Invalid listing type.' });
 
-    require('fs').writeFileSync('/Users/ujjawalmahawar/Desktop/Appzeto/BaseraBazar/server/debug_listings.txt', `Type: ${type}, Count: ${listings.length}, Query: ${JSON.stringify(query)}`);
 
     res.status(200).json({ success: true, count: listings.length, data: listings });
   } catch (error) {
@@ -1897,7 +1927,6 @@ const deleteSubscriptionPlan = async (req, res) => {
  */
 const getSystemCategories = async (req, res) => {
   try {
-    require('fs').writeFileSync('/Users/ujjawalmahawar/Desktop/Appzeto/BaseraBazar/server/debug_route_categories.txt', `Hit getSystemCategories with type: ${req.query.type}`);
     const { type, parent_id, include_inactive } = req.query;
 
     // Only filter for active if not explicitly requested by admin
@@ -2013,11 +2042,9 @@ const getSystemCategories = async (req, res) => {
       return catObj;
     }));
 
-    require('fs').writeFileSync('/Users/ujjawalmahawar/Desktop/Appzeto/BaseraBazar/server/debug_cat_end.txt', `Processed ${processedCategories.length}`);
     res.status(200).json({ success: true, count: processedCategories.length, data: processedCategories });
   } catch (error) {
     console.error('getSystemCategories ERROR:', error);
-    require('fs').writeFileSync('/Users/ujjawalmahawar/Desktop/Appzeto/BaseraBazar/server/debug_cat_error.txt', error.stack || error.toString());
     res.status(500).json({ success: false, message: 'Error fetching categories.' });
   }
 };

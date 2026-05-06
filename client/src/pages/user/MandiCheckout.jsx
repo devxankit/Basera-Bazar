@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { loadScript } from '../../utils/loadScript';
 
 export default function MandiCheckout() {
    const navigate = useNavigate();
@@ -99,6 +100,12 @@ export default function MandiCheckout() {
 
          if (res.data.success) {
             const { razorpay_order_id, payment_amount, key, order } = res.data.data;
+
+            // 1.5 Load Razorpay Script Dynamically
+            const isLoaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+            if (!isLoaded) {
+               throw new Error("Failed to load payment gateway. Please disable your ad-blocker to proceed with payment.");
+            }
 
             // 2. Open Razorpay Modal
             const options = {

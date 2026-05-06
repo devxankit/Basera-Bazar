@@ -2,7 +2,13 @@ const { ServiceListing, PropertyListing, MandiListing } = require('../models/Lis
 const { Category } = require('../models/System');
 const { Subscription } = require('../models/Finance');
 const { Partner } = require('../models/Partner');
-const { getPartnerLimits, checkListingLimit, checkFeaturedLimit } = require('../utils/subscriptionUtils');
+const { 
+  getPartnerLimits, 
+  checkListingLimit, 
+  checkFeaturedLimit,
+  getMandiLimits
+} = require('../utils/subscriptionUtils');
+const CacheManager = require('../utils/cache');
 
 const mongoose = require('mongoose');
 
@@ -221,6 +227,7 @@ const createPropertyListing = async (req, res) => {
     });
 
     res.status(201).json({ success: true, message: 'Property submitted for Admin review.', data: newProperty });
+    CacheManager.clearByPrefix('__express__/api/listings');
 
   } catch (error) {
     console.error("Error creating property:", error.message);
@@ -316,6 +323,7 @@ const createServiceListing = async (req, res) => {
     }
 
     res.status(201).json({ success: true, message: 'Service listing created successfully.', data: newService });
+    CacheManager.clearByPrefix('__express__/api/listings');
   } catch (error) {
     console.error("Error creating service listing:", error);
     if (error.name === 'ValidationError') {
@@ -387,9 +395,8 @@ const getListingById = async (req, res) => {
  */
 const getAllListings = async (req, res) => {
   try {
-    const fs = require('fs');
-    fs.appendFileSync('debug_listings.txt', `[${new Date().toISOString()}] getAllListings called with ${JSON.stringify(req.query)}\n`);
-    let { category, limit = 20, district, state, is_featured, partner_id, q } = req.query;
+    let { category, limit = 20, district, state, is_featured, partner_id, q, category_id, subcategory_id, subCategory, type } = req.query;
+    
     
     // SANITIZATION: Prevent "undefined" or "null" strings from breaking queries
     if (district === 'undefined' || district === 'null') district = null;
@@ -402,8 +409,6 @@ const getAllListings = async (req, res) => {
 
     const fetchCategory = async (Model, modelName) => {
       if (!Model || typeof Model.find !== 'function') {
-        const fs = require('fs');
-        fs.appendFileSync('error_listings.txt', `[${new Date().toISOString()}] Model ${modelName} is INVALID: ${typeof Model}\n`);
         throw new Error(`Model ${modelName} is not correctly imported. This is likely a circular dependency issue.`);
       }
       // Base query: only active items/partners
@@ -413,6 +418,22 @@ const getAllListings = async (req, res) => {
 
       if (is_featured === 'true') query.is_featured = true;
       if (partner_id) query.partner_id = partner_id;
+      
+      // ── CATEGORY & SUBCATEGORY FILTERING ──
+      if (category_id) query.category_id = category_id;
+      if (subcategory_id) query.subcategory_id = subcategory_id;
+      if (subCategory && modelName === 'ServiceListing') {
+        // If subCategory name is provided, we can filter by service_type or similar if needed
+        // For now, let's stick to IDs if available, but many frontend routes pass subCategory name
+        query.service_type = { $regex: new RegExp(subCategory, 'i') };
+      }
+      
+      // ── PROPERTY SPECIFIC FILTERING ──
+      if (type && modelName === 'PropertyListing') {
+         // Map 'forsale' -> 'sell', 'forrent' -> 'rent'
+         const intent = type === 'forsale' ? 'sell' : (type === 'forrent' ? 'rent' : type);
+         query.listing_intent = intent;
+      }
 
       // Apply strict location filtering when location is provided
       if (hasLocation && !partner_id) {
@@ -440,6 +461,8 @@ const getAllListings = async (req, res) => {
           query.$or = [
             { title: regex },
             { description: regex },
+            { short_description: regex },
+            { full_description: regex },
             { 'address.district': regex },
             { material_name: regex }
           ];
@@ -451,16 +474,14 @@ const getAllListings = async (req, res) => {
         sort = { 'stats.enquiries': -1, 'stats.views': -1, createdAt: -1 };
       }
 
-      fs.appendFileSync('debug_listings.txt', `[${new Date().toISOString()}] Query for ${modelName}: ${JSON.stringify(query)}\n`);
 
       const items = await Model.find(query)
-        .populate({ path: 'partner_id', select: 'name phone email role default_location profile createdAt' })
-        .populate('category_id')
-        .populate('subcategory_id')
+        .populate({ path: 'partner_id', select: 'name phone email role default_location profile createdAt', strictPopulate: false })
+        .populate({ path: 'category_id', strictPopulate: false })
+        .populate({ path: 'subcategory_id', strictPopulate: false })
         .sort(sort)
         .limit(parseInt(limit));
       
-      fs.appendFileSync('debug_listings.txt', `[${new Date().toISOString()}] ${modelName} items found: ${items.length}\n`);
 
       return items.map(i => {
         const doc = i.toObject ? i.toObject() : i;
@@ -503,8 +524,6 @@ const getAllListings = async (req, res) => {
 
     res.status(200).json({ success: true, count: sorted.length, data: sorted });
   } catch (error) {
-    const fs = require('fs');
-    fs.appendFileSync('error_listings.txt', `[${new Date().toISOString()}] CRITICAL: Error in getAllListings: ${error.message}\n${error.stack}\n`);
     console.error("CRITICAL: Error in getAllListings:", error.message);
     res.status(500).json({ success: false, message: `Server error: ${error.message}` });
   }
@@ -533,8 +552,13 @@ const getPublicBanners = async (req, res) => {
  */
 const getPublicCategories = async (req, res) => {
   try {
-    const { type, parent_id, partner_id } = req.query;
+    let { type, parent_id, partner_id, district, state } = req.query;
     
+    // SANITIZATION
+    if (district && typeof district !== 'string') district = null;
+    if (state && typeof state !== 'string') state = null;
+    if (parent_id && typeof parent_id !== 'string') parent_id = undefined;
+
     const query = { is_active: true };
     if (type) query.type = type;
     
@@ -563,7 +587,6 @@ const getPublicCategories = async (req, res) => {
     if (type === 'property') ListingModel = PropertyListing;
     else if (type === 'service') ListingModel = ServiceListing;
 
-    const { district, state } = req.query;
     const hasLocation = !!(district || state);
 
     const categoriesWithCounts = await Promise.all(categories.map(async (cat) => {
@@ -647,8 +670,6 @@ const getMyListings = async (req, res) => {
       data: combined
     });
   } catch (error) {
-    const fs = require('fs');
-    fs.appendFileSync('error_listings.txt', `[${new Date().toISOString()}] Error in getMyListings: ${error.message}\n${error.stack}\n`);
     console.error("Error in getMyListings:", error);
     res.status(500).json({ success: false, message: 'Server error fetching your listings.' });
   }
@@ -716,6 +737,12 @@ const updateListing = async (req, res) => {
       }
     }
 
+    // ── MANDI SPECIFIC MAPPING ──
+    // Frontend sends 'stock', Backend schema uses 'stock_quantity'
+    if (Model === MandiListing && updateData.stock !== undefined) {
+      updateData.stock_quantity = Number(updateData.stock);
+    }
+
     const updated = await Model.findByIdAndUpdate(
       id,
       { ...updateData, status: nextStatus },
@@ -724,6 +751,7 @@ const updateListing = async (req, res) => {
 
     const message = nextStatus === 'active' ? 'Listing updated successfully' : 'Listing updated and submitted for review';
     res.status(200).json({ success: true, message, data: updated });
+    CacheManager.clearByPrefix('__express__/api/listings');
   } catch (error) {
     console.error("Error updating listing:", error);
     res.status(500).json({ success: false, message: 'Server error updating listing' });
@@ -878,6 +906,7 @@ const createMandiListing = async (req, res) => {
     });
 
     res.status(201).json({ success: true, message: 'Material listed successfully.', data: newMandiItem });
+    CacheManager.clearByPrefix('__express__/api/listings');
   } catch (error) {
     console.error("Error creating Mandi listing:", error);
     res.status(500).json({ success: false, message: 'Server error creating mandi listing.', error: error.message });

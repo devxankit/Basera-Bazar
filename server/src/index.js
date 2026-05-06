@@ -63,27 +63,6 @@ app.use('/api/milestones', milestoneRoutes);
 app.use('/api/admin/marketplace', adminMarketplaceRoutes);
 app.use('/api/leads', leadRoutes);
 
-// Diagnostic route
-app.get('/api/diag/listings', async (req, res) => {
-  try {
-    const { ServiceListing, PropertyListing, MandiListing } = require('./models/Listing');
-    const { Partner } = require('./models/Partner');
-    
-    const counts = {
-      services: await ServiceListing.countDocuments(),
-      properties: await PropertyListing.countDocuments(),
-      mandi: await MandiListing.countDocuments(),
-      partners: await Partner.countDocuments(),
-      service_active: await ServiceListing.countDocuments({ status: 'active' }),
-      property_active: await PropertyListing.countDocuments({ status: 'active' }),
-      mandi_active: await MandiListing.countDocuments({ status: 'active' })
-    };
-    
-    res.json({ success: true, counts });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 // Health check endpoint
 app.get('/api/status', (req, res) => {

@@ -26,14 +26,18 @@ async function registerServiceWorker() {
  */
 async function requestNotificationPermission() {
   if ('Notification' in window) {
+    // If already denied, don't ask again and don't log an error
+    if (Notification.permission === 'denied') {
+      return false;
+    }
+    
+    // Only request if not already decided
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       console.log('✅ Notification permission granted');
       return true;
-    } else {
-      console.warn('❌ Notification permission denied');
-      return false;
     }
+    return false;
   }
   return false;
 }

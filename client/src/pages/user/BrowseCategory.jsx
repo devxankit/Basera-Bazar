@@ -428,67 +428,67 @@ const BrowseCategory = () => {
       {/* ── RESULTS LISTING ── */}
       {/* Broadcast Lead Banner - Fixed Size & Theme Matching */}
       {(category === 'service' || category === 'supplier') && (
-        <div className="mx-4 mb-6 relative bg-white border border-slate-100 rounded-[32px] p-5 pb-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+        <div className="mx-4 mb-6 relative bg-white border border-slate-100 rounded-[24px] xs:rounded-[32px] p-4 xs:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
           {/* Background Decors */}
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-orange-50 rounded-full opacity-50 blur-2xl pointer-events-none" />
           <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-50 rounded-full opacity-50 blur-2xl pointer-events-none" />
 
           {/* Header Section */}
-          <div className="relative z-10 flex gap-3">
+          <div className="relative z-10 flex gap-3 xs:gap-4 items-start">
+            {/* Paper Plane - Absolute positioned to prevent layout squeezing */}
+            <div className="absolute top-0 right-0 opacity-80 pointer-events-none">
+              <Send className="text-indigo-500 -rotate-12 w-8 h-8 xs:w-10 xs:h-10 sm:w-12 sm:h-12" strokeWidth={2} fill="#6366f1" fillOpacity={0.2} />
+            </div>
+
             {/* Megaphone Area */}
-            <div className="flex flex-col items-center gap-1">
-              <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center border-4 border-white shadow-sm shrink-0 relative">
-                <Megaphone className="text-orange-500" size={30} strokeWidth={2} fill="#f97316" fillOpacity={0.2} />
+            <div className="flex flex-col items-center gap-1 shrink-0 mt-1">
+              <div className="w-14 h-14 xs:w-16 xs:h-16 bg-orange-50 rounded-full flex items-center justify-center border-4 border-white shadow-sm relative">
+                <Megaphone className="text-orange-500 w-6 h-6 xs:w-8 xs:h-8" strokeWidth={2} fill="#f97316" fillOpacity={0.2} />
                 {/* Decorative lines */}
-                <div className="absolute top-1 right-1 w-1.5 h-0.5 bg-orange-400 rotate-45 rounded-full" />
-                <div className="absolute top-3 -right-1.5 w-1.5 h-0.5 bg-orange-400 rotate-12 rounded-full" />
+                <div className="absolute top-0.5 right-0.5 w-1 h-0.5 xs:w-1.5 bg-orange-400 rotate-45 rounded-full" />
+                <div className="absolute top-2 -right-1 w-1 h-0.5 xs:w-1.5 bg-orange-400 rotate-12 rounded-full" />
               </div>
-              <span className="bg-emerald-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest shadow-sm">100% Free</span>
+              <span className="bg-emerald-500 text-white text-[8px] xs:text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">100% Free</span>
             </div>
 
             {/* Text Area */}
-            <div className="flex-1 pt-0">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">Broadcast Feature</span>
-                <span className="border border-emerald-500 text-emerald-600 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Free</span>
+            <div className="flex-1 pt-0 pr-8 xs:pr-10">
+              <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 mb-1.5 xs:mb-2">
+                <span className="bg-indigo-600 text-white text-[8px] xs:text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shadow-sm whitespace-nowrap">Broadcast Feature</span>
+                <span className="border border-emerald-500 text-emerald-600 text-[8px] xs:text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest whitespace-nowrap">Free</span>
               </div>
-              <h2 className="text-[22px] xs:text-[26px] font-black text-[#1f2355] leading-tight tracking-tight">
+              <h2 className="text-[18px] xs:text-[22px] sm:text-[26px] font-black text-[#1f2355] leading-tight tracking-tight">
                 Get Providers<br />in <span className="text-orange-500">One Click</span>
               </h2>
-              <p className="text-[#4a5578] font-bold text-[13px] mt-0.5">Send Requirement</p>
-            </div>
-            
-            {/* Paper Plane Area */}
-            <div className="w-12 flex items-start justify-end pt-2 opacity-80 shrink-0">
-              <Send className="text-indigo-500 -rotate-12" size={28} strokeWidth={2} fill="#6366f1" fillOpacity={0.2} />
+              <p className="text-[#4a5578] font-bold text-[11px] xs:text-[13px] mt-0.5">Send Requirement</p>
             </div>
           </div>
 
           {/* Features Section */}
-          <div className="relative z-10 mt-5 grid grid-cols-4 gap-1 bg-white rounded-2xl border border-slate-100 p-1.5 shadow-sm">
-            <div className="flex flex-col md:flex-row items-center justify-center gap-1.5 p-1.5 text-center md:text-left">
-              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
-                <Users size={14} className="text-indigo-600 md:w-4 md:h-4" />
+          <div className="relative z-10 mt-4 xs:mt-5 flex items-stretch justify-between bg-white rounded-2xl border border-slate-100 p-1 xs:p-2 shadow-sm divide-x divide-slate-50">
+            <div className="flex-1 flex flex-col items-center justify-start gap-1 p-1 xs:p-1.5 text-center">
+              <div className="w-6 h-6 xs:w-8 xs:h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
+                <Users className="text-indigo-600 w-3 h-3 xs:w-4 xs:h-4" />
               </div>
-              <span className="text-[9px] md:text-[11px] font-bold text-[#1f2355] leading-[1.1]">Multiple<br className="md:hidden" /> Providers</span>
+              <span className="text-[8px] xs:text-[10px] sm:text-[11px] font-bold text-[#1f2355] leading-[1.1]">Multiple<br className="sm:hidden" /> Providers</span>
             </div>
-            <div className="flex flex-col md:flex-row items-center justify-center gap-1.5 p-1.5 text-center md:text-left border-l border-slate-50">
-              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-                <Award size={14} className="text-emerald-600 md:w-4 md:h-4" />
+            <div className="flex-1 flex flex-col items-center justify-start gap-1 p-1 xs:p-1.5 text-center">
+              <div className="w-6 h-6 xs:w-8 xs:h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                <Award className="text-emerald-600 w-3 h-3 xs:w-4 xs:h-4" />
               </div>
-              <span className="text-[9px] md:text-[11px] font-bold text-[#1f2355] leading-[1.1]">Verified<br className="md:hidden" /> Providers</span>
+              <span className="text-[8px] xs:text-[10px] sm:text-[11px] font-bold text-[#1f2355] leading-[1.1]">Verified<br className="sm:hidden" /> Providers</span>
             </div>
-            <div className="flex flex-col md:flex-row items-center justify-center gap-1.5 p-1.5 text-center md:text-left border-l border-slate-50">
-              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-orange-50 flex items-center justify-center shrink-0">
-                <Zap size={14} className="text-orange-500 fill-orange-500 md:w-4 md:h-4" />
+            <div className="flex-1 flex flex-col items-center justify-start gap-1 p-1 xs:p-1.5 text-center">
+              <div className="w-6 h-6 xs:w-8 xs:h-8 rounded-full bg-orange-50 flex items-center justify-center shrink-0">
+                <Zap className="text-orange-500 fill-orange-500 w-3 h-3 xs:w-4 xs:h-4" />
               </div>
-              <span className="text-[9px] md:text-[11px] font-bold text-[#1f2355] leading-[1.1]">Fast<br className="md:hidden" /> Response</span>
+              <span className="text-[8px] xs:text-[10px] sm:text-[11px] font-bold text-[#1f2355] leading-[1.1]">Fast<br className="sm:hidden" /> Response</span>
             </div>
-            <div className="flex flex-col md:flex-row items-center justify-center gap-1.5 p-1.5 text-center md:text-left border-l border-slate-50">
-              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                <Tag size={14} className="text-blue-600 fill-blue-600 md:w-4 md:h-4" />
+            <div className="flex-1 flex flex-col items-center justify-start gap-1 p-1 xs:p-1.5 text-center">
+              <div className="w-6 h-6 xs:w-8 xs:h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                <Tag className="text-blue-600 fill-blue-600 w-3 h-3 xs:w-4 xs:h-4" />
               </div>
-              <span className="text-[9px] md:text-[11px] font-bold text-[#1f2355] leading-[1.1]">Best<br className="md:hidden" /> Quotes</span>
+              <span className="text-[8px] xs:text-[10px] sm:text-[11px] font-bold text-[#1f2355] leading-[1.1]">Best<br className="sm:hidden" /> Quotes</span>
             </div>
           </div>
 
@@ -496,10 +496,10 @@ const BrowseCategory = () => {
           <div className="relative z-10 mt-4">
             <button 
               onClick={() => navigate(`/broadcast-lead?type=${category}`)}
-              className="w-full h-12 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl shadow-[0_4px_15px_rgb(249,115,22,0.3)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] group"
+              className="w-full h-12 xs:h-14 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl shadow-[0_4px_15px_rgb(249,115,22,0.3)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] group"
             >
               <Send size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-              <span className="font-black text-[15px]">Send Requirement</span>
+              <span className="font-black text-[14px] xs:text-[16px]">Send Requirement</span>
               <ArrowRight size={18} className="ml-1 opacity-80" />
             </button>
           </div>

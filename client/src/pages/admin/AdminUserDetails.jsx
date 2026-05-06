@@ -88,7 +88,15 @@ export default function AdminUserDetails() {
     </div>
   );
 
+  const roleMap = {
+    'property_agent': 'Agent',
+    'supplier': 'Supplier',
+    'mandi_seller': 'Seller',
+    'service_provider': 'Service Provider'
+  };
+
   const displayRole = user.displayRole || (user.role === 'user' ? 'Customer' : user.role);
+  const displayRoles = user.displayRoles || [displayRole];
   const isPartner = user.source === 'Partner' || user.partner_type || (user.roles && user.roles.length > 0) || ['Agent', 'Supplier', 'Service Provider'].includes(user.role);
 
   return (
@@ -115,7 +123,7 @@ export default function AdminUserDetails() {
                        <div className="absolute -inset-1 bg-gradient-to-tr from-indigo-500 to-orange-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition-opacity" />
                        <div className="relative w-24 h-24 rounded-2xl bg-white p-1 overflow-hidden ring-1 ring-slate-100 shadow-xl">
                           <img 
-                            src={user.profileImage || `https://ui-avatars.com/api/?name=${user.name}&background=6366f1&color=fff&bold=true`} 
+                            src={user.profileImage || user.image || `https://ui-avatars.com/api/?name=${user.name}&background=6366f1&color=fff&bold=true`} 
                             className="w-full h-full object-cover rounded-xl" 
                             alt="" 
                           />
@@ -127,10 +135,25 @@ export default function AdminUserDetails() {
                     <div className="space-y-1">
                        <div className="flex items-center gap-3">
                           <h2 className="text-3xl font-semibold text-slate-900 tracking-tight leading-none uppercase">{user.name}</h2>
-                          <span className="px-3 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg text-[11px] font-semibold uppercase tracking-widest">{displayRole}</span>
+                          <div className="flex gap-1.5">
+                             {displayRoles.map((role, idx) => (
+                                <span key={idx} className="px-3 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg text-[11px] font-semibold uppercase tracking-widest">{role}</span>
+                             ))}
+                          </div>
                        </div>
                        <div className="flex items-center gap-2">
                           <span className="text-[12px] font-medium text-slate-400 uppercase tracking-widest bg-slate-50 px-2.5 py-1 rounded border border-slate-100">Identity Registry</span>
+                          
+                          {user.active_role && (
+                             <>
+                                <ChevronRight size={10} className="text-slate-300" />
+                                <span className="text-[12px] font-semibold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded border border-indigo-100 flex items-center gap-1.5">
+                                   <Zap size={10} className="text-indigo-500" />
+                                   Active View: {roleMap[user.active_role] || user.active_role}
+                                </span>
+                             </>
+                          )}
+
                           <ChevronRight size={10} className="text-slate-300" />
                           <span className="text-[12px] font-semibold text-orange-600 uppercase tracking-widest bg-orange-50 px-2.5 py-1 rounded border border-orange-100">UID: {user?._id?.slice(-8).toUpperCase()}</span>
                        </div>

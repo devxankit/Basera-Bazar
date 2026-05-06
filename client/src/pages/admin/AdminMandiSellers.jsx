@@ -140,29 +140,32 @@ export default function AdminMandiSellers() {
         <div className="flex items-center gap-2">
           <button 
             onClick={() => navigate(`/admin/users/view/${row._id}`)}
-            className="w-10 h-10 flex items-center justify-center bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm group relative"
+            className="w-10 h-10 flex items-center justify-center bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm group/tooltip relative"
           >
             <Eye size={18} />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
               View Profile
             </span>
           </button>
           <button 
             onClick={() => navigate(`/admin/users/edit/${row._id}`)}
-            className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-indigo-600 hover:border-indigo-600 transition-all shadow-sm"
+            className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-indigo-600 hover:border-indigo-600 transition-all shadow-sm group/tooltip relative"
           >
             <Edit2 size={16} />
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Edit Seller
+            </span>
           </button>
           <button
             onClick={() => toggleActive(row)}
-            className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all active:scale-95 group relative ${
+            className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all active:scale-95 group/tooltip relative ${
               row.is_active
                 ? 'bg-amber-50 text-amber-500 border-amber-100'
                 : 'bg-emerald-50 text-emerald-500 border-emerald-100'
             }`}
           >
             {row.is_active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
               {row.is_active ? 'Deactivate' : 'Activate'}
             </span>
           </button>

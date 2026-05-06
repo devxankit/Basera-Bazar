@@ -147,10 +147,11 @@ class DataEngine {
       normalized.details.area = normalized.details.area.value || ''; // Overwrite with string/number for UI
     }
     
-    // Add BHK and Area to root for easy access
+    // Add BHK, Area, and Stock to root for easy access
     normalized.bhk = item.details?.bhk || item.bhk || '';
     normalized.area = item.details?.areaValue || item.details?.area || item.area || '';
     normalized.areaUnit = item.details?.areaUnit || item.areaUnit || 'Sqft';
+    normalized.stock = item.stock_quantity || item.stock || 0;
 
     // Legacy support for components using .location as a string
     if (item.location && typeof item.location === 'object') {
@@ -349,6 +350,7 @@ class DataEngine {
         }
 
         const response = await api.post(endpoint, item);
+        cacheService.invalidate('all_listings');
         return this._normalize(response.data.data);
       }
 
@@ -363,6 +365,7 @@ class DataEngine {
     try {
       if (table === 'listings') {
         const response = await api.put(`/listings/${id}`, data);
+        cacheService.invalidate('all_listings');
         return this._normalize(response.data.data || response.data);
       }
       return null;

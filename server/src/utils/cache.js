@@ -41,6 +41,18 @@ const CacheManager = {
   },
 
   /**
+   * Clear all keys starting with a prefix
+   * @param {string} prefix 
+   */
+  clearByPrefix: (prefix) => {
+    for (const key of cache.keys()) {
+      if (key.startsWith(prefix)) {
+        cache.delete(key);
+      }
+    }
+  },
+
+  /**
    * Clear all cache
    */
   clear: () => {
