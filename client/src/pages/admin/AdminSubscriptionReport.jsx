@@ -31,8 +31,8 @@ export default function AdminSubscriptionReport() {
     <div className="space-y-8 pb-20 mt-4 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Subscription Performance</h1>
-          <p className="text-slate-500 font-medium mt-1">Detailed growth analytics for premium partner plans.</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Revenue Analytics & Growth</h1>
+          <p className="text-slate-500 font-medium mt-1">Detailed growth analytics for premium plans and marketplace commissions.</p>
         </div>
         <button className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 transition-all hover:bg-slate-800 active:scale-95">
           <Download size={18} /> Download Full Report

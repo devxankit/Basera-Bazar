@@ -44,6 +44,8 @@ const {
   deleteBanner,
   getSubscriptionReport,
   getUserReport,
+  getTransactionLedger,
+  getFinancialStats,
   createPropertyListing,
   createServiceListing,
   updateSubscriptionStatus,
@@ -112,7 +114,9 @@ router.put('/system/banners/:id', updateBanner);
 router.delete('/system/banners/:id', deleteBanner);
 
 // Reports
-router.get('/reports/payments', getSubscriptionReport); // Overriding current implementation with consistent report
+router.get('/reports/transactions', getTransactionLedger);
+router.get('/reports/financial-stats', getFinancialStats);
+router.get('/reports/payments', getTransactionLedger); // Consistent with transactions
 router.get('/reports/subscriptions', getSubscriptionReport);
 router.get('/reports/users', getUserReport);
 

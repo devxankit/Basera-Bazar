@@ -1,52 +1,88 @@
-import React, { useState } from 'react';
-import { IndianRupee, TrendingUp, CheckCircle2, Clock, XCircle, Download, Filter } from 'lucide-react';
-
-const MOCK_TRANSACTIONS = [
-  { id: 'TXN-2024-001', user: 'Rajesh Kumar', email: 'rajesh@gmail.com', type: 'Subscription', plan: 'Gold Partner', amount: 4999, date: '2024-04-09', status: 'Success' },
-  { id: 'TXN-2024-002', user: 'Priya Sharma', email: 'priya@gmail.com', type: 'Subscription', plan: 'Silver Listing', amount: 1999, date: '2024-04-09', status: 'Success' },
-  { id: 'TXN-2024-003', user: 'Anil Mehta', email: 'anil@gmail.com', type: 'Listing Boost', plan: 'Property Booster', amount: 799, date: '2024-04-08', status: 'Pending' },
-  { id: 'TXN-2024-004', user: 'Sunita Patel', email: 'sunita@gmail.com', type: 'Subscription', plan: 'Gold Partner', amount: 4999, date: '2024-04-08', status: 'Success' },
-  { id: 'TXN-2024-005', user: 'Vikas Gupta', email: 'vikas@gmail.com', type: 'Listing Boost', plan: 'Property Booster', amount: 799, date: '2024-04-07', status: 'Failed' },
-  { id: 'TXN-2024-006', user: 'Meena Joshi', email: 'meena@gmail.com', type: 'Subscription', plan: 'Silver Listing', amount: 1999, date: '2024-04-07', status: 'Success' },
-  { id: 'TXN-2024-007', user: 'Deepak Singh', email: 'deepak@gmail.com', type: 'Subscription', plan: 'Gold Partner', amount: 4999, date: '2024-04-06', status: 'Success' },
-  { id: 'TXN-2024-008', user: 'Kavita Rao', email: 'kavita@gmail.com', type: 'Listing Boost', plan: 'Property Booster', amount: 799, date: '2024-04-06', status: 'Success' },
-  { id: 'TXN-2024-009', user: 'Ramesh Yadav', email: 'ramesh@gmail.com', type: 'Subscription', plan: 'Silver Listing', amount: 1999, date: '2024-04-05', status: 'Pending' },
-  { id: 'TXN-2024-010', user: 'Anjali Verma', email: 'anjali@gmail.com', type: 'Subscription', plan: 'Gold Partner', amount: 4999, date: '2024-04-05', status: 'Success' },
-  { id: 'TXN-2024-011', user: 'Suresh Nair', email: 'suresh@gmail.com', type: 'Listing Boost', plan: 'Property Booster', amount: 799, date: '2024-04-04', status: 'Success' },
-  { id: 'TXN-2024-012', user: 'Pooja Desai', email: 'pooja@gmail.com', type: 'Subscription', plan: 'Gold Partner', amount: 4999, date: '2024-04-04', status: 'Failed' },
-];
+import React, { useState, useEffect } from 'react';
+import { IndianRupee, TrendingUp, CheckCircle2, Clock, XCircle, Download, Filter, Loader2 } from 'lucide-react';
+import api from '../../services/api';
 
 const statusConfig = {
-  Success: { icon: CheckCircle2, cls: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-  Pending: { icon: Clock, cls: 'text-amber-600 bg-amber-50 border-amber-100' },
-  Failed: { icon: XCircle, cls: 'text-rose-600 bg-rose-50 border-rose-100' },
+  success: { icon: CheckCircle2, cls: 'text-emerald-600 bg-emerald-50 border-emerald-100', label: 'Success' },
+  pending: { icon: Clock, cls: 'text-amber-600 bg-amber-50 border-amber-100', label: 'Pending' },
+  failed: { icon: XCircle, cls: 'text-rose-600 bg-rose-50 border-rose-100', label: 'Failed' },
+  refunded: { icon: XCircle, cls: 'text-slate-600 bg-slate-50 border-slate-100', label: 'Refunded' },
 };
 
 export default function AdminPaymentReport() {
   const [filter, setFilter] = useState('All');
+  const [transactions, setTransactions] = useState([]);
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    successCount: 0,
+    pendingAmount: 0,
+    failedCount: 0,
+    totalTransactions: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
 
-  const totalRevenue = MOCK_TRANSACTIONS.filter(t => t.status === 'Success').reduce((sum, t) => sum + t.amount, 0);
-  const successCount = MOCK_TRANSACTIONS.filter(t => t.status === 'Success').length;
-  const pendingAmount = MOCK_TRANSACTIONS.filter(t => t.status === 'Pending').reduce((sum, t) => sum + t.amount, 0);
-  const failedCount = MOCK_TRANSACTIONS.filter(t => t.status === 'Failed').length;
-  const successRate = Math.round((successCount / MOCK_TRANSACTIONS.length) * 100);
+  const fetchStats = async () => {
+    try {
+      const res = await api.get('/admin/reports/financial-stats');
+      if (res.data.success) setStats(res.data.data);
+    } catch (err) {
+      console.error("Failed to fetch financial stats:", err);
+    }
+  };
 
-  const filtered = filter === 'All' ? MOCK_TRANSACTIONS : MOCK_TRANSACTIONS.filter(t => t.status === filter);
+  const fetchTransactions = async () => {
+    setLedgerLoading(true);
+    try {
+      const res = await api.get(`/admin/reports/transactions?status=${filter}`);
+      if (res.data.success) setTransactions(res.data.data);
+    } catch (err) {
+      console.error("Failed to fetch transactions:", err);
+    } finally {
+      setLedgerLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([fetchStats(), fetchTransactions()]);
+      setLoading(false);
+    };
+    init();
+  }, []);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [filter]);
+
+  const successRate = stats.totalTransactions > 0 
+    ? Math.round((stats.successCount / stats.totalTransactions) * 100) 
+    : 0;
 
   const statCards = [
-    { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, sub: 'All successful payments', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: IndianRupee },
-    { label: 'Success Rate', value: `${successRate}%`, sub: `${successCount} of ${MOCK_TRANSACTIONS.length} transactions`, color: 'bg-indigo-50 text-indigo-600 border-indigo-100', icon: TrendingUp },
-    { label: 'Pending Payouts', value: `₹${pendingAmount.toLocaleString()}`, sub: 'Awaiting confirmation', color: 'bg-amber-50 text-amber-600 border-amber-100', icon: Clock },
-    { label: 'Failed Transactions', value: failedCount, sub: 'Require attention', color: 'bg-rose-50 text-rose-600 border-rose-100', icon: XCircle },
+    { label: 'Total Revenue', value: `₹${stats.totalRevenue.toLocaleString()}`, sub: 'All successful payments', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: IndianRupee },
+    { label: 'Success Rate', value: `${successRate}%`, sub: `${stats.successCount} successful orders`, color: 'bg-indigo-50 text-indigo-600 border-indigo-100', icon: TrendingUp },
+    { label: 'Pending Payouts', value: `₹${stats.pendingAmount.toLocaleString()}`, sub: 'Awaiting confirmation', color: 'bg-amber-50 text-amber-600 border-amber-100', icon: Clock },
+    { label: 'Failed Transactions', value: stats.failedCount, sub: 'Require attention', color: 'bg-rose-50 text-rose-600 border-rose-100', icon: XCircle },
   ];
+
+  if (loading) {
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
+        <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest text-xs">Loading Financial Ledger...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Payment Reports</h1>
-          <p className="text-slate-400 font-medium text-sm mt-1">Comprehensive transaction ledger and revenue analytics.</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Transaction Ledger</h1>
+          <p className="text-slate-400 font-medium text-sm mt-1">Comprehensive transaction ledger and real-time revenue analytics.</p>
         </div>
         <button className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white font-black text-sm rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">
           <Download size={16} /> Export CSV
@@ -56,7 +92,7 @@ export default function AdminPaymentReport() {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {statCards.map((card, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col gap-3">
+          <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col gap-3 transition-all hover:shadow-md hover:border-slate-200">
             <div className="flex items-center justify-between">
               <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{card.label}</p>
               <div className={`w-10 h-10 rounded-xl ${card.color} flex items-center justify-center border`}>
@@ -70,9 +106,15 @@ export default function AdminPaymentReport() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden relative">
+        {ledgerLoading && (
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+            </div>
+        )}
+
         {/* Table Controls */}
-        <div className="px-8 py-5 border-b border-slate-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="px-8 py-6 border-b border-slate-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2.5">
             <Filter size={18} className="text-slate-400" /> Transaction Ledger
           </h2>
@@ -97,43 +139,51 @@ export default function AdminPaymentReport() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                {['Order ID', 'Customer', 'Type', 'Plan', 'Amount', 'Date', 'Status'].map(h => (
-                  <th key={h} className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                {['Transaction ID', 'Customer', 'Type', 'Amount', 'Date', 'Status'].map(h => (
+                  <th key={h} className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filtered.map((txn, i) => {
-                const { icon: StatusIcon, cls } = statusConfig[txn.status];
-                return (
-                  <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <span className="text-[12px] font-black text-indigo-600 font-mono">{txn.id}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="font-black text-sm text-slate-800">{txn.user}</p>
-                      <p className="text-[11px] text-slate-400 font-medium">{txn.email}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200">{txn.type}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-bold text-slate-600">{txn.plan}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-base font-black text-slate-900">₹{txn.amount.toLocaleString()}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-bold text-slate-500">{txn.date}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`flex items-center gap-1.5 w-fit px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${cls}`}>
-                        <StatusIcon size={12} /> {txn.status}
-                      </span>
-                    </td>
+              {transactions.length === 0 ? (
+                  <tr>
+                      <td colSpan="6" className="px-6 py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">
+                          No transactions found
+                      </td>
                   </tr>
-                );
-              })}
+              ) : (
+                transactions.map((txn, i) => {
+                  const config = statusConfig[txn.status] || statusConfig.pending;
+                  const StatusIcon = config.icon;
+                  return (
+                    <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-6 py-5">
+                        <span className="text-[12px] font-black text-indigo-600 font-mono">#{txn._id.slice(-8).toUpperCase()}</span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <p className="font-black text-sm text-slate-800">{txn.partner_id?.name || 'Anonymous'}</p>
+                        <p className="text-[11px] text-slate-400 font-bold tracking-tight">{txn.partner_id?.email || txn.partner_id?.phone || 'No Contact'}</p>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="px-2.5 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200">
+                          {txn.type.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="text-base font-black text-slate-900">₹{txn.amount.toLocaleString()}</span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-bold text-slate-500">{new Date(txn.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className={`flex items-center gap-1.5 w-fit px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${config.cls}`}>
+                          <StatusIcon size={12} /> {config.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

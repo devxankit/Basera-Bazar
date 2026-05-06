@@ -211,9 +211,18 @@ const verifyMarketplacePayment = async (req, res) => {
       });
     }
 
-    await order.save();
+    // 5. Record Transaction for Financial Report
+    await Transaction.create({
+      partner_id: order.user_id, // The payer
+      type: 'mandi_commission',
+      amount: order.token_payment.amount,
+      direction: 'credit', // Credit to the platform
+      status: 'success',
+      razorpay_order_id: rzOrder._id,
+      reference_id: order._id
+    });
 
-    // 5. Notify Sellers (Active Leads)
+    // 6. Notify Sellers (Active Leads)
     try {
       const { createNotification } = require('../utils/notificationHelper');
       for (let item of order.items) {

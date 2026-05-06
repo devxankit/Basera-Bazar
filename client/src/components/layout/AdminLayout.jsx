@@ -80,12 +80,12 @@ const navItems = [
   { id: 'banners', label: 'Banners', path: '/admin/banners', icon: Image },
   { 
     id: 'reports', 
-    label: 'Reports', 
+    label: 'Financial Report', 
     icon: BarChart3,
     children: [
-      { label: 'Payment Report', path: '/admin/reports/payments' },
-      { label: 'Subscription Report', path: '/admin/reports/subscriptions' },
-      { label: 'User Report', path: '/admin/reports/users' },
+      { label: 'Transaction Ledger', path: '/admin/reports/payments' },
+      { label: 'Revenue Trends', path: '/admin/reports/subscriptions' },
+      { label: 'User Analytics', path: '/admin/reports/users' },
     ]
   },
 
