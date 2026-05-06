@@ -14,14 +14,12 @@ exports.saveFCMToken = async (req, res) => {
 
     if (!token) return res.status(400).json({ success: false, message: 'Token required' });
 
-    // Find the correct model based on role
-    // In this app, Partners and Users are in different collections
+    // Robust recipient identification
     let recipient;
     let Model;
 
-    // Check if it's a partner role
-    const partnerRoles = ['Agent', 'Supplier', 'Service Provider', 'mandi_seller'];
-    if (partnerRoles.includes(userRole) || req.user.partner_id) {
+    // In authMiddleware, we set req.user.role = 'partner' for all partners
+    if (userRole === 'partner' || req.user.db_role) {
       Model = Partner;
       recipient = await Partner.findById(userId);
     } else {
