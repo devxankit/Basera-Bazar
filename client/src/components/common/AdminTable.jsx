@@ -72,7 +72,10 @@ export default function AdminTable({
                 <tr key={i}>
                   {columns.map((_, j) => (
                     <td key={j} className="px-6 py-5 border-b border-slate-50">
-                      <div className="h-4 bg-slate-100 animate-pulse rounded-md w-full"></div>
+                      <div className="flex flex-col gap-2">
+                        <div className="h-4 bg-slate-100 animate-pulse rounded-md w-full"></div>
+                        <div className="h-2 bg-slate-50 animate-pulse rounded-md w-1/2"></div>
+                      </div>
                     </td>
                   ))}
                 </tr>

@@ -10,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
 
+import Skeleton from '../../components/common/Skeleton';
+
 export default function AdminUsers() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
@@ -28,6 +30,7 @@ export default function AdminUsers() {
 
   useEffect(() => {
     const fetchUsers = async () => {
+      setLoading(true);
       try {
         const { getAdminUsers } = await import('../../services/AdminService');
         const data = await getAdminUsers();
@@ -170,9 +173,6 @@ export default function AdminUsers() {
             className="w-10 h-10 flex items-center justify-center bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-all shadow-md active:scale-95 group/view relative"
           >
             <Eye size={18} />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/view:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              View Details
-            </span>
           </button>
           
           {/* Edit Icon (Pencil) */}
@@ -181,9 +181,6 @@ export default function AdminUsers() {
             className="w-10 h-10 flex items-center justify-center bg-white border-2 border-amber-400 text-amber-500 rounded-full hover:bg-amber-50 transition-all shadow-sm active:scale-95 group/edit relative"
           >
             <Edit2 size={18} />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/edit:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Edit User
-            </span>
           </button>
           
           {/* More Menu */}
@@ -301,18 +298,27 @@ export default function AdminUsers() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Page Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">User Management</h1>
-          <p className="text-slate-500 font-medium mt-1 text-lg">Manage customers, partners, and administrators system-wide.</p>
-        </div>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64 rounded-xl" />
+            <Skeleton className="h-6 w-96 rounded-xl" />
+          </div>
+        ) : (
+          <div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">User Management</h1>
+            <p className="text-slate-500 font-medium mt-1 text-lg">Manage customers, partners, and administrators system-wide.</p>
+          </div>
+        )}
         
-        <button 
-          onClick={() => navigate('/admin/users/add')}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-indigo-100 transition-all flex items-center gap-3 active:scale-95 text-[15px] w-fit"
-        >
-          <UserPlus size={22} strokeWidth={2.5} />
-          Add New User
-        </button>
+        {!loading && (
+          <button 
+            onClick={() => navigate('/admin/users/add')}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-indigo-100 transition-all flex items-center gap-3 active:scale-95 text-[15px] w-fit"
+          >
+            <UserPlus size={22} strokeWidth={2.5} />
+            Add New User
+          </button>
+        )}
       </div>
       <AdminTable 
         columns={columns} 

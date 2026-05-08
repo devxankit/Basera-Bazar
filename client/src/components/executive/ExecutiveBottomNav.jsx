@@ -8,10 +8,10 @@ const ExecutiveBottomNav = () => {
   const location = useLocation();
 
   const navItems = [
-    { id: 'home', label: 'Console', icon: LayoutGrid, path: '/executive/dashboard' },
-    { id: 'partners', label: 'Network', icon: Users, path: '/executive/partners' },
-    { id: 'wallet', label: 'Payouts', icon: Wallet, path: '/executive/wallet' },
-    { id: 'profile', label: 'Vault', icon: UserCircle, path: '/executive/profile' }
+    { id: 'home', label: 'Home', icon: LayoutGrid, path: '/executive/dashboard' },
+    { id: 'partners', label: 'Partners', icon: Users, path: '/executive/partners' },
+    { id: 'wallet', label: 'Wallet', icon: Wallet, path: '/executive/wallet' },
+    { id: 'profile', label: 'Profile', icon: UserCircle, path: '/executive/profile' }
   ];
 
   return (

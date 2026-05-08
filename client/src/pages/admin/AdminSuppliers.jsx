@@ -8,6 +8,8 @@ import api from '../../services/api';
 import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
 import { Star } from 'lucide-react';
 
+import Skeleton from '../../components/common/Skeleton';
+
 export default function AdminSuppliers() {
   const navigate = useNavigate();
   const [suppliers, setSuppliers] = useState([]);
@@ -16,6 +18,7 @@ export default function AdminSuppliers() {
 
   useEffect(() => {
     const fetchSuppliers = async () => {
+      setLoading(true);
       try {
         const data = await getAdminUsers();
         // Filter to only show suppliers
@@ -150,18 +153,12 @@ export default function AdminSuppliers() {
             className="w-10 h-10 flex items-center justify-center bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm group/tooltip relative"
           >
             <Eye size={18} />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Review Profile
-            </span>
           </button>
           <button 
             onClick={() => navigate(`/admin/users/edit/${row._id}`)}
             className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-indigo-600 hover:border-indigo-600 transition-all shadow-sm group/tooltip relative"
           >
             <Edit2 size={16} />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Edit Supplier
-            </span>
           </button>
           <button
             onClick={() => toggleActive(row)}
@@ -172,9 +169,6 @@ export default function AdminSuppliers() {
             }`}
           >
             {row.is_active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              {row.is_active ? 'Deactivate' : 'Activate'}
-            </span>
           </button>
         </div>
       )
@@ -184,10 +178,17 @@ export default function AdminSuppliers() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Material Suppliers</h1>
-          <p className="text-slate-500 font-medium mt-1 text-lg">Manage verified vendors and material procurement partners.</p>
-        </div>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64 rounded-xl" />
+            <Skeleton className="h-6 w-96 rounded-xl" />
+          </div>
+        ) : (
+          <div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Material Suppliers</h1>
+            <p className="text-slate-500 font-medium mt-1 text-lg">Manage verified vendors and material procurement partners.</p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -197,13 +198,25 @@ export default function AdminSuppliers() {
           { label: 'Pending Portfolio', value: 0, icon: Package, color: 'text-amber-600 bg-amber-50' }
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
-            <div className={`p-4 rounded-2xl ${stat.color}`}>
-              <stat.icon size={24} />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-              <h4 className="text-2xl font-black text-slate-900 tabular-nums">{stat.value}</h4>
-            </div>
+            {loading ? (
+              <div className="flex items-center gap-4 w-full">
+                <Skeleton className="h-14 w-14 rounded-2xl" />
+                <div className="space-y-2 flex-grow">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-6 w-12" />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className={`p-4 rounded-2xl ${stat.color}`}>
+                  <stat.icon size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                  <h4 className="text-2xl font-black text-slate-900 tabular-nums">{stat.value}</h4>
+                </div>
+              </>
+            )}
           </div>
         ))}
       </div>

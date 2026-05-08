@@ -5,6 +5,8 @@ import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 
+import Skeleton from '../../components/common/Skeleton';
+
 export default function AdminServices() {
   const navigate = useNavigate();
   const [services, setServices] = useState([]);
@@ -124,7 +126,6 @@ export default function AdminServices() {
             className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all group/tooltip relative"
           >
             <Eye size={18} className="transition-transform group-hover/tooltip:scale-110" />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">View</span>
           </button>
 
           {/* Status Toggle */}
@@ -139,7 +140,6 @@ export default function AdminServices() {
               className="p-2.5 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all group/tooltip relative"
             >
               <CheckCircle2 size={18} className="transition-transform group-hover/tooltip:scale-110" />
-              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Approve</span>
             </button>
           ) : (
             <button 
@@ -153,9 +153,6 @@ export default function AdminServices() {
               className={`p-2.5 rounded-xl transition-all group/tooltip relative ${row.status === 'active' ? 'text-amber-500 hover:bg-amber-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
             >
               {row.status === 'active' ? <XCircle size={18} className="transition-transform group-hover/tooltip:scale-110" /> : <CheckCircle2 size={18} className="transition-transform group-hover/tooltip:scale-110" />}
-              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                {row.status === 'active' ? 'Deactivate' : 'Activate'}
-              </span>
             </button>
           )}
 
@@ -164,14 +161,12 @@ export default function AdminServices() {
             className="p-2.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all group/tooltip relative"
           >
             <Edit2 size={18} className="transition-transform group-hover/tooltip:scale-110" />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit</span>
           </button>
           <button 
             onClick={() => setDeleteId(row._id)}
             className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all group/tooltip relative"
           >
             <Trash2 size={18} className="transition-transform group-hover/tooltip:scale-110" />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Delete</span>
           </button>
         </div>
       )
@@ -182,23 +177,32 @@ export default function AdminServices() {
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20">
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div>
-           <div className="flex items-center gap-3 mb-2">
-             <div className="p-2 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100">
-               <Briefcase size={20} />
-             </div>
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inventory Management</p>
-           </div>
-           <h1 className="text-4xl font-black text-slate-900 tracking-tighter italic">Service Catalog</h1>
-           <p className="text-slate-500 font-medium max-w-lg mt-1">Manage, moderate and verify professional services listed across the marketplace network.</p>
-        </div>
-        <button 
-          onClick={() => navigate('/admin/services/add')}
-          className="bg-slate-900 hover:bg-indigo-600 text-white font-black px-8 py-4 rounded-[24px] shadow-2xl shadow-indigo-100 transition-all flex items-center justify-center gap-3 active:scale-95 group uppercase tracking-widest text-xs"
-        >
-          <Plus size={20} className="transition-transform group-hover:rotate-90" />
-          Register New Service
-        </button>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64 rounded-xl" />
+            <Skeleton className="h-6 w-96 rounded-xl" />
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100">
+                <Briefcase size={20} />
+              </div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inventory Management</p>
+            </div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter italic">Service Catalog</h1>
+            <p className="text-slate-500 font-medium max-w-lg mt-1">Manage, moderate and verify professional services listed across the marketplace network.</p>
+          </div>
+        )}
+        {!loading && (
+          <button 
+            onClick={() => navigate('/admin/services/add')}
+            className="bg-slate-900 hover:bg-indigo-600 text-white font-black px-8 py-4 rounded-[24px] shadow-2xl shadow-indigo-100 transition-all flex items-center justify-center gap-3 active:scale-95 group uppercase tracking-widest text-xs"
+          >
+            <Plus size={20} className="transition-transform group-hover:rotate-90" />
+            Register New Service
+          </button>
+        )}
       </div>
 
       {/* Unified Filter Bar */}

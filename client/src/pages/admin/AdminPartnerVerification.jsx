@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
 
+import Skeleton from '../../components/common/Skeleton';
+
 export default function AdminPartnerVerification() {
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -241,10 +243,17 @@ export default function AdminPartnerVerification() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Partner Onboarding</h1>
-          <p className="text-slate-500 font-medium mt-1 text-lg">Verify and approve new partners to activate their accounts.</p>
-        </div>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64 rounded-xl" />
+            <Skeleton className="h-6 w-96 rounded-xl" />
+          </div>
+        ) : (
+          <div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Partner Onboarding</h1>
+            <p className="text-slate-500 font-medium mt-1 text-lg">Verify and approve new partners to activate their accounts.</p>
+          </div>
+        )}
       </div>
 
       <AdminTable
@@ -256,20 +265,24 @@ export default function AdminPartnerVerification() {
         searchPlaceholder="Find partners by name or phone..."
         actions={
           <div className="flex items-center gap-3">
-            <div className="bg-slate-50 border-2 border-slate-100 p-1 rounded-2xl flex shadow-inner">
-              {['All', 'Pending', 'Approved', 'Rejected'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveFilter(tab)}
-                  className={`px-4 py-2 rounded-xl text-[11px] font-black transition-all ${activeFilter === tab
-                      ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100'
-                      : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
+            {loading ? (
+              <Skeleton className="h-12 w-80 rounded-2xl" />
+            ) : (
+              <div className="bg-slate-50 border-2 border-slate-100 p-1 rounded-2xl flex shadow-inner">
+                {['All', 'Pending', 'Approved', 'Rejected'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveFilter(tab)}
+                    className={`px-4 py-2 rounded-xl text-[11px] font-black transition-all ${activeFilter === tab
+                        ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100'
+                        : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         }
       />

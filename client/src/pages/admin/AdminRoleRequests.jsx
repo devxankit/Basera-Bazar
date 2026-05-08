@@ -7,6 +7,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 
+import Skeleton from '../../components/common/Skeleton';
+
 const roleMeta = {
   property_agent: { label: 'Property Agent', icon: <Building2 size={16} />, color: 'blue' },
   service_provider: { label: 'Service Provider', icon: <Wrench size={16} />, color: 'emerald' },
@@ -77,10 +79,17 @@ export default function AdminRoleRequests() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Role Upgrade Requests</h1>
-          <p className="text-slate-500">Review and verify partner upgrade applications.</p>
-        </div>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64 rounded-xl" />
+            <Skeleton className="h-4 w-96 rounded-xl" />
+          </div>
+        ) : (
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Role Upgrade Requests</h1>
+            <p className="text-slate-500">Review and verify partner upgrade applications.</p>
+          </div>
+        )}
       </div>
 
       {/* Stats/Filters */}
@@ -92,45 +101,69 @@ export default function AdminRoleRequests() {
           { label: 'Rejected', value: requests.filter(r => r.status === 'rejected').length, color: 'rose' }
         ].map((stat, i) => (
           <div key={i} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-            <p className={`text-2xl font-black text-${stat.color}-600`}>{stat.value}</p>
+            {loading ? (
+               <div className="space-y-2">
+                 <Skeleton className="h-3 w-20" />
+                 <Skeleton className="h-8 w-12" />
+               </div>
+            ) : (
+              <>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                <p className={`text-2xl font-black text-${stat.color}-600`}>{stat.value}</p>
+              </>
+            )}
           </div>
         ))}
       </div>
 
       {/* Toolbar */}
       <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-        <div className="relative flex-grow">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text"
-            placeholder="Search by name or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none"
-          />
-        </div>
-        <div className="flex gap-2">
-          {['pending', 'approved', 'rejected', 'all'].map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-all ${
-                filter === f ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+        {loading ? (
+          <Skeleton className="h-10 w-full rounded-lg" />
+        ) : (
+          <>
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="text"
+                placeholder="Search by name or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none"
+              />
+            </div>
+            <div className="flex gap-2">
+              {['pending', 'approved', 'rejected', 'all'].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-all ${
+                    filter === f ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Table/List */}
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-20 flex flex-col items-center justify-center space-y-4">
-            <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
-            <p className="text-slate-500 font-medium">Fetching upgrade requests...</p>
+          <div className="p-6 space-y-4">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="flex items-center gap-4 border-b border-slate-50 pb-4">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-grow space-y-2">
+                  <Skeleton className="h-4 w-1/4" />
+                  <Skeleton className="h-3 w-1/6" />
+                </div>
+                <Skeleton className="h-8 w-24 rounded-lg" />
+                <Skeleton className="h-8 w-24 rounded-lg" />
+              </div>
+            ))}
           </div>
         ) : filteredRequests.length === 0 ? (
           <div className="p-20 text-center space-y-4">

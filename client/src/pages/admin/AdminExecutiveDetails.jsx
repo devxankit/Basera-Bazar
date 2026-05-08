@@ -5,11 +5,12 @@ import {
   MapPin, Clock, ArrowLeft, MoreVertical,
   IndianRupee, Activity, CheckCircle2, AlertCircle,
   Briefcase, TrendingUp, ChevronRight, Zap, FileText, ExternalLink,
-  UserMinus, UserCheck, Trash2, Landmark, CreditCard, ShieldCheck, Building2
+  UserMinus, UserCheck, Trash2, Landmark, CreditCard, ShieldCheck, Building2, XCircle
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import api from '../../services/api';
+import Skeleton from '../../components/common/Skeleton';
 import { toast } from '../../mockToast';
 
 function cn(...inputs) {
@@ -24,9 +25,12 @@ export default function AdminExecutiveDetails() {
   const [error, setError] = useState(null);
   const [showOptions, setShowOptions] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectInput, setShowRejectInput] = useState(false);
 
   useEffect(() => {
     const fetchExecutiveDetail = async () => {
+      setLoading(true);
       try {
         const response = await api.get(`/admin/executives/${id}`);
         if (response.data.success) {
@@ -41,8 +45,30 @@ export default function AdminExecutiveDetails() {
     fetchExecutiveDetail();
   }, [id]);
 
+  const handleStatusUpdate = async (status, reason = '') => {
+    if (status === 'rejected' && !reason) {
+      toast.error("Please provide a reason for rejection");
+      return;
+    }
+
+    setIsActionLoading(true);
+    try {
+      await api.patch(`/admin/executives/${id}/status`, { status, rejection_reason: reason });
+      toast.success(`Executive ${status} successfully!`);
+      // Re-fetch to sync
+      const response = await api.get(`/admin/executives/${id}`);
+      setExecutive(response.data.data);
+      setShowRejectInput(false);
+      setRejectionReason('');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Update failed');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const handleToggleStatus = async () => {
-    const currentStatus = executive.is_active;
+    const currentStatus = executive?.is_active;
     const action = currentStatus ? 'deactivate' : 'activate';
     if (!window.confirm(`Are you sure you want to ${action} this executive?`)) return;
 
@@ -87,8 +113,26 @@ export default function AdminExecutiveDetails() {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-[50vh]">
-      <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+    <div className="bg-slate-50 min-h-screen pb-20 text-left">
+      <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+          <div className="md:col-span-4 space-y-8">
+            <Skeleton className="h-64 rounded-2xl" />
+            <Skeleton className="h-40 rounded-2xl" />
+          </div>
+          <div className="md:col-span-8 space-y-8">
+            <Skeleton className="h-96 rounded-2xl" />
+            <Skeleton className="h-64 rounded-2xl" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 
@@ -139,61 +183,7 @@ export default function AdminExecutiveDetails() {
                  </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                 <div className="relative">
-                   <button 
-                     onClick={() => setShowOptions(!showOptions)}
-                     className={cn(
-                       "p-3 border rounded-xl transition-all active:scale-95",
-                       showOptions ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 bg-white text-slate-400 hover:border-indigo-600 hover:text-indigo-600"
-                     )}
-                   >
-                      <MoreVertical size={20} />
-                   </button>
 
-                   {showOptions && (
-                     <>
-                       <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
-                       <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50">
-                          <button 
-                            onClick={handleToggleStatus}
-                            className="w-full flex items-center gap-4 p-4 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
-                          >
-                             <div className={cn(
-                                "w-10 h-10 rounded-lg flex items-center justify-center",
-                                executive.is_active ? "bg-rose-50 text-rose-500" : "bg-emerald-50 text-emerald-500"
-                             )}>
-                                {executive.is_active ? <UserMinus size={18} /> : <UserCheck size={18} />}
-                             </div>
-                             <span className="font-semibold text-sm text-left">{executive.is_active ? 'Deactivate Executive' : 'Activate Executive'}</span>
-                          </button>
-
-                          <button 
-                            onClick={handleResetKyc}
-                            className="w-full flex items-center gap-4 p-4 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
-                          >
-                             <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500">
-                                <FileText size={18} />
-                             </div>
-                             <span className="font-semibold text-sm text-left">Reset KYC Docs</span>
-                          </button>
-
-                          <div className="h-px bg-slate-100 my-2 mx-4" />
-
-                          <button 
-                            onClick={handleDelete}
-                            className="w-full flex items-center gap-4 p-4 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                          >
-                             <div className="w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center text-rose-400">
-                                <Trash2 size={18} />
-                             </div>
-                             <span className="font-semibold text-sm text-left">Delete Executive</span>
-                          </button>
-                       </div>
-                     </>
-                   )}
-                 </div>
-              </div>
            </div>
         </div>
 

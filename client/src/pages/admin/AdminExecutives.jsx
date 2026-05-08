@@ -3,7 +3,7 @@ import {
   UserCheck, UserX, Eye, Search, Filter, Clock, AlertCircle, 
   CheckCircle2, Users, Trash2, ShieldCheck, Landmark, Phone, Mail,
   MapPin, IndianRupee, Building2, UserCircle, ExternalLink, XCircle,
-  CreditCard, User, MapPinned
+  CreditCard, User, MapPinned, FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminTable from '../../components/common/AdminTable';
@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getExecutives, refreshAdminCache } from '../../services/AdminService';
 import { toast } from '../../mockToast';
+
+import Skeleton from '../../components/common/Skeleton';
 
 export default function AdminExecutives({ filter = 'All' }) {
   const navigate = useNavigate();
@@ -20,6 +22,8 @@ export default function AdminExecutives({ filter = 'All' }) {
   const [selectedExec, setSelectedExec] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectInput, setShowRejectInput] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -196,9 +200,19 @@ export default function AdminExecutives({ filter = 'All' }) {
       render: (row) => (
         <div className="flex items-center gap-2">
           <button 
-            onClick={() => navigate(`/admin/executives/view/${row._id}`)}
+            onClick={async () => {
+              try {
+                const res = await api.get(`/admin/executives/${row._id}`);
+                if (res.data.success) {
+                  setSelectedExec(res.data.data);
+                  setShowDetailModal(true);
+                }
+              } catch (err) {
+                toast.error("Failed to load details");
+              }
+            }}
             className="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all group"
-            title="View Details"
+            title="View Documents"
           >
             <Eye size={18} className="group-hover:scale-110 transition-transform" />
           </button>
@@ -216,6 +230,13 @@ export default function AdminExecutives({ filter = 'All' }) {
           >
             <Trash2 size={18} />
           </button>
+          <button 
+            onClick={() => navigate(`/admin/executives/view/${row._id}`)}
+            className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 transition-all"
+            title="Full Profile"
+          >
+            <ExternalLink size={18} />
+          </button>
         </div>
       )
     }
@@ -224,12 +245,19 @@ export default function AdminExecutives({ filter = 'All' }) {
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-end">
-        <div className="space-y-1">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-            {filter === 'pending' ? 'Verification Requests' : 'Executive Force'}
-          </h1>
-          <p className="text-slate-500 font-medium text-lg">Manage your field agents and monitor onboarding performance.</p>
-        </div>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64 rounded-xl" />
+            <Skeleton className="h-6 w-96 rounded-xl" />
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+              {filter === 'pending' ? 'Verification Requests' : 'Executive Force'}
+            </h1>
+            <p className="text-slate-500 font-medium text-lg">Manage your field agents and monitor onboarding performance.</p>
+          </div>
+        )}
       </div>
 
       <AdminTable 
@@ -341,63 +369,88 @@ export default function AdminExecutives({ filter = 'All' }) {
                 </section>
 
                 {/* Action Controls */}
-                <div className="pt-8 border-t border-slate-100 flex items-center justify-between">
-                  <div className="flex gap-4">
-                    <button 
-                      onClick={() => handleResetKyc(selectedExec._id)}
-                      disabled={isActionLoading}
-                      className="px-8 py-4 bg-amber-50 text-amber-600 font-black rounded-2xl hover:bg-amber-100 transition-all flex items-center gap-2"
-                    >
-                      <XCircle size={18} />
-                      DELETE KYC
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(selectedExec._id)}
-                      disabled={isActionLoading}
-                      className="px-8 py-4 bg-rose-50 text-rose-500 font-black rounded-2xl hover:bg-rose-100 transition-all flex items-center gap-2"
-                    >
-                      <Trash2 size={18} />
-                      REMOVE FROM DB
-                    </button>
-                  </div>
+                  <div className="flex flex-col gap-4 w-full">
+                    {!showRejectInput ? (
+                      <div className="pt-8 border-t border-slate-100 flex items-center justify-between">
+                        <div className="flex gap-4">
+                          <button 
+                            onClick={() => handleResetKyc(selectedExec._id)}
+                            disabled={isActionLoading}
+                            className="px-8 py-4 bg-amber-50 text-amber-600 font-black rounded-2xl hover:bg-amber-100 transition-all flex items-center gap-2"
+                          >
+                            <FileText size={18} />
+                            RESET KYC
+                          </button>
+                        </div>
 
-                  <div className="flex gap-4">
-                    {selectedExec.onboarding_status !== 'approved' && (
-                      <>
-                        <button 
-                          onClick={() => {
-                            const reason = prompt("Reason for rejection:");
-                            if (reason) handleStatusUpdate(selectedExec._id, 'rejected', reason);
-                          }}
-                          disabled={isActionLoading}
-                          className="px-10 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 transition-all"
-                        >
-                          REJECT KYC
-                        </button>
-                        <button 
-                          onClick={() => handleStatusUpdate(selectedExec._id, 'approved')}
-                          disabled={isActionLoading}
-                          className="px-12 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
-                        >
-                          {isActionLoading ? 'PROCESSING...' : (
+                        <div className="flex gap-4">
+                          {selectedExec.onboarding_status !== 'approved' && (
                             <>
-                              <CheckCircle2 size={18} />
-                              APPROVE & ACTIVATE
+                              <button 
+                                onClick={() => setShowRejectInput(true)}
+                                disabled={isActionLoading}
+                                className="px-10 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 transition-all"
+                              >
+                                REJECT KYC
+                              </button>
+                              <button 
+                                onClick={() => handleStatusUpdate(selectedExec._id, 'approved')}
+                                disabled={isActionLoading}
+                                className="px-12 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
+                              >
+                                {isActionLoading ? 'PROCESSING...' : (
+                                  <>
+                                    <CheckCircle2 size={18} />
+                                    APPROVE & ACTIVATE
+                                  </>
+                                )}
+                              </button>
                             </>
                           )}
-                        </button>
-                      </>
-                    )}
-                    {selectedExec.onboarding_status === 'approved' && (
-                      <button 
-                        onClick={() => handleToggleStatus(selectedExec._id, selectedExec.is_active)}
-                        className={`px-10 py-4 font-black rounded-2xl transition-all ${selectedExec.is_active ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}
-                      >
-                        {selectedExec.is_active ? 'DEACTIVATE ACCOUNT' : 'RE-ACTIVATE ACCOUNT'}
-                      </button>
+                          {selectedExec.onboarding_status === 'approved' && (
+                            <button 
+                              onClick={() => handleToggleStatus(selectedExec._id, selectedExec.is_active)}
+                              className={`px-10 py-4 font-black rounded-2xl transition-all ${selectedExec.is_active ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}
+                            >
+                              {selectedExec.is_active ? 'DEACTIVATE ACCOUNT' : 'RE-ACTIVATE ACCOUNT'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="pt-8 border-t border-slate-100">
+                        <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 space-y-6 animate-in slide-in-from-bottom duration-300">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Provide Rejection Reason</h4>
+                            <button onClick={() => { setShowRejectInput(false); setRejectionReason(''); }} className="text-slate-400 hover:text-slate-900 transition-colors">
+                              <XCircle size={20} />
+                            </button>
+                          </div>
+                          <textarea 
+                            placeholder="Type specifically why these documents are being rejected..."
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                            className="w-full bg-white border-2 border-slate-100 rounded-3xl p-6 text-sm font-medium focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 transition-all min-h-[120px]"
+                          />
+                          <div className="flex justify-end gap-4">
+                            <button 
+                              onClick={() => { setShowRejectInput(false); setRejectionReason(''); }}
+                              className="px-8 py-4 text-slate-500 font-black uppercase tracking-widest text-xs"
+                            >
+                              Cancel
+                            </button>
+                            <button 
+                              onClick={() => handleStatusUpdate(selectedExec._id, 'rejected', rejectionReason)}
+                              disabled={!rejectionReason || isActionLoading}
+                              className="px-10 py-4 bg-rose-600 text-white font-black rounded-2xl shadow-xl shadow-rose-100 hover:bg-rose-700 transition-all disabled:opacity-50"
+                            >
+                              {isActionLoading ? 'REJECTING...' : 'CONFIRM REJECTION'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
               </div>
             </motion.div>
           </div>

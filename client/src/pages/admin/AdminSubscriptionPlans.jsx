@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
 
+import Skeleton from '../../components/common/Skeleton';
+
 export default function AdminSubscriptionPlans() {
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
@@ -177,27 +179,51 @@ export default function AdminSubscriptionPlans() {
       <div className="grid grid-cols-12 gap-6">
          {/* Title Block */}
          <div className="col-span-12 lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center gap-6">
-            <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-slate-900/20">
-               <Layers size={28} />
-            </div>
-            <div>
-               <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Subscription Plans Management</h1>
-               <p className="text-slate-400 text-sm font-medium mt-1.5 italic">Manage all subscription plans for Agents, Suppliers, and Service Providers</p>
-            </div>
+            {loading ? (
+              <div className="flex items-center gap-6 w-full">
+                <Skeleton className="h-16 w-16 rounded-2xl" />
+                <div className="space-y-2 flex-grow">
+                  <Skeleton className="h-6 w-64" />
+                  <Skeleton className="h-4 w-96" />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-slate-900/20">
+                  <Layers size={28} />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Subscription Plans Management</h1>
+                  <p className="text-slate-400 text-sm font-medium mt-1.5 italic">Manage all subscription plans for Agents, Suppliers, and Service Providers</p>
+                </div>
+              </>
+            )}
          </div>
 
          {/* Stats Block */}
          <div className="col-span-12 lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center justify-between">
-            <div>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Active Plans</p>
-               <h2 className="text-4xl font-black text-slate-900 mt-2 italic tabular-nums">{plans.length}</h2>
-            </div>
-            <button 
-              onClick={() => navigate('/admin/subscriptions/plans/add')}
-              className="flex items-center gap-2 px-6 py-3.5 bg-[#fa641e] text-white font-black text-[11px] rounded-xl hover:bg-[#e45b1b] transition-all active:scale-95 uppercase tracking-widest shadow-xl shadow-orange-200 border-2 border-orange-500/20"
-            >
-              <Plus size={18} /> Add Plan
-            </button>
+            {loading ? (
+              <div className="flex justify-between items-center w-full">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-8 w-12" />
+                </div>
+                <Skeleton className="h-12 w-32 rounded-xl" />
+              </div>
+            ) : (
+              <>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Active Plans</p>
+                  <h2 className="text-4xl font-black text-slate-900 mt-2 italic tabular-nums">{plans.length}</h2>
+                </div>
+                <button 
+                  onClick={() => navigate('/admin/subscriptions/plans/add')}
+                  className="flex items-center gap-2 px-6 py-3.5 bg-[#fa641e] text-white font-black text-[11px] rounded-xl hover:bg-[#e45b1b] transition-all active:scale-95 uppercase tracking-widest shadow-xl shadow-orange-200 border-2 border-orange-500/20"
+                >
+                  <Plus size={18} /> Add Plan
+                </button>
+              </>
+            )}
          </div>
       </div>
 

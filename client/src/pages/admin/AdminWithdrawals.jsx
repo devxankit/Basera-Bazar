@@ -11,6 +11,8 @@ import api from '../../services/api';
 import { getWithdrawals } from '../../services/AdminService';
 import { toast } from '../../mockToast';
 
+import Skeleton from '../../components/common/Skeleton';
+
 export default function AdminWithdrawals() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -156,10 +158,14 @@ export default function AdminWithdrawals() {
           <p className="text-slate-500 font-medium text-lg">Approve and process manual bank transfers for the field team.</p>
         </div>
         <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100">
-           <div className="px-4 py-2 bg-indigo-50 rounded-xl">
-             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Total Pending</p>
-             <p className="text-lg font-black text-indigo-600 leading-none mt-1">₹{requests.filter(r => r.status === 'pending').reduce((acc, r) => acc + r.amount, 0)}</p>
-           </div>
+           {loading ? (
+             <Skeleton className="h-14 w-32 rounded-xl" />
+           ) : (
+             <div className="px-4 py-2 bg-indigo-50 rounded-xl">
+               <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Total Pending</p>
+               <p className="text-lg font-black text-indigo-600 leading-none mt-1">₹{requests.filter(r => r.status === 'pending').reduce((acc, r) => acc + r.amount, 0)}</p>
+             </div>
+           )}
         </div>
       </div>
 

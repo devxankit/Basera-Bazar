@@ -3,6 +3,8 @@ import { BadgePercent, TrendingUp, TrendingDown, Users, Download, Filter, Indian
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../services/api';
 
+import Skeleton from '../../components/common/Skeleton';
+
 export default function AdminSubscriptionReport() {
   const [data, setData] = useState([]);
   const [summary, setSummary] = useState({
@@ -15,6 +17,7 @@ export default function AdminSubscriptionReport() {
 
   useEffect(() => {
     const fetchReport = async () => {
+      setLoading(true);
       try {
         const res = await api.get('/admin/reports/subscriptions');
         if (res.data.success) {
@@ -37,45 +40,54 @@ export default function AdminSubscriptionReport() {
   return (
     <div className="space-y-8 pb-20 mt-4 animate-in fade-in duration-500 text-left">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Revenue Analytics & Growth</h1>
-          <p className="text-slate-500 font-medium mt-1">Detailed growth analytics for premium plans and marketplace commissions.</p>
-        </div>
-        <button className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 transition-all hover:bg-slate-800 active:scale-95 text-sm">
-          <Download size={18} /> Download Full Report
-        </button>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64 rounded-xl" />
+            <Skeleton className="h-6 w-96 rounded-xl" />
+          </div>
+        ) : (
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Revenue Analytics & Growth</h1>
+            <p className="text-slate-500 font-medium mt-1">Detailed growth analytics for premium plans and marketplace commissions.</p>
+          </div>
+        )}
+        {!loading && (
+          <button className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 transition-all hover:bg-slate-800 active:scale-95 text-sm">
+            <Download size={18} /> Download Full Report
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-            <IndianRupee size={24} />
+        {[
+          { label: 'Total Revenue', value: `₹${summary.totalRevenue.toLocaleString()}`, icon: IndianRupee, color: 'text-indigo-600 bg-indigo-50' },
+          { label: 'Active Subscriptions', value: summary.activeSubscriptions, icon: TrendingUp, color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'Conversion Rate', value: `${Number(summary.conversionRate).toFixed(1)}%`, icon: Users, color: 'text-orange-600 bg-orange-50' }
+        ].map((stat, i) => (
+          <div key={i} className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
+            {loading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-12 rounded-2xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-8 w-32" />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className={`w-12 h-12 rounded-2xl ${stat.color} flex items-center justify-center`}>
+                  <stat.icon size={24} />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">{stat.label}</p>
+                  <h3 className="text-3xl font-black text-slate-900 mt-1 flex items-center gap-1">
+                    {stat.value}
+                  </h3>
+                </div>
+              </>
+            )}
           </div>
-          <div>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Total Revenue</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1 flex items-center gap-1">
-               ₹{summary.totalRevenue.toLocaleString()}
-            </h3>
-          </div>
-        </div>
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-            <TrendingUp size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Active Subscriptions</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1">{summary.activeSubscriptions}</h3>
-          </div>
-        </div>
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
-            <Users size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Conversion Rate</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1">{Number(summary.conversionRate).toFixed(1)}%</h3>
-          </div>
-        </div>
+        ))}
       </div>
 
       <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">

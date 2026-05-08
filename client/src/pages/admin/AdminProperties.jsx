@@ -10,6 +10,8 @@ import ConfirmationModal from '../../components/common/ConfirmationModal';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
+import Skeleton from '../../components/common/Skeleton';
+
 export default function AdminProperties() {
   const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
@@ -245,9 +247,6 @@ export default function AdminProperties() {
             className="w-10 h-10 flex items-center justify-center bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95 group/btn relative"
           >
             <Eye size={18} />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              View
-            </span>
           </button>
 
           {/* Status Toggle (Approve/Deactivate) */}
@@ -262,9 +261,6 @@ export default function AdminProperties() {
               className="w-10 h-10 flex items-center justify-center bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all shadow-md active:scale-95 group/btn relative"
             >
               <CheckCircle2 size={18} />
-              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                Approve
-              </span>
             </button>
           ) : (
             <button 
@@ -280,9 +276,6 @@ export default function AdminProperties() {
               }`}
             >
               {row.status === 'active' ? <X size={18} /> : <CheckCircle2 size={18} />}
-              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                {row.status === 'active' ? 'Deactivate' : 'Activate'}
-              </span>
             </button>
           )}
           
@@ -292,9 +285,6 @@ export default function AdminProperties() {
             className="w-10 h-10 flex items-center justify-center bg-orange-50 border border-orange-100 text-orange-500 rounded-xl hover:bg-orange-500 hover:text-white transition-all shadow-sm active:scale-95 group/btn relative"
           >
             <Edit size={18} />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Edit Property
-            </span>
           </button>
 
           {/* Delete Icon */}
@@ -306,9 +296,6 @@ export default function AdminProperties() {
             className="w-10 h-10 flex items-center justify-center bg-rose-50 border border-rose-100 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95 group/btn relative"
           >
             <Trash2 size={18} />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-black rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Delete Listing
-            </span>
           </button>
         </div>
       )
@@ -319,28 +306,37 @@ export default function AdminProperties() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Real Estate Inventory</h1>
-          <p className="text-slate-500 font-medium mt-1">Audit and manage all property listings across the platform.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setShowFilters(!showFilters)}
-            className={`font-black px-6 py-3 rounded-2xl transition-all flex items-center gap-2.5 active:scale-95 ${
-              showFilters ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border border-slate-100 hover:bg-slate-50'
-            }`}
-          >
-            <Filter size={20} />
-            Filters
-          </button>
-          <button 
-            onClick={() => navigate('/admin/properties/add')}
-            className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-3 rounded-2xl shadow-xl shadow-slate-100 transition-all flex items-center gap-2.5 active:scale-95"
-          >
-            <Plus size={20} />
-            Add Property
-          </button>
-        </div>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64 rounded-xl" />
+            <Skeleton className="h-6 w-96 rounded-xl" />
+          </div>
+        ) : (
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Real Estate Inventory</h1>
+            <p className="text-slate-500 font-medium mt-1">Audit and manage all property listings across the platform.</p>
+          </div>
+        )}
+        {!loading && (
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className={`font-black px-6 py-3 rounded-2xl transition-all flex items-center gap-2.5 active:scale-95 ${
+                showFilters ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border border-slate-100 hover:bg-slate-50'
+              }`}
+            >
+              <Filter size={20} />
+              Filters
+            </button>
+            <button 
+              onClick={() => navigate('/admin/properties/add')}
+              className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-3 rounded-2xl shadow-xl shadow-slate-100 transition-all flex items-center gap-2.5 active:scale-95"
+            >
+              <Plus size={20} />
+              Add Property
+            </button>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -449,8 +445,17 @@ export default function AdminProperties() {
           { label: 'Rejected', value: properties.filter(p => p.status === 'rejected').length, color: 'text-rose-600 bg-rose-50' },
         ].map((stat, i) => (
           <div key={i} className={`p-4 rounded-2xl border border-slate-100 bg-white shadow-sm flex items-center justify-between`}>
-            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{stat.label}</span>
-            <span className={`px-4 py-1.5 rounded-xl font-black text-sm ${stat.color}`}>{stat.value}</span>
+            {loading ? (
+              <div className="flex justify-between items-center w-full">
+                <Skeleton className="h-4 w-20 rounded" />
+                <Skeleton className="h-8 w-12 rounded-xl" />
+              </div>
+            ) : (
+              <>
+                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{stat.label}</span>
+                <span className={`px-4 py-1.5 rounded-xl font-black text-sm ${stat.color}`}>{stat.value}</span>
+              </>
+            )}
           </div>
         ))}
       </div>

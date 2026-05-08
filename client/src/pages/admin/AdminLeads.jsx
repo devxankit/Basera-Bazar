@@ -14,6 +14,8 @@ function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
+import Skeleton from '../../components/common/Skeleton';
+
 const AdminLeads = () => {
   const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
@@ -140,50 +142,59 @@ const AdminLeads = () => {
         
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between mb-8 gap-6">
-            <div>
-               <h1 className="text-3xl font-bold text-slate-800 tracking-tight uppercase">Lead Pipeline</h1>
-               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-2 italic">
-                 Manage and track all customer inquiries across categories
-               </p>
-            </div>
-           
-           <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
-              {/* Quick Search Input */}
-              <div className="relative flex-1 lg:w-80 group">
-                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                 <input 
-                   type="text"
-                   placeholder="Search by name, phone, or ID..."
-                   value={filters.search}
-                   onChange={(e) => setFilters({...filters, search: e.target.value})}
-                   className="w-full bg-white border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm group-hover:border-slate-300"
-                 />
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-64 rounded-xl" />
+                <Skeleton className="h-6 w-96 rounded-xl" />
               </div>
+            ) : (
+              <div>
+                <h1 className="text-3xl font-bold text-slate-800 tracking-tight uppercase">Lead Pipeline</h1>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-2 italic">
+                  Manage and track all customer inquiries across categories
+                </p>
+              </div>
+            )}
+           
+           {!loading && (
+             <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+                {/* Quick Search Input */}
+                <div className="relative flex-1 lg:w-80 group">
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                   <input 
+                     type="text"
+                     placeholder="Search by name, phone, or ID..."
+                     value={filters.search}
+                     onChange={(e) => setFilters({...filters, search: e.target.value})}
+                     className="w-full bg-white border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm group-hover:border-slate-300"
+                   />
+                </div>
 
-              {/* Broadcast Quick Filter Toggle */}
-              <button 
-                 onClick={() => setFilters({...filters, type: filters.type === 'broadcast' ? 'all' : 'broadcast'})}
-                 className={cn(
-                   "px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-2.5 transition-all shadow-sm border",
-                   filters.type === 'broadcast' 
-                     ? "bg-purple-600 text-white border-purple-600 shadow-purple-100" 
-                     : "bg-white text-slate-600 border-slate-200 hover:border-purple-200 hover:bg-purple-50/30"
-                 )}
-              >
-                 <Activity size={16} className={cn(filters.type === 'broadcast' ? "animate-pulse" : "text-purple-500")} />
-                 {filters.type === 'broadcast' ? 'Showing Broadcast Only' : 'Filter Broadcast'}
-              </button>
+                {/* Broadcast Quick Filter Toggle */}
+                <button 
+                   onClick={() => setFilters({...filters, type: filters.type === 'broadcast' ? 'all' : 'broadcast'})}
+                   className={cn(
+                     "px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-2.5 transition-all shadow-sm border",
+                     filters.type === 'broadcast' 
+                       ? "bg-purple-600 text-white border-purple-600 shadow-purple-100" 
+                       : "bg-white text-slate-600 border-slate-200 hover:border-purple-200 hover:bg-purple-50/30"
+                   )}
+                >
+                   <Activity size={16} className={cn(filters.type === 'broadcast' ? "animate-pulse" : "text-purple-500")} />
+                   {filters.type === 'broadcast' ? 'Showing Broadcast Only' : 'Filter Broadcast'}
+                </button>
 
-              <button 
-                onClick={() => fetchData()}
-                className="p-3.5 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-indigo-600 transition-all hover:border-indigo-100 shadow-sm"
-              >
-                <RotateCcw size={18} />
-              </button>
-               <div className="px-6 py-3.5 bg-indigo-600 text-white font-bold text-xs rounded-2xl shadow-xl shadow-indigo-100 uppercase tracking-widest flex items-center gap-2">
-                  <ShieldCheck size={16} /> Admin access
-               </div>
-           </div>
+                <button 
+                  onClick={() => fetchData()}
+                  className="p-3.5 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-indigo-600 transition-all hover:border-indigo-100 shadow-sm"
+                >
+                  <RotateCcw size={18} />
+                </button>
+                 <div className="px-6 py-3.5 bg-indigo-600 text-white font-bold text-xs rounded-2xl shadow-xl shadow-indigo-100 uppercase tracking-widest flex items-center gap-2">
+                    <ShieldCheck size={16} /> Admin access
+                 </div>
+             </div>
+           )}
         </div>
 
         {/* Dynamic Filters Card */}

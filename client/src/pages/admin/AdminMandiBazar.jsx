@@ -33,6 +33,8 @@ import AdminTable from '../../components/common/AdminTable';
 import MediaDropZone from '../../components/common/MediaDropZone';
 import api from '../../services/api';
 
+import Skeleton from '../../components/common/Skeleton';
+
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block";
 
@@ -657,14 +659,21 @@ export default function AdminMandiBazar() {
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       {/* Header Area */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Marketplace Command</span>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-             <Gavel className="text-orange-500" size={28} />
-             Mandi Marketplace Admin
-          </h1>
-          <p className="text-slate-400 font-medium text-sm mt-0.5">Manage sellers, verify payouts, and configure marketplace economics.</p>
-        </div>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64 rounded-xl" />
+            <Skeleton className="h-6 w-96 rounded-xl" />
+          </div>
+        ) : (
+          <div>
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Marketplace Command</span>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+               <Gavel className="text-orange-500" size={28} />
+               Mandi Marketplace Admin
+            </h1>
+            <p className="text-slate-400 font-medium text-sm mt-0.5">Manage sellers, verify payouts, and configure marketplace economics.</p>
+          </div>
+        )}
       </div>
 
       <AnimatePresence mode="wait">

@@ -14,8 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import Skeleton from '../../components/common/Skeleton';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -65,9 +64,19 @@ export default function AdminEconomics() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Loading Configuration...</p>
+      <div className="bg-slate-50 min-h-screen pb-20 text-left">
+        <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
+          <Skeleton className="h-24 w-full rounded-2xl" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8 space-y-8">
+              <Skeleton className="h-96 rounded-2xl" />
+              <Skeleton className="h-24 rounded-2xl" />
+            </div>
+            <div className="lg:col-span-4">
+              <Skeleton className="h-64 rounded-2xl" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
