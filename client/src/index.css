@@ -114,32 +114,32 @@ input[type="number"] {
   -moz-appearance: textfield; /* Firefox */
 }
 
-/* Premium Utility Classes */
+/* Simplified Utility Classes */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #f1f5f9;
 }
 
 .dark-glass {
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .premium-card {
   background: white;
-  border-radius: 1.5rem;
-  box-shadow: var(--soft-shadow);
-  border: 1px solid rgba(241, 245, 249, 1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
 }
 
 .premium-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--hard-shadow);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
 }
 
 .btn-premium {
@@ -166,6 +166,29 @@ input[type="number"] {
   -webkit-text-fill-color: transparent;
 }
 
+/* Simplified Design Utilities */
+.mesh-gradient {
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(24, 29, 95, 0.03) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, rgba(250, 134, 57, 0.03) 0, transparent 50%);
+}
+
+.mesh-gradient-dark {
+  background-color: #081229;
+}
+
+.ultra-glass {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.font-outfit {
+  font-family: 'Outfit', sans-serif;
+}
+
 /* Page Transitions */
 .page-enter {
   opacity: 0;
@@ -179,12 +202,42 @@ input[type="number"] {
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
-.no-scrollbar::-webkit-scrollbar {
+.scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
 /* Hide scrollbar for IE, Edge and Firefox */
-.no-scrollbar {
+.scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+}
+
+/* Glassmorphism Variants */
+.glass-header {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Form Responsiveness */
+@media (max-width: 480px) {
+  .form-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
 }

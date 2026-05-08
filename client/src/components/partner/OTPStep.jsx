@@ -53,7 +53,8 @@ export default function OTPStep({ formData, selectedRole, onBack, onVerified }) 
         flow: 'signup',
         name: formData.fullName,
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        referral_code: formData.referral_code
       });
 
       if (response.data?.success) {

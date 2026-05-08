@@ -8,6 +8,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { Toaster } from '../../mockToast';
 
 import baseraLogo from '../../assets/baseralogo.png';
 
@@ -21,6 +22,17 @@ const navItems = [
       { label: 'All Users', path: '/admin/users' },
       { label: 'Partner Verification', path: '/admin/partners/verification' },
       { label: 'Upgrade Requests', path: '/admin/partners/role-requests' },
+    ]
+  },
+  {
+    id: 'executive-management',
+    label: 'Field Executive',
+    icon: Users,
+    children: [
+      { label: 'All Executives', path: '/admin/executives' },
+      { label: 'Pending Verification', path: '/admin/executives/pending' },
+      { label: 'Payout Requests', path: '/admin/executives/withdrawals' },
+      { label: 'Economics', path: '/admin/executives/economics' },
     ]
   },
   { 
@@ -178,7 +190,7 @@ export default function AdminLayout({ children }) {
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [badges, setBadges] = useState({ verification: 0, upgrades: 0 });
+  const [badges, setBadges] = useState({ verification: 0, upgrades: 0, executives: 0 });
 
   React.useEffect(() => {
     const fetchBadges = async (force = false) => {
@@ -188,6 +200,7 @@ export default function AdminLayout({ children }) {
         
         const users = data.users || [];
         const upgrades = data.upgrades || [];
+        const executives = data.executives || [];
         
         const verificationCount = users.filter(u => 
           (['Agent', 'Supplier', 'Service Provider', 'mandi_seller'].includes(u.role) || u.partner_type || (u.roles && u.roles.length > 0)) && 
@@ -195,8 +208,13 @@ export default function AdminLayout({ children }) {
         ).length;
 
         const upgradesCount = upgrades.filter(r => r.status === 'pending').length;
+        const executivePendingCount = executives.filter(e => e.onboarding_status === 'pending_approval').length;
 
-        setBadges({ verification: verificationCount, upgrades: upgradesCount });
+        setBadges({ 
+          verification: verificationCount, 
+          upgrades: upgradesCount,
+          executives: executivePendingCount
+        });
       } catch (err) {
         console.error("Failed to fetch sidebar badges:", err);
       }
@@ -252,6 +270,7 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex font-Inter">
+      <Toaster />
       {/* ── MOBILE OVERLAY ── */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -292,6 +311,14 @@ export default function AdminLayout({ children }) {
                   return child;
                 });
                 itemWithBadges.badge = badges.verification + badges.upgrades;
+              }
+
+              if (itemWithBadges.id === 'executive-management') {
+                itemWithBadges.children = itemWithBadges.children.map(child => {
+                  if (child.label === 'Pending Verification') return { ...child, badge: badges.executives };
+                  return child;
+                });
+                itemWithBadges.badge = badges.executives;
               }
 
               if (itemWithBadges.children) {

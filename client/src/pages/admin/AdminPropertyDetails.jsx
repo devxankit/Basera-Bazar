@@ -5,12 +5,13 @@ import {
    Info, Layout, Maximize2, Home, Key, Shield,
    ImageIcon, MoreHorizontal, User, IndianRupee, Sparkles, Building2,
    CheckCircle2, AlertCircle, Trash2, Hash, Box, Wallet, ShieldCheck, Zap, TrendingUp, Star, Globe, FileText, ChevronRight, XCircle, Loader2,
-   PauseCircle, PlayCircle
+   PauseCircle, PlayCircle, Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -48,42 +49,49 @@ export default function AdminPropertyDetails() {
 
    const handleToggleActive = async () => {
       const newStatus = listing.status === 'active' ? 'draft' : 'active';
+      const action = newStatus === 'active' ? 'activate' : 'deactivate';
+      if (!window.confirm(`Are you sure you want to ${action} this property listing?`)) return;
+
       try {
          const res = await api.patch(`/admin/listings/${listing._id}/status`, { status: newStatus });
          if (res.data.success) {
             setListing({ ...listing, status: newStatus });
+            toast.success(`Property ${action}d successfully`);
             setShowOptions(false);
          }
       } catch (err) {
-         alert("Failed to update status");
+         toast.error("Failed to update status");
       }
    };
 
    const handleDeleteProperty = async () => {
-      if (!window.confirm("Are you sure you want to permanently delete this property asset from the database? This action cannot be undone.")) return;
+      if (!window.confirm("Are you sure you want to permanently delete this property? This action cannot be undone.")) return;
       try {
          const res = await api.delete(`/admin/listings/${listing._id}`);
          if (res.data.success) {
+            toast.success("Property deleted successfully");
             navigate('/admin/properties');
          }
       } catch (err) {
-         alert("Failed to delete property");
+         toast.error("Failed to delete property");
       }
    };
 
    const handleApprove = async () => {
+      if (!window.confirm("Are you sure you want to approve this property listing?")) return;
       try {
          const res = await api.patch(`/admin/listings/${id}/status`, { status: 'active' });
          if (res.data.success) {
             setListing(prev => ({ ...prev, status: 'active' }));
+            toast.success("Property approved successfully");
          }
       } catch (err) {
-         alert("Failed to approve property.");
+         toast.error("Failed to approve property.");
       }
    };
 
    const handleReject = async () => {
-      if (!rejectReason.trim()) return alert("Please provide a reason for rejection.");
+      if (!rejectReason.trim()) return toast.error("Please provide a reason for rejection.");
       
       setIsSubmitting(true);
       try {
@@ -95,9 +103,10 @@ export default function AdminPropertyDetails() {
             setListing(prev => ({ ...prev, status: 'rejected', status_reason: rejectReason }));
             setIsRejecting(false);
             setRejectReason('');
+            toast.success("Property rejected with feedback");
          }
       } catch (err) {
-         alert("Failed to reject property.");
+         toast.error("Failed to reject property.");
       } finally {
          setIsSubmitting(false);
       }
@@ -106,23 +115,23 @@ export default function AdminPropertyDetails() {
    if (loading) return (
       <div className="flex flex-col items-center justify-center py-40 gap-4">
          <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-         <p className="text-slate-400 font-semibold uppercase tracking-[0.2em] text-[12px]">Syncing Property Genome...</p>
+         <p className="text-slate-400 font-semibold uppercase tracking-widest text-[12px]">Loading Property Details...</p>
       </div>
    );
 
    if (error || !listing) return (
-      <div className="p-12 text-center bg-white border border-slate-200 rounded-3xl m-8 shadow-sm">
+      <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl m-8 shadow-sm">
          <AlertCircle size={40} className="mx-auto text-slate-200 mb-4" />
-         <h2 className="text-xl font-semibold text-slate-900 uppercase tracking-tight">{error || "Registry Error"}</h2>
-         <button onClick={() => navigate('/admin/properties')} className="mt-6 px-6 py-2 bg-slate-900 text-white text-sm font-semibold uppercase tracking-widest rounded-xl hover:bg-indigo-600 transition-all active:scale-95">Return to Directory</button>
+         <h2 className="text-xl font-semibold text-slate-900 uppercase tracking-tight">{error || "Property Not Found"}</h2>
+         <button onClick={() => navigate('/admin/properties')} className="mt-6 px-6 py-2 bg-slate-900 text-white text-xs font-semibold uppercase tracking-widest rounded-xl hover:bg-indigo-600 transition-all active:scale-95">Back to Directory</button>
       </div>
    );
 
    const statusMap = {
-      active: { label: 'Active Asset', classes: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
-      pending_approval: { label: 'Pending Audit', classes: 'bg-amber-50 text-amber-600 border-amber-100' },
-      rejected: { label: 'Audit Rejected', classes: 'bg-rose-50 text-rose-600 border-rose-100' },
-      draft: { label: 'Draft Mode', classes: 'bg-slate-100 text-slate-500 border-slate-200' }
+      active: { label: 'Active', classes: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
+      pending_approval: { label: 'Pending Approval', classes: 'bg-amber-50 text-amber-600 border-amber-100' },
+      rejected: { label: 'Rejected', classes: 'bg-rose-50 text-rose-600 border-rose-100' },
+      draft: { label: 'Draft', classes: 'bg-slate-100 text-slate-500 border-slate-200' }
    };
 
    const status = statusMap[listing.status] || statusMap.draft;
@@ -134,18 +143,13 @@ export default function AdminPropertyDetails() {
       <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
          <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
             
-            {/* Action Header Block */}
-            <div className="relative bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
-               {/* Immersive Background element */}
-               <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
-                  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-100/40 via-purple-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
-               </div>
-               
-               <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between p-8 gap-6 z-10">
+            {/* Header */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+               <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                   <div className="flex items-start gap-6">
                      <button 
                        onClick={() => navigate('/admin/properties')}
-                       className="p-3 bg-slate-50 text-slate-500 rounded-2xl hover:bg-orange-50 hover:text-orange-600 transition-all shadow-sm active:scale-95 group shrink-0"
+                       className="p-3 bg-slate-50 text-slate-500 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-slate-100 group shrink-0"
                      >
                         <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                      </button>
@@ -160,11 +164,11 @@ export default function AdminPropertyDetails() {
                            </span>
                         </div>
                         <div className="flex items-center gap-2">
-                           <span className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[12px] font-semibold uppercase tracking-widest border border-slate-100"><Building2 size={12}/> {listing.category_id?.name || 'Asset'}</span>
+                           <span className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[11px] font-semibold uppercase tracking-widest border border-slate-200"><Building2 size={12}/> {listing.category_id?.name || 'Asset'}</span>
                            <ChevronRight size={10} className="text-slate-300" />
-                           <span className="text-[12px] font-semibold text-orange-600 uppercase tracking-widest bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100">For {listing.listing_intent || 'Sell'}</span>
+                           <span className="text-[11px] font-semibold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">For {listing.listing_intent || 'Sell'}</span>
                            <ChevronRight size={10} className="text-slate-300" />
-                           <span className="text-[12px] font-medium text-slate-400 uppercase tracking-widest">ID: {listing?._id?.slice(-8).toUpperCase()}</span>
+                           <span className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">ID: {listing?._id?.slice(-8).toUpperCase()}</span>
                         </div>
                      </div>
                   </div>
@@ -174,13 +178,13 @@ export default function AdminPropertyDetails() {
                         <>
                            <button 
                               onClick={handleApprove}
-                              className="px-6 py-3 bg-emerald-600 text-white font-semibold text-[12px] uppercase tracking-widest rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 active:scale-95 flex items-center gap-2"
+                              className="px-6 py-3 bg-emerald-600 text-white font-semibold text-[12px] uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-sm active:scale-95 flex items-center gap-2"
                            >
-                              <CheckCircle2 size={14} /> Approve Property
+                              <CheckCircle2 size={14} /> Approve
                            </button>
                            <button 
                               onClick={() => setIsRejecting(true)}
-                              className="px-6 py-3 bg-rose-50 text-rose-600 border border-rose-100 font-semibold text-[12px] uppercase tracking-widest rounded-2xl hover:bg-rose-100 transition-all active:scale-95 flex items-center gap-2"
+                              className="px-6 py-3 bg-rose-50 text-rose-600 border border-rose-100 font-semibold text-[12px] uppercase tracking-widest rounded-xl hover:bg-rose-100 transition-all active:scale-95 flex items-center gap-2"
                            >
                               <XCircle size={14} /> Reject
                            </button>
@@ -188,26 +192,18 @@ export default function AdminPropertyDetails() {
                      )}
 
                      <button 
-                        onClick={handleToggleActive}
-                        className={cn(
-                           "px-6 py-3 font-semibold text-[12px] uppercase tracking-widest rounded-2xl transition-all active:scale-95 flex items-center gap-2 shadow-xl",
-                           listing.status === 'active' 
-                              ? "bg-rose-500 text-white hover:bg-rose-600 shadow-rose-100" 
-                              : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100"
-                        )}
+                        onClick={() => navigate(`/admin/properties/edit/${listing._id}`)}
+                        className="px-6 py-3 bg-white border border-slate-200 text-slate-700 font-semibold text-[12px] uppercase tracking-widest rounded-xl hover:border-indigo-600 hover:text-indigo-600 transition-all flex items-center gap-2 active:scale-95"
                      >
-                        {listing.status === 'active' ? (
-                          <><PauseCircle size={14} /> Deactivate Asset</>
-                        ) : (
-                          <><PlayCircle size={14} /> Activate Asset</>
-                        )}
+                        <Edit2 size={14} /> Edit Listing
                      </button>
+
                      <div className="relative">
                         <button 
                           onClick={() => setShowOptions(!showOptions)}
                           className={cn(
-                            "p-3 border rounded-2xl transition-all shadow-sm active:scale-95",
-                            showOptions ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 bg-white text-slate-400 hover:border-indigo-200 hover:text-indigo-600"
+                            "p-3 border rounded-xl transition-all active:scale-95",
+                            showOptions ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 bg-white text-slate-400 hover:border-indigo-600 hover:text-indigo-600"
                           )}
                         >
                            <MoreHorizontal size={20} />
@@ -216,42 +212,30 @@ export default function AdminPropertyDetails() {
                         {showOptions && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
-                            <div className="absolute right-0 mt-3 w-64 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50">
                                <button 
-                                 onClick={() => navigate(`/admin/properties/edit/${listing._id}`)}
-                                 className="w-full flex items-center gap-4 p-4 text-slate-600 hover:bg-slate-50 rounded-2xl transition-colors group"
+                                 onClick={handleToggleActive}
+                                 className="w-full flex items-center gap-4 p-4 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
                                >
-                                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-colors">
-                                     <Edit2 size={18} />
+                                  <div className={cn(
+                                     "w-10 h-10 rounded-lg flex items-center justify-center",
+                                     listing.status === 'active' ? "bg-rose-50 text-rose-500" : "bg-emerald-50 text-emerald-500"
+                                  )}>
+                                     {listing.status === 'active' ? <PauseCircle size={18} /> : <PlayCircle size={18} />}
                                   </div>
-                                  <span className="font-bold text-sm tracking-tight">Refine Listing</span>
+                                  <span className="font-semibold text-sm text-left">{listing.status === 'active' ? 'Deactivate Listing' : 'Activate Listing'}</span>
                                </button>
-
-                               {(listing.status === 'active' || listing.status === 'draft') && (
-                                 <button 
-                                   onClick={handleToggleActive}
-                                   className="w-full flex items-center gap-4 p-4 text-slate-600 hover:bg-slate-50 rounded-2xl transition-colors group"
-                                 >
-                                    <div className={cn(
-                                       "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                                       listing.status === 'active' ? "bg-rose-50 text-rose-400 group-hover:text-rose-600 group-hover:bg-rose-100" : "bg-emerald-50 text-emerald-400 group-hover:text-emerald-600 group-hover:bg-emerald-100"
-                                    )}>
-                                       {listing.status === 'active' ? <PauseCircle size={18} /> : <PlayCircle size={18} />}
-                                    </div>
-                                    <span className="font-bold text-sm tracking-tight text-left">{listing.status === 'active' ? 'Deactivate Asset' : 'Activate Asset'}</span>
-                                 </button>
-                               )}
 
                                <div className="h-px bg-slate-100 my-2 mx-4" />
 
                                <button 
                                  onClick={handleDeleteProperty}
-                                 className="w-full flex items-center gap-4 p-4 text-rose-600 hover:bg-rose-50 rounded-2xl transition-colors group"
+                                 className="w-full flex items-center gap-4 p-4 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
                                 >
-                                  <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-400 group-hover:text-rose-600 group-hover:bg-rose-100 transition-colors">
+                                  <div className="w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center text-rose-400">
                                      <Trash2 size={18} />
                                   </div>
-                                  <span className="font-bold text-sm tracking-tight text-left">Delete From DB</span>
+                                  <span className="font-semibold text-sm text-left">Delete Property</span>
                                </button>
                             </div>
                           </>
@@ -259,62 +243,35 @@ export default function AdminPropertyDetails() {
                      </div>
                   </div>
                </div>
+            </div>
 
-               {/* Segmented Metric Pipeline */}
-               <div className="relative border-t border-slate-50 grid grid-cols-2 md:grid-cols-4 bg-slate-50/30">
-                  {[
-                    { 
-                      label: 'Assessed Valuation', 
-                      value: `₹${listing.pricing?.amount?.toLocaleString() || 0}`, 
-                      sub: listing.pricing?.negotiable ? 'Negotiable Protocol' : 'Fixed Assessment',
-                      icon: Wallet,
-                      color: 'text-indigo-500'
-                    },
-                    { 
-                      label: 'Spatial Mass', 
-                      value: `${listing.details?.area?.value || 0} ${listing.details?.area?.unit || 'SQFT'}`, 
-                      sub: `${listing.details?.bhk || 0} Unit Config`,
-                      icon: Maximize2,
-                      color: 'text-orange-500'
-                    },
-                    { 
-                      label: 'Asset Classification', 
-                      value: listing.property_type || 'N/A', 
-                      sub: listing.details?.furnishing || 'Unspecified',
-                      icon: Building2,
-                      color: 'text-purple-500'
-                    },
-                    { 
-                      label: 'Registry Audit', 
-                      value: new Date(listing.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }), 
-                      sub: 'System Synchronized',
-                      icon: Calendar,
-                      color: 'text-emerald-500'
-                    }
-                  ].map((stat, i) => (
-                    <div key={i} className="p-8 border-r border-slate-50 last:border-0 group hover:bg-white transition-all">
-                       <div className="flex items-center gap-3 mb-3">
-                          <div className={cn("p-1.5 rounded-lg bg-white border border-slate-100 shadow-sm transition-transform group-hover:scale-110", stat.color)}>
-                             <stat.icon size={12} />
-                          </div>
-                          <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                       </div>
-                       <div className="flex flex-col">
-                          <span className="text-2xl font-semibold text-slate-900 tracking-tighter tabular-nums uppercase">{stat.value}</span>
-                          <p className="text-[11px] font-medium text-slate-400 uppercase tracking-tighter mt-1">{stat.sub}</p>
-                       </div>
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+               {[
+                 { label: 'Price', value: `₹${listing.pricing?.amount?.toLocaleString() || 0}`, sub: listing.pricing?.negotiable ? 'Negotiable' : 'Fixed', icon: Wallet, color: 'bg-indigo-50 text-indigo-600' },
+                 { label: 'Area', value: `${listing.details?.area?.value || 0} ${listing.details?.area?.unit || 'SQFT'}`, sub: `${listing.details?.bhk || 0} BHK / Units`, icon: Maximize2, color: 'bg-orange-50 text-orange-600' },
+                 { label: 'Type', value: listing.property_type || 'N/A', sub: listing.details?.furnishing || 'Standard', icon: Building2, color: 'bg-purple-50 text-purple-600' },
+                 { label: 'Listed On', value: new Date(listing.createdAt).toLocaleDateString('en-GB'), sub: 'Database Entry', icon: Calendar, color: 'bg-emerald-50 text-emerald-600' }
+               ].map((stat, i) => (
+                 <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div className={cn("p-3 rounded-xl", stat.color)}>
+                       <stat.icon size={20} />
                     </div>
-                  ))}
-               </div>
+                    <div>
+                       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                       <p className="text-xl font-semibold text-slate-900 tracking-tighter uppercase">{stat.value}</p>
+                       <p className="text-[10px] font-medium text-slate-400 uppercase">{stat.sub}</p>
+                    </div>
+                 </div>
+               ))}
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-               {/* LEFT COLUMN: Gallery & Assessment */}
+               {/* LEFT COLUMN: Gallery & Description */}
                <div className="xl:col-span-8 space-y-8">
-                  
-                  {/* Immersive Gallery */}
-                  <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-2">
-                     <div className="relative rounded-3xl overflow-hidden aspect-[16/9] bg-slate-900 shadow-inner group">
+                  {/* Gallery */}
+                  <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm p-3">
+                     <div className="relative rounded-xl overflow-hidden aspect-[16/9] bg-slate-900 shadow-inner group">
                         <AnimatePresence mode="wait">
                            <motion.img 
                               key={activeImage}
@@ -322,158 +279,188 @@ export default function AdminPropertyDetails() {
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0 }}
                               transition={{ duration: 0.5 }}
-                              src={uniqueImages[activeImage] || 'https://via.placeholder.com/800x450?text=No+Asset+Media'} 
-                              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
+                              src={uniqueImages[activeImage] || 'https://via.placeholder.com/800x450?text=No+Media'} 
+                              className="w-full h-full object-cover" 
                               alt="" 
                            />
                         </AnimatePresence>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         
-                        <div className="absolute top-6 left-6 flex gap-3 z-20">
+                        <div className="absolute top-4 left-4 flex gap-2 z-20">
                            {listing.is_featured && (
-                              <div className="px-4 py-2 bg-slate-900/40 backdrop-blur-xl text-white text-[11px] font-semibold uppercase tracking-[0.2em] rounded-xl border border-white/10 flex items-center gap-2">
-                                 <Sparkles size={12} className="text-orange-400" fill="currentColor" /> Premium Showcase
+                              <div className="px-3 py-1.5 bg-slate-900/60 backdrop-blur-md text-white text-[10px] font-semibold uppercase tracking-widest rounded-lg border border-white/10 flex items-center gap-2">
+                                 <Sparkles size={12} className="text-amber-400" fill="currentColor" /> Featured Listing
                               </div>
                            )}
-                           <div className="px-4 py-2 bg-indigo-600 text-white text-[11px] font-semibold uppercase tracking-[0.2em] rounded-xl shadow-lg flex items-center gap-2">
-                              <ImageIcon size={12} /> {uniqueImages.length} Assets
+                           <div className="px-3 py-1.5 bg-indigo-600 text-white text-[10px] font-semibold uppercase tracking-widest rounded-lg flex items-center gap-2">
+                              <ImageIcon size={12} /> {uniqueImages.length} Photos
                            </div>
                         </div>
 
-                        {/* Immersive Controls */}
-                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 p-2 bg-white/10 backdrop-blur-3xl rounded-3xl border border-white/10 z-20 animate-in fade-in slide-in-from-bottom-4 delay-300">
+                        {/* Pagination Dots */}
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 p-1.5 bg-black/20 backdrop-blur-md rounded-full z-20">
                            {uniqueImages.map((_, i) => (
                               <button 
                                  key={i}
                                  onClick={() => setActiveImage(i)}
                                  className={cn(
-                                    "w-3 h-3 rounded-full transition-all duration-500",
-                                    activeImage === i ? "bg-white w-8" : "bg-white/40 hover:bg-white/60"
+                                    "w-2 h-2 rounded-full transition-all duration-300",
+                                    activeImage === i ? "bg-white w-5" : "bg-white/40 hover:bg-white/60"
                                  )}
                               />
                            ))}
                         </div>
                      </div>
+                     
+                     {/* Thumbnails */}
+                     <div className="flex gap-3 mt-4 overflow-x-auto pb-2 scrollbar-hide px-1">
+                        {uniqueImages.map((img, i) => (
+                           <button 
+                              key={i}
+                              onClick={() => setActiveImage(i)}
+                              className={cn(
+                                 "w-20 h-16 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0",
+                                 activeImage === i ? "border-indigo-600" : "border-transparent opacity-60 hover:opacity-100"
+                              )}
+                           >
+                              <img src={img} className="w-full h-full object-cover" alt="" />
+                           </button>
+                        ))}
+                     </div>
                   </div>
                   
-                  {/* Deep Qualitative Data board */}
-                  <div className="bg-white border border-slate-100 rounded-[32px] p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
-                     <div className="absolute top-0 right-0 p-10 opacity-5 text-slate-900 pointer-events-none group-hover:scale-110 transition-transform duration-1000">
-                        <Info size={160} />
+                  {/* Property Description */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+                     <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-indigo-50 rounded-xl text-indigo-500">
+                           <FileText size={20} />
+                        </div>
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Property Description</h3>
                      </div>
-                     <div className="relative z-10 space-y-8">
-                        <div className="flex items-center gap-3">
-                           <div className="p-2 bg-indigo-50 rounded-xl text-indigo-500 shadow-inner">
-                              <FileText size={20} />
-                           </div>
-                           <h3 className="text-sm font-semibold text-indigo-600 uppercase tracking-[0.2em]">Qualitative Asset Assessment</h3>
-                        </div>
-                        <div className="relative">
-                           <div className="absolute -left-6 top-1 bottom-1 w-1 bg-orange-100 group-hover:bg-orange-500 transition-colors rounded-full" />
-                           <p className="text-xl font-semibold text-slate-700 leading-relaxed italic tracking-tight">
-                              "{listing.description || 'No detailed qualitative data provided for this asset registry encounter. Operational parameters suggested for manual audit.'}"
-                           </p>
-                        </div>
+                     <div className="p-6 bg-slate-50 rounded-xl border border-slate-100">
+                        <p className="text-base font-semibold text-slate-700 leading-relaxed uppercase">
+                           {listing.description || 'No detailed description provided for this property.'}
+                        </p>
                      </div>
                   </div>
+
+                  {/* Amenities / Features if available */}
+                  {listing.amenities && listing.amenities.length > 0 && (
+                     <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+                        <div className="flex items-center gap-3 mb-6">
+                           <div className="p-2 bg-amber-50 rounded-xl text-amber-500">
+                              <Star size={20} />
+                           </div>
+                           <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Amenities & Features</h3>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                           {listing.amenities.map((amenity, i) => (
+                              <div key={i} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                 <CheckCircle2 size={14} className="text-emerald-500" />
+                                 <span className="text-xs font-bold text-slate-600 uppercase truncate">{amenity}</span>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+                  )}
                </div>
 
-               {/* RIGHT COLUMN: Metadata & Partner */}
+               {/* RIGHT COLUMN: Owner & Location */}
                <div className="xl:col-span-4 space-y-8">
-                  
-                  {/* Master Governance board */}
-                  <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative group">
-                    <div className="h-32 bg-slate-900 relative overflow-hidden">
-                       <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/50 via-purple-900/20 to-orange-900/50" />
-                       <div className="absolute -bottom-1 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-transparent to-orange-500" />
+                  {/* Listing Owner / Partner */}
+                  <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                    <div className="h-24 bg-slate-900 relative">
+                       <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/40 to-purple-900/40" />
                     </div>
-                    <div className="px-10 pb-10 pt-0 relative">
-                       <div className="flex justify-between items-end mb-8 -mt-16">
-                          <div className="relative group/p">
-                             <div className="absolute -inset-1 bg-gradient-to-tr from-indigo-500 to-orange-500 rounded-[32px] blur opacity-20 group-hover/p:opacity-40 transition-opacity" />
-                             <div className="relative w-32 h-32 rounded-[28px] bg-white p-2 shadow-2xl ring-1 ring-slate-100">
-                                <img 
-                                  src={listing.partner_id?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(listing.partner_id?.name || 'In')}&background=6366f1&color=fff&bold=true`} 
-                                  className="w-full h-full object-cover rounded-[22px]" 
-                                  alt="" 
-                                />
-                             </div>
+                    <div className="px-8 pb-8 pt-0 relative">
+                       <div className="flex justify-between items-end mb-6 -mt-12">
+                          <div className="relative w-24 h-24 rounded-2xl bg-white p-1 shadow-lg border border-slate-100">
+                             <img 
+                               src={listing.partner_id?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(listing.partner_id?.name || 'In')}&background=6366f1&color=fff&bold=true`} 
+                               className="w-full h-full object-cover rounded-xl" 
+                               alt="" 
+                             />
                           </div>
-                          <div className="mb-4">
-                             <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-600 shadow-sm transition-transform hover:scale-105">
-                                <ShieldCheck size={18} />
-                                <span className="text-[11px] font-semibold uppercase tracking-[0.1em]">Verify Node</span>
-                             </div>
+                          <div className="mb-2">
+                             <span className="px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                                <ShieldCheck size={12} /> Verified Seller
+                             </span>
                           </div>
                        </div>
                        
                        <div className="space-y-6">
                           <div>
-                             <h4 className="text-3xl font-semibold text-slate-900 tracking-tight leading-none uppercase">{listing.partner_id?.name || 'In-House Representative'}</h4>
-                             <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest mt-2 ml-1">Asset Ownership Profile</p>
+                             <h4 className="text-xl font-bold text-slate-900 uppercase tracking-tight truncate">{listing.partner_id?.name || 'In-House Representative'}</h4>
+                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Listed By Partner</p>
                           </div>
                           
-                          <div className="grid grid-cols-1 gap-4">
-                             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex flex-col items-center justify-center space-y-2 group hover:bg-white transition-all shadow-sm">
-                                <label className="text-[11px] font-medium text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                   <Smartphone size={10} className="text-indigo-500" /> Direct Protocol
-                                </label>
-                                <p className="text-2xl font-semibold text-slate-900 tabular-nums tracking-tighter group-hover:text-indigo-600 transition-colors">{listing.partner_id?.phone || '+91 000 000 0000'}</p>
+                          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+                             <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                   <Smartphone size={12} className="text-indigo-500" /> Phone
+                                </span>
+                                <span className="text-sm font-bold text-slate-900 tabular-nums">{listing.partner_id?.phone || 'N/A'}</span>
+                             </div>
+                             <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                   <Mail size={12} className="text-indigo-500" /> Email
+                                </span>
+                                <span className="text-sm font-bold text-slate-900 truncate max-w-[150px]">{listing.partner_id?.email || 'N/A'}</span>
                              </div>
                           </div>
    
                           <button 
                             onClick={() => navigate(`/admin/users/view/${listing.partner_id?._id}`)}
-                            className="w-full py-5 bg-slate-900 text-white rounded-2xl text-[12px] font-semibold hover:bg-orange-600 transition-all uppercase tracking-[0.2em] text-center shadow-xl shadow-slate-200 active:scale-95 flex items-center justify-center gap-3"
+                            className="w-full py-4 bg-slate-900 text-white rounded-xl text-[11px] font-bold hover:bg-indigo-600 transition-all uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm"
                           >
-                             <User size={16} /> Audit Profile Registry
+                             <User size={14} /> View Partner Profile
                           </button>
                        </div>
                     </div>
                   </div>
 
-                  {/* Geographic Intelligence board */}
-                  <div className="bg-white border border-slate-100 rounded-[32px] p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-8 group">
+                  {/* Location Details */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm space-y-6">
                     <div className="flex items-center gap-3">
-                       <div className="p-2 bg-orange-50 rounded-xl text-orange-500 shadow-inner">
+                       <div className="p-2 bg-orange-50 rounded-xl text-orange-500">
                           <MapPin size={20} />
                        </div>
-                       <h3 className="text-sm font-semibold text-orange-600 uppercase tracking-[0.2em]">Geographic Deployment Hub</h3>
+                       <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Location Metadata</h3>
                     </div>
                     <div className="space-y-6">
-                       <div className="space-y-4">
-                          <label className="text-[11px] font-medium text-slate-400 uppercase tracking-widest block ml-1">Deployment State & District</label>
-                          <div className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl group-hover:bg-white transition-all">
-                             <Globe size={16} className="text-indigo-400" />
-                             <span className="text-base font-semibold text-slate-800 uppercase tracking-widest">{listing.address?.district}, {listing.address?.state}</span>
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">District</label>
+                             <span className="text-sm font-bold text-slate-800 uppercase">{listing.address?.district || 'N/A'}</span>
+                          </div>
+                          <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">State</label>
+                             <span className="text-sm font-bold text-slate-800 uppercase">{listing.address?.state || 'N/A'}</span>
                           </div>
                        </div>
-                       <div className="space-y-4">
-                          <label className="text-[11px] font-medium text-slate-400 uppercase tracking-widest block ml-1">Physical Identity Node</label>
-                          <p className="text-base font-medium text-slate-600 leading-relaxed bg-slate-50 p-6 rounded-[24px] border border-slate-100 uppercase tracking-tighter whitespace-pre-wrap group-hover:bg-white transition-all italic">
-                             {listing.address?.full_address || 'Detailed physical address node not populated at registry index.'}
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block ml-1">Full Address</label>
+                          <p className="text-sm font-semibold text-slate-600 leading-relaxed bg-slate-50 p-6 rounded-xl border border-slate-100 uppercase italic">
+                             {listing.address?.full_address || 'Detailed physical address not provided.'}
                           </p>
                        </div>
                     </div>
                   </div>
 
-                  {/* System Footprint Zone */}
-                  <div className="bg-white border border-rose-100 rounded-[32px] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative group overflow-hidden">
-                     <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-rose-100 transition-all duration-700" />
-                     <div className="flex flex-col gap-6 relative z-10">
-                        <div className="flex items-center gap-4">
-                           <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 border border-rose-100 group-hover:bg-rose-600 group-hover:text-white transition-all transform group-hover:rotate-12">
-                              <Trash2 size={24} />
-                           </div>
-                           <h3 className="text-lg font-semibold text-rose-600 uppercase tracking-tight">Redact Market Asset</h3>
-                        </div>
-                        <p className="text-[12px] font-medium text-slate-400 uppercase tracking-widest leading-relaxed ml-2 border-l-2 border-rose-100 pl-4 uppercase">
-                           Warning: This protocol permanently eradicates this asset node from the global marketplace index. Operational status cannot be reverted after purge.
-                        </p>
-                        <button className="w-full py-4 bg-white border-2 border-rose-500 text-rose-500 rounded-2xl font-semibold text-xs uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all active:scale-95 shadow-lg shadow-rose-100">
-                           Execute Purge Protocol
-                        </button>
+                  {/* Danger Zone */}
+                  <div className="bg-rose-50 border border-rose-100 rounded-2xl p-6 shadow-sm">
+                     <div className="flex items-center gap-3 mb-4">
+                        <AlertCircle size={20} className="text-rose-500" />
+                        <h3 className="text-sm font-bold text-rose-600 uppercase tracking-widest">Danger Zone</h3>
                      </div>
+                     <p className="text-[11px] font-medium text-rose-400 uppercase tracking-widest leading-relaxed mb-6">
+                        Deleting this property will permanently remove it from the marketplace and all associated records.
+                     </p>
+                     <button 
+                        onClick={handleDeleteProperty}
+                        className="w-full py-3 bg-white border-2 border-rose-500 text-rose-500 rounded-xl font-bold text-[11px] uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+                     >
+                        Delete Property Asset
+                     </button>
                   </div>
                </div>
             </div>
@@ -483,41 +470,40 @@ export default function AdminPropertyDetails() {
          {isRejecting && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 text-left">
                <motion.div 
-                  initial={{ scale: 0.9, opacity: 0 }}
+                  initial={{ scale: 0.95, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="bg-white rounded-[40px] w-full max-w-lg overflow-hidden shadow-2xl border border-white"
+                  className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200"
                >
-                  <div className="p-10 pb-6">
-                     <h2 className="text-3xl font-black text-slate-900 tracking-tight">Audit Rejection</h2>
-                     <p className="text-slate-500 font-bold text-sm mt-3 leading-relaxed">
-                        Please provide a detailed qualitative reason for rejecting this asset profile. 
-                        The partner will receive this feedback via primary protocol.
+                  <div className="p-8 pb-4">
+                     <h2 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">Reject Property</h2>
+                     <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-2 leading-relaxed opacity-60">
+                        Please specify why this listing is being rejected. This will be sent to the partner.
                      </p>
                      
-                     <div className="mt-8">
+                     <div className="mt-6">
                         <textarea
                            value={rejectReason}
                            onChange={(e) => setRejectReason(e.target.value)}
-                           placeholder="e.g. Asset media fails quality check, inconsistent valuation protocol..."
-                           className="w-full h-40 p-6 bg-slate-50 border-2 border-slate-50 rounded-[32px] outline-none focus:border-rose-500 font-bold text-sm transition-all resize-none shadow-inner"
+                           placeholder="e.g. Blurry images, invalid price, location mismatch..."
+                           className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-bold text-sm transition-all resize-none shadow-inner"
                         />
                      </div>
                   </div>
                   
-                  <div className="p-10 pt-4 flex gap-4">
+                  <div className="p-8 pt-2 flex gap-3">
                      <button 
                         onClick={() => { setIsRejecting(false); setRejectReason(''); }}
-                        className="flex-1 py-5 bg-slate-50 text-slate-400 font-black rounded-[24px] hover:bg-slate-100 transition-all uppercase tracking-widest text-[11px]"
+                        className="flex-1 py-4 bg-slate-50 text-slate-500 font-bold rounded-xl hover:bg-slate-100 transition-all uppercase tracking-widest text-[10px]"
                         disabled={isSubmitting}
                      >
                         Cancel
                      </button>
                      <button 
                         onClick={handleReject}
-                        className="flex-[2] py-5 bg-rose-500 text-white font-black rounded-[24px] hover:bg-rose-600 transition-all shadow-xl shadow-rose-100 flex items-center justify-center gap-3 uppercase tracking-widest text-[11px]"
+                        className="flex-[2] py-4 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-all shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]"
                         disabled={isSubmitting}
                      >
-                        {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : 'Execute Rejection'}
+                        {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : 'Confirm Rejection'}
                      </button>
                   </div>
                </motion.div>

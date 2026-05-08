@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import PartnerBottomNav from '../../components/partner/PartnerBottomNav';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { Toaster } from '../../mockToast';
 
 import { Bell, ChevronLeft } from 'lucide-react';
 
@@ -44,6 +45,7 @@ export default function PartnerLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
+      <Toaster />
       {/* Header removed from here as per user request to move notification icon into PartnerHome content */}
 
       <main className="flex-grow">

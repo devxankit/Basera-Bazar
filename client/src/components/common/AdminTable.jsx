@@ -19,12 +19,13 @@ export default function AdminTable({
   // Reset to page 1 whenever search/data changes
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [data.length]);
+  }, [(data || []).length]);
 
-  const totalPages = Math.ceil(data.length / itemsPerPage);
+  const safeData = data || [];
+  const totalPages = Math.ceil(safeData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, data.length);
-  const paginatedData = data.slice(startIndex, endIndex);
+  const endIndex = Math.min(startIndex + itemsPerPage, safeData.length);
+  const paginatedData = safeData.slice(startIndex, endIndex);
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 transition-all">
@@ -98,10 +99,10 @@ export default function AdminTable({
       </div>
 
       {/* Pagination Footer */}
-      {pagination && data.length > itemsPerPage && (
+      {pagination && safeData.length > itemsPerPage && (
         <div className="px-8 py-4 bg-slate-50/30 border-t border-slate-100 flex items-center justify-between">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Showing <span className="text-slate-900">{startIndex + 1}</span> to <span className="text-slate-900">{endIndex}</span> of <span className="text-slate-900">{data.length}</span> entries
+            Showing <span className="text-slate-900">{startIndex + 1}</span> to <span className="text-slate-900">{endIndex}</span> of <span className="text-slate-900">{safeData.length}</span> entries
           </p>
           <div className="flex items-center gap-2">
             <button 

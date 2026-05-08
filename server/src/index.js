@@ -40,6 +40,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const pushRoutes = require('./routes/pushRoutes');
 const milestoneRoutes = require('./routes/milestoneRoutes');
 const leadRoutes = require('./routes/leadRoutes');
+const executiveRoutes = require('./routes/executiveRoutes');
 
 // -----------------------------------------------------
 // MOUNT ROUTES
@@ -62,6 +63,7 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/milestones', milestoneRoutes);
 app.use('/api/admin/marketplace', adminMarketplaceRoutes);
 app.use('/api/leads', leadRoutes);
+app.use('/api/executive', executiveRoutes);
 
 
 // Health check endpoint
@@ -73,8 +75,8 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-const server = app.listen(PORT, '127.0.0.1', () => {
-  console.log(`🚀 BaseraBazar Backend running on http://127.0.0.1:${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 BaseraBazar Backend running on http://0.0.0.0:${PORT}`);
 });
 
 // Handle server errors (like EADDRINUSE)
@@ -89,6 +91,9 @@ server.on('error', (error) => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-  console.log('❌ Unhandled Rejection:', err.message);
-  server.close(() => process.exit(1));
+  console.log('❌ Unhandled Rejection:', err.message || err);
+  // In development, we don't want to crash the server for every unhandled rejection
+  if (process.env.NODE_ENV === 'production') {
+    server.close(() => process.exit(1));
+  }
 });

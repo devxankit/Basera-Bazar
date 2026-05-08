@@ -70,7 +70,7 @@ const razorpayOrderSchema = new mongoose.Schema({
 const transactionSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['subscription_payment', 'mandi_commission', 'refund', 'admin_credit'],
+    enum: ['subscription_payment', 'mandi_commission', 'refund', 'admin_credit', 'executive_commission'],
     required: true
   },
   amount: { type: Number, required: true }, // Whole rupees
@@ -85,7 +85,8 @@ const transactionSchema = new mongoose.Schema({
     required: true
   },
   razorpay_order_id: { type: mongoose.Schema.Types.ObjectId, ref: 'RazorpayOrder' }, // Nullable if admin credit
-  partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // The partner/user who made the transaction
+  partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' }, // The partner/user who made the transaction
+  executive_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Executive' }, // The executive who earned commission
   reference_id: { type: mongoose.Schema.Types.ObjectId } // Polymorphic logic
 }, { timestamps: true });
 

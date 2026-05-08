@@ -7,12 +7,12 @@ const activityLogSchema = new mongoose.Schema({
   action: { 
     type: String, 
     required: true, 
-    enum: ['created', 'updated', 'deleted', 'approved', 'rejected', 'registered', 'subscribed', 'login', 'logout']
+    enum: ['created', 'updated', 'deleted', 'approved', 'rejected', 'registered', 'subscribed', 'login', 'logout', 'submitted_onboarding', 'onboarding']
   },
   entity_type: { 
     type: String, 
     required: true,
-    enum: ['user', 'partner', 'property', 'service', 'supplier', 'product', 'category', 'subcategory', 'banner', 'subscription', 'system']
+    enum: ['user', 'partner', 'executive', 'property', 'service', 'supplier', 'product', 'category', 'subcategory', 'banner', 'subscription', 'system']
   },
   entity_name: { type: String }, // e.g. property title, user name
   entity_id: { type: mongoose.Schema.Types.ObjectId },

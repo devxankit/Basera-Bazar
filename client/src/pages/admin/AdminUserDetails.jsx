@@ -6,11 +6,12 @@ import {
   CreditCard, Activity, CheckCircle2, AlertCircle,
   Briefcase, TrendingUp, ChevronRight, BarChart3,
   Package, Store, ShieldCheck, Globe, Zap, FileText, ExternalLink,
-  UserMinus, UserCheck, Trash2
+  UserMinus, UserCheck, Trash2, Landmark, Building2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -43,6 +44,9 @@ export default function AdminUserDetails() {
   const handleToggleStatus = async () => {
     try {
       const newActive = !user.is_active;
+      const action = newActive ? 'activate' : 'deactivate';
+      if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
+
       const updateData = { is_active: newActive };
       
       // If activating a partner, sync onboarding status
@@ -55,36 +59,38 @@ export default function AdminUserDetails() {
       const res = await api.put(`/admin/users/${id}`, updateData);
       if (res.data.success) {
         setUser({ ...user, ...updateData });
+        toast.success(`User ${action}d successfully`);
         setShowOptions(false);
       }
     } catch (err) {
-      alert("Failed to update user status");
+      toast.error("Failed to update user status");
     }
   };
 
   const handleDeleteUser = async () => {
-    if (!window.confirm("Are you sure you want to permanently delete this user from the database? This action cannot be undone.")) return;
+    if (!window.confirm("Are you sure you want to permanently delete this user? This action cannot be undone.")) return;
     try {
       const res = await api.delete(`/admin/users/${id}`);
       if (res.data.success) {
+        toast.success("User deleted successfully");
         navigate('/admin/users');
       }
     } catch (err) {
-      alert("Failed to delete user");
+      toast.error("Failed to delete user");
     }
   };
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[50vh]">
-      <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
 
   if (error || !user) return (
-    <div className="p-12 text-center bg-white border border-slate-200 rounded-3xl m-8 shadow-sm">
+    <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl m-8 shadow-sm">
       <AlertCircle size={40} className="mx-auto text-slate-200 mb-4" />
-      <h2 className="text-xl font-semibold text-slate-900 uppercase tracking-tight">{error || 'User Registry Error'}</h2>
-      <button onClick={() => navigate('/admin/users')} className="mt-6 px-6 py-2 bg-slate-900 text-white text-xs font-semibold uppercase tracking-widest rounded-xl hover:bg-orange-600 transition-all active:scale-95">Return to Directory</button>
+      <h2 className="text-xl font-semibold text-slate-900 uppercase tracking-tight">{error || 'User Not Found'}</h2>
+      <button onClick={() => navigate('/admin/users')} className="mt-6 px-6 py-2 bg-slate-900 text-white text-xs font-semibold uppercase tracking-widest rounded-xl hover:bg-indigo-600 transition-all active:scale-95">Back to Users</button>
     </div>
   );
 
@@ -103,77 +109,58 @@ export default function AdminUserDetails() {
     <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
       <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
         
-        {/* Action Header Block */}
-        <div className="relative bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
-           {/* Immersive Background element */}
-           <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-100/40 via-purple-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
-           </div>
-           
-           <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between p-8 gap-6 z-10">
+        {/* Profile Header */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="flex items-start gap-6">
                  <button 
                    onClick={() => navigate('/admin/users')}
-                   className="p-3 bg-slate-50 text-slate-500 rounded-2xl hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm active:scale-95 group shrink-0"
+                   className="p-3 bg-slate-50 text-slate-500 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-slate-100 group shrink-0"
                  >
                     <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                  </button>
                  <div className="flex items-center gap-6">
-                    <div className="relative group">
-                       <div className="absolute -inset-1 bg-gradient-to-tr from-indigo-500 to-orange-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition-opacity" />
-                       <div className="relative w-24 h-24 rounded-2xl bg-white p-1 overflow-hidden ring-1 ring-slate-100 shadow-xl">
-                          <img 
-                            src={user.profileImage || user.image || `https://ui-avatars.com/api/?name=${user.name}&background=6366f1&color=fff&bold=true`} 
-                            className="w-full h-full object-cover rounded-xl" 
-                            alt="" 
-                          />
-                          {user.is_active && (
-                            <div className="absolute top-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full transition-transform group-hover:scale-110" />
-                          )}
-                       </div>
+                    <div className="relative w-24 h-24 rounded-2xl bg-slate-100 border border-slate-200 p-1 overflow-hidden">
+                       <img 
+                         src={user.profileImage || user.image || `https://ui-avatars.com/api/?name=${user.name}&background=6366f1&color=fff&bold=true`} 
+                         className="w-full h-full object-cover rounded-xl" 
+                         alt="" 
+                       />
+                       {user.is_active && (
+                         <div className="absolute top-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" />
+                       )}
                     </div>
                     <div className="space-y-1">
                        <div className="flex items-center gap-3">
                           <h2 className="text-3xl font-semibold text-slate-900 tracking-tight leading-none uppercase">{user.name}</h2>
                           <div className="flex gap-1.5">
                              {displayRoles.map((role, idx) => (
-                                <span key={idx} className="px-3 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg text-[11px] font-semibold uppercase tracking-widest">{role}</span>
+                                <span key={idx} className="px-3 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-lg text-[11px] font-semibold uppercase tracking-widest">{role}</span>
                              ))}
                           </div>
                        </div>
                        <div className="flex items-center gap-2">
-                          <span className="text-[12px] font-medium text-slate-400 uppercase tracking-widest bg-slate-50 px-2.5 py-1 rounded border border-slate-100">Identity Registry</span>
-                          
-                          {user.active_role && (
-                             <>
-                                <ChevronRight size={10} className="text-slate-300" />
-                                <span className="text-[12px] font-semibold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded border border-indigo-100 flex items-center gap-1.5">
-                                   <Zap size={10} className="text-indigo-500" />
-                                   Active View: {roleMap[user.active_role] || user.active_role}
-                                </span>
-                             </>
-                          )}
-
+                          <span className="text-[12px] font-medium text-slate-400 uppercase tracking-widest">User Profile</span>
                           <ChevronRight size={10} className="text-slate-300" />
-                          <span className="text-[12px] font-semibold text-orange-600 uppercase tracking-widest bg-orange-50 px-2.5 py-1 rounded border border-orange-100">UID: {user?._id?.slice(-8).toUpperCase()}</span>
+                          <span className="text-[12px] font-semibold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded border border-indigo-100">ID: {user?._id?.slice(-8).toUpperCase()}</span>
                        </div>
                     </div>
                  </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-3">
                  <button 
                     onClick={() => navigate(`/admin/users/edit/${user._id}`)}
-                    className="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-semibold text-[12px] uppercase tracking-widest rounded-2xl hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm flex items-center gap-2 active:scale-95"
+                    className="px-6 py-3 bg-white border border-slate-200 text-slate-700 font-semibold text-[12px] uppercase tracking-widest rounded-xl hover:border-indigo-600 hover:text-indigo-600 transition-all flex items-center gap-2 active:scale-95"
                  >
-                    <Edit2 size={14} /> Update Identity
+                    <Edit2 size={14} /> Edit Profile
                  </button>
                  <div className="relative">
                    <button 
                      onClick={() => setShowOptions(!showOptions)}
                      className={cn(
-                       "p-3 border rounded-2xl transition-all shadow-sm active:scale-95",
-                       showOptions ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 bg-white text-slate-400 hover:border-indigo-200 hover:text-indigo-600"
+                       "p-3 border rounded-xl transition-all active:scale-95",
+                       showOptions ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 bg-white text-slate-400 hover:border-indigo-600 hover:text-indigo-600"
                      )}
                    >
                       <MoreVertical size={20} />
@@ -182,40 +169,40 @@ export default function AdminUserDetails() {
                    {showOptions && (
                      <>
                        <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
-                       <div className="absolute right-0 mt-3 w-64 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                       <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50">
                           <button 
                             onClick={() => navigate(`/admin/users/subscriptions/${user._id}`)}
-                            className="w-full flex items-center gap-4 p-4 text-slate-600 hover:bg-slate-50 rounded-2xl transition-colors group"
+                            className="w-full flex items-center gap-4 p-4 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
                           >
-                             <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-colors">
+                             <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
                                 <CreditCard size={18} />
                              </div>
-                             <span className="font-bold text-sm tracking-tight">Subscriptions</span>
+                             <span className="font-semibold text-sm">Subscriptions</span>
                           </button>
 
                           <button 
                             onClick={handleToggleStatus}
-                            className="w-full flex items-center gap-4 p-4 text-slate-600 hover:bg-slate-50 rounded-2xl transition-colors group"
+                            className="w-full flex items-center gap-4 p-4 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
                           >
                              <div className={cn(
-                                "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                                user.is_active ? "bg-rose-50 text-rose-400 group-hover:text-rose-600 group-hover:bg-rose-100" : "bg-emerald-50 text-emerald-400 group-hover:text-emerald-600 group-hover:bg-emerald-100"
+                                "w-10 h-10 rounded-lg flex items-center justify-center",
+                                user.is_active ? "bg-rose-50 text-rose-500" : "bg-emerald-50 text-emerald-500"
                              )}>
                                 {user.is_active ? <UserMinus size={18} /> : <UserCheck size={18} />}
                              </div>
-                             <span className="font-bold text-sm tracking-tight text-left">{user.is_active ? 'Deactivate Node' : 'Activate Node'}</span>
+                             <span className="font-semibold text-sm text-left">{user.is_active ? 'Deactivate User' : 'Activate User'}</span>
                           </button>
 
                           <div className="h-px bg-slate-100 my-2 mx-4" />
 
                           <button 
                             onClick={handleDeleteUser}
-                            className="w-full flex items-center gap-4 p-4 text-rose-600 hover:bg-rose-50 rounded-2xl transition-colors group"
+                            className="w-full flex items-center gap-4 p-4 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
                           >
-                             <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-400 group-hover:text-rose-600 group-hover:bg-rose-100 transition-colors">
+                             <div className="w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center text-rose-400">
                                 <Trash2 size={18} />
                              </div>
-                             <span className="font-bold text-sm tracking-tight text-left">Delete From DB</span>
+                             <span className="font-semibold text-sm text-left">Delete User</span>
                           </button>
                        </div>
                      </>
@@ -223,125 +210,105 @@ export default function AdminUserDetails() {
                  </div>
               </div>
            </div>
+        </div>
 
-           {/* Segmented Metric Pipeline */}
-           <div className="relative border-t border-slate-50 grid grid-cols-2 md:grid-cols-4 bg-slate-50/30">
-              {[
-                { label: 'Asset Portfolio', value: user.stats?.properties || 0, sub: 'Listings Controlled', icon: Briefcase, color: 'text-indigo-500' },
-                { label: 'Capture Index', value: user.stats?.leads || 0, sub: 'Inbound Inquiries', icon: TrendingUp, color: 'text-orange-500' },
-                { label: 'Service Output', value: user.stats?.services || 0, sub: 'Active Offerings', icon: Activity, color: 'text-purple-500' },
-                { label: 'Trust Rating', value: user.rating?.toFixed(1) || '0.0', sub: 'Engagement Score', icon: Star, color: 'text-amber-500' }
-              ].map((stat, i) => (
-                <div key={i} className="p-8 border-r border-slate-50 last:border-0 group hover:bg-white transition-all">
-                   <div className="flex items-center gap-3 mb-3">
-                      <div className={cn("p-1.5 rounded-lg bg-white border border-slate-100 shadow-sm transition-transform group-hover:scale-110", stat.color)}>
-                         <stat.icon size={12} />
-                      </div>
-                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                   </div>
-                   <div className="flex flex-col">
-                      <span className="text-2xl font-semibold text-slate-900 tracking-tighter tabular-nums">{stat.value}</span>
-                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-tighter mt-1">{stat.sub}</p>
-                   </div>
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+           {[
+             { label: 'Listings', value: user.stats?.properties || 0, icon: Briefcase, color: 'bg-indigo-50 text-indigo-600' },
+             { label: 'Leads', value: user.stats?.leads || 0, icon: TrendingUp, color: 'bg-emerald-50 text-emerald-600' },
+             { label: 'Services', value: user.stats?.services || 0, icon: Activity, color: 'bg-purple-50 text-purple-600' },
+             { label: 'Rating', value: user.rating?.toFixed(1) || '0.0', icon: Star, color: 'bg-amber-50 text-amber-600' }
+           ].map((stat, i) => (
+             <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                <div className={cn("p-3 rounded-xl", stat.color)}>
+                   <stat.icon size={20} />
                 </div>
-              ))}
-           </div>
+                <div>
+                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                   <p className="text-2xl font-semibold text-slate-900 tracking-tighter">{stat.value}</p>
+                </div>
+             </div>
+           ))}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           <div className="md:col-span-4 space-y-8">
-             {/* Communication Hub */}
-             <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
-               <div className="bg-slate-900 px-8 py-6 flex items-center gap-3">
-                 <Zap size={18} className="text-orange-500" />
-                 <h3 className="text-[12px] font-semibold text-white uppercase tracking-[0.2em] mt-0.5">Communication Node</h3>
+             {/* Contact Details */}
+             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+               <div className="bg-slate-50 px-8 py-4 border-b border-slate-200">
+                 <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Contact Information</h3>
                </div>
-               <div className="p-8 space-y-2">
-                  <div className="group space-y-2 p-4 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
-                     <label className="text-[11px] font-medium text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <Mail size={10} className="text-indigo-500" /> Primary Endpoint
+               <div className="p-6 space-y-4">
+                  <div className="space-y-1">
+                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <Mail size={12} className="text-slate-400" /> Email Address
                      </label>
-                     <p className="text-base font-semibold text-slate-900 truncate tracking-tight uppercase">{user.email || 'offline@baserabazar.sys'}</p>
+                     <p className="text-sm font-semibold text-slate-900 truncate uppercase">{user.email || 'N/A'}</p>
                   </div>
-                  <div className="group space-y-2 p-4 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
-                     <label className="text-[11px] font-medium text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <Phone size={10} className="text-indigo-500" /> Telecom Gateway
+                  <div className="space-y-1">
+                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <Phone size={12} className="text-slate-400" /> Phone Number
                      </label>
-                     <p className="text-base font-semibold text-slate-900 tabular-nums">{user.phone || '+91 000 000 0000'}</p>
+                     <p className="text-sm font-semibold text-slate-900 tabular-nums">{user.phone || 'N/A'}</p>
                   </div>
-                  <div className="group space-y-2 p-4 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
-                     <label className="text-[11px] font-medium text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <MapPin size={10} className="text-indigo-500" /> Deployment Area
+                  <div className="space-y-1">
+                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <MapPin size={12} className="text-slate-400" /> Location
                      </label>
-                     <p className="text-base font-semibold text-slate-900 uppercase tracking-tight">{user.city || 'Central Hub'}, {user.state || 'Territory'}</p>
+                     <p className="text-sm font-semibold text-slate-900 uppercase">{user.city || 'N/A'}, {user.state || 'N/A'}</p>
                   </div>
                </div>
              </div>
 
-             {/* System Integrity board */}
-             <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
-                <div className="px-8 py-5 border-b border-slate-50 bg-slate-50/30">
-                   <h3 className="text-[12px] font-semibold text-indigo-600 uppercase tracking-[0.2em] flex items-center gap-2">
-                     <ShieldCheck size={14} className="opacity-80" /> Integrity Profile
-                   </h3>
+             {/* System Details */}
+             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-8 py-4 bg-slate-50 border-b border-slate-200">
+                   <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Account Details</h3>
                 </div>
-                <div className="p-8 space-y-6">
+                <div className="p-6 space-y-4">
                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Profile Status</span>
+                      <span className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Status</span>
                       <span className={cn(
                         "px-2 py-1 rounded text-[10px] font-semibold uppercase tracking-widest border",
                         user.is_active ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
                       )}>
-                        {user.is_active ? 'Active Node' : 'Suspended'}
+                        {user.is_active ? 'Active' : 'Deactivated'}
                       </span>
                    </div>
                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Core Version</span>
-                      <span className="text-[11px] font-semibold text-slate-900 uppercase tracking-tight">System v{user.token_version || 1}.2.0</span>
-                   </div>
-                   <div className="pt-4 border-t border-slate-50 space-y-2">
-                      <label className="text-[11px] font-medium text-slate-400 uppercase tracking-widest block">Network Induction</label>
-                      <p className="text-base font-semibold text-slate-900">{new Date(user.createdAt).toLocaleDateString('en-GB')}</p>
+                      <span className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Joined On</span>
+                      <span className="text-sm font-semibold text-slate-900">{new Date(user.createdAt).toLocaleDateString('en-GB')}</span>
                    </div>
                 </div>
              </div>
           </div>
 
           <div className="md:col-span-8 space-y-8">
-             {/* Operational Profile board */}
-             <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
-                <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
-                   <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center text-orange-600 shadow-inner">
-                         <Globe size={16} />
-                      </div>
-                      <h3 className="text-[12px] font-semibold text-orange-600 uppercase tracking-[0.2em] mt-0.5">Physical Fingerprint</h3>
-                   </div>
+             {/* Address & Subscription */}
+             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-8 py-4 bg-slate-50 border-b border-slate-200">
+                   <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Office / Residential Address</h3>
                 </div>
-                <div className="p-10 space-y-10">
-                   <div className="space-y-4">
-                      <label className="text-[11px] font-medium text-slate-400 uppercase tracking-widest block ml-1">Verified Logistics Address</label>
-                      <div className="relative p-6 bg-slate-50 border border-slate-100 rounded-2xl group transition-all hover:bg-white group">
-                         <div className="absolute -left-1 top-4 bottom-4 w-1 bg-orange-100 group-hover:bg-orange-500 transition-colors rounded-full" />
-                         <p className="text-lg font-semibold text-slate-700 leading-relaxed uppercase tracking-tight">
-                            {user.address || 'Standard physical induction address string unpopulated for this node.'}
-                         </p>
-                      </div>
+                <div className="p-8">
+                   <div className="p-6 bg-slate-50 rounded-xl border border-slate-100">
+                      <p className="text-base font-semibold text-slate-700 leading-relaxed uppercase">
+                         {user.address || 'No address provided in the database.'}
+                      </p>
                    </div>
 
-                   {/* Partner Specific Intelligence */}
                    {isPartner && user.active_subscription && (
-                     <div className="pt-8 border-t border-slate-50 space-y-6">
-                        <label className="text-[11px] font-medium text-slate-400 uppercase tracking-widest block">Subscription Framework Matrix</label>
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                     <div className="mt-8 pt-8 border-t border-slate-200">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block mb-4">Active Subscription</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                            {[
-                             { label: 'Core Tier', value: user.active_subscription.plan_snapshot?.name || 'Standard', color: 'text-indigo-600' },
-                             { label: 'Expirations', value: new Date(user.active_subscription.ends_at).toLocaleDateString('en-GB'), color: 'text-rose-600' },
-                             { label: 'Availability', value: user.active_subscription.plan_snapshot?.listings_limit === -1 ? 'Infinite' : 'Finite', color: 'text-emerald-600' }
+                             { label: 'Current Plan', value: user.active_subscription.plan_snapshot?.name || 'Standard', color: 'text-indigo-600' },
+                             { label: 'Expiry Date', value: new Date(user.active_subscription.ends_at).toLocaleDateString('en-GB'), color: 'text-slate-900' },
+                             { label: 'Listing Limit', value: user.active_subscription.plan_snapshot?.listings_limit === -1 ? 'Unlimited' : user.active_subscription.plan_snapshot?.listings_limit, color: 'text-slate-900' }
                            ].map((item, i) => (
-                             <div key={i} className="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                                <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-2">{item.label}</p>
-                                <p className={cn("text-lg font-semibold tracking-tight uppercase", item.color)}>{item.value}</p>
+                             <div key={i} className="p-4 rounded-xl border border-slate-200">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
+                                <p className={cn("text-base font-semibold uppercase", item.color)}>{item.value}</p>
                              </div>
                            ))}
                         </div>
@@ -350,40 +317,16 @@ export default function AdminUserDetails() {
                 </div>
              </div>
 
-             {/* Dynamic Account Controls notice */}
-             <div className="bg-indigo-600 rounded-3xl p-1 shadow-xl shadow-indigo-100 transform hover:scale-[1.01] transition-transform duration-500">
-                <div className="bg-white rounded-[22px] p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-                   <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-inner">
-                         <Shield size={28} />
-                      </div>
-                      <div>
-                         <p className="text-lg font-semibold text-slate-900 tracking-tight">Advanced Account Governance Active</p>
-                         <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest mt-1 italic">Real-time profile synchronization with security bus</p>
-                      </div>
-                   </div>
-                   <button 
-                     onClick={() => navigate(`/admin/users/subscriptions/${user._id}`)}
-                     className="px-6 py-3 bg-indigo-600 text-white font-semibold text-[11px] uppercase tracking-[0.2em] rounded-xl hover:bg-slate-900 transition-colors shadow-lg shadow-indigo-200"
-                   >
-                      Audit Subscription Meta
-                   </button>
-                </div>
-             </div>
-
-             {/* Identity & KYC Documents Section */}
+             {/* KYC Documents */}
              {isPartner && (
-               <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden mt-8">
-                 <div className="px-8 py-6 border-b border-slate-50 flex items-center gap-3 bg-slate-50/30">
-                   <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 shadow-inner">
-                     <FileText size={16} />
-                   </div>
-                   <h3 className="text-[12px] font-semibold text-blue-600 uppercase tracking-[0.2em] mt-0.5">Identity & Role Documents</h3>
+               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                 <div className="px-8 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                   <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Verification Documents</h3>
+                   <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-600 px-2 py-1 rounded border border-emerald-100 uppercase tracking-widest">Verified Assets</span>
                  </div>
                  
                  <div className="p-8">
-                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                     {/* Core KYC */}
+                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                      <DocumentCard 
                        title="PAN Card" 
                        number={user.kyc?.pan_number} 
@@ -398,15 +341,11 @@ export default function AdminUserDetails() {
                        title="Aadhar Back" 
                        image={user.kyc?.aadhar_back_image} 
                      />
-                     
-                     {/* Business KYC */}
                      <DocumentCard 
                        title="GST Certificate" 
                        number={user.kyc?.gst_number || user.role_requests?.[0]?.gst_number} 
                        image={user.kyc?.gst_image || user.role_requests?.[0]?.gst_image} 
                      />
-
-                     {/* Role Specific Documents */}
                      <DocumentCard 
                        title="RERA Certificate" 
                        number={user.profile?.property_profile?.rera_number} 
@@ -425,25 +364,24 @@ export default function AdminUserDetails() {
 
 function DocumentCard({ title, number, image }) {
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col h-full">
-      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:border-indigo-200 transition-all group flex flex-col h-full">
+      <div className="p-4 border-b border-slate-100 flex items-center justify-between">
         <div>
-          <h5 className="text-[13px] font-black text-slate-900">{title}</h5>
-          {number && <p className="text-[10px] font-black text-indigo-600 uppercase mt-0.5">{number}</p>}
+          <h5 className="text-[12px] font-bold text-slate-900">{title}</h5>
+          {number && <p className="text-[10px] font-bold text-indigo-600 uppercase mt-0.5">{number}</p>}
         </div>
         {image && (
-          <a href={image} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-indigo-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-            <ExternalLink size={16} />
+          <a href={image} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-indigo-600 transition-colors">
+            <ExternalLink size={14} />
           </a>
         )}
       </div>
       <div className="flex-grow aspect-[3/2] bg-slate-50 relative overflow-hidden flex items-center justify-center">
         {image ? (
-          <img src={image} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          <img src={image} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
-          <div className="text-center p-6 opacity-60">
-            <AlertCircle size={24} className="text-slate-300 mx-auto mb-2" />
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Not Provided</p>
+          <div className="text-center p-6">
+            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Not Uploaded</p>
           </div>
         )}
       </div>

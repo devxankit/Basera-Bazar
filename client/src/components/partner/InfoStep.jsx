@@ -63,7 +63,13 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   const gstInputRef = useRef(null);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    
+    if (name === 'phone') {
+      value = value.replace(/\s+/g, '').replace(/^\+91/, '').replace(/^91/, '');
+      value = value.replace(/\D/g, '').slice(0, 10);
+    }
+
     if (name === 'state') {
       // Normalize state name to match our constants if it comes from external source
       const normalizedState = states.find(s => s.toLowerCase() === value.toLowerCase()) || value;
@@ -272,6 +278,14 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
           <h3 className="text-[14px] font-bold text-[#001b4e] uppercase tracking-wider mb-4 px-1">Required Information</h3>
           <div className="space-y-4">
             <InputField 
+              icon={<Hash size={18} />} 
+              label="Referral Code (Optional)" 
+              name="referral_code"
+              value={formData.referral_code}
+              onChange={handleChange}
+              placeholder="Enter executive referral code" 
+            />
+            <InputField 
               icon={<User size={18} />} 
               label="Full Name *" 
               name="fullName"
@@ -296,7 +310,8 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                   disabled={isVerified}
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="+91 XXXXX XXXXX" 
+                  placeholder="87706 XXXXX" 
+                  prefix="+91"
                   error={errors.phone}
                   style={{ paddingRight: isVerified ? '120px' : '18px' }}
                 />
@@ -709,33 +724,40 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   );
 }
 
-function InputField({ label, icon, type = "text", placeholder, toggle, value, onChange, name, disabled, style, error }) {
+function InputField({ label, icon, prefix, type = "text", placeholder, toggle, value, onChange, name, disabled, style, error }) {
   return (
     <div className="flex flex-col gap-1.5 w-full">
       <div className="relative">
-        {icon && (
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-            {icon}
-          </div>
-        )}
-        <label className="absolute -top-2 left-4 px-2 bg-white text-[10px] font-bold text-[#001b4e] uppercase tracking-wider">
+        <label className="absolute -top-2 left-4 px-2 bg-white text-[10px] font-bold text-[#001b4e] uppercase tracking-wider z-10">
           {label}
         </label>
-        <input
-          type={type}
-          name={name}
-          value={value}
-          disabled={disabled}
-          onChange={onChange}
-          placeholder={placeholder}
-          style={style}
-          className={`w-full bg-white border ${error ? 'border-red-500' : 'border-slate-200'} rounded-2xl py-4.5 ${icon ? 'pl-12' : 'pl-5'} pr-12 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all`}
-        />
-        {toggle && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-            {toggle}
-          </div>
-        )}
+        <div className="relative flex items-center">
+          {icon && (
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+              {icon}
+            </div>
+          )}
+          {prefix && (
+            <span className={`absolute ${icon ? 'left-11' : 'left-4'} top-1/2 -translate-y-1/2 text-slate-500 font-bold text-[14px] border-r border-slate-100 pr-2 h-5 flex items-center`}>
+              {prefix}
+            </span>
+          )}
+          <input
+            type={type}
+            name={name}
+            value={value}
+            disabled={disabled}
+            onChange={onChange}
+            placeholder={placeholder}
+            style={style}
+            className={`w-full bg-white border ${error ? 'border-red-500' : 'border-slate-200'} rounded-2xl py-4.5 ${icon ? (prefix ? 'pl-22' : 'pl-12') : (prefix ? 'pl-14' : 'pl-5')} pr-12 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all`}
+          />
+          {toggle && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+              {toggle}
+            </div>
+          )}
+        </div>
       </div>
       {error && <span className="text-[11px] text-red-500 font-medium px-2">{error}</span>}
     </div>

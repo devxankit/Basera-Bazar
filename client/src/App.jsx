@@ -56,6 +56,17 @@ import AdminPropertyDetails from './pages/admin/AdminPropertyDetails';
 import AdminServices from './pages/admin/AdminServices';
 import AdminServiceForm from './pages/admin/AdminServiceForm';
 import AdminServiceDetails from './pages/admin/AdminServiceDetails';
+import AdminExecutives from './pages/admin/AdminExecutives';
+import AdminExecutiveDetails from './pages/admin/AdminExecutiveDetails';
+import AdminWithdrawals from './pages/admin/AdminWithdrawals';
+import AdminEconomics from './pages/admin/AdminEconomics';
+import ExecutiveLogin from './pages/executive/ExecutiveLogin';
+import ExecutiveSignUp from './pages/executive/ExecutiveSignUp';
+import ExecutiveDashboard from './pages/executive/ExecutiveDashboard';
+import ExecutivePartners from './pages/executive/ExecutivePartners';
+import ExecutiveWallet from './pages/executive/ExecutiveWallet';
+import ExecutiveProfile from './pages/executive/ExecutiveProfile';
+import ExecutiveLayout from './components/layout/ExecutiveLayout';
 
 import AdminLeads from './pages/admin/AdminLeads';
 import AdminLeadDetails from './pages/admin/AdminLeadDetails';
@@ -144,6 +155,16 @@ const VerifiedPartnerRoute = ({ children }) => {
   // Check if partner is approved by admin
   if (user?.onboarding_status !== 'approved') {
     return <Navigate to="/partner/home" replace />;
+  }
+  return children;
+};
+
+// Executive Route Guard
+const ExecutiveRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return null;
+  if (!isAuthenticated || user?.role !== 'executive') {
+    return <Navigate to="/executive/login" replace />;
   }
   return children;
 };
@@ -410,6 +431,40 @@ function App() {
             <Route path="/partner/mandi/penalties" element={<PartnerLayout><MandiPenalties /></PartnerLayout>} />
             <Route path="/partner/milestones" element={<PartnerLayout><PartnerMilestones /></PartnerLayout>} />
 
+            {/* Executive Module Routes */}
+            <Route path="/executive/login" element={<ExecutiveLogin />} />
+            <Route path="/executive/register" element={<ExecutiveSignUp />} />
+            <Route path="/executive/signup" element={<ExecutiveSignUp />} />
+
+            <Route path="/executive/dashboard" element={
+              <ExecutiveRoute>
+                <ExecutiveLayout>
+                  <ExecutiveDashboard />
+                </ExecutiveLayout>
+              </ExecutiveRoute>
+            } />
+            <Route path="/executive/partners" element={
+              <ExecutiveRoute>
+                <ExecutiveLayout>
+                  <ExecutivePartners />
+                </ExecutiveLayout>
+              </ExecutiveRoute>
+            } />
+            <Route path="/executive/wallet" element={
+              <ExecutiveRoute>
+                <ExecutiveLayout>
+                  <ExecutiveWallet />
+                </ExecutiveLayout>
+              </ExecutiveRoute>
+            } />
+            <Route path="/executive/profile" element={
+              <ExecutiveRoute>
+                <ExecutiveLayout>
+                  <ExecutiveProfile />
+                </ExecutiveLayout>
+              </ExecutiveRoute>
+            } />
+
             {/* Admin Module Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
@@ -482,6 +537,14 @@ function App() {
               <AdminRoute>
                 <AdminLayout>
                   <AdminUserSubscriptions />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+
+            <Route path="/admin/executives/view/:id" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminExecutiveDetails />
                 </AdminLayout>
               </AdminRoute>
             } />
@@ -835,6 +898,37 @@ function App() {
               </AdminRoute>
             } />
 
+            <Route path="/admin/executives" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminExecutives />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+
+            <Route path="/admin/executives/pending" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminExecutives filter="pending" />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+
+            <Route path="/admin/executives/withdrawals" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminWithdrawals />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+
+            <Route path="/admin/executives/economics" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminEconomics />
+                </AdminLayout>
+              </AdminRoute>
+            } />
 
             </Routes>
           </Router>

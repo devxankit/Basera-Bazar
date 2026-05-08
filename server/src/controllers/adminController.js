@@ -9,6 +9,8 @@ const { Category, Banner, AppConfig } = require('../models/System');
 const { ActivityLog, logActivity } = require('../utils/activityLogger');
 const Order = require('../models/Order');
 const BroadcastLead = require('../models/BroadcastLead');
+const Executive = require('../models/Executive');
+const WithdrawalRequest = require('../models/Wallet');
 const { createNotification } = require('../utils/notificationHelper');
 
 // Helper to get ISO Week number
@@ -2764,6 +2766,269 @@ const updateOfferConfig = async (req, res) => {
   }
 };
 
+/**
+ * EXECUTIVE MANAGEMENT
+ */
+
+const getAllExecutives = async (req, res) => {
+  try {
+    const executives = await Executive.find().sort({ createdAt: -1 }).lean();
+    
+    // Fetch onboarded counts for each executive
+    const enrichedExecutives = await Promise.all(executives.map(async (exec) => {
+      const onboardedCount = await Partner.countDocuments({ referral_code_used: exec.referral_code });
+      return { ...exec, onboardedCount };
+    }));
+
+    res.status(200).json({ success: true, data: enrichedExecutives });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getExecutiveDetail = async (req, res) => {
+  try {
+    const executive = await Executive.findById(req.params.id).lean();
+    if (!executive) return res.status(404).json({ success: false, message: 'Executive not found' });
+    
+    // Get onboarded partners
+    const partners = await Partner.find({ referral_code_used: executive.referral_code })
+      .select('name business_name phone onboarding_status createdAt')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        ...executive,
+        partners,
+        onboardedCount: partners.length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const updateExecutiveStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, rejection_reason } = req.body;
+
+    const executive = await Executive.findById(id);
+    if (!executive) return res.status(404).json({ success: false, message: 'Executive not found' });
+
+    executive.onboarding_status = status;
+    if (status === 'approved') {
+      executive.is_active = true;
+      executive.approved_at = new Date(); // Stamp approval time for 24h banner
+    } else if (status === 'rejected') {
+      executive.kyc.rejection_reason = rejection_reason;
+      executive.is_active = false;
+    }
+
+    await executive.save();
+
+    // Notify executive
+    await createNotification(
+      'executive',
+      executive._id,
+      status === 'approved' ? 'Account Verified! 🎉' : 'KYC Rejected',
+      status === 'approved' 
+        ? 'Congratulations! Your account has been verified. You can now start onboarding partners.' 
+        : `Your KYC documents were rejected. Reason: ${rejection_reason}`,
+      { type: 'executive_verification', status }
+    );
+
+    res.status(200).json({ success: true, message: `Executive ${status} successfully` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const toggleExecutiveActiveStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const executive = await Executive.findById(id);
+    if (!executive) return res.status(404).json({ success: false, message: 'Executive not found' });
+
+    // Auto-toggle: flip the current is_active state
+    const newStatus = !executive.is_active;
+    executive.is_active = newStatus;
+
+    if (!newStatus) {
+      executive.deactivated_at = new Date();
+      executive.deactivation_reason = reason || 'Deactivated by Admin';
+      // Increment token_version to invalidate all existing sessions immediately
+      executive.token_version = (executive.token_version || 0) + 1;
+    } else {
+      executive.deactivated_at = null;
+      executive.deactivation_reason = null;
+    }
+
+    await executive.save();
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Executive ${newStatus ? 'activated' : 'deactivated'} successfully`,
+      data: { is_active: newStatus }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const deleteExecutive = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const executive = await Executive.findById(id);
+    if (!executive) return res.status(404).json({ success: false, message: 'Executive not found' });
+
+    // Note: We might want to keep the referral links but nullify the exec reference?
+    // For now, full delete as requested.
+    await Executive.findByIdAndDelete(id);
+
+    res.status(200).json({ success: true, message: 'Executive removed from database' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getWithdrawalRequests = async (req, res) => {
+  try {
+    const { user_type } = req.query;
+    const query = user_type ? { user_type } : {};
+    const requests = await WithdrawalRequest.find(query).sort({ createdAt: -1 });
+    
+    // Enrich with user details if possible (though bank details are already in the request)
+    res.status(200).json({ success: true, data: requests });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const updateWithdrawalStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, admin_note, transaction_id } = req.body;
+
+    const request = await WithdrawalRequest.findById(id);
+    if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
+
+    request.status = status;
+    if (admin_note) request.admin_note = admin_note;
+    if (transaction_id) request.transaction_id = transaction_id;
+    if (status === 'completed') request.processed_at = new Date();
+
+    await request.save();
+
+    // If rejected, refund the wallet
+    if (status === 'rejected') {
+      if (request.user_type === 'Executive') {
+        const executive = await Executive.findById(request.user_id);
+        if (executive) {
+          executive.wallet_balance += request.amount;
+          await executive.save();
+        }
+      }
+      // TODO: Handle Partner refund if needed
+    }
+
+    res.status(200).json({ success: true, message: `Withdrawal request ${status} successfully` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const resetExecutiveKyc = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const executive = await Executive.findById(id);
+    if (!executive) return res.status(404).json({ success: false, message: 'Executive not found' });
+
+    // Wipe KYC data
+    executive.kyc = {
+      live_photo: null,
+      aadhar_number: null,
+      aadhar_image: null,
+      pan_number: null,
+      pan_image: null,
+      rejection_reason: null
+    };
+    executive.onboarding_status = 'incomplete';
+    executive.is_active = false;
+
+    await executive.save();
+
+    // Log the activity
+    await logActivity({
+      actor_name: req.user.name,
+      actor_id: req.user.id,
+      action: 'kyc_reset',
+      entity_type: 'executive',
+      entity_name: executive.name,
+      entity_id: executive._id,
+      description: `Admin ${req.user.name} reset KYC for executive ${executive.name}`
+    });
+
+    res.status(200).json({ success: true, message: 'Executive KYC reset successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getExecutiveSettings = async (req, res) => {
+  try {
+    const commissionAmount = await AppConfig.findOne({ key: 'executive_commission_amount' });
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        commission_amount: commissionAmount ? commissionAmount.value : 100
+      }
+    });
+  } catch (error) {
+    console.error("Get executive settings error:", error);
+    res.status(500).json({ success: false, message: 'Error fetching Executive settings.' });
+  }
+};
+
+const updateExecutiveSettings = async (req, res) => {
+  try {
+    const { commission_amount } = req.body;
+
+    if (commission_amount !== undefined) {
+      await AppConfig.findOneAndUpdate(
+        { key: 'executive_commission_amount' },
+        { 
+          value: Number(commission_amount), 
+          description: 'Amount credited to Executive wallet per verified partner referral' 
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    // Log activity
+    await logActivity({
+      actor_name: req.user.name,
+      actor_id: req.user.id,
+      action: 'settings_updated',
+      entity_type: 'system',
+      entity_name: 'Executive Commission',
+      description: `Updated executive commission to ₹${commission_amount}`
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Executive settings updated successfully!'
+    });
+  } catch (error) {
+    console.error("Update executive settings error:", error);
+    res.status(500).json({ success: false, message: 'Error updating Executive settings.' });
+  }
+};
+
 module.exports = {
   findNearestMandiSellers,
   assignMandiEnquiry,
@@ -2818,5 +3083,15 @@ module.exports = {
   processRoleRequest,
   getRoleRequests,
   getOfferConfig,
-  updateOfferConfig
+  updateOfferConfig,
+  getAllExecutives,
+  getExecutiveDetail,
+  updateExecutiveStatus,
+  toggleExecutiveActiveStatus,
+  deleteExecutive,
+  resetExecutiveKyc,
+  getWithdrawalRequests,
+  updateWithdrawalStatus,
+  getExecutiveSettings,
+  updateExecutiveSettings
 };

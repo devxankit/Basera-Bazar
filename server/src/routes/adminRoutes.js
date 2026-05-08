@@ -54,7 +54,17 @@ const {
   processRoleRequest,
   getRoleRequests,
   getOfferConfig,
-  updateOfferConfig
+  updateOfferConfig,
+  getAllExecutives,
+  getExecutiveDetail,
+  updateExecutiveStatus,
+  toggleExecutiveActiveStatus,
+  deleteExecutive,
+  resetExecutiveKyc,
+  getWithdrawalRequests,
+  updateWithdrawalStatus,
+  getExecutiveSettings,
+  updateExecutiveSettings
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -148,6 +158,20 @@ router.put('/mandi/settings', updateMandiSettings);
 
 // Offer Management
 router.put('/system/offers', updateOfferConfig);
+
+// Executive Management
+router.get('/executives', getAllExecutives);
+router.get('/executives/:id', getExecutiveDetail);
+router.patch('/executives/:id/status', updateExecutiveStatus);
+router.patch('/executives/:id/toggle-active', toggleExecutiveActiveStatus);
+router.delete('/executives/:id', deleteExecutive);
+router.get('/executives/config/settings', getExecutiveSettings);
+router.put('/executives/config/settings', updateExecutiveSettings);
+router.post('/executives/:id/reset-kyc', resetExecutiveKyc);
+
+// Withdrawal Requests
+router.get('/withdrawals', getWithdrawalRequests);
+router.patch('/withdrawals/:id/status', updateWithdrawalStatus);
 
 // Dynamic Form Data Endpoints
 // Subscription Plan Management

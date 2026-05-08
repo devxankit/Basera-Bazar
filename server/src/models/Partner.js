@@ -203,6 +203,15 @@ const partnerSchema = new mongoose.Schema({
   fcmTokenMobile: {
     type: [String],
     default: []
+  },
+  referred_by_executive: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Executive',
+    default: null
+  },
+  referral_code_used: {
+    type: String,
+    default: null
   }
 }, { timestamps: true });
 

@@ -22,22 +22,29 @@ export const AuthProvider = ({ children }) => {
     }
   });
   const [loading, setLoading] = useState(true);
-  const [accountDeleted, setAccountDeleted] = useState(false);
+  const [accountStatusError, setAccountStatusError] = useState({ show: false, title: '', message: '' });
 
-  // -----------------------------------------------------
-  // SESSION RESTORATION
-  // -----------------------------------------------------
-  // When the app first loads, we check if there's a token.
-  // if yes, we fetch the real profile from the backend.
-   // Monitor global API errors for account deletion
+  // Monitor global API errors for account deletion or deactivation
   useEffect(() => {
     const interceptor = api.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response && error.response.status === 401) {
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           const message = error.response.data?.message;
+          const code = error.response.data?.code;
+          
           if (message === 'User no longer exists.' || message === 'Account deleted') {
-            setAccountDeleted(true);
+            setAccountStatusError({
+              show: true,
+              title: 'Account Not Found',
+              message: 'Your account no longer exists or has been removed. You will be redirected to the login page.'
+            });
+          } else if (error.response.status === 403 && (message === 'Your account has been deactivated.' || code === 'ACCOUNT_INACTIVE')) {
+            setAccountStatusError({
+              show: true,
+              title: 'Account Deactivated',
+              message: 'Your account has been deactivated by the administrator. Please contact support for more information.'
+            });
           }
         }
         return Promise.reject(error);
@@ -47,11 +54,17 @@ export const AuthProvider = ({ children }) => {
     return () => api.interceptors.response.eject(interceptor);
   }, []);
 
-  const handleAccountDeletedConfirm = () => {
-    const isPartnerRoute = window.location.pathname.startsWith('/partner');
-    setAccountDeleted(false);
+  const handleStatusErrorConfirm = () => {
+    const path = window.location.pathname;
+    const isPartnerRoute = path.startsWith('/partner');
+    const isExecutiveRoute = path.startsWith('/executive');
+    
+    setAccountStatusError({ show: false, title: '', message: '' });
     logout();
-    window.location.href = isPartnerRoute ? '/partner/login' : '/login';
+    
+    if (isPartnerRoute) window.location.href = '/partner/login';
+    else if (isExecutiveRoute) window.location.href = '/executive/login';
+    else window.location.href = '/login';
   };
 
   useEffect(() => {
@@ -69,13 +82,13 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (error) {
           console.error("Session sync failed:", error.response?.status);
-          if (error.response?.status === 401) {
-            const message = error.response.data?.message;
-            if (message === 'User no longer exists.') {
-              setAccountDeleted(true);
-            } else {
-              logout();
-            }
+          if (error.response?.status === 401 || error.response?.status === 403) {
+             const message = error.response.data?.message;
+             if (message === 'User no longer exists.' || message === 'Your account has been deactivated.') {
+                // Interceptor will handle the modal
+             } else {
+                logout();
+             }
           }
         }
       } else if (!token) {
@@ -136,11 +149,11 @@ export const AuthProvider = ({ children }) => {
       {!loading && children}
 
       <ConfirmationModal
-        isOpen={accountDeleted}
-        onClose={handleAccountDeletedConfirm}
-        onConfirm={handleAccountDeletedConfirm}
-        title="Account Not Found"
-        message="Your account no longer exists or has been removed. You will be redirected to the login page."
+        isOpen={accountStatusError.show}
+        onClose={handleStatusErrorConfirm}
+        onConfirm={handleStatusErrorConfirm}
+        title={accountStatusError.title}
+        message={accountStatusError.message}
         confirmText="Okay"
         cancelText="Close"
         type="warning"

@@ -3,6 +3,7 @@ const axios = require('axios');
 const { RazorpayOrder, Subscription, SubscriptionPlan, Transaction } = require('../models/Finance');
 const { Partner } = require('../models/Partner');
 const { AppConfig } = require('../models/System');
+const { creditExecutivePayout } = require('../utils/executiveHelper');
 
 /**
  * Helper to create Razorpay Order via axios
@@ -159,6 +160,15 @@ const verifySubscription = async (req, res) => {
       razorpay_order_id: order?._id,
       reference_id: subscription._id
     });
+
+    // 6. Trigger Executive Payout if referred and this is a PAID plan
+    if (plan.price > 0) {
+      const partner = await Partner.findById(partnerId);
+      if (partner && partner.referral_code_used) {
+        // We use the helper to handle the logic (checks for active exec, records tx, etc.)
+        await creditExecutivePayout(partner.referral_code_used, partnerId, partner.business_name || partner.name);
+      }
+    }
 
     res.status(200).json({ 
       success: true, 

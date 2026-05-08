@@ -50,7 +50,8 @@ export default function PartnerRegistration() {
     profileImage: null,
     service_radius_km: 100,
     city: '',
-    coords: null
+    coords: null,
+    referral_code: ''
   });
   
   const [authState, setAuthState] = useState(null); // { token, user }
@@ -242,7 +243,8 @@ export default function PartnerRegistration() {
         theme: { color: "#4f46e5" },
         modal: {
           ondismiss: () => setIsSubmitting(false)
-        }
+        },
+        // Pass referral code to verify if needed, but it's already in formData
       };
 
       const rzp = new window.Razorpay(options);

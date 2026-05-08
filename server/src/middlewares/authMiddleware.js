@@ -27,12 +27,15 @@ const protect = async (req, res, next) => {
       const { AdminUser } = require('../models/Admin');
       const { User } = require('../models/User');
       const { Partner } = require('../models/Partner');
+      const Executive = require('../models/Executive');
 
       let userFound;
       if (decoded.role === 'super_admin' || decoded.role === 'SuperAdmin') {
         userFound = await AdminUser.findById(decoded.id).select('-password');
       } else if (decoded.role === 'partner') {
         userFound = await Partner.findById(decoded.id).select('-password').populate('active_subscription_id');
+      } else if (decoded.role === 'executive') {
+        userFound = await Executive.findById(decoded.id).select('-password');
       } else {
         userFound = await User.findById(decoded.id).select('-password');
       }
@@ -48,8 +51,8 @@ const protect = async (req, res, next) => {
         return res.status(403).json({ success: false, message: 'Your account has been suspended. Please contact support.' });
       }
 
-      // For customers (Users), we still enforce strict is_active check
-      if (decoded.role === 'user' && userFound.is_active === false) {
+      // Generic Activity Check (for Users & Executives)
+      if (userFound.is_active === false && decoded.role !== 'partner') {
         return res.status(403).json({ success: false, message: 'Your account has been deactivated.' });
       }
 
@@ -63,15 +66,15 @@ const protect = async (req, res, next) => {
 
       // Attach the REAL database object to req.user
       req.user = userFound.toObject();
-      req.user.id = userFound._id; // Ensure compatibility
+      req.user._id = userFound._id;
+      req.user.id = userFound._id.toString();
       
-      // CRITICAL FIX: The DB stores role as 'Agent'/'Supplier'/'Service Provider' for partners,
-      // but the JWT token correctly has role: 'partner'. We preserve the token role for
-      // authorizeRoles() checks (e.g., authorizeRoles('partner')) to work correctly.
-      // The DB role is kept as req.user.db_role for any component that needs it.
+      // CRITICAL FIX: Ensure role is set correctly from token for authorization
       if (decoded.role === 'partner') {
         req.user.db_role = req.user.role; // Save the DB role ('Agent', 'Supplier', etc.)
         req.user.role = 'partner';        // Use the token role for route authorization
+      } else if (decoded.role === 'executive') {
+        req.user.role = 'executive';
       }
       
       // Move on to the actual router function
@@ -115,21 +118,28 @@ const optionalProtect = async (req, res, next) => {
       const { Partner } = require('../models/Partner');
       const { AdminUser } = require('../models/Admin');
       const { User } = require('../models/User');
+      const Executive = require('../models/Executive');
 
       let userFound;
       if (decoded.role === 'super_admin' || decoded.role === 'SuperAdmin') {
         userFound = await AdminUser.findById(decoded.id).select('-password');
       } else if (decoded.role === 'partner') {
         userFound = await Partner.findById(decoded.id).select('-password').populate('active_subscription_id');
+      } else if (decoded.role === 'executive') {
+        userFound = await Executive.findById(decoded.id).select('-password');
       } else {
         userFound = await User.findById(decoded.id).select('-password');
       }
 
       if (userFound) {
         req.user = userFound.toObject();
-        req.user.id = userFound._id;
+        req.user._id = userFound._id;
+        req.user.id = userFound._id.toString();
+        
         if (decoded.role === 'partner') {
           req.user.role = 'partner';
+        } else if (decoded.role === 'executive') {
+          req.user.role = 'executive';
         }
       }
     } catch (error) {

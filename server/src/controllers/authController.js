@@ -1,6 +1,8 @@
 const { User, Otp } = require('../models/User');
 const { Partner } = require('../models/Partner');
 const { AdminUser } = require('../models/Admin');
+const { Category, AppConfig } = require('../models/System');
+const Executive = require('../models/Executive');
 const { sendOTP } = require('../utils/sms');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -166,7 +168,7 @@ const verifyOtp = async (req, res) => {
       partner_type,
       name, email, password,
       address, city, state, district, pincode, coords,
-      service_radius_km
+      service_radius_km, referral_code
     } = req.body;
     const phone = rawPhone ? rawPhone.trim() : '';
 
@@ -280,8 +282,34 @@ const verifyOtp = async (req, res) => {
             state,
             district,
             pincode
+          }),
+          ...(role === 'partner' && referral_code && {
+            referral_code_used: referral_code
           })
         });
+
+        // Handle Referral Logic
+        if (role === 'partner' && referral_code) {
+          const executive = await Executive.findOne({ referral_code: referral_code.toUpperCase() });
+          
+          // Only process referral if executive is verified/approved
+          if (executive && ['approved', 'verified'].includes(executive.onboarding_status)) {
+            account.referred_by_executive = executive._id;
+            await account.save();
+
+            // Credit commission to executive wallet
+            const commissionConfig = await AppConfig.findOne({ key: 'executive_commission_amount' });
+            const commissionAmount = commissionConfig ? Number(commissionConfig.value) : 100; // Default 100
+
+            executive.wallet_balance += commissionAmount;
+            executive.total_earnings += commissionAmount;
+            await executive.save();
+
+            console.log(`[REFERRAL] Partner ${account._id} referred by Executive ${executive._id}. Credited ${commissionAmount}`);
+          } else if (executive) {
+            console.log(`[REFERRAL] Referral code ${referral_code} used, but Executive ${executive._id} is NOT verified yet. Skipping credit.`);
+          }
+        }
 
         // Log registration activity for admin dashboard
         logActivity({
@@ -308,20 +336,13 @@ const verifyOtp = async (req, res) => {
         });
       }
 
-      // NEW: Block suspended accounts OR inactive customers
-      // Partners are allowed to login even if is_active is false (e.g. pending approval)
-      // but NOT if they are explicitly suspended.
-      const isPartner = account.roles && account.roles.length > 0 || account.partner_type;
+      // NEW: Block deactivated accounts
       if (account.is_active === false) {
-        if (!isPartner || account.onboarding_status === 'suspended') {
-          return res.status(403).json({
-            success: false,
-            code: 'ACCOUNT_INACTIVE',
-            message: account.onboarding_status === 'suspended' 
-              ? 'Your account has been suspended. Please contact support.' 
-              : 'Account is inactive. Please contact the administrator.'
-          });
-        }
+        return res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_INACTIVE',
+          message: 'Your account is deactivated. Please contact the administrator.'
+        });
       }
     }
 
@@ -473,12 +494,12 @@ const loginWithPassword = async (req, res) => {
       return res.status(401).json({ success: false, message: `Incorrect password. Please try again.` });
     }
 
-    // NEW: Block inactive users from Login via Password
+    // NEW: Block deactivated accounts
     if (account.is_active === false) {
       return res.status(403).json({
         success: false,
         code: 'ACCOUNT_INACTIVE',
-        message: 'Account is inactive. Please contact the administrator.'
+        message: 'Your account is deactivated. Please contact the administrator.'
       });
     }
 

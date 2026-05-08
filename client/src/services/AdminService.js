@@ -13,22 +13,40 @@ export const getAdminUsers = async () => {
 
 export const getRoleRequests = async () => {
   return cacheService.get('admin_role_requests', async () => {
-    const res = await api.get('/admin/partners/role-requests');
+      const res = await api.get('/admin/partners/role-requests');
+    return res.data.data || [];
+  });
+};
+
+export const getExecutives = async () => {
+  return cacheService.get('admin_executives', async () => {
+    const res = await api.get('/admin/executives');
+    return res.data.data || [];
+  });
+};
+
+export const getWithdrawals = async () => {
+  return cacheService.get('admin_withdrawals', async () => {
+    const res = await api.get('/admin/withdrawals');
     return res.data.data || [];
   });
 };
 
 export const getAdminStats = async () => {
   return cacheService.get('admin_stats', async () => {
-    const [users, requests] = await Promise.all([
+    const [users, requests, executives] = await Promise.all([
       getAdminUsers(),
-      getRoleRequests()
+      getRoleRequests(),
+      getExecutives()
     ]);
 
     return {
       totalUsers: users.length,
       pendingRoles: requests.filter(r => r.status === 'pending').length,
-      totalPartners: users.filter(u => u.role !== 'user' && u.role !== 'admin').length
+      totalPartners: users.filter(u => u.role !== 'user' && u.role !== 'admin').length,
+      users,
+      upgrades: requests,
+      executives
     };
   });
 };
