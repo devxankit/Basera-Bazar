@@ -37,9 +37,6 @@ export default function ExecutiveDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [withdrawing, setWithdrawing] = useState(false);
 
   const fetchDashboard = async () => {
     try {
@@ -69,26 +66,7 @@ export default function ExecutiveDashboard() {
     }
   };
 
-  const handleWithdraw = async () => {
-    if (!withdrawAmount || Number(withdrawAmount) <= 0) return;
-    if (Number(withdrawAmount) > data.profile.wallet_balance) {
-      toast.error("Insufficient balance");
-      return;
-    }
 
-    setWithdrawing(true);
-    try {
-      await api.post('/executive/withdraw', { amount: Number(withdrawAmount) });
-      toast.success("Withdrawal request submitted!");
-      setShowWithdrawModal(false);
-      setWithdrawAmount('');
-      fetchDashboard();
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Request failed");
-    } finally {
-      setWithdrawing(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -266,31 +244,7 @@ export default function ExecutiveDashboard() {
           )}
         </AnimatePresence>
 
-        {/* Simple Balance Card */}
-        <motion.div variants={itemVariants} className="bg-gradient-to-br from-[#181d5f] to-[#252b75] p-6 rounded-2xl text-white shadow-lg">
-          <div className="flex justify-between items-start mb-8">
-            <div className="space-y-1">
-              <p className="text-[10px] font-medium text-slate-300 uppercase tracking-widest">Available Balance</p>
-              <h3 className="text-3xl font-medium">₹{profile?.wallet_balance?.toLocaleString() || 0}</h3>
-            </div>
-            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-              <Wallet size={20} />
-            </div>
-          </div>
-          
-          <div className="flex gap-3">
-            <button 
-              onClick={() => setShowWithdrawModal(true)}
-              className="flex-1 bg-[#fa8639] py-3 rounded-xl font-medium text-sm"
-            >
-              Withdraw
-            </button>
-            <div className="flex-1 bg-white/10 p-3 rounded-xl flex flex-col justify-center">
-              <p className="text-[8px] text-white/60 uppercase">Lifetime</p>
-              <p className="text-sm font-medium">₹{profile?.total_earnings?.toLocaleString() || 0}</p>
-            </div>
-          </div>
-        </motion.div>
+
 
         {/* Simplified Metrics */}
         <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
@@ -355,67 +309,7 @@ export default function ExecutiveDashboard() {
 
       </motion.div>
 
-      {/* Withdrawal Bottom Sheet — Redesigned for Premium feel */}
-      <AnimatePresence>
-        {showWithdrawModal && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-4 sm:px-0 sm:pb-0">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setShowWithdrawModal(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-            />
-            <motion.div 
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative w-full max-w-md bg-white rounded-t-[3.5rem] p-10 pb-12 shadow-2xl overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#181d5f] to-[#fa8639]" />
-              
-              <div className="text-center space-y-2 mb-10">
-                <div className="w-20 h-1.5 bg-slate-100 rounded-full mx-auto mb-6" />
-                <h2 className="text-3xl font-black text-[#181d5f] tracking-tighter font-outfit">Payout Engine</h2>
-                <p className="text-[10px] font-black text-[#fa8639] uppercase tracking-[0.3em] font-outfit">Secure Bank Transfer</p>
-              </div>
 
-              <div className="space-y-8">
-                <div className="bg-slate-50/80 backdrop-blur-sm p-8 rounded-[2.5rem] text-center border border-slate-100 shadow-inner">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 font-outfit">Available for Payout</p>
-                  <p className="text-4xl font-black text-slate-900 tracking-tighter font-outfit">₹{profile?.wallet_balance?.toLocaleString() || 0}</p>
-                </div>
-
-                <div className="space-y-4 px-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 font-outfit">Specify Amount</label>
-                  <div className="relative group">
-                    <span className="absolute left-8 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300 transition-colors group-focus-within:text-indigo-600">₹</span>
-                    <input 
-                      type="number"
-                      value={withdrawAmount}
-                      onChange={(e) => setWithdrawAmount(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full bg-slate-50/50 border-2 border-slate-100 py-7 pl-16 pr-8 rounded-3xl text-3xl font-black text-slate-900 focus:outline-none focus:bg-white focus:ring-8 focus:ring-indigo-600/5 focus:border-indigo-600/30 transition-all font-outfit"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <button onClick={() => setShowWithdrawModal(false)} className="flex-grow py-5 bg-slate-100 text-slate-500 font-black rounded-[2rem] hover:bg-slate-200 active:scale-[0.98] transition-all font-outfit text-xs tracking-widest">CANCEL</button>
-                  <button 
-                    onClick={handleWithdraw}
-                    disabled={withdrawing || !withdrawAmount || Number(withdrawAmount) > profile.wallet_balance}
-                    className="flex-[2] py-5 bg-[#181d5f] text-white font-black rounded-[2rem] shadow-xl shadow-slate-100 active:scale-[0.98] transition-all disabled:opacity-30 font-outfit text-xs tracking-widest"
-                  >
-                    {withdrawing ? 'PROCESSING...' : 'CONFIRM PAYOUT'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

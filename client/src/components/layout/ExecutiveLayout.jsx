@@ -10,7 +10,8 @@ const ExecutiveLayout = ({ children }) => {
   const hideBottomNavPaths = [
     '/executive/login',
     '/executive/register',
-    '/executive/signup'
+    '/executive/signup',
+    '/executive/payout'
   ];
   
   const shouldHideBottomNav = hideBottomNavPaths.some(path => location.pathname.startsWith(path));

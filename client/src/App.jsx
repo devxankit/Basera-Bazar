@@ -66,6 +66,7 @@ import ExecutiveDashboard from './pages/executive/ExecutiveDashboard';
 import ExecutivePartners from './pages/executive/ExecutivePartners';
 import ExecutiveWallet from './pages/executive/ExecutiveWallet';
 import ExecutiveProfile from './pages/executive/ExecutiveProfile';
+import ExecutivePayout from './pages/executive/ExecutivePayout';
 import ExecutiveLayout from './components/layout/ExecutiveLayout';
 
 import AdminLeads from './pages/admin/AdminLeads';
@@ -461,6 +462,13 @@ function App() {
               <ExecutiveRoute>
                 <ExecutiveLayout>
                   <ExecutiveProfile />
+                </ExecutiveLayout>
+              </ExecutiveRoute>
+            } />
+            <Route path="/executive/payout" element={
+              <ExecutiveRoute>
+                <ExecutiveLayout>
+                  <ExecutivePayout />
                 </ExecutiveLayout>
               </ExecutiveRoute>
             } />

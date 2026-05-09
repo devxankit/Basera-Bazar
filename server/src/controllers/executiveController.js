@@ -414,11 +414,30 @@ exports.getMyPartners = async (req, res) => {
  */
 exports.getMyTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find({ executive_id: req.user.id })
-      .sort({ createdAt: -1 });
+    const [transactions, withdrawals] = await Promise.all([
+      Transaction.find({ executive_id: req.user.id }).sort({ createdAt: -1 }),
+      WithdrawalRequest.find({ user_id: req.user.id, user_type: 'Executive' }).sort({ createdAt: -1 })
+    ]);
 
-    res.status(200).json({ success: true, data: transactions });
+    // Format withdrawals to match transaction list UI
+    const formattedWithdrawals = withdrawals.map(w => ({
+      _id: w._id,
+      amount: w.amount,
+      type: 'executive_withdrawal',
+      direction: 'debit',
+      status: w.status === 'approved' || w.status === 'completed' ? 'success' : w.status,
+      createdAt: w.createdAt,
+      is_withdrawal: true
+    }));
+
+    // Merge and sort
+    const allActivity = [...transactions, ...formattedWithdrawals].sort((a, b) => 
+      new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+    res.status(200).json({ success: true, data: allActivity });
   } catch (error) {
+    console.error('Fetch Transactions Error:', error);
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
