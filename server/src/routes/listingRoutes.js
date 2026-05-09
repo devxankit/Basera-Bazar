@@ -14,11 +14,11 @@ router.get('/mandi', debounceMiddleware, cacheMiddleware(5), listingController.g
 router.get('/categories', debounceMiddleware, cacheMiddleware(60), listingController.getPublicCategories); // Categories change rarely
 
 // Seller Attributes (types, sub-types, brands) — public
-router.get('/seller-attributes', debounceMiddleware, listingController.getSellerAttributes);
+router.get('/seller-attributes', debounceMiddleware, cacheMiddleware(5, false), listingController.getSellerAttributes);
 
 // private routes (Partner specific) — MUST be before /:id catch-all!
-router.get('/my', protect, authorizeRoles('partner'), listingController.getMyListings);
-router.get('/seller-attributes/my', protect, authorizeRoles('partner'), listingController.getMySellerAttributes);
+router.get('/my', protect, authorizeRoles('partner'), cacheMiddleware(5, true), listingController.getMyListings);
+router.get('/seller-attributes/my', protect, authorizeRoles('partner'), cacheMiddleware(10, true), listingController.getMySellerAttributes);
 router.post('/properties', protect, authorizeRoles('partner'), verifyApproved, listingController.createPropertyListing);
 router.post('/services', protect, authorizeRoles('partner'), verifyApproved, listingController.createServiceListing);
 router.post('/mandi', protect, authorizeRoles('partner'), verifyApproved, listingController.createMandiListing);
@@ -33,6 +33,6 @@ router.delete('/:id', protect, authorizeRoles('partner', 'admin', 'super_admin',
 
 // Parameterized catch-all — MUST be LAST
 router.post('/:id/interaction', listingController.recordListingInteraction);
-router.get('/:id', optionalProtect, listingController.getListingById);
+router.get('/:id', optionalProtect, cacheMiddleware(5, false), listingController.getListingById);
 
 module.exports = router;

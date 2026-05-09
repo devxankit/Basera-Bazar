@@ -9,6 +9,7 @@ const {
   getMandiLimits
 } = require('../utils/subscriptionUtils');
 const CacheManager = require('../utils/cache');
+const invalidate = require('../utils/cacheInvalidator');
 
 const mongoose = require('mongoose');
 
@@ -227,7 +228,8 @@ const createPropertyListing = async (req, res) => {
     });
 
     res.status(201).json({ success: true, message: 'Property submitted for Admin review.', data: newProperty });
-    CacheManager.clearByPrefix('__express__/api/listings');
+    await invalidate.publicListings();
+    await invalidate.adminDashboard();
 
   } catch (error) {
     console.error("Error creating property:", error.message);
@@ -323,7 +325,8 @@ const createServiceListing = async (req, res) => {
     }
 
     res.status(201).json({ success: true, message: 'Service listing created successfully.', data: newService });
-    CacheManager.clearByPrefix('__express__/api/listings');
+    await invalidate.publicListings();
+    await invalidate.adminDashboard();
   } catch (error) {
     console.error("Error creating service listing:", error);
     if (error.name === 'ValidationError') {
@@ -763,7 +766,8 @@ const updateListing = async (req, res) => {
 
     const message = nextStatus === 'active' ? 'Listing updated successfully' : 'Listing updated and submitted for review';
     res.status(200).json({ success: true, message, data: updated });
-    CacheManager.clearByPrefix('__express__/api/listings');
+    await invalidate.publicListings();
+    await invalidate.adminDashboard();
   } catch (error) {
     console.error("Error updating listing:", error);
     res.status(500).json({ success: false, message: 'Server error updating listing' });
@@ -794,6 +798,9 @@ const deleteListing = async (req, res) => {
     if (!deleted) {
       return res.status(404).json({ success: false, message: 'Listing not found' });
     }
+
+    await invalidate.publicListings();
+    await invalidate.adminDashboard();
 
     res.status(200).json({ success: true, message: 'Listing deleted successfully' });
   } catch (error) {
@@ -918,7 +925,8 @@ const createMandiListing = async (req, res) => {
     });
 
     res.status(201).json({ success: true, message: 'Material listed successfully.', data: newMandiItem });
-    CacheManager.clearByPrefix('__express__/api/listings');
+    await invalidate.publicListings();
+    await invalidate.adminDashboard();
   } catch (error) {
     console.error("Error creating Mandi listing:", error);
     res.status(500).json({ success: false, message: 'Server error creating mandi listing.', error: error.message });

@@ -164,12 +164,24 @@ export default function ExecutiveDashboard() {
             <h1 className="text-xl font-medium text-slate-900">Executive Panel</h1>
             <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Operational Console</p>
           </div>
-          <button 
-            onClick={() => { logout(); navigate('/executive/login'); }}
-            className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
-          >
-            <LogOut size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => {
+                setLoading(true);
+                fetchDashboard();
+                toast.success('Syncing details...');
+              }}
+              className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+            >
+              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <button 
+              onClick={() => { logout(); navigate('/executive/login'); }}
+              className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -225,17 +237,31 @@ export default function ExecutiveDashboard() {
           {showVerifiedBanner && (
             <motion.div
               variants={itemVariants}
-              className="p-5 rounded-2xl bg-slate-900 text-white"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="relative overflow-hidden p-6 rounded-3xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-100 shadow-sm"
             >
-              <div className="flex gap-4">
-                <div className="p-3 bg-[#fa8639] rounded-xl">
-                  <PartyPopper size={20} />
+              <div className="flex items-center gap-5">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-emerald-400 blur-xl opacity-20 animate-pulse" />
+                  <div className="relative p-4 bg-white rounded-2xl shadow-sm border border-emerald-50 text-emerald-600">
+                    <ShieldCheck size={24} />
+                  </div>
                 </div>
                 <div>
-                  <h3 className="font-medium">Verified Executive</h3>
-                  <p className="text-xs text-slate-400 mt-1">Your account is fully active. You can now start onboarding partners.</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Account Verified</h3>
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  </div>
+                  <p className="text-xs font-medium text-slate-500 leading-relaxed max-w-[200px]">
+                    Congratulations! Your field profile is now fully active for all operations.
+                  </p>
                 </div>
               </div>
+              
+              {/* Decorative elements */}
+              <div className="absolute -top-6 -right-6 w-24 h-24 bg-emerald-100/30 rounded-full blur-3xl" />
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-teal-100/20 rounded-full blur-3xl" />
             </motion.div>
           )}
         </AnimatePresence>

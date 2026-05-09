@@ -16,15 +16,17 @@ const {
   getPartnerSubscriptionLimits
 } = require('../controllers/partnerController');
 
-// Import our security middlewares!
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
+const cacheMiddleware = require('../middlewares/cacheMiddleware');
+const validate = require('../middlewares/validateMiddleware');
+const { partnerRegistrationSchema } = require('../utils/validators');
 
 // -------------------------------------------------------------------------
 // PUBLIC ROUTES
 // -------------------------------------------------------------------------
 
-router.get('/public', getPublicPartners);
-router.get('/public/:id', getPublicPartnerById);
+router.get('/public', cacheMiddleware(5, false), getPublicPartners);
+router.get('/public/:id', cacheMiddleware(10, false), getPublicPartnerById);
 
 // -------------------------------------------------------------------------
 // PROTECTED ROUTES (Only Partners can access these!)
@@ -34,6 +36,7 @@ router.post(
   '/onboard', 
   protect,
   authorizeRoles('partner'),
+  validate(partnerRegistrationSchema),
   onboardPartner
 );
 
@@ -41,6 +44,7 @@ router.get(
   '/profile',
   protect,
   authorizeRoles('partner'),
+  cacheMiddleware(10, true),
   getMyPartnerProfile
 );
 
@@ -48,6 +52,7 @@ router.get(
   '/stats',
   protect,
   authorizeRoles('partner'),
+  cacheMiddleware(5, true),
   getPartnerStats
 );
 
@@ -92,6 +97,7 @@ router.get(
   '/activities',
   protect,
   authorizeRoles('partner'),
+  cacheMiddleware(3, true),
   getActivities
 );
 
@@ -99,6 +105,7 @@ router.get(
   '/subscription/limits',
   protect,
   authorizeRoles('partner'),
+  cacheMiddleware(5, true),
   getPartnerSubscriptionLimits
 );
 

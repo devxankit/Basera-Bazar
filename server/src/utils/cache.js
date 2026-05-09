@@ -1,7 +1,11 @@
-const cache = new Map();
+const redisClient = require('../config/redis');
+
+// Fallback in-memory cache (original implementation)
+const memoryCache = new Map();
 
 /**
- * Simple in-memory cache with TTL (Time To Live) support.
+ * Universal Cache Manager
+ * Uses Redis if available, falls back to in-memory Map if not.
  */
 const CacheManager = {
   /**
@@ -10,9 +14,19 @@ const CacheManager = {
    * @param {any} value 
    * @param {number} ttlMinutes Default 5 minutes
    */
-  set: (key, value, ttlMinutes = 5) => {
+  set: async (key, value, ttlMinutes = 5) => {
+    try {
+      if (redisClient && redisClient.status === 'ready') {
+        await redisClient.setex(key, ttlMinutes * 60, JSON.stringify(value));
+        return;
+      }
+    } catch (e) {
+      // Ignore redis error and fallback
+    }
+
+    // Fallback
     const expires = Date.now() + ttlMinutes * 60 * 1000;
-    cache.set(key, { value, expires });
+    memoryCache.set(key, { value, expires });
   },
 
   /**
@@ -20,12 +34,22 @@ const CacheManager = {
    * @param {string} key 
    * @returns {any|null}
    */
-  get: (key) => {
-    const data = cache.get(key);
+  get: async (key) => {
+    try {
+      if (redisClient && redisClient.status === 'ready') {
+        const data = await redisClient.get(key);
+        return data ? JSON.parse(data) : null;
+      }
+    } catch (e) {
+      // Ignore redis error and fallback
+    }
+
+    // Fallback
+    const data = memoryCache.get(key);
     if (!data) return null;
 
     if (Date.now() > data.expires) {
-      cache.delete(key);
+      memoryCache.delete(key);
       return null;
     }
 
@@ -36,18 +60,37 @@ const CacheManager = {
    * Delete a specific key
    * @param {string} key 
    */
-  delete: (key) => {
-    cache.delete(key);
+  delete: async (key) => {
+    try {
+      if (redisClient && redisClient.status === 'ready') {
+        await redisClient.del(key);
+        return;
+      }
+    } catch (e) {}
+    
+    // Fallback
+    memoryCache.delete(key);
   },
 
   /**
    * Clear all keys starting with a prefix
    * @param {string} prefix 
    */
-  clearByPrefix: (prefix) => {
-    for (const key of cache.keys()) {
+  clearByPrefix: async (prefix) => {
+    try {
+      if (redisClient && redisClient.status === 'ready') {
+        const keys = await redisClient.keys(`${prefix}*`);
+        if (keys.length > 0) {
+          await redisClient.del(...keys);
+        }
+        return;
+      }
+    } catch (e) {}
+
+    // Fallback
+    for (const key of memoryCache.keys()) {
       if (key.startsWith(prefix)) {
-        cache.delete(key);
+        memoryCache.delete(key);
       }
     }
   },
@@ -55,8 +98,16 @@ const CacheManager = {
   /**
    * Clear all cache
    */
-  clear: () => {
-    cache.clear();
+  clear: async () => {
+    try {
+      if (redisClient && redisClient.status === 'ready') {
+        await redisClient.flushall();
+        return;
+      }
+    } catch (e) {}
+
+    // Fallback
+    memoryCache.clear();
   }
 };
 

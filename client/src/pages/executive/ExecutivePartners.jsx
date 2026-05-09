@@ -30,6 +30,7 @@ export default function ExecutivePartners() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all'); // all, approved, pending, rejected
+  const [showFilters, setShowFilters] = useState(false);
 
   const fetchPartners = async () => {
     try {
@@ -63,9 +64,9 @@ export default function ExecutivePartners() {
   return (
     <div className="min-h-screen mesh-gradient flex flex-col max-w-md mx-auto relative overflow-x-hidden pb-32">
       
-      {/* Premium Search & Header Section */}
-      <div className="sticky top-0 z-40 ultra-glass px-6 pt-10 pb-8 border-b border-white/40 shadow-xl shadow-slate-900/5">
-        <div className="flex items-center gap-4 mb-8">
+      {/* Premium Search & Header Section — compact */}
+      <div className="sticky top-0 z-40 ultra-glass px-6 pt-8 pb-5 border-b border-white/40 shadow-xl shadow-slate-900/5">
+        <div className="flex items-center gap-4 mb-5">
           <div className="w-12 h-12 bg-[#081229] rounded-2xl flex items-center justify-center shadow-lg">
             <Users size={22} className="text-[#fa8639]" strokeWidth={2.5} />
           </div>
@@ -75,35 +76,57 @@ export default function ExecutivePartners() {
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="relative group">
+        {/* Search + Filter button row */}
+        <div className="flex gap-3 items-center">
+          <div className="relative group flex-1">
             <div className="absolute inset-0 bg-[#fa8639]/5 rounded-[1.5rem] blur-xl group-focus-within:bg-[#fa8639]/10 transition-all pointer-events-none" />
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#fa8639] transition-colors" size={18} />
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#fa8639] transition-colors" size={16} />
             <input 
               type="text"
-              placeholder="Search sellers by name or phone..."
+              placeholder="Search sellers..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="relative w-full bg-white/60 border border-white/80 py-5 pl-16 pr-8 rounded-[1.5rem] text-[15px] font-medium text-slate-900 placeholder:text-slate-300 focus:outline-none focus:bg-white focus:ring-8 focus:ring-[#fa8639]/5 focus:border-[#fa8639]/20 transition-all"
+              className="relative w-full bg-white/60 border border-white/80 py-4 pl-12 pr-4 rounded-[1.5rem] text-[14px] font-medium text-slate-900 placeholder:text-slate-300 focus:outline-none focus:bg-white focus:ring-8 focus:ring-[#fa8639]/5 focus:border-[#fa8639]/20 transition-all"
             />
           </div>
-          
-          <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide px-1">
-            {['all', 'approved', 'pending', 'rejected'].map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-6 py-3 rounded-2xl text-[10px] font-medium uppercase tracking-[0.15em] transition-all whitespace-nowrap border ${
-                  filter === f 
-                    ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 border-slate-900' 
-                    : 'bg-white/60 text-slate-400 border-white/80 hover:bg-white'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
+          <button
+            onClick={() => setShowFilters(f => !f)}
+            className={`relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all shrink-0 ${showFilters ? 'bg-slate-900 text-white shadow-xl' : 'bg-white/60 border border-white/80 text-slate-500'}`}
+          >
+            <Filter size={18} />
+            {filter !== 'all' && (
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#fa8639] rounded-full text-[8px] text-white font-bold flex items-center justify-center">1</span>
+            )}
+          </button>
         </div>
+
+        {/* Collapsible filter pills */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+              animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide px-1">
+                {['all', 'approved', 'pending', 'rejected'].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`px-5 py-2.5 rounded-2xl text-[10px] font-medium uppercase tracking-[0.15em] transition-all whitespace-nowrap border ${
+                      filter === f 
+                        ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 border-slate-900' 
+                        : 'bg-white/60 text-slate-400 border-white/80 hover:bg-white'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <motion.div 

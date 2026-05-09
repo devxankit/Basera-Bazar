@@ -42,7 +42,7 @@ export default function AdminExecutives({ filter = 'All' }) {
   }, []);
 
   const filteredData = executives.filter(item => {
-    if (filter === 'pending' && !(item.onboarding_status === 'pending_approval' || item.onboarding_status === 'pending' || item.onboarding_status === 'incomplete')) return false;
+    if (filter === 'pending' && !(item.onboarding_status === 'pending_approval' || item.onboarding_status === 'pending')) return false;
     
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
@@ -106,13 +106,9 @@ export default function AdminExecutives({ filter = 'All' }) {
 
   const handleDelete = async (id) => {
     if (!window.confirm("CRITICAL: Are you sure you want to PERMANENTLY DELETE this executive? This action cannot be undone.")) return;
-    // Optimistic Update: Remove from UI immediately
-    setExecutives(prev => prev.filter(e => e._id !== id));
-    
     try {
       await api.delete(`/admin/executives/${id}`);
       toast.success('Executive deleted from database');
-      refreshAdminCache();
       fetchData();
       setShowDetailModal(false);
     } catch (err) {
@@ -126,7 +122,6 @@ export default function AdminExecutives({ filter = 'All' }) {
     try {
       await api.post(`/admin/executives/${id}/reset-kyc`);
       toast.success('Executive KYC has been deleted from database');
-      refreshAdminCache();
       fetchData();
       setShowDetailModal(false);
     } catch (err) {
@@ -179,10 +174,8 @@ export default function AdminExecutives({ filter = 'All' }) {
         const status = row.onboarding_status;
         const config = {
           approved: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', icon: CheckCircle2 },
-          verified: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', icon: CheckCircle2 },
           pending: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100', icon: Clock },
           pending_approval: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100', icon: Clock },
-          incomplete: { bg: 'bg-slate-50', text: 'text-slate-500', border: 'border-slate-200', icon: AlertCircle },
           rejected: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100', icon: UserX },
         };
         const { bg, text, border, icon: Icon } = config[status] || { bg: 'bg-slate-50', text: 'text-slate-400', border: 'border-slate-100', icon: AlertCircle };
@@ -208,22 +201,18 @@ export default function AdminExecutives({ filter = 'All' }) {
         <div className="flex items-center gap-2">
           <button 
             onClick={async () => {
-              if (filter === 'pending') {
-                try {
-                  const res = await api.get(`/admin/executives/${row._id}`);
-                  if (res.data.success) {
-                    setSelectedExec(res.data.data);
-                    setShowDetailModal(true);
-                  }
-                } catch (err) {
-                  toast.error("Failed to load details");
+              try {
+                const res = await api.get(`/admin/executives/${row._id}`);
+                if (res.data.success) {
+                  setSelectedExec(res.data.data);
+                  setShowDetailModal(true);
                 }
-              } else {
-                navigate(`/admin/executives/view/${row._id}`);
+              } catch (err) {
+                toast.error("Failed to load details");
               }
             }}
             className="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all group"
-            title={filter === 'pending' ? 'Review Application' : 'View Profile'}
+            title="View Documents"
           >
             <Eye size={18} className="group-hover:scale-110 transition-transform" />
           </button>
@@ -240,6 +229,13 @@ export default function AdminExecutives({ filter = 'All' }) {
             title="Delete Permanently"
           >
             <Trash2 size={18} />
+          </button>
+          <button 
+            onClick={() => navigate(`/admin/executives/view/${row._id}`)}
+            className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 transition-all"
+            title="Full Profile"
+          >
+            <ExternalLink size={18} />
           </button>
         </div>
       )

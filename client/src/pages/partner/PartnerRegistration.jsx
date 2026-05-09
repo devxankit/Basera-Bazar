@@ -205,6 +205,9 @@ export default function PartnerRegistration() {
 
     setIsSubmitting(true);
     try {
+    // Temporarily set token so protected routes work before login() is called
+      api.defaults.headers.common['Authorization'] = `Bearer ${authState.token}`;
+
       // 1. Initiate Subscription
       const initRes = await api.post('/finance/subscription/initiate', {
         plan_id: selectedPlan

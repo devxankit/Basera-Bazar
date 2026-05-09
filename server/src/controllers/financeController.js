@@ -161,8 +161,8 @@ const verifySubscription = async (req, res) => {
       reference_id: subscription._id
     });
 
-    // 6. Trigger Executive Payout if referred and this is a PAID plan
-    if (plan.price > 0) {
+    // 6. Trigger Executive Payout if referred and this is a PAID plan above ₹100
+    if (plan.price > 100) {
       const partner = await Partner.findById(partnerId);
       if (partner && partner.referral_code_used) {
         // We use the helper to handle the logic (checks for active exec, records tx, etc.)

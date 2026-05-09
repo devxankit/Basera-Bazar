@@ -3,6 +3,7 @@ const { ServiceListing, PropertyListing, MandiListing } = require('../models/Lis
 const { Enquiry } = require('../models/Enquiry');
 const { SubscriptionPlan } = require('../models/Finance');
 const Order = require('../models/Order');
+const invalidate = require('../utils/cacheInvalidator');
 
 
 /**
@@ -67,6 +68,9 @@ const onboardPartner = async (req, res) => {
 
     // Save to MongoDB
     await partner.save();
+
+    await invalidate.partnerProfile(partnerId);
+    await invalidate.adminDashboard();
 
     res.status(200).json({
       success: true,
@@ -260,6 +264,8 @@ const addRole = async (req, res) => {
 
     await partner.save();
 
+    await invalidate.partnerProfile(partnerId);
+
     return res.status(200).json({
       success: true,
       message: `Request for "${new_role.replace('_', ' ')}" submitted for admin approval.`,
@@ -320,6 +326,8 @@ const deleteRole = async (req, res) => {
 
     await partner.save();
 
+    await invalidate.partnerProfile(partnerId);
+
     res.status(200).json({
       success: true,
       message: `Role "${role}" deleted successfully.`,
@@ -362,6 +370,8 @@ const switchRole = async (req, res) => {
     partner.active_role = role;
     partner.partner_type = role; // Keep legacy field in sync
     await partner.save();
+
+    await invalidate.partnerProfile(partnerId);
 
     res.status(200).json({
       success: true,
@@ -565,6 +575,8 @@ const toggleFeature = async (req, res) => {
     // Toggle featured status
     partner.is_featured = !partner.is_featured;
     await partner.save();
+
+    await invalidate.partnerProfile(partnerId);
 
     res.status(200).json({
       success: true,

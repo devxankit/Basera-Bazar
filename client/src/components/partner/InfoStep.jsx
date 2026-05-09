@@ -53,6 +53,9 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   const [verifying, setVerifying] = useState(false);
   const [showExistsModal, setShowExistsModal] = useState(false);
   const [errors, setErrors] = useState({});
+  const [referralStatus, setReferralStatus] = useState('idle'); // 'idle', 'validating', 'success', 'error'
+  const [executiveName, setExecutiveName] = useState('');
+  const [shake, setShake] = useState(false);
   
   
   const profileInputRef = useRef(null);
@@ -143,26 +146,57 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.fullName?.trim()) newErrors.fullName = "Full name is required";
+
+    // Name: only alphabets and spaces
+    if (!formData.fullName?.trim()) {
+      newErrors.fullName = "Full name is required";
+    } else if (!/^[a-zA-Z\s]+$/.test(formData.fullName.trim())) {
+      newErrors.fullName = "Name should only contain letters";
+    }
+
+    // Email: standard format
     if (!formData.email?.trim()) {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Invalid email format";
     }
-    if (!formData.phone || formData.phone.length !== 10) {
-      newErrors.phone = "Valid 10-digit phone number is required";
+
+    // Phone: 10 digits, starts with 6-9
+    if (!formData.phone) {
+      newErrors.phone = "Phone number is required";
+    } else if (!/^[6-9]\d{9}$/.test(formData.phone)) {
+      newErrors.phone = "Enter a valid 10-digit Indian mobile number";
     }
+
+    // Password: min 8 chars, at least 1 number
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    } else if (!/\d/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one number";
     }
+
+    // Confirm Password
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
+
+    // Aadhar: exactly 12 digits
+    if (formData.aadhar && !/^\d{12}$/.test(formData.aadhar.replace(/\s/g, ''))) {
+      newErrors.aadhar = "Aadhar must be exactly 12 digits";
+    }
+
+    // PAN: Indian format ABCDE1234F
+    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan.toUpperCase())) {
+      newErrors.pan = "Invalid PAN format (e.g. ABCDE1234F)";
+    }
+
+    // Location
     if (!formData.state || !(formData.city || formData.district)) {
       newErrors.location = "Please set your state and city/district";
     }
+
     if (!formData.service_radius_km) {
       newErrors.service_radius_km = "Service radius is required";
     }
@@ -217,9 +251,26 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
     }
   };
 
+  const handleValidateReferral = async () => {
+    if (!formData.referral_code?.trim()) return;
+    
+    setReferralStatus('validating');
+    try {
+      const res = await api.post('/admin/system/validate-referral', { code: formData.referral_code });
+      if (res.data.success) {
+        setReferralStatus('success');
+        setExecutiveName(res.data.data.name);
+      }
+    } catch (error) {
+      setReferralStatus('error');
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
+  };
+
 
   const states = Object.keys(INDIA_DISTRICTS);
-  const districts = formData.state ? INDIA_DISTRICTS[formData.state] : [];
+  const districts = formData.state ? (INDIA_DISTRICTS[formData.state] || []) : [];
 
   const isPremium = plan === 'premium';
 
@@ -277,14 +328,57 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
         <div>
           <h3 className="text-[14px] font-bold text-[#001b4e] uppercase tracking-wider mb-4 px-1">Required Information</h3>
           <div className="space-y-4">
-            <InputField 
-              icon={<Hash size={18} />} 
-              label="Referral Code (Optional)" 
-              name="referral_code"
-              value={formData.referral_code}
-              onChange={handleChange}
-              placeholder="Enter executive referral code" 
-            />
+            <div className={shake ? "animate-shake" : ""}>
+              <InputField 
+                icon={<Hash size={18} />} 
+                label="Referral Code (Optional)" 
+                name="referral_code"
+                value={formData.referral_code}
+                onChange={(e) => {
+                  handleChange({ target: { name: 'referral_code', value: e.target.value.toUpperCase() } });
+                  if (referralStatus !== 'idle') setReferralStatus('idle');
+                }}
+                placeholder="Enter executive referral code"
+                style={{ 
+                  paddingRight: '90px',
+                  borderColor: referralStatus === 'success' ? '#10b981' : (referralStatus === 'error' ? '#ef4444' : undefined),
+                  backgroundColor: referralStatus === 'success' ? '#f0fdf4' : (referralStatus === 'error' ? '#fef2f2' : undefined),
+                }}
+                action={
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+                    {referralStatus === 'success' ? (
+                      <div className="bg-emerald-500 text-white p-2 rounded-xl flex items-center justify-center transition-all animate-fade-in shadow-lg shadow-emerald-500/20">
+                        <CheckCircle2 size={20} />
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleValidateReferral}
+                        disabled={!formData.referral_code || referralStatus === 'validating'}
+                        className={`px-4 py-2 rounded-xl text-[12px] font-bold transition-all bg-[#001b4e] text-white ${(!formData.referral_code || referralStatus === 'validating') ? 'opacity-50' : 'opacity-100'}`}
+                      >
+                        {referralStatus === 'validating' ? <Loader2 size={14} className="animate-spin" /> : 'CHECK'}
+                      </button>
+                    )}
+                  </div>
+                }
+              />
+              <AnimatePresence>
+                {referralStatus === 'success' && executiveName && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-2 px-1 flex items-center gap-2"
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[12px] font-bold text-emerald-600 tracking-wide uppercase">
+                      Referred by: <span className="text-[#001b4e]">{executiveName}</span>
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <InputField 
               icon={<User size={18} />} 
               label="Full Name *" 
@@ -724,7 +818,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   );
 }
 
-function InputField({ label, icon, prefix, type = "text", placeholder, toggle, value, onChange, name, disabled, style, error }) {
+function InputField({ label, icon, prefix, type = "text", placeholder, toggle, action, value, onChange, name, disabled, style, error }) {
   return (
     <div className="flex flex-col gap-1.5 w-full">
       <div className="relative">
@@ -752,6 +846,7 @@ function InputField({ label, icon, prefix, type = "text", placeholder, toggle, v
             style={style}
             className={`w-full bg-white border ${error ? 'border-red-500' : 'border-slate-200'} rounded-2xl py-4.5 ${icon ? (prefix ? 'pl-22' : 'pl-12') : (prefix ? 'pl-14' : 'pl-5')} pr-12 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all`}
           />
+          {action}
           {toggle && (
             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
               {toggle}

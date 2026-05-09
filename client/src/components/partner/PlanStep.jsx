@@ -7,6 +7,7 @@ export default function PlanStep({ selectedRole, selectedPlan, onSelect, onNext,
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState([]);
   const [offerActive, setOfferActive] = useState(false);
+  const [promotionalBanner, setPromotionalBanner] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -47,6 +48,12 @@ export default function PlanStep({ selectedRole, selectedPlan, onSelect, onNext,
 
       if (offerRes.data.success) {
         setOfferActive(offerRes.data.data?.OFFER_1_PLUS_1?.is_active || false);
+        const promoBanner = offerRes.data.data?.PROMOTIONAL_BANNER;
+        if (promoBanner && promoBanner.is_active) {
+            setPromotionalBanner(promoBanner.image_url || null);
+        } else {
+            setPromotionalBanner(null);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch plans or offers:", err);
@@ -94,6 +101,21 @@ export default function PlanStep({ selectedRole, selectedPlan, onSelect, onNext,
             </div>
           </div>
           <Zap className="absolute -right-4 -bottom-4 text-white/10 w-32 h-32 rotate-12" />
+        </motion.div>
+      )}
+
+      {promotionalBanner && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 rounded-3xl overflow-hidden shadow-xl"
+        >
+          <img 
+            src={promotionalBanner} 
+            alt="Special Offer" 
+            className="w-full object-cover"
+            style={{ maxHeight: '180px' }}
+          />
         </motion.div>
       )}
 

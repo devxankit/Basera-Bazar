@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const { logActivity } = require('../utils/activityLogger');
 const WithdrawalRequest = require('../models/Wallet');
 const { AppConfig } = require('../models/System');
+const invalidate = require('../utils/cacheInvalidator');
 
 // Helper function to generate JWT
 const generateToken = (id, role, email, version = 0) => {
@@ -166,10 +167,13 @@ exports.updateStep2 = async (req, res) => {
     executive.bank_details = bank_details;
     await executive.save();
 
+    await invalidate.executiveProfile(req.user.id);
+    await invalidate.adminDashboard();
+
     res.status(200).json({
       success: true,
-      message: 'Step 2 completed.',
-      executive
+      message: 'Step 2 completed. Please proceed to KYC.',
+      data: executive
     });
   } catch (error) {
     console.error('Executive Step 2 Error:', error);
@@ -366,7 +370,9 @@ exports.getDashboard = async (req, res) => {
           wallet_balance: executive.wallet_balance,
           total_earnings: executive.total_earnings,
           approved_at: executive.approved_at,
-          kyc: executive.kyc
+          kyc: executive.kyc,
+          bank_details: executive.bank_details,
+          address: executive.address
         },
         stats: {
           totalSellers,
@@ -434,7 +440,7 @@ exports.requestWithdrawal = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Insufficient balance.' });
     }
 
-    const request = await WithdrawalRequest.create({
+    const withdrawal = await WithdrawalRequest.create({
       user_id: executive._id,
       user_type: 'Executive',
       amount,
@@ -444,10 +450,13 @@ exports.requestWithdrawal = async (req, res) => {
     executive.wallet_balance -= amount;
     await executive.save();
 
-    res.status(200).json({
+    await invalidate.executiveProfile(req.user.id);
+    await invalidate.adminDashboard();
+
+    res.status(201).json({
       success: true,
-      message: 'Withdrawal request submitted.',
-      request
+      message: 'Withdrawal request submitted successfully.',
+      data: withdrawal
     });
   } catch (error) {
     console.error('Executive Withdrawal Error:', error);
@@ -472,10 +481,13 @@ exports.updateProfile = async (req, res) => {
 
     await executive.save();
 
+    await invalidate.executiveProfile(req.user.id);
+    await invalidate.adminDashboard();
+
     res.status(200).json({
       success: true,
-      message: 'Profile updated successfully.',
-      executive: {
+      message: 'KYC documents uploaded successfully. Profile under review.',
+      data: {
         id: executive._id,
         name: executive.name,
         email: executive.email,
@@ -486,5 +498,40 @@ exports.updateProfile = async (req, res) => {
   } catch (error) {
     console.error('Update Profile Error:', error);
     res.status(500).json({ success: false, message: 'Server error during profile update.' });
+  }
+};
+
+/**
+ * @desc    Update Bank Details
+ * @route   PUT /api/executive/bank-details
+ */
+exports.updateBankDetails = async (req, res) => {
+  try {
+    const { account_number, ifsc_code, bank_name, account_holder_name } = req.body;
+    const executive = await Executive.findById(req.user.id);
+
+    if (!executive) {
+      return res.status(404).json({ success: false, message: 'Executive not found.' });
+    }
+
+    executive.bank_details = {
+      account_number: account_number || executive.bank_details?.account_number,
+      ifsc_code: ifsc_code || executive.bank_details?.ifsc_code,
+      bank_name: bank_name || executive.bank_details?.bank_name,
+      account_holder_name: account_holder_name || executive.bank_details?.account_holder_name,
+    };
+
+    await executive.save();
+
+    await invalidate.executiveProfile(req.user.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Bank details updated successfully.',
+      bank_details: executive.bank_details
+    });
+  } catch (error) {
+    console.error('Update Bank Details Error:', error);
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 };

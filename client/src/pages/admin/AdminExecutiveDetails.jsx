@@ -183,8 +183,84 @@ export default function AdminExecutiveDetails() {
                  </div>
               </div>
 
+               <div className="flex flex-wrap items-center gap-3">
+                  {executive.onboarding_status !== 'verified' && executive.onboarding_status !== 'approved' && (
+                     <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleStatusUpdate('approved')}
+                          disabled={isActionLoading}
+                          className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-sm hover:shadow-emerald-100 disabled:opacity-50"
+                        >
+                           <CheckCircle2 size={14} /> Approve KYC
+                        </button>
+                        <button 
+                          onClick={() => setShowRejectInput(!showRejectInput)}
+                          disabled={isActionLoading}
+                          className="flex items-center gap-2 px-6 py-2.5 bg-rose-50 text-rose-600 text-[11px] font-bold uppercase tracking-widest rounded-xl hover:bg-rose-100 transition-all border border-rose-100 disabled:opacity-50"
+                        >
+                           <XCircle size={14} /> Reject
+                        </button>
+                     </div>
+                  )}
 
-           </div>
+                  <div className="relative">
+                     <button 
+                        onClick={() => setShowOptions(!showOptions)}
+                        className="p-3 bg-slate-50 text-slate-500 rounded-xl hover:bg-slate-100 transition-all border border-slate-100"
+                     >
+                        <MoreVertical size={20} />
+                     </button>
+                     
+                     {showOptions && (
+                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                           <button 
+                              onClick={handleResetKyc}
+                              className="w-full px-4 py-2.5 text-left text-[11px] font-bold text-amber-600 hover:bg-amber-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
+                           >
+                              <Shield size={14} /> Reset KYC
+                           </button>
+                           <button 
+                              onClick={() => handleToggleStatus(executive._id, executive.is_active)}
+                              className="w-full px-4 py-2.5 text-left text-[11px] font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
+                           >
+                              {executive.is_active ? <UserMinus size={14} /> : <UserCheck size={14} />}
+                              {executive.is_active ? 'Deactivate' : 'Activate Account'}
+                           </button>
+                           <div className="h-px bg-slate-50 my-1 mx-2" />
+                           <button 
+                              onClick={handleDelete}
+                              className="w-full px-4 py-2.5 text-left text-[11px] font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
+                           >
+                              <Trash2 size={14} /> Delete Profile
+                           </button>
+                        </div>
+                     )}
+                  </div>
+               </div>
+            </div>
+
+            {showRejectInput && (
+               <div className="mt-8 pt-8 border-t border-slate-100 animate-in slide-in-from-top-4 duration-500">
+                  <div className="max-w-2xl">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 block">Reason for Rejection</label>
+                     <div className="flex gap-3">
+                        <textarea 
+                           value={rejectionReason}
+                           onChange={(e) => setRejectionReason(e.target.value)}
+                           placeholder="Explain why the documents are being rejected..."
+                           className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-rose-500/10 focus:border-rose-500 outline-none transition-all resize-none h-24"
+                        />
+                        <button 
+                           onClick={() => handleStatusUpdate('rejected', rejectionReason)}
+                           disabled={isActionLoading}
+                           className="self-end px-6 py-4 bg-rose-600 text-white text-[11px] font-bold uppercase tracking-widest rounded-2xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 disabled:opacity-50"
+                        >
+                           Submit
+                        </button>
+                     </div>
+                  </div>
+               </div>
+            )}
         </div>
 
         {/* Executive Stats */}

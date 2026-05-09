@@ -288,26 +288,14 @@ const verifyOtp = async (req, res) => {
           })
         });
 
-        // Handle Referral Logic
+        // Handle Referral Logic — Store the link only. Commission credited on paid plan purchase.
         if (role === 'partner' && referral_code) {
           const executive = await Executive.findOne({ referral_code: referral_code.toUpperCase() });
           
-          // Only process referral if executive is verified/approved
           if (executive && ['approved', 'verified'].includes(executive.onboarding_status)) {
             account.referred_by_executive = executive._id;
             await account.save();
-
-            // Credit commission to executive wallet
-            const commissionConfig = await AppConfig.findOne({ key: 'executive_commission_amount' });
-            const commissionAmount = commissionConfig ? Number(commissionConfig.value) : 100; // Default 100
-
-            executive.wallet_balance += commissionAmount;
-            executive.total_earnings += commissionAmount;
-            await executive.save();
-
-            console.log(`[REFERRAL] Partner ${account._id} referred by Executive ${executive._id}. Credited ${commissionAmount}`);
-          } else if (executive) {
-            console.log(`[REFERRAL] Referral code ${referral_code} used, but Executive ${executive._id} is NOT verified yet. Skipping credit.`);
+            console.log(`[REFERRAL] Partner ${account._id} linked to Executive ${executive._id}. Commission will be credited on paid plan purchase.`);
           }
         }
 
@@ -452,7 +440,7 @@ const loginWithPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide your email/phone and password.' });
     }
 
-    console.log(`[Login Attempt] Identifier: ${identifier}, Role: ${role}`);
+    console.log(`[Login Attempt] Identifier: ${identifier}, Received Role: ${role}`);
 
     const Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
 
@@ -469,9 +457,8 @@ const loginWithPassword = async (req, res) => {
       return res.status(404).json({
         success: false,
         code: 'NOT_REGISTERED',
-        message: role === 'super_admin' 
-          ? 'No administrator account found with these credentials. Please contact support.' 
-          : 'No account found with this email or phone. Would you like to sign up?',
+        message: `No account found for identifier: ${identifier} with role: ${role}.`,
+        debugRole: role
       });
     }
 

@@ -64,9 +64,11 @@ const {
   getWithdrawalRequests,
   updateWithdrawalStatus,
   getExecutiveSettings,
-  updateExecutiveSettings
+  updateExecutiveSettings,
+  validateReferralCode
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
+const cacheMiddleware = require('../middlewares/cacheMiddleware');
 
 // TEST ROUTE NO AUTH
 router.get('/test-listings/:type', getListings);
@@ -75,13 +77,14 @@ router.get('/test-listings/:type', getListings);
 // Partners need to see plans and active offers during registration
 router.get('/subscriptions/plans', getSubscriptionPlans);
 router.get('/system/offers', getOfferConfig);
+router.post('/system/validate-referral', validateReferralCode);
 
 // ALL Admin routes below this point must be protected
 router.use(protect);
 // Dashboard Stats & Feeds
-router.get('/dashboard/stats', getDashboardStats);
-router.get('/dashboard/activities', getAdminActivities);
-router.get('/dashboard/pending/:type', getPendingApprovals);
+router.get('/dashboard/stats', cacheMiddleware(2, true), getDashboardStats);
+router.get('/dashboard/activities', cacheMiddleware(1, true), getAdminActivities);
+router.get('/dashboard/pending/:type', cacheMiddleware(2, true), getPendingApprovals);
 
 
 

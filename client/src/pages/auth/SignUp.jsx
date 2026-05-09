@@ -66,6 +66,9 @@ export default function SignUp() {
     coords: null
   });
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
+  const [referralStatus, setReferralStatus] = useState('idle'); // 'idle', 'validating', 'success', 'error'
+  const [shake, setShake] = useState(false);
 
   // OTP / verification states
   const [isVerified, setIsVerified] = useState(false);
@@ -203,6 +206,22 @@ export default function SignUp() {
     }
   };
 
+  const handleValidateReferral = async () => {
+    if (!referralCode.trim()) return;
+    
+    setReferralStatus('validating');
+    try {
+      const res = await api.post('/admin/system/validate-referral', { code: referralCode });
+      if (res.data.success) {
+        setReferralStatus('success');
+      }
+    } catch (error) {
+      setReferralStatus('error');
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
+  };
+
   // ── STEP 3: Final Submit (normally bypassed since login is auto) ────────────
   const handleSignUp = (e) => {
     e.preventDefault();
@@ -272,6 +291,61 @@ export default function SignUp() {
           </motion.div>
 
           <form onSubmit={handleSignUp}>
+             {/* Referral Code */}
+            <motion.div 
+              variants={fadeInUp} 
+              animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}}
+              transition={{ duration: 0.4 }}
+              style={{ position: 'relative', marginBottom: '24px' }}
+            >
+              <div style={{ fontSize: '12px', fontWeight: '800', color: '#1b2c7a', marginBottom: '10px', marginLeft: '4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                Referral Code (Optional)
+              </div>
+              <div style={{ position: 'relative' }}>
+                <span style={{ ...iconStyle, color: referralStatus === 'success' ? '#10b981' : (referralStatus === 'error' ? '#ef4444' : '#4a567a') }}>
+                  <User size={22} strokeWidth={1.8} />
+                </span>
+                <input
+                  type="text" 
+                  placeholder="EX123456"
+                  value={referralCode}
+                  onChange={e => {
+                    setReferralCode(e.target.value.toUpperCase());
+                    if (referralStatus !== 'idle') setReferralStatus('idle');
+                  }}
+                  style={{ 
+                    ...inputStyle, 
+                    paddingRight: '90px',
+                    borderColor: referralStatus === 'success' ? '#10b981' : (referralStatus === 'error' ? '#ef4444' : '#dde1f0'),
+                    backgroundColor: referralStatus === 'success' ? '#f0fdf4' : (referralStatus === 'error' ? '#fef2f2' : '#ffffff'),
+                    transition: 'all 0.3s ease'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleValidateReferral}
+                  disabled={!referralCode || referralStatus === 'validating'}
+                  style={{ 
+                    position: 'absolute', 
+                    right: '12px', 
+                    top: '50%', 
+                    transform: 'translateY(-50%)', 
+                    backgroundColor: referralStatus === 'success' ? '#10b981' : '#1b2c7a', 
+                    color: '#fff', 
+                    border: 'none', 
+                    borderRadius: '10px', 
+                    padding: '8px 14px', 
+                    fontSize: '12px', 
+                    fontWeight: '700', 
+                    cursor: 'pointer',
+                    opacity: (!referralCode || referralStatus === 'validating') ? 0.5 : 1
+                  }}
+                >
+                  {referralStatus === 'validating' ? <Loader2 size={14} className="animate-spin" /> : 'CHECK'}
+                </button>
+              </div>
+            </motion.div>
+
             {/* Full Name */}
             <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '18px' }}>
               <span style={iconStyle}><User size={22} strokeWidth={1.8} /></span>

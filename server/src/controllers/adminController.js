@@ -12,6 +12,7 @@ const BroadcastLead = require('../models/BroadcastLead');
 const Executive = require('../models/Executive');
 const WithdrawalRequest = require('../models/Wallet');
 const { createNotification } = require('../utils/notificationHelper');
+const invalidate = require('../utils/cacheInvalidator');
 
 // Helper to get ISO Week number
 function getISOWeek(date) {
@@ -1379,6 +1380,9 @@ const deleteListing = async (req, res) => {
       await MandiListing.findByIdAndDelete(id);
 
     if (!result) return res.status(404).json({ success: false, message: 'Listing not found.' });
+    
+    await invalidate.publicListings();
+    await invalidate.adminDashboard();
 
     res.status(200).json({ success: true, message: 'Listing permanently removed from database.' });
   } catch (error) {
@@ -1888,6 +1892,10 @@ const createSubscriptionPlan = async (req, res) => {
       ...req.body,
       created_by: req.user?._id
     });
+    
+    await invalidate.publicPlans();
+    await invalidate.adminDashboard();
+    
     res.status(201).json({ success: true, data: plan });
   } catch (error) {
     console.error("Error creating plan:", error);
@@ -1908,6 +1916,10 @@ const updateSubscriptionPlan = async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
+    
+    await invalidate.publicPlans();
+    await invalidate.adminDashboard();
+    
     res.status(200).json({ success: true, data: plan });
   } catch (error) {
     console.error("Error updating plan:", error);
@@ -1924,6 +1936,10 @@ const deleteSubscriptionPlan = async (req, res) => {
   try {
     const plan = await SubscriptionPlan.findByIdAndDelete(req.params.id);
     if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
+    
+    await invalidate.publicPlans();
+    await invalidate.adminDashboard();
+    
     res.status(200).json({ success: true, message: 'Subscription plan eliminated.' });
   } catch (error) {
     console.error("Error deleting plan:", error);
@@ -2071,6 +2087,7 @@ const createCategory = async (req, res) => {
     const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
 
     const category = await Category.create({ name, slug, type, parent_id: parent_id || null, icon, mandi_icon });
+    await invalidate.publicCategories();
     res.status(201).json({ success: true, data: category });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2083,6 +2100,7 @@ const updateCategory = async (req, res) => {
       req.body.name = sanitizeCategoryName(req.body.name);
     }
     const category = await Category.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    await invalidate.publicCategories();
     res.status(200).json({ success: true, data: category });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2113,6 +2131,7 @@ const deleteCategory = async (req, res) => {
     const deleted = await Category.findByIdAndDelete(id);
     if (!deleted) return res.status(404).json({ success: false, message: 'Category not found.' });
 
+    await invalidate.publicCategories();
     res.status(200).json({ success: true, message: 'Category permanently removed from database' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2167,6 +2186,7 @@ const getBannerById = async (req, res) => {
 const createBanner = async (req, res) => {
   try {
     const banner = await Banner.create(req.body);
+    await invalidate.publicBanners();
     res.status(201).json({ success: true, data: banner });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2177,6 +2197,7 @@ const updateBanner = async (req, res) => {
   try {
     const banner = await Banner.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!banner) return res.status(404).json({ success: false, message: 'Banner not found' });
+    await invalidate.publicBanners();
     res.status(200).json({ success: true, data: banner });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2187,6 +2208,7 @@ const deleteBanner = async (req, res) => {
   try {
     const banner = await Banner.findByIdAndDelete(req.params.id);
     if (!banner) return res.status(404).json({ success: false, message: 'Banner not found' });
+    await invalidate.publicBanners();
     res.status(200).json({ success: true, message: 'Banner deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2409,6 +2431,9 @@ const createPropertyListing = async (req, res) => {
       emi_details: emi_details || ''
     });
 
+    await invalidate.publicListings();
+    await invalidate.adminDashboard();
+
     res.status(201).json({ success: true, message: 'Property entry finalized in marketplace registry.', data: newProperty });
     // Log the activity
     await logActivity({
@@ -2462,6 +2487,9 @@ const createServiceListing = async (req, res) => {
       service_radius_km: service_radius_km || 10
     });
 
+    await invalidate.publicListings();
+    await invalidate.adminDashboard();
+
     res.status(201).json({ success: true, message: 'Service entry finalized in marketplace registry.', data: newService });
 
     // Log the activity
@@ -2498,6 +2526,8 @@ const updateSubscriptionStatus = async (req, res) => {
     if (!subscription) {
       return res.status(404).json({ success: false, message: 'Subscription not found' });
     }
+
+    await invalidate.adminDashboard();
 
     res.status(200).json({ success: true, data: subscription, message: `Subscription ${status} successfully` });
   } catch (error) {
@@ -2566,6 +2596,8 @@ const updateMandiSettings = async (req, res) => {
         await Category.bulkWrite(bulkOps);
       }
     }
+    
+    await invalidate.adminDashboard();
 
     res.status(200).json({ success: true, message: 'Mandi settings updated successfully.' });
   } catch (error) {
@@ -2669,6 +2701,8 @@ const processRoleRequest = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid action. Use approve or reject.' });
     }
 
+    await invalidate.adminDashboard();
+
     res.status(200).json({
       success: true,
       message: `Role request ${action}ed successfully.`
@@ -2725,7 +2759,7 @@ const getRoleRequests = async (req, res) => {
 const getOfferConfig = async (req, res) => {
   try {
     const configs = await AppConfig.find({ 
-      key: { $in: ['OFFER_1_PLUS_1', 'FREE_TRIAL_CONFIG'] } 
+      key: { $in: ['OFFER_1_PLUS_1', 'FREE_TRIAL_CONFIG', 'PROMOTIONAL_BANNER'] } 
     });
     
     // Convert to easy-to-use object
@@ -2735,6 +2769,7 @@ const getOfferConfig = async (req, res) => {
     // Default values if not found
     if (!result.OFFER_1_PLUS_1) result.OFFER_1_PLUS_1 = { is_active: false, expiry: null };
     if (!result.FREE_TRIAL_CONFIG) result.FREE_TRIAL_CONFIG = { duration_days: 30, listings_limit: 1, featured_listings_limit: 0 };
+    if (!result.PROMOTIONAL_BANNER) result.PROMOTIONAL_BANNER = { image_url: null, is_active: false };
 
     res.status(200).json({ success: true, data: result });
   } catch (error) {
@@ -2759,6 +2794,9 @@ const updateOfferConfig = async (req, res) => {
       { value, updated_by: req.user._id },
       { upsert: true, new: true }
     );
+
+    await invalidate.publicOffers();
+    await invalidate.adminDashboard();
 
     res.status(200).json({ success: true, message: `${key} updated successfully` });
   } catch (error) {
@@ -2817,7 +2855,7 @@ const updateExecutiveStatus = async (req, res) => {
     const executive = await Executive.findById(id);
     if (!executive) return res.status(404).json({ success: false, message: 'Executive not found' });
 
-    executive.onboarding_status = status;
+    executive.onboarding_status = status === 'approved' ? 'verified' : status;
     if (status === 'approved') {
       executive.is_active = true;
       executive.approved_at = new Date(); // Stamp approval time for 24h banner
@@ -2838,6 +2876,9 @@ const updateExecutiveStatus = async (req, res) => {
         : `Your KYC documents were rejected. Reason: ${rejection_reason}`,
       { type: 'executive_verification', status }
     );
+
+    await invalidate.executiveProfile(id);
+    await invalidate.adminDashboard();
 
     res.status(200).json({ success: true, message: `Executive ${status} successfully` });
   } catch (error) {
@@ -3029,6 +3070,41 @@ const updateExecutiveSettings = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Validate executive referral code
+ * @route   POST /api/admin/system/validate-referral
+ * @access  Public
+ */
+const validateReferralCode = async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ success: false, message: 'Referral code is required.' });
+    }
+
+    const executive = await Executive.findOne({ 
+      referral_code: code.toUpperCase(),
+      onboarding_status: { $in: ['approved', 'verified'] },
+      is_active: true 
+    });
+
+    if (!executive) {
+      return res.status(404).json({ success: false, message: 'Invalid or inactive referral code.' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Code validated!',
+      data: {
+        name: executive.name
+      }
+    });
+  } catch (error) {
+    console.error("Validate referral error:", error);
+    res.status(500).json({ success: false, message: 'Error validating referral code.' });
+  }
+};
+
 module.exports = {
   findNearestMandiSellers,
   assignMandiEnquiry,
@@ -3093,5 +3169,6 @@ module.exports = {
   getWithdrawalRequests,
   updateWithdrawalStatus,
   getExecutiveSettings,
-  updateExecutiveSettings
+  updateExecutiveSettings,
+  validateReferralCode
 };

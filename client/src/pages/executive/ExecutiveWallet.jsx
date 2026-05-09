@@ -204,7 +204,7 @@ export default function ExecutiveWallet() {
             <div className="flex-grow text-left">
               <span className="text-[9px] font-medium text-[#fa8639] uppercase tracking-[0.2em]">Settlement Account</span>
               <h3 className="text-base font-medium text-slate-900 leading-tight mt-0.5">
-                {profile?.bank_details?.bank_name || 'Missing Bank Info'}
+                {profile?.bank_details?.bank_name || (profile?.bank_details?.account_number ? 'Linked Bank Account' : 'Missing Bank Info')}
               </h3>
               <p className="text-[11px] font-normal text-slate-400 mt-0.5">
                 {profile?.bank_details?.account_number ? `XXXX XXXX ${profile.bank_details.account_number.slice(-4)}` : 'Link bank to enable payouts'}
