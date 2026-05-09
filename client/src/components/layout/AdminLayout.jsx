@@ -190,7 +190,7 @@ export default function AdminLayout({ children }) {
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [badges, setBadges] = useState({ verification: 0, upgrades: 0, executives: 0 });
+  const [badges, setBadges] = useState({ verification: 0, upgrades: 0, executives: 0, withdrawals: 0 });
 
   React.useEffect(() => {
     const fetchBadges = async (force = false) => {
@@ -201,6 +201,7 @@ export default function AdminLayout({ children }) {
         const users = data.users || [];
         const upgrades = data.upgrades || [];
         const executives = data.executives || [];
+        const withdrawals = data.withdrawals || [];
         
         const verificationCount = users.filter(u => 
           (['Agent', 'Supplier', 'Service Provider', 'mandi_seller'].includes(u.role) || u.partner_type || (u.roles && u.roles.length > 0)) && 
@@ -209,11 +210,13 @@ export default function AdminLayout({ children }) {
 
         const upgradesCount = upgrades.filter(r => r.status === 'pending').length;
         const executivePendingCount = executives.filter(e => e.onboarding_status === 'pending_approval').length;
+        const withdrawalsCount = withdrawals.filter(w => w.status === 'pending').length;
 
         setBadges({ 
           verification: verificationCount, 
           upgrades: upgradesCount,
-          executives: executivePendingCount
+          executives: executivePendingCount,
+          withdrawals: withdrawalsCount
         });
       } catch (err) {
         console.error("Failed to fetch sidebar badges:", err);
@@ -316,9 +319,10 @@ export default function AdminLayout({ children }) {
               if (itemWithBadges.id === 'executive-management') {
                 itemWithBadges.children = itemWithBadges.children.map(child => {
                   if (child.label === 'Pending Verification') return { ...child, badge: badges.executives };
+                  if (child.label === 'Payout Requests') return { ...child, badge: badges.withdrawals };
                   return child;
                 });
-                itemWithBadges.badge = badges.executives;
+                itemWithBadges.badge = badges.executives + badges.withdrawals;
               }
 
               if (itemWithBadges.children) {

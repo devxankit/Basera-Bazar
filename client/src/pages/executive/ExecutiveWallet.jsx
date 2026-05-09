@@ -4,7 +4,7 @@ import {
   Wallet, TrendingUp, ArrowUpRight, History, 
   ArrowDownLeft, Clock, CheckCircle2, AlertCircle, RefreshCw,
   Building2, CreditCard, ChevronRight, Zap, ArrowRight,
-  TrendingDown, DollarSign
+  TrendingDown, DollarSign, IndianRupee
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';

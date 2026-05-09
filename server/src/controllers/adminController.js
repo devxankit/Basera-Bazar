@@ -160,7 +160,8 @@ const getDashboardStats = async (req, res) => {
       pendingServices,
       adminSummary,
       partnerSummary,
-      userSummary
+      userSummary,
+      withdrawalsCount
     ] = await Promise.all([
       // Unify counts across all platform participants
       User.countDocuments(),
@@ -192,7 +193,8 @@ const getDashboardStats = async (req, res) => {
       // Distribution Summary
       AdminUser.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]),
       Partner.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]),
-      User.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }])
+      User.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]),
+      WithdrawalRequest.countDocuments({ status: 'pending' })
     ]);
 
     const totalUsersCount = userCollectionCounts + partnerCollectionCounts + adminCollectionCounts;
@@ -262,8 +264,6 @@ const getDashboardStats = async (req, res) => {
       value: distributionMap[key]
     }));
 
-
-
     res.status(200).json({
       success: true,
       data: {
@@ -279,6 +279,7 @@ const getDashboardStats = async (req, res) => {
         },
         pending: {
           properties: pendingProperties,
+          withdrawals: withdrawalsCount,
           others: [
             ...pendingServices.map(s => ({ ...s.toObject(), type: 'Service' }))
           ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5)
@@ -2963,6 +2964,17 @@ const updateWithdrawalStatus = async (req, res) => {
     if (status === 'completed') request.processed_at = new Date();
 
     await request.save();
+
+    // Log the activity
+    await logActivity({
+      actor_name: req.user.name,
+      actor_id: req.user.id,
+      action: status === 'completed' ? 'settled' : 'rejected',
+      entity_type: 'withdrawal',
+      entity_name: request.bank_details?.account_holder_name || 'Executive',
+      entity_id: request._id,
+      description: `Admin ${req.user.name} ${status === 'completed' ? 'settled payout of ₹' + request.amount : 'rejected withdrawal request'} for ${request.bank_details?.account_holder_name || 'Executive'}`
+    });
 
     // If rejected, refund the wallet
     if (status === 'rejected') {

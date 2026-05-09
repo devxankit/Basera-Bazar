@@ -34,10 +34,11 @@ export const getWithdrawals = async () => {
 
 export const getAdminStats = async () => {
   return cacheService.get('admin_stats', async () => {
-    const [users, requests, executives] = await Promise.all([
+    const [users, requests, executives, withdrawals] = await Promise.all([
       getAdminUsers(),
       getRoleRequests(),
-      getExecutives()
+      getExecutives(),
+      getWithdrawals()
     ]);
 
     return {
@@ -46,7 +47,8 @@ export const getAdminStats = async () => {
       totalPartners: users.filter(u => u.role !== 'user' && u.role !== 'admin').length,
       users,
       upgrades: requests,
-      executives
+      executives,
+      withdrawals
     };
   });
 };

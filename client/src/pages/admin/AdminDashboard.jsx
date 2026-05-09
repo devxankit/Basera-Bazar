@@ -5,7 +5,8 @@ import {
   IndianRupee, TrendingUp, Clock, ArrowUpRight, 
   ArrowDownRight, Activity, UserCog, Crown, 
   CreditCard, ExternalLink, CheckCircle2, XCircle, 
-  Eye, Loader2, AlertCircle, MessageSquare, Zap, Home
+  Eye, Loader2, AlertCircle, MessageSquare, Zap, Home,
+  Landmark
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -15,11 +16,14 @@ import {
 import api from '../../services/api';
 import { Skeleton } from '../../components/common/Skeleton';
 
-const StatCard = ({ title, value, icon: Icon, color, trend, badge }) => (
+const StatCard = ({ title, value, icon: Icon, color, trend, badge, onClick }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    className="bg-white p-7 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between relative overflow-hidden group hover:border-slate-200 transition-all"
+    whileHover={onClick ? { y: -4, scale: 1.01 } : {}}
+    whileTap={onClick ? { scale: 0.98 } : {}}
+    onClick={onClick}
+    className={`bg-white p-7 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between relative overflow-hidden group transition-all ${onClick ? 'cursor-pointer hover:border-indigo-200 hover:shadow-md' : ''}`}
   >
     <div className="flex flex-col gap-3 min-w-0 flex-grow">
       <div>
@@ -155,63 +159,78 @@ export default function AdminDashboard() {
     );
   }
 
-  const statCardsData = [
+  const statsData = [
     { 
-      title: 'Total Users', 
-      value: data?.users || '0', 
+      title: 'TOTAL USERS', 
+      value: (data?.users || 0).toLocaleString(), 
       icon: Users, 
-      color: 'bg-slate-100 text-slate-900', 
-      trend: { value: '57.1', up: false } 
+      color: 'bg-slate-100 text-slate-400', 
+      trend: { value: '57.1%', isUp: false, label: 'Since Last Month' },
+      path: '/admin/users'
     },
     { 
-      title: 'Properties Listed', 
-      value: data?.properties || '0', 
+      title: 'PROPERTIES LISTED', 
+      value: (data?.properties || 0).toLocaleString(), 
       icon: Building2, 
       color: 'bg-emerald-100 text-emerald-600', 
-      badge: { text: '0%', color: 'bg-slate-500 text-white', subtext: 'Since last month' } 
+      trend: { value: '0%', isUp: true, label: 'Since Last Month' },
+      path: '/admin/properties'
     },
-
     { 
-      title: 'Services Listed', 
-      value: data?.services || '0', 
+      title: 'SERVICES LISTED', 
+      value: (data?.services || 0).toLocaleString(), 
       icon: Briefcase, 
       color: 'bg-slate-100 text-slate-900', 
-      badge: { text: 'Active', color: 'bg-slate-500 text-white', icon: Activity, subtext: 'Total count' } 
+      badge: { text: 'ACTIVE', color: 'bg-slate-500 text-white', icon: Activity, subtext: 'Total Count' },
+      path: '/admin/services'
     },
     { 
-      title: 'Products Listed', 
-      value: data?.products || '0', 
+      title: 'PRODUCTS LISTED', 
+      value: (data?.products || 0).toLocaleString(), 
       icon: ShoppingBag, 
       color: 'bg-rose-100 text-rose-600', 
-      badge: { text: 'Mandi', color: 'bg-rose-500 text-white', icon: ShoppingBag, subtext: 'Live products' } 
+      badge: { text: 'MANDI', color: 'bg-rose-500 text-white', icon: ShoppingBag, subtext: 'Live Products' },
+      path: '/admin/mandi-bazar/products'
     },
     { 
-      title: 'Total Revenue', 
+      title: 'TOTAL REVENUE', 
       value: `₹${(data?.revenue || 0).toLocaleString()}`, 
       icon: IndianRupee, 
       color: 'bg-orange-100 text-orange-600', 
-      trend: { value: '100', up: false } 
+      trend: { value: '100%', isUp: false, label: 'Since Last Month' },
+      path: '/admin/reports/payments'
     },
     { 
       title: 'Pending Requests', 
       value: (data?.pending?.properties?.length || 0), 
       icon: Clock, 
       color: 'bg-rose-100 text-rose-600', 
-      badge: { text: 'Attention', color: 'bg-rose-500 text-white', icon: AlertCircle, subtext: 'Require Review' } 
+      badge: { text: 'Attention', color: 'bg-rose-500 text-white', icon: AlertCircle, subtext: 'Require Review' },
+      path: '/admin/dashboard/pending/properties'
+    },
+    { 
+      title: 'Pending Payouts', 
+      value: (data?.pending?.withdrawals || 0), 
+      icon: Landmark, 
+      color: 'bg-indigo-100 text-indigo-600', 
+      badge: { text: 'Settlement', color: 'bg-indigo-500 text-white', icon: Landmark, subtext: 'Awaiting Bank' },
+      path: '/admin/executives/withdrawals'
     },
     { 
       title: 'Recent Activities', 
-      value: '7', 
+      value: (activities.length || 0).toLocaleString(), 
       icon: Activity, 
       color: 'bg-slate-100 text-slate-400', 
-      badge: { text: 'Latest', color: 'bg-cyan-400 text-white', icon: MessageSquare, subtext: 'System activities' } 
+      badge: { text: 'Latest', color: 'bg-cyan-400 text-white', icon: MessageSquare, subtext: 'System activities' },
+      path: '/admin/dashboard/activities'
     },
     { 
       title: 'User Roles', 
       value: '6', 
       icon: UserCog, 
       color: 'bg-slate-100 text-slate-900', 
-      badge: { text: 'Active', color: 'bg-cyan-400 text-white', icon: Activity, subtext: 'Role types' } 
+      badge: { text: 'Active', color: 'bg-cyan-400 text-white', icon: Activity, subtext: 'Role types' },
+      path: '/admin/users'
     },
   ];
 
@@ -250,7 +269,8 @@ export default function AdminDashboard() {
     service: Briefcase,
     enquiry: MessageSquare,
     category: MessageSquare, subcategory: MessageSquare,
-    banner: Activity, subscription: CreditCard, system: Activity
+    banner: Activity, subscription: CreditCard, system: Activity,
+    withdrawal: Landmark
   };
   const recentActivities = activities.map(act => ({
     ...act,
@@ -270,8 +290,8 @@ export default function AdminDashboard() {
       {/* Stats Cards Grid */}
       <Skeleton name="admin-stats-grid" loading={loading}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {statCardsData.map((stat, i) => (
-            <StatCard key={i} {...stat} />
+          {statsData.map((stat, i) => (
+            <StatCard key={i} {...stat} onClick={() => stat.path && navigate(stat.path)} />
           ))}
         </div>
       </Skeleton>
