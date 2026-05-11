@@ -78,20 +78,6 @@ export default function PartnerProfile() {
         </div>
         <div className="flex items-center gap-2">
           <button 
-            onClick={async () => {
-              try {
-                const res = await api.post('/auth/test-notification', { title: 'Partner Test', body: 'Push notifications are working for partners!' });
-                if (res.data.success) alert('Test notification triggered!');
-              } catch (err) {
-                alert('Failed to send test notification');
-              }
-            }} 
-            className="p-1.5 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
-            title="Test Push Notification"
-          >
-            <Bell size={20} />
-          </button>
-          <button 
             onClick={() => navigate('/partner/edit-profile')}
             className="p-1.5 text-[#001b4e] hover:bg-slate-50 rounded-xl transition-colors active:scale-95"
           >
@@ -190,21 +176,6 @@ export default function PartnerProfile() {
               <MenuOption icon={<Shield size={20} />} label="KYC Documents" onClick={() => {}} />
             )}
             <MenuOption icon={<Bell size={20} />} label="Notifications" onClick={() => navigate('/partner/notifications')} />
-            <MenuOption 
-              icon={<Zap size={20} className="text-amber-500" />} 
-              label="Test Notification" 
-              onClick={async () => {
-                try {
-                  const res = await api.post('/auth/test-notification', { 
-                    title: 'Partner Test 🚀', 
-                    body: 'Your business is ready for notifications! Push system verified.' 
-                  });
-                  if (res.data.success) alert('Test notification sent! Check your notification tray.');
-                } catch (err) {
-                  alert(err.response?.data?.message || 'Failed to send test notification. Check permissions.');
-                }
-              }} 
-            />
           </div>
         </div>
 

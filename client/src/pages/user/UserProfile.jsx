@@ -64,20 +64,6 @@ const UserProfile = () => {
           </button>
           <h1 className="text-[14px] sm:text-[16px] font-bold text-white uppercase tracking-[0.2em]">Profile Hub</h1>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={async () => {
-                try {
-                  const res = await api.post('/auth/test-notification', { title: 'Basera Bazar Test', body: 'Push notifications are working!' });
-                  if (res.data.success) alert('Test notification triggered!');
-                } catch (err) {
-                  alert('Failed to send test notification');
-                }
-              }} 
-              className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all active:scale-95"
-              title="Test Push Notification"
-            >
-              <Bell size={20} />
-            </button>
             <button onClick={() => navigate('/profile/edit')} className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all active:scale-95">
               <Settings size={20} />
             </button>
