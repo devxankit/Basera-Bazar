@@ -159,6 +159,9 @@ const verifyOtp = async (req, res) => {
     } = req.body;
     const phone = rawPhone ? rawPhone.trim() : '';
 
+    // DEBUG: Log incoming request body for troubleshooting
+    logger.info({ body: req.body }, '[AUTH] Verify OTP request received');
+
     if (!otp || typeof otp !== 'string' || !/^\d{6}$/.test(otp.trim())) {
       return res.status(400).json({ success: false, message: 'Invalid OTP format.' });
     }
@@ -183,6 +186,11 @@ const verifyOtp = async (req, res) => {
 
     let account;
     const assignedRole = role;
+
+    // Handle "verify only" flow — just check OTP and return success
+    if (flow === 'verify_only') {
+      return res.status(200).json({ success: true, message: 'OTP verified successfully.' });
+    }
 
     if (flow === 'signup') {
       const Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
@@ -333,8 +341,19 @@ const verifyOtp = async (req, res) => {
     });
 
   } catch (error) {
-    logger.error({ err: error }, 'OTP verification error:');
-    res.status(500).json({ success: false, message: 'Server error during verification.' });
+    logger.error({ 
+      err: error.message, 
+      stack: error.stack,
+      body: req.body 
+    }, 'OTP verification error:');
+    
+    // Check if it's a validation error (e.g. missing required location fields)
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({ success: false, message: messages.join(', ') });
+    }
+    
+    res.status(500).json({ success: false, message: 'Server error during verification.', error: error.message });
   }
 };
 

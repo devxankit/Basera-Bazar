@@ -124,7 +124,19 @@ const createUser = async (req, res) => {
 
     let newAccount;
     if (role === 'Customer' || role === 'user') {
-      newAccount = await User.create({ name, phone, email: email?.toLowerCase(), password, role: 'Customer', image });
+      // Muzaffarpur, Bihar coordinates as default
+      const defaultCoords = [85.3647, 26.1209];
+
+      newAccount = await User.create({ 
+        name, phone, email: email?.toLowerCase(), password, role: 'Customer', image,
+        default_location: {
+          type: 'Point',
+          coordinates: defaultCoords,
+          city: req.body.city || 'Muzaffarpur',
+          state: req.body.state || 'Bihar',
+          district: req.body.district || 'Muzaffarpur'
+        }
+      });
     } else if (role === 'Admin') {
       newAccount = await AdminUser.create({ name, phone, email: email?.toLowerCase(), password, role: 'Admin' });
     } else if (['Agent', 'Supplier', 'Service Provider', 'Mandi Seller'].includes(role)) {
@@ -139,12 +151,23 @@ const createUser = async (req, res) => {
       else if (role === 'Service Provider') profile.service_profile = { category_id: req.body.service_category_id || null };
       else if (role === 'Mandi Seller') profile.mandi_profile = { business_name: req.body.business_name || '', business_logo: business_logo || '', business_description: req.body.business_description || '' };
 
+      // Muzaffarpur, Bihar coordinates as default
+      const defaultCoords = [85.3647, 26.1209];
+
       newAccount = await Partner.create({
         name, phone, email: email?.toLowerCase(), password, partner_type: pType,
         roles: (roles && roles.length > 0) ? roles : [pType], active_role: pType, role,
-        state: req.body.state, district: req.body.district, address: req.body.address,
+        state: req.body.state || 'Bihar', 
+        district: req.body.district || 'Muzaffarpur', 
+        city: req.body.city || 'Muzaffarpur',
+        address: req.body.address || 'Muzaffarpur, Bihar',
+        location: {
+          type: 'Point',
+          coordinates: defaultCoords
+        },
         image, business_logo, active_subscription_id: req.body.active_subscription_id || req.body.subscription_id || null,
-        profile, onboarding_status: 'approved'
+        profile, onboarding_status: 'approved',
+        service_radius_km: req.body.service_radius_km || 100
       });
     } else {
       return res.status(400).json({ success: false, message: 'Invalid role selection.' });
@@ -155,8 +178,19 @@ const createUser = async (req, res) => {
     const actorName = req.user?.name || 'Admin';
     await logActivity({ actor_name: actorName, actor_id: req.user?._id, action: 'created', entity_type: (role === 'Customer' || role === 'user') ? 'user' : 'partner', entity_name: name, entity_id: newAccount._id, description: `${actorName} created ${role} account: ${name} (${email || phone})` });
   } catch (error) {
-    logger.error({ err: error }, "Error creating user:");
-    res.status(500).json({ success: false, message: 'Error creating user.' });
+    logger.error({ 
+      err: error.message, 
+      stack: error.stack,
+      body: req.body 
+    }, "Error creating user:");
+    
+    // Check if it's a validation error
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({ success: false, message: messages.join(', ') });
+    }
+    
+    res.status(500).json({ success: false, message: 'Error creating user.', error: error.message });
   }
 };
 

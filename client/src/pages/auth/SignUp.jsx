@@ -66,9 +66,6 @@ export default function SignUp() {
     coords: null
   });
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [referralCode, setReferralCode] = useState('');
-  const [referralStatus, setReferralStatus] = useState('idle'); // 'idle', 'validating', 'success', 'error'
-  const [shake, setShake] = useState(false);
 
   // OTP / verification states
   const [isVerified, setIsVerified] = useState(false);
@@ -173,25 +170,12 @@ export default function SignUp() {
         phone: form.phone,
         otp,
         role: 'user',
-        flow: 'signup', // tells backend to CREATE the user
-        name: form.fullName.trim(),
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
-        address: form.address,
-        city: form.city,
-        state: form.state,
-        district: form.district,
-        pincode: form.pincode,
-        coords: form.coords
+        flow: 'verify_only'
       });
 
       if (response.data.success) {
         setIsVerified(true);
         setShowOtpInput(false);
-        // Immediately log the user in after successful signup
-        const { token, user } = response.data;
-        login(user, token);
-        navigate('/');
       }
     } catch (error) {
       const code = error.response?.data?.code;
@@ -206,26 +190,43 @@ export default function SignUp() {
     }
   };
 
-  const handleValidateReferral = async () => {
-    if (!referralCode.trim()) return;
-    
-    setReferralStatus('validating');
-    try {
-      const res = await api.post('/admin/system/validate-referral', { code: referralCode });
-      if (res.data.success) {
-        setReferralStatus('success');
-      }
-    } catch (error) {
-      setReferralStatus('error');
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-    }
-  };
 
   // ── STEP 3: Final Submit (normally bypassed since login is auto) ────────────
-  const handleSignUp = (e) => {
-    e.preventDefault();
-    // User is already logged in via verifyOtp — nothing else needed
+  const handleSignUp = async (e) => {
+    if (e) e.preventDefault();
+    if (!isVerified) {
+      alert('Please verify your phone number with OTP first.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.post('/auth/verify-otp', {
+        phone: form.phone,
+        otp,
+        role: 'user',
+        flow: 'signup',
+        name: form.fullName.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        district: form.district,
+        pincode: form.pincode,
+        coords: form.coords
+      });
+
+      if (response.data.success) {
+        const { token, user } = response.data;
+        login(user, token);
+        navigate('/');
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to create account. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ── Popup config map ────────────────────────────────────────────────────────
@@ -291,61 +292,6 @@ export default function SignUp() {
           </motion.div>
 
           <form onSubmit={handleSignUp}>
-             {/* Referral Code */}
-            <motion.div 
-              variants={fadeInUp} 
-              animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}}
-              transition={{ duration: 0.4 }}
-              style={{ position: 'relative', marginBottom: '24px' }}
-            >
-              <div style={{ fontSize: '12px', fontWeight: '800', color: '#1b2c7a', marginBottom: '10px', marginLeft: '4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                Referral Code (Optional)
-              </div>
-              <div style={{ position: 'relative' }}>
-                <span style={{ ...iconStyle, color: referralStatus === 'success' ? '#10b981' : (referralStatus === 'error' ? '#ef4444' : '#4a567a') }}>
-                  <User size={22} strokeWidth={1.8} />
-                </span>
-                <input
-                  type="text" 
-                  placeholder="EX123456"
-                  value={referralCode}
-                  onChange={e => {
-                    setReferralCode(e.target.value.toUpperCase());
-                    if (referralStatus !== 'idle') setReferralStatus('idle');
-                  }}
-                  style={{ 
-                    ...inputStyle, 
-                    paddingRight: '90px',
-                    borderColor: referralStatus === 'success' ? '#10b981' : (referralStatus === 'error' ? '#ef4444' : '#dde1f0'),
-                    backgroundColor: referralStatus === 'success' ? '#f0fdf4' : (referralStatus === 'error' ? '#fef2f2' : '#ffffff'),
-                    transition: 'all 0.3s ease'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={handleValidateReferral}
-                  disabled={!referralCode || referralStatus === 'validating'}
-                  style={{ 
-                    position: 'absolute', 
-                    right: '12px', 
-                    top: '50%', 
-                    transform: 'translateY(-50%)', 
-                    backgroundColor: referralStatus === 'success' ? '#10b981' : '#1b2c7a', 
-                    color: '#fff', 
-                    border: 'none', 
-                    borderRadius: '10px', 
-                    padding: '8px 14px', 
-                    fontSize: '12px', 
-                    fontWeight: '700', 
-                    cursor: 'pointer',
-                    opacity: (!referralCode || referralStatus === 'validating') ? 0.5 : 1
-                  }}
-                >
-                  {referralStatus === 'validating' ? <Loader2 size={14} className="animate-spin" /> : 'CHECK'}
-                </button>
-              </div>
-            </motion.div>
-
             {/* Full Name */}
             <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '18px' }}>
               <span style={iconStyle}><User size={22} strokeWidth={1.8} /></span>
@@ -493,6 +439,24 @@ export default function SignUp() {
                 style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#3b52d4', display: 'flex', alignItems: 'center' }}
               >
                 {showPassword ? <EyeOff size={24} strokeWidth={2} /> : <Eye size={24} strokeWidth={2} />}
+              </button>
+            </motion.div>
+
+            {/* Sign Up Button */}
+            <motion.div variants={fadeInUp} style={{ marginTop: '10px' }}>
+              <button
+                type="submit"
+                disabled={loading || !isVerified}
+                style={{
+                  width: '100%', padding: '18px', backgroundColor: isVerified ? '#2334b2' : '#a0a8e0',
+                  color: '#fff', border: 'none', borderRadius: '14px', fontSize: '18px',
+                  fontWeight: '700', cursor: isVerified ? 'pointer' : 'not-allowed',
+                  boxShadow: isVerified ? '0 6px 0 #182489' : 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {loading ? <Loader2 size={24} className="animate-spin" /> : 'Create Account'}
               </button>
             </motion.div>
 
