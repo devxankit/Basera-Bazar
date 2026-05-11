@@ -90,25 +90,6 @@ app.use(cors({
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ limit: '100kb', extended: true }));
 
-// -----------------------------------------------------
-// Rate limiters
-// -----------------------------------------------------
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many requests. Please try again in 15 minutes.' }
-});
-
-const otpLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many OTP requests. Please wait 10 minutes before trying again.' }
-});
-
 // Structured HTTP request logging
 app.use(pinoHttp({
   logger,
@@ -151,7 +132,7 @@ const executiveRoutes = require('./routes/executiveRoutes');
 // -----------------------------------------------------
 // MOUNT ROUTES
 // -----------------------------------------------------
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/executive', executiveRoutes);
 app.use('/api/partners', partnerRoutes);
 app.use('/api/listings', listingRoutes);

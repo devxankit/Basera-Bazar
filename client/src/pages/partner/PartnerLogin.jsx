@@ -18,11 +18,36 @@ export default function PartnerLogin() {
   const [timer, setTimer] = useState(0);
   const { login } = useAuth();
 
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [pendingAuth, setPendingAuth] = useState(null);
+
   const onLoginSuccess = async (user, token) => {
     login(user, token);
+    
+    // Check for notification permission
+    if (Notification.permission === 'default') {
+      setPendingAuth({ user, token });
+      setShowNotificationPrompt(true);
+      return;
+    }
+
     // Explicitly trigger FCM registration after login
     registerFCMToken(true);
     navigate('/partner/home');
+  };
+
+  const handleEnableNotifications = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        registerFCMToken(true);
+      }
+    } catch (err) {
+      console.error("Permission request failed", err);
+    } finally {
+      setShowNotificationPrompt(false);
+      navigate('/partner/home');
+    }
   };
 
   // Timer Countdown Logic
@@ -307,6 +332,47 @@ export default function PartnerLogin() {
           </motion.div>
         </div>
       )}
+
+      {/* ── NOTIFICATION PERMISSION MODAL ── */}
+      <AnimatePresence>
+        {showNotificationPrompt && (
+          <div className="fixed inset-0 z-[1100] flex items-center justify-center px-6 bg-[#001b4e]/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-[2rem] p-10 text-center shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-2 bg-[#f97316]" />
+              <div className="w-20 h-20 bg-indigo-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-[#001b4e]">
+                <Bell size={32} className="animate-bounce" />
+              </div>
+              <h3 className="text-[#001b4e] text-[22px] font-black mb-3 tracking-tight uppercase">Enable Notifications</h3>
+              <p className="text-slate-500 text-[15px] font-medium leading-relaxed mb-8">
+                Get instant updates about <strong>new orders</strong>, <strong>payments</strong>, and <strong>account alerts</strong>. Don't miss out on important business updates!
+              </p>
+              
+              <div className="flex flex-col gap-4">
+                <button
+                  onClick={handleEnableNotifications}
+                  className="w-full py-4.5 bg-[#001b4e] text-white rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-xl shadow-indigo-900/20 active:scale-[0.98] transition-all"
+                >
+                  Enable Notifications
+                </button>
+                <button
+                  onClick={() => {
+                    setShowNotificationPrompt(false);
+                    navigate('/partner/home');
+                  }}
+                  className="w-full py-4 text-slate-400 font-black hover:text-[#001b4e] transition-all text-[11px] uppercase tracking-[0.2em]"
+                >
+                  Maybe Later
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

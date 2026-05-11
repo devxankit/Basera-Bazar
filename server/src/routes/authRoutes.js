@@ -8,21 +8,41 @@ const {
 const { protect } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
 const { loginSchema, otpVerifySchema } = require('../utils/validators');
+const rateLimit = require('express-rate-limit');
+
+// -----------------------------------------------------
+// Rate limiters — moved from global index.js to here
+// -----------------------------------------------------
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Relaxed slightly from 20
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many authentication attempts. Please try again in 15 minutes.' }
+});
+
+const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many OTP requests. Please wait 10 minutes before trying again.' }
+});
 
 // POST /api/auth/check-exists — Check if email/phone already registered (Signup)
-router.post('/check-exists', checkExists);
+router.post('/check-exists', authLimiter, checkExists);
 
 // POST /api/auth/check-conflicts
-router.post('/check-conflicts', checkSignupConflicts);
+router.post('/check-conflicts', authLimiter, checkSignupConflicts);
 
 // POST /api/auth/send-otp
-router.post('/send-otp', requestOtp);
+router.post('/send-otp', otpLimiter, requestOtp);
 
 // POST /api/auth/verify-otp
-router.post('/verify-otp', validate(otpVerifySchema), verifyOtp);
+router.post('/verify-otp', otpLimiter, validate(otpVerifySchema), verifyOtp);
 
 // POST /api/auth/login (Password login)
-router.post('/login', validate(loginSchema), loginWithPassword);
+router.post('/login', authLimiter, validate(loginSchema), loginWithPassword);
 
 // GET /api/auth/me (Get current user profile)
 router.get('/me', protect, getMe);

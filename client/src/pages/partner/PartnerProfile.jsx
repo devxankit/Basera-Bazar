@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Edit2, Box, Building2, ChevronRight, 
   User, Mail, Phone, CreditCard, HelpCircle, Info, LogOut, Trash2, Clock, Loader2,
-  Trophy, AlertCircle, Shield, Settings, Bell, Star, Zap, Crown
+  Trophy, AlertCircle, Shield, Settings, Bell, Star, Zap, Crown, Gift
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -190,6 +190,21 @@ export default function PartnerProfile() {
               <MenuOption icon={<Shield size={20} />} label="KYC Documents" onClick={() => {}} />
             )}
             <MenuOption icon={<Bell size={20} />} label="Notifications" onClick={() => navigate('/partner/notifications')} />
+            <MenuOption 
+              icon={<Zap size={20} className="text-amber-500" />} 
+              label="Test Notification" 
+              onClick={async () => {
+                try {
+                  const res = await api.post('/auth/test-notification', { 
+                    title: 'Partner Test 🚀', 
+                    body: 'Your business is ready for notifications! Push system verified.' 
+                  });
+                  if (res.data.success) alert('Test notification sent! Check your notification tray.');
+                } catch (err) {
+                  alert(err.response?.data?.message || 'Failed to send test notification. Check permissions.');
+                }
+              }} 
+            />
           </div>
         </div>
 
