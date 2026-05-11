@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 
 export default function AdminPendingProperties() {
   const navigate = useNavigate();
@@ -41,12 +42,12 @@ export default function AdminPendingProperties() {
         setProperties(prev => prev.filter(p => p._id !== id));
       }
     } catch (err) {
-      alert("Failed to approve property.");
+      toast.error("Failed to approve property.");
     }
   };
 
   const handleReject = async () => {
-    if (!rejectReason.trim()) return alert("Please provide a reason for rejection.");
+    if (!rejectReason.trim()) return toast.error("Please provide a reason for rejection.");
     
     setIsSubmitting(true);
     try {
@@ -60,7 +61,7 @@ export default function AdminPendingProperties() {
         setRejectReason('');
       }
     } catch (err) {
-      alert("Failed to reject property.");
+      toast.error("Failed to reject property.");
     } finally {
       setIsSubmitting(false);
     }
@@ -145,7 +146,7 @@ export default function AdminPendingProperties() {
                 </div>
               </div>
 
-              <div className="p-6 space-y-4 flex-grow">
+              <div className="p-6 space-y-4 grow">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 tracking-tight leading-tight line-clamp-1">{prop.title}</h3>
                   <p className="text-slate-400 text-xs font-bold flex items-center gap-1 mt-1">
@@ -214,11 +215,11 @@ export default function AdminPendingProperties() {
 
       {/* Rejection Modal */}
       {rejectingId && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-[32px] w-full max-w-md overflow-hidden shadow-2xl"
+            className="bg-white rounded-4xl w-full max-w-md overflow-hidden shadow-2xl"
           >
             <div className="p-8 pb-4">
               <h2 className="text-2xl font-black text-slate-900 tracking-tight">Audit Rejection</h2>

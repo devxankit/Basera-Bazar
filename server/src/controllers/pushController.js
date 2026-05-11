@@ -1,4 +1,5 @@
 const { User } = require('../models/User');
+const logger = require('../utils/logger');
 const { Partner } = require('../models/Partner');
 const { sendPushNotification } = require('../services/firebaseAdmin');
 
@@ -48,7 +49,7 @@ exports.saveFCMToken = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'FCM token saved successfully' });
   } catch (error) {
-    console.error('Error saving FCM token:', error);
+    logger.error({ err: error }, 'Error saving FCM token:')
     res.status(500).json({ success: false, message: 'Failed to save FCM token' });
   }
 };
@@ -74,7 +75,7 @@ exports.removeFCMToken = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'FCM token removed' });
   } catch (error) {
-    console.error('Error removing FCM token:', error);
+    logger.error({ err: error }, 'Error removing FCM token:')
     res.status(500).json({ success: false, message: 'Failed to remove token' });
   }
 };
@@ -112,7 +113,7 @@ exports.sendTestNotification = async (req, res) => {
 
     res.status(200).json({ success: true, message: `Test notification sent to ${uniqueTokens.length} devices` });
   } catch (error) {
-    console.error('Error sending test notification:', error);
+    logger.error({ err: error }, 'Error sending test notification:')
     res.status(500).json({ success: false, message: 'Test failed' });
   }
 };

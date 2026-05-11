@@ -6,6 +6,7 @@ import {
   LayoutGrid, Layers, Briefcase, Star, Map, Pin, AlertCircle, Navigation
 } from 'lucide-react';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 import MediaDropZone from '../../components/common/MediaDropZone';
 import MapModal from '../../components/common/MapModal';
 
@@ -187,7 +188,7 @@ export default function AdminPropertyForm() {
 
   const fetchCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      toast.error("Geolocation is not supported by your browser");
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -199,7 +200,7 @@ export default function AdminPropertyForm() {
         }));
       },
       (err) => {
-        alert("Unable to retrieve your location: " + err.message);
+        toast.error("Unable to retrieve your location: " + err.message);
       }
     );
   };
@@ -249,7 +250,7 @@ export default function AdminPropertyForm() {
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         {/* RIGHT: Form Areas */}
-        <div className="flex-grow space-y-6">
+        <div className="grow space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* Core Details */}

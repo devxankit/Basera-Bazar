@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const logger = require('../utils/logger');
 const crypto = require('crypto');
 const Order = require('../models/Order');
 const { MandiListing } = require('../models/Listing');
@@ -89,7 +90,7 @@ const createMarketplaceOrder = async (req, res) => {
         status: 'pending',
         commission_rate: categoryRate,
         commission_amount: itemCommission,
-        delivery_otp: Math.floor(100000 + Math.random() * 900000).toString()
+        delivery_otp: crypto.randomInt(100000, 1000000).toString()
       });
     }
 
@@ -110,7 +111,7 @@ const createMarketplaceOrder = async (req, res) => {
     }
     
     // 3. Create Marketplace Order record
-    const orderId = `BSR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const orderId = `BSR-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
     const newOrder = await Order.create({
       order_id: orderId,
       user_id: userId,
@@ -147,10 +148,10 @@ const createMarketplaceOrder = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Order Creation Error:", error);
+    logger.error({ err: error }, "Order Creation Error:")
     res.status(500).json({ 
       success: false, 
-      message: error.message || 'Error creating order.'
+      message: 'Error creating order.'
     });
   }
 };
@@ -235,7 +236,7 @@ const verifyMarketplacePayment = async (req, res) => {
         );
       }
     } catch (notifErr) {
-      console.error("Seller Notification Error:", notifErr);
+      logger.error({ err: notifErr }, "Seller Notification Error:")
       // Don't fail the payment verification if notification fails
     }
 
@@ -246,7 +247,7 @@ const verifyMarketplacePayment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Verify Payment Error:", error);
+    logger.error({ err: error }, "Verify Payment Error:")
     res.status(500).json({ success: false, message: 'Error verifying payment.' });
   }
 };
@@ -356,7 +357,7 @@ const getUserOrders = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const userPhone = req.user.phone;
     
-    console.log(`Fetching orders for User ID: ${userId}, Phone: ${userPhone}`);
+    logger.info(`Fetching orders for User ID: ${userId}, Phone: ${userPhone}`)
 
     // We fetch orders linked to the specific ID OR orders matching the user's phone number.
     // This handles cases where a person might have both a User and Partner record
@@ -378,10 +379,10 @@ const getUserOrders = async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
-    console.log(`Found ${orders.length} total orders matching ID or Phone.`);
+    logger.info(`Found ${orders.length} total orders matching ID or Phone.`)
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
-    console.error("getUserOrders Error:", error);
+    logger.error({ err: error }, "getUserOrders Error:")
     res.status(500).json({ success: false, message: 'Error fetching orders.' });
   }
 };
@@ -394,7 +395,7 @@ const getUserOrders = async (req, res) => {
 const getSellerOrders = async (req, res) => {
   try {
     const sellerId = req.user.id;
-    console.log(`Fetching orders for seller: ${sellerId}`);
+    logger.info(`Fetching orders for seller: ${sellerId}`)
     
     const orders = await Order.find({ 'items.seller_id': sellerId })
       .populate('user_id', 'name phone')
@@ -404,7 +405,7 @@ const getSellerOrders = async (req, res) => {
       })
       .sort({ createdAt: -1 });
     
-    console.log(`Found ${orders.length} matching orders in DB for seller ${sellerId}`);
+    logger.info(`Found ${orders.length} matching orders in DB for seller ${sellerId}`)
 
     // Filter items to only show seller's own items
     const filteredOrders = orders.map(order => {
@@ -415,11 +416,10 @@ const getSellerOrders = async (req, res) => {
 
     res.status(200).json({ success: true, data: filteredOrders });
   } catch (error) {
-    console.error("Seller Orders Fetch Error:", error);
+    logger.error({ err: error }, "Seller Orders Fetch Error:")
     res.status(500).json({ 
       success: false, 
       message: 'Error fetching orders.',
-      error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
@@ -485,8 +485,8 @@ const addReview = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Review saved successfully', data: newReview });
   } catch (error) {
-    console.error("Review Error:", error);
-    res.status(500).json({ success: false, message: error.message || 'Error submitting review.' });
+    logger.error({ err: error }, "Review Error:")
+    res.status(500).json({ success: false, message: 'Error submitting review.' });
   }
 };
 
@@ -522,7 +522,7 @@ const resendOrderOTP = async (req, res) => {
       return res.status(500).json({ success: false, message: 'Failed to send SMS.' });
     }
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, 'Update order status error')
     res.status(500).json({ success: false, message: 'Internal server error.' });
   }
 };

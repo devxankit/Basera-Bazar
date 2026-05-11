@@ -1,14 +1,18 @@
+const logger = require('../utils/logger');
 // NOTE: This file is designed to fall back gracefully to the in-memory cache
 // if the ioredis package is not installed or the Redis server is unreachable.
 let Redis;
 try {
   Redis = require('ioredis');
 } catch (error) {
-  console.warn('[Redis Setup] ioredis package not found. Redis caching will be disabled.');
+  logger.warn('[Redis Setup] ioredis package not found. Redis caching will be disabled.')
 }
 
-// Ensure there is a REDIS_URL in production, otherwise default to local
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+
+if (process.env.NODE_ENV === 'production' && REDIS_URL.startsWith('redis://')) {
+  logger.warn('[Redis] WARNING: Unencrypted redis:// connection in production. Use rediss:// for TLS.');
+}
 
 let redisClient = null;
 
@@ -19,7 +23,7 @@ if (Redis) {
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => {
         if (times > 3) {
-          console.warn('[Redis] Connection failed after 3 retries. Falling back to in-memory cache.');
+          logger.warn('[Redis] Connection failed after 3 retries. Falling back to in-memory cache.')
           return null; // Stop retrying
         }
         return Math.min(times * 100, 3000); // Reconnect after a delay
@@ -27,14 +31,14 @@ if (Redis) {
     });
 
     redisClient.on('connect', () => {
-      console.log('🚀 Redis Connected Successfully');
+      logger.info('🚀 Redis Connected Successfully')
     });
 
     redisClient.on('error', (err) => {
-      console.warn(`[Redis] Connection Error: ${err.message}. (Using fallback)`);
+      logger.warn(`[Redis] Connection Error: ${err.message}. (Using fallback)`)
     });
   } catch (err) {
-    console.warn(`[Redis] Initialization Error: ${err.message}. (Using fallback)`);
+    logger.warn(`[Redis] Initialization Error: ${err.message}. (Using fallback)`)
   }
 }
 

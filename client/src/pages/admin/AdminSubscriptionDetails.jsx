@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { motion } from 'framer-motion';
@@ -115,7 +116,7 @@ export default function AdminSubscriptionDetails() {
   const handleDownloadInvoice = async () => {
     const input = document.getElementById('invoice-template');
     if (!input) {
-      alert("Error: Invoice template not found.");
+      toast.error("Error: Invoice template not found.");
       return;
     }
 
@@ -167,7 +168,7 @@ export default function AdminSubscriptionDetails() {
       pdf.save(filename);
     } catch (error) {
        console.error("Invoice generation failed:", error);
-       alert(`Invoice generation failed: ${error.message || 'Unknown error'}`);
+       toast.error(`Invoice generation failed: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -297,11 +298,11 @@ export default function AdminSubscriptionDetails() {
       <InvoiceTemplate />
 
       {/* Platform Header Area (Removed redundant header text, kept modern gradient box) */}
-      <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
+      <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
         
         {/* Action Header Block */}
         <div className="relative bg-white rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
-           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-100/50 via-purple-50/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
+           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-linear-to-bl from-indigo-100/50 via-purple-50/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
            
            <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between p-8 gap-6 z-10">
               <div className="flex items-start gap-6">
@@ -331,7 +332,7 @@ export default function AdminSubscriptionDetails() {
                  </button>
                  <button 
                     onClick={() => navigate(`/admin/subscriptions/add-manual/${partner_id?._id}`)}
-                    className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-400 text-white font-black text-[11px] uppercase tracking-widest rounded-2xl hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-200 transition-all flex items-center gap-2"
+                    className="px-6 py-3 bg-linear-to-r from-emerald-500 to-emerald-400 text-white font-black text-[11px] uppercase tracking-widest rounded-2xl hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-200 transition-all flex items-center gap-2"
                  >
                     <RefreshCcw size={14} /> Direct Renew
                  </button>
@@ -374,7 +375,7 @@ export default function AdminSubscriptionDetails() {
                        <div className="space-y-1">
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Partner Identity</p>
                           <div className="flex items-center gap-3 mt-1">
-                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-50 flex items-center justify-center text-[10px] font-black text-indigo-600 shadow-inner">
+                             <div className="w-8 h-8 rounded-lg bg-linear-to-br from-indigo-100 to-indigo-50 flex items-center justify-center text-[10px] font-black text-indigo-600 shadow-inner">
                                 {partner_id?.name?.[0] || 'U'}
                              </div>
                              <div>
@@ -529,13 +530,13 @@ export default function AdminSubscriptionDetails() {
                  <p className="text-2xl font-black text-indigo-600 mt-1 tracking-tight tabular-nums">{diffDays} Days</p>
               </div>
               
-              <div className="flex-grow w-full space-y-3 relative z-10">
+              <div className="grow w-full space-y-3 relative z-10">
                  <div className="h-2.5 bg-slate-200/50 rounded-full overflow-hidden shadow-inner flex">
                     <motion.div 
                        initial={{ width: 0 }}
                        animate={{ width: `${progressPercent}%` }}
                        transition={{ duration: 1.5, ease: "easeOut" }}
-                       className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full shadow-sm"
+                       className="h-full bg-linear-to-r from-indigo-500 to-indigo-400 rounded-full shadow-sm"
                     ></motion.div>
                  </div>
                  <div className="flex justify-between items-center px-1">

@@ -1,4 +1,5 @@
 const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
+const logger = require('../utils/logger');
 const { Category } = require('../models/System');
 const { Subscription } = require('../models/Finance');
 const { Partner } = require('../models/Partner');
@@ -13,16 +14,13 @@ const invalidate = require('../utils/cacheInvalidator');
 
 const mongoose = require('mongoose');
 
-/**
- * Helper to build a reliable location-based query.
- * Uses address.district and address.state for filtering since
- * geo coordinates are often [0,0] for older listings.
- * Priority: exact district > same state > national (if no location given)
- */
+// Escape special regex metacharacters so user input can't cause ReDoS (H-1)
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const buildLocationQuery = (district, state) => {
   if (!district && !state) return {};
-  if (district) return { 'address.district': { $regex: new RegExp(district, 'i') } };
-  if (state) return { 'address.state': { $regex: new RegExp(state, 'i') } };
+  if (district) return { 'address.district': { $regex: new RegExp(escapeRegex(district), 'i') } };
+  if (state) return { 'address.state': { $regex: new RegExp(escapeRegex(state), 'i') } };
   return {};
 };
 
@@ -62,9 +60,9 @@ const getNearbyServices = async (req, res) => {
 
     // Apply location filter using district/state text matching
     if (district) {
-      query['address.district'] = { $regex: new RegExp(district, 'i') };
+      query['address.district'] = { $regex: new RegExp(escapeRegex(district), 'i') };
     } else if (state) {
-      query['address.state'] = { $regex: new RegExp(state, 'i') };
+      query['address.state'] = { $regex: new RegExp(escapeRegex(state), 'i') };
     }
 
     const services = await ServiceListing.find(query)
@@ -76,7 +74,7 @@ const getNearbyServices = async (req, res) => {
     res.status(200).json({ success: true, count: sorted.length, data: sorted });
 
   } catch (error) {
-    console.error("Error in getNearbyServices:", error);
+    logger.error({ err: error }, "Error in getNearbyServices:")
     res.status(500).json({ success: false, message: 'Server error fetching services.' });
   }
 };
@@ -111,13 +109,12 @@ const getMandiListings = async (req, res) => {
     // Apply location filter using district/state text matching
     if (!partner_id) { // Don't filter by location when viewing a specific partner's items
       if (district) {
-        query['address.district'] = { $regex: new RegExp(district, 'i') };
+        query['address.district'] = { $regex: new RegExp(escapeRegex(district), 'i') };
       } else if (state) {
-        query['address.state'] = { $regex: new RegExp(state, 'i') };
+        query['address.state'] = { $regex: new RegExp(escapeRegex(state), 'i') };
       }
     }
 
-    console.log(`[MandiListings] Query with location filter:`, JSON.stringify(query));
 
     const mandiItems = await MandiListing.find(query)
       .populate('category_id', 'name icon mandi_icon type')
@@ -127,7 +124,7 @@ const getMandiListings = async (req, res) => {
     res.status(200).json({ success: true, count: sorted.length, data: sorted });
 
   } catch (error) {
-    console.error("Error in getMandiListings:", error);
+    logger.error({ err: error }, "Error in getMandiListings:")
     res.status(500).json({ success: false, message: 'Server error fetching mandi inventory.' });
   }
 };
@@ -232,12 +229,12 @@ const createPropertyListing = async (req, res) => {
     await invalidate.adminDashboard();
 
   } catch (error) {
-    console.error("Error creating property:", error.message);
+    logger.error({ err: error.message }, "Error creating property:")
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(e => e.message).join(', ');
       return res.status(400).json({ success: false, message: `Validation failed: ${messages}` });
     }
-    res.status(500).json({ success: false, message: error.message || 'Server error creating listing.' });
+    res.status(500).json({ success: false, message: 'Server error creating listing.' });
   }
 };
 
@@ -328,16 +325,16 @@ const createServiceListing = async (req, res) => {
     await invalidate.publicListings();
     await invalidate.adminDashboard();
   } catch (error) {
-    console.error("Error creating service listing:", error);
+    logger.error({ err: error }, "Error creating service listing:")
     if (error.name === 'ValidationError') {
-      console.error("Validation Details:", error.errors);
+      logger.error({ err: error.errors }, "Validation Details:")
       return res.status(400).json({ 
         success: false, 
         message: 'Validation failed.', 
         error: Object.values(error.errors).map(e => e.message).join(', ') 
       });
     }
-    res.status(500).json({ success: false, message: 'Server error creating service listing.', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error creating service listing.' });
   }
 };
 
@@ -386,7 +383,7 @@ const getListingById = async (req, res) => {
 
     res.status(200).json({ success: true, data: listing });
   } catch (error) {
-    console.error("Error in getListingById:", error);
+    logger.error({ err: error }, "Error in getListingById:")
     res.status(500).json({ success: false, message: 'Server error fetching listing details.' });
   }
 };
@@ -428,14 +425,14 @@ const getAllListings = async (req, res) => {
       if (subCategory && modelName === 'ServiceListing') {
         // If subCategory name is provided, we can filter by service_type or similar if needed
         // For now, let's stick to IDs if available, but many frontend routes pass subCategory name
-        query.service_type = { $regex: new RegExp(subCategory, 'i') };
+        query.service_type = { $regex: new RegExp(escapeRegex(subCategory), 'i') };
       }
 
       if (subCategory && modelName === 'PropertyListing') {
         // Filter by property_type (enum in model)
         // Robust matching: take the first part of the slug and match it against the enum
         const primaryKeyword = subCategory.split(/[-_]/)[0];
-        query.property_type = { $regex: new RegExp(primaryKeyword, 'i') };
+        query.property_type = { $regex: new RegExp(escapeRegex(primaryKeyword), 'i') };
       }
       
       // ── PROPERTY SPECIFIC FILTERING ──
@@ -451,15 +448,15 @@ const getAllListings = async (req, res) => {
         const pathPrefix = modelName === 'Partner' ? '' : 'address.';
         
         if (district) {
-          query[`${pathPrefix}district`] = { $regex: new RegExp(district, 'i') };
+          query[`${pathPrefix}district`] = { $regex: new RegExp(escapeRegex(district), 'i') };
         } else if (state) {
-          query[`${pathPrefix}state`] = { $regex: new RegExp(state, 'i') };
+          query[`${pathPrefix}state`] = { $regex: new RegExp(escapeRegex(state), 'i') };
         }
       }
 
       // ── TEXT SEARCH SUPPORT ──
       if (searchQuery) {
-        const regex = { $regex: new RegExp(searchQuery, 'i') };
+        const regex = { $regex: new RegExp(escapeRegex(searchQuery), 'i') };
         if (modelName === 'Partner') {
           query.$or = [
             { name: regex },
@@ -530,12 +527,11 @@ const getAllListings = async (req, res) => {
     // Sort combined results by location priority
     const sorted = sortByLocationPriority(results, district, state);
 
-    console.log(`[getAllListings] q=${searchQuery} district=${district} state=${state} → returning ${sorted.length} results`);
 
     res.status(200).json({ success: true, count: sorted.length, data: sorted });
   } catch (error) {
-    console.error("CRITICAL: Error in getAllListings:", error.message);
-    res.status(500).json({ success: false, message: `Server error: ${error.message}` });
+    logger.error({ err: error.message }, "CRITICAL: Error in getAllListings:")
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
@@ -550,7 +546,7 @@ const getPublicBanners = async (req, res) => {
     const banners = await Banner.find({ is_active: true }).sort({ priority: -1 });
     res.status(200).json({ success: true, count: banners.length, data: banners });
   } catch (error) {
-    console.error("Error in getPublicBanners:", error);
+    logger.error({ err: error }, "Error in getPublicBanners:")
     res.status(500).json({ success: false, message: 'Server error fetching banners.' });
   }
 };
@@ -605,8 +601,8 @@ const getPublicCategories = async (req, res) => {
       const applyLocationFilter = (q, modelType) => {
         if (!hasLocation) return q;
         const prefix = modelType === 'Partner' ? '' : 'address.';
-        if (district) q[`${prefix}district`] = { $regex: new RegExp(district, 'i') };
-        else if (state) q[`${prefix}state`] = { $regex: new RegExp(state, 'i') };
+        if (district) q[`${prefix}district`] = { $regex: new RegExp(escapeRegex(district), 'i') };
+        else if (state) q[`${prefix}state`] = { $regex: new RegExp(escapeRegex(state), 'i') };
         return q;
       };
 
@@ -618,7 +614,7 @@ const getPublicCategories = async (req, res) => {
 
         if (type === 'property' && cat.slug) {
           const primaryKeyword = cat.slug.split(/[-_]/)[0];
-          countQuery.$or.push({ property_type: { $regex: new RegExp(primaryKeyword, 'i') } });
+          countQuery.$or.push({ property_type: { $regex: new RegExp(escapeRegex(primaryKeyword), 'i') } });
         }
         countQuery = applyLocationFilter(countQuery, 'Listing');
         count = await ListingModel.countDocuments(countQuery);
@@ -637,7 +633,7 @@ const getPublicCategories = async (req, res) => {
 
     res.status(200).json({ success: true, count: categoriesWithCounts.length, data: categoriesWithCounts });
   } catch (error) {
-    console.error("Error in getPublicCategories:", error);
+    logger.error({ err: error }, "Error in getPublicCategories:")
     res.status(500).json({ success: false, message: 'Server error fetching categories.' });
   }
 };
@@ -685,7 +681,7 @@ const getMyListings = async (req, res) => {
       data: combined
     });
   } catch (error) {
-    console.error("Error in getMyListings:", error);
+    logger.error({ err: error }, "Error in getMyListings:")
     res.status(500).json({ success: false, message: 'Server error fetching your listings.' });
   }
 };
@@ -699,10 +695,18 @@ const updateListing = async (req, res) => {
   try {
     const { id } = req.params;
     const partnerId = req.user.id;
-    const updateData = req.body;
 
     // Admins can update any listing, partners only their own
     const isAdmin = ['admin', 'super_admin', 'SuperAdmin', 'Admin'].includes(req.user.role);
+
+    // Strip fields that partners must never be able to set directly
+    const PARTNER_BLOCKED_FIELDS = ['status', 'partner_id', 'is_active', 'verified', 'views', 'featured_until', 'admin_notes', 'rejection_reason', 'approval_date'];
+    const updateData = { ...req.body };
+    if (!isAdmin) {
+      for (const field of PARTNER_BLOCKED_FIELDS) {
+        delete updateData[field];
+      }
+    }
     const filter = isAdmin ? { _id: id } : { _id: id, partner_id: partnerId };
 
     let listing = await PropertyListing.findOne(filter);
@@ -769,7 +773,7 @@ const updateListing = async (req, res) => {
     await invalidate.publicListings();
     await invalidate.adminDashboard();
   } catch (error) {
-    console.error("Error updating listing:", error);
+    logger.error({ err: error }, "Error updating listing:")
     res.status(500).json({ success: false, message: 'Server error updating listing' });
   }
 };
@@ -804,7 +808,7 @@ const deleteListing = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Listing deleted successfully' });
   } catch (error) {
-    console.error("Error deleting listing:", error);
+    logger.error({ err: error }, "Error deleting listing:")
     res.status(500).json({ success: false, message: 'Server error deleting listing' });
   }
 };
@@ -928,8 +932,8 @@ const createMandiListing = async (req, res) => {
     await invalidate.publicListings();
     await invalidate.adminDashboard();
   } catch (error) {
-    console.error("Error creating Mandi listing:", error);
-    res.status(500).json({ success: false, message: 'Server error creating mandi listing.', error: error.message });
+    logger.error({ err: error }, "Error creating Mandi listing:")
+    res.status(500).json({ success: false, message: 'Server error creating mandi listing.' });
   }
 };
 
@@ -961,8 +965,8 @@ const createPartnerCategory = async (req, res) => {
 
     res.status(201).json({ success: true, data: newCategory });
   } catch (error) {
-    console.error("Error creating partner category:", error);
-    res.status(500).json({ success: false, message: 'Server error creating category.', error: error.message });
+    logger.error({ err: error }, "Error creating partner category:")
+    res.status(500).json({ success: false, message: 'Server error creating category.' });
   }
 };
 
@@ -984,7 +988,7 @@ const deletePartnerCategory = async (req, res) => {
     await Category.findByIdAndDelete(id);
     res.status(200).json({ success: true, message: 'Category deleted' });
   } catch (error) {
-    console.error("Error deleting partner category:", error);
+    logger.error({ err: error }, "Error deleting partner category:")
     res.status(500).json({ success: false, message: 'Server error deleting category.' });
   }
 };
@@ -1032,7 +1036,7 @@ const recordListingInteraction = async (req, res) => {
 
     res.status(200).json({ success: true, message: `Recorded ${type} successfully.` });
   } catch (error) {
-    console.error("Error recording interaction:", error);
+    logger.error({ err: error }, "Error recording interaction:")
     res.status(500).json({ success: false, message: 'Server error recording interaction.' });
   }
 };
@@ -1093,8 +1097,8 @@ const createSellerAttribute = async (req, res) => {
     if (error.code === 11000) {
       return res.status(409).json({ success: false, message: 'This attribute already exists for this category.' });
     }
-    console.error("Error creating seller attribute:", error);
-    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+    logger.error({ err: error }, "Error creating seller attribute:")
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
@@ -1118,7 +1122,7 @@ const getMySellerAttributes = async (req, res) => {
 
     res.status(200).json({ success: true, count: attrs.length, data: attrs });
   } catch (error) {
-    console.error("Error fetching my seller attributes:", error);
+    logger.error({ err: error }, "Error fetching my seller attributes:")
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
@@ -1161,7 +1165,7 @@ const getSellerAttributes = async (req, res) => {
 
     res.status(200).json({ success: true, data: Object.values(uniqueMap) });
   } catch (error) {
-    console.error("Error fetching seller attributes:", error);
+    logger.error({ err: error }, "Error fetching seller attributes:")
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
@@ -1190,7 +1194,7 @@ const deleteSellerAttribute = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Attribute deleted.' });
   } catch (error) {
-    console.error("Error deleting seller attribute:", error);
+    logger.error({ err: error }, "Error deleting seller attribute:")
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
@@ -1236,8 +1240,8 @@ const toggleFeaturedListing = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error toggling featured status:", error);
-    res.status(500).json({ success: false, message: error.message });
+    logger.error({ err: error }, "Error toggling featured status:")
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 

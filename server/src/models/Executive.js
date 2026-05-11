@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const executiveSchema = new mongoose.Schema({
   name: {
@@ -31,13 +32,13 @@ const executiveSchema = new mongoose.Schema({
   },
   role: {
     type: String,
+    enum: ['executive'],
     default: 'executive'
   },
   is_active: {
     type: Boolean,
     default: true
   },
-  // Step 2: Address & Bank Details
   address: {
     address_line: { type: String },
     city: { type: String },
@@ -50,7 +51,6 @@ const executiveSchema = new mongoose.Schema({
     bank_name: { type: String },
     account_holder_name: { type: String }
   },
-  // Step 3: KYC Details
   kyc: {
     live_photo: { type: String },
     aadhar_number: { type: String },
@@ -91,27 +91,61 @@ const executiveSchema = new mongoose.Schema({
   },
   fcmTokens: {
     type: [String],
-    default: []
-  }
+    default: [],
+    validate: {
+      validator: (arr) => arr.length <= 10,
+      message: 'An executive cannot have more than 10 registered devices.'
+    }
+  },
+  failed_login_attempts: { type: Number, default: 0 },
+  lockout_until: { type: Date, default: null }
 }, { timestamps: true });
 
-// Add method to compare password
+// Strip sensitive PII from all JSON responses
+executiveSchema.set('toJSON', {
+  transform: (doc, ret) => {
+    delete ret.password;
+    if (ret.kyc) {
+      delete ret.kyc.aadhar_number;
+      delete ret.kyc.pan_number;
+    }
+    if (ret.bank_details) {
+      delete ret.bank_details.account_number;
+    }
+    return ret;
+  }
+});
+
 executiveSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Pre-save hook for password hashing and referral code generation
 executiveSchema.pre('save', async function () {
-  // Hash password
   if (this.isModified('password')) {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
   }
 
-  // Generate unique referral code if not present and approved/pending
+  // Generate a cryptographically secure referral code on approval
   if (!this.referral_code && this.onboarding_status !== 'incomplete') {
-    this.referral_code = 'EX' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    let code;
+    let attempts = 0;
+    do {
+      code = 'EX' + crypto.randomBytes(3).toString('hex').toUpperCase();
+      attempts++;
+    } while (
+      attempts < 10 &&
+      (await this.constructor.exists({ referral_code: code, _id: { $ne: this._id } }))
+    );
+
+    if (attempts >= 10) {
+      throw new Error('Failed to generate a unique referral code. Please try again.');
+    }
+
+    this.referral_code = code;
   }
 });
+
+executiveSchema.index({ onboarding_status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Executive', executiveSchema);

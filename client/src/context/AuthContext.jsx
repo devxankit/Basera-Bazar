@@ -136,17 +136,25 @@ export const AuthProvider = ({ children }) => {
     return null;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-2 border-slate-100 border-t-slate-800 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      logout, 
-      updateUser, 
+    <AuthContext.Provider value={{
+      user,
+      login,
+      logout,
+      updateUser,
       refreshUser,
       isAuthenticated: !!user,
-      loading 
+      loading
     }}>
-      {!loading && children}
+      {children}
 
       <ConfirmationModal
         isOpen={accountStatusError.show}

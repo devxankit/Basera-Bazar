@@ -7,8 +7,10 @@ import {
   Activity, Heart, Star, Copy, Send, Eye, ChevronRight
 } from 'lucide-react';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -21,6 +23,7 @@ const AdminLeadDetails = () => {
   const [metrics, setMetrics] = useState({ totalInquiries: 1 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, deleting: false });
 
   const fetchLead = async () => {
     setLoading(true);
@@ -55,18 +58,22 @@ const AdminLeadDetails = () => {
       await api.put(`/admin/leads/${id}/status`, { contact_status: newStatus });
       fetchLead();
     } catch (err) {
-      alert('Error updating status');
+      toast.error('Error updating status');
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to permanently delete this lead?')) {
-      try {
-        await api.delete(`/admin/leads/${id}`);
-        navigate('/admin/leads');
-      } catch (err) {
-        alert('Error deleting lead');
-      }
+  const handleDelete = () => {
+    setDeleteModal({ isOpen: true, deleting: false });
+  };
+
+  const confirmDelete = async () => {
+    setDeleteModal(m => ({ ...m, deleting: true }));
+    try {
+      await api.delete(`/admin/leads/${id}`);
+      navigate('/admin/leads');
+    } catch (err) {
+      toast.error('Error deleting lead');
+      setDeleteModal(m => ({ ...m, deleting: false }));
     }
   };
 
@@ -96,12 +103,21 @@ const AdminLeadDetails = () => {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
-      <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, deleting: false })}
+        onConfirm={confirmDelete}
+        title="Delete Lead"
+        message="Are you sure you want to permanently delete this lead? This action cannot be undone."
+        confirmText="Delete"
+        loading={deleteModal.deleting}
+      />
+      <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
         
         {/* Action Header Block */}
         <div className="relative bg-white rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
            {/* Immersive Background element */}
-           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-100/50 via-purple-50/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
+           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-linear-to-bl from-indigo-100/50 via-purple-50/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
            
            <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between p-8 gap-6 z-10">
               <div className="flex items-start gap-6">
@@ -134,7 +150,7 @@ const AdminLeadDetails = () => {
                        "px-6 py-3 font-semibold text-[12px] uppercase tracking-widest rounded-2xl transition-all flex items-center gap-2 shadow-sm active:scale-95",
                        lead.contact_status === 'contacted' 
                          ? "bg-slate-100 text-slate-500 border border-slate-200"
-                         : "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white hover:shadow-lg hover:shadow-indigo-200"
+                         : "bg-linear-to-r from-indigo-600 to-indigo-500 text-white hover:shadow-lg hover:shadow-indigo-200"
                     )}
                  >
                     <CheckCircle2 size={14} /> {lead.contact_status === 'contacted' ? 'Update Routine' : 'Acknowledge Lead'}
@@ -178,7 +194,7 @@ const AdminLeadDetails = () => {
                   {/* Left: Contact Info */}
                   <div className="space-y-8">
                      <div className="flex items-center gap-5">
-                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-2xl font-semibold shadow-xl shadow-indigo-100 border-4 border-white">
+                        <div className="w-16 h-16 bg-linear-to-br from-indigo-600 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-2xl font-semibold shadow-xl shadow-indigo-100 border-4 border-white">
                            {(lead.user_details?.name || lead.user_id?.name || 'U').charAt(0)}
                         </div>
                         <div className="space-y-2">
@@ -226,7 +242,7 @@ const AdminLeadDetails = () => {
                            onClick={() => {
                               const email = lead.user_details?.email || lead.user_id?.email;
                               if (email) window.open(`mailto:${email}`, '_self');
-                              else alert('No email address available for this lead.');
+                              else toast.error('No email address available for this lead.');
                            }}
                            className="flex-1 bg-white border border-slate-200 text-slate-600 px-6 py-4 rounded-2xl font-semibold text-[12px] uppercase tracking-widest flex items-center justify-center gap-3 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm active:scale-95 group"
                         >
@@ -236,9 +252,9 @@ const AdminLeadDetails = () => {
                            onClick={() => {
                               const phone = lead.user_details?.phone || lead.user_id?.phone;
                               if (phone) window.open(`tel:${phone}`, '_self');
-                              else alert('No phone number available for this lead.');
+                              else toast.error('No phone number available for this lead.');
                            }}
-                           className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-400 text-white px-6 py-4 rounded-2xl font-semibold text-[12px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-emerald-200 hover:-translate-y-0.5 transition-all active:scale-95"
+                           className="flex-1 bg-linear-to-r from-emerald-500 to-emerald-400 text-white px-6 py-4 rounded-2xl font-semibold text-[12px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-emerald-200 hover:-translate-y-0.5 transition-all active:scale-95"
                         >
                            <Phone size={14} /> Direct VoIP
                         </button>
@@ -343,7 +359,7 @@ const AdminLeadDetails = () => {
                       href={lead.document_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="w-full p-6 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-3xl flex items-center justify-between group hover:shadow-lg hover:shadow-indigo-100 transition-all"
+                      className="w-full p-6 bg-linear-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-3xl flex items-center justify-between group hover:shadow-lg hover:shadow-indigo-100 transition-all"
                     >
                        <div className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
@@ -405,7 +421,7 @@ const AdminLeadDetails = () => {
           <div className="space-y-8">
             {/* Listing Details Sidebar */}
             <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
-               <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 px-8 py-6 flex items-center gap-3">
+               <div className="bg-linear-to-r from-emerald-600 to-emerald-500 px-8 py-6 flex items-center gap-3">
                   <Info size={18} className="text-white opacity-80" />
                   <span className="text-[12px] font-semibold text-white uppercase tracking-[0.2em] mt-0.5">Asset Reference</span>
                </div>
@@ -451,14 +467,14 @@ const AdminLeadDetails = () => {
             </div>
 
             {/* Admin Privilege Branding */}
-            <div className="bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] rounded-3xl border border-white/5 shadow-2xl p-8 space-y-8 relative overflow-hidden group">
+            <div className="bg-linear-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] rounded-3xl border border-white/5 shadow-2xl p-8 space-y-8 relative overflow-hidden group">
                <div className="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500/10 blur-[80px] rounded-full group-hover:bg-indigo-500/20 transition-all duration-700" />
                <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-orange-500/10 blur-[80px] rounded-full group-hover:bg-orange-500/20 transition-all duration-700" />
                
                <div className="relative flex flex-col items-center text-center space-y-6">
                   <div className="relative">
                     <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full scale-150 animate-pulse" />
-                    <div className="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-600 rounded-full flex items-center justify-center relative shadow-lg shadow-orange-500/20 border-2 border-white/20">
+                    <div className="w-20 h-20 bg-linear-to-tr from-amber-400 to-orange-600 rounded-full flex items-center justify-center relative shadow-lg shadow-orange-500/20 border-2 border-white/20">
                        <Star size={36} className="text-white fill-white drop-shadow-md" />
                     </div>
                   </div>
@@ -479,7 +495,7 @@ const AdminLeadDetails = () => {
 
                   <button 
                     onClick={() => navigate('/admin/dashboard')} 
-                    className="w-full bg-gradient-to-r from-orange-500 to-rose-500 text-white py-4 rounded-2xl font-semibold text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-2xl shadow-orange-500/40 hover:shadow-orange-600/50 hover:-translate-y-0.5 transition-all active:scale-95"
+                    className="w-full bg-linear-to-r from-orange-500 to-rose-500 text-white py-4 rounded-2xl font-semibold text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-2xl shadow-orange-500/40 hover:shadow-orange-600/50 hover:-translate-y-0.5 transition-all active:scale-95"
                   >
                      <Activity size={16} /> Console Home
                   </button>

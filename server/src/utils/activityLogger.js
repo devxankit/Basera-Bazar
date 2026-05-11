@@ -1,44 +1,46 @@
 const mongoose = require('mongoose');
+const logger = require('./logger');
 
-// Define the ActivityLog schema inline here to keep it lightweight
 const activityLogSchema = new mongoose.Schema({
-  actor_name: { type: String, default: 'System' },   // Who did it (admin name, user name, partner name)
-  actor_id: { type: mongoose.Schema.Types.ObjectId }, // Their ID
-  action: { 
-    type: String, 
-    required: true, 
-    enum: ['created', 'updated', 'deleted', 'approved', 'rejected', 'registered', 'subscribed', 'login', 'logout', 'submitted_onboarding', 'onboarding']
-  },
-  entity_type: { 
-    type: String, 
+  actor_name: { type: String, default: 'System' },
+  actor_id: { type: mongoose.Schema.Types.ObjectId },
+  action: {
+    type: String,
     required: true,
-    enum: ['user', 'partner', 'executive', 'property', 'service', 'supplier', 'product', 'category', 'subcategory', 'banner', 'subscription', 'system']
+    enum: [
+      'created', 'updated', 'deleted', 'approved', 'rejected',
+      'registered', 'subscribed', 'login', 'logout',
+      'submitted_onboarding', 'onboarding',
+      'withdrawn', 'credited', 'deactivated', 'activated',
+      'paid', 'verified', 'cancelled', 'payment_failed'
+    ]
   },
-  entity_name: { type: String }, // e.g. property title, user name
+  entity_type: {
+    type: String,
+    required: true,
+    enum: [
+      'user', 'partner', 'executive', 'property', 'service',
+      'supplier', 'product', 'category', 'subcategory', 'banner',
+      'subscription', 'system', 'withdrawal', 'payment',
+      'wallet', 'lead', 'order', 'mandi_product'
+    ]
+  },
+  entity_name: { type: String },
   entity_id: { type: mongoose.Schema.Types.ObjectId },
-  description: { type: String, required: true }, // Human-readable: "Ujjawal added Sunrise Apartment"
+  description: { type: String, required: true },
   status: { type: String, default: 'COMPLETED', enum: ['COMPLETED', 'FAILED', 'PENDING'] },
-  metadata: { type: mongoose.Schema.Types.Mixed } // Optional extra details
+  metadata: { type: mongoose.Schema.Types.Mixed }
 }, { timestamps: true });
 
 activityLogSchema.index({ createdAt: -1 });
 activityLogSchema.index({ entity_type: 1, createdAt: -1 });
+// Auto-delete logs older than 90 days
+activityLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 const ActivityLog = mongoose.models.ActivityLog || mongoose.model('ActivityLog', activityLogSchema);
 
 /**
- * Log an activity to the database.
- * This is a "fire and forget" – it will never throw and break the calling function.
- * 
- * @param {Object} opts
- * @param {string}  opts.actor_name  - Name of the person who did the action
- * @param {string}  opts.actor_id    - MongoDB ID of the actor
- * @param {string}  opts.action      - 'created' | 'updated' | 'deleted' | 'approved' | 'rejected' | 'registered' | 'subscribed'
- * @param {string}  opts.entity_type - 'user' | 'partner' | 'property' | 'service' | 'supplier' | 'product' | 'category' | 'banner' | 'subscription'
- * @param {string}  opts.entity_name - Human-readable name of the affected entity
- * @param {string}  opts.entity_id   - MongoDB ID of the affected entity
- * @param {string}  opts.description - Full readable description e.g. "Admin created user John Doe"
- * @param {string}  [opts.status]    - 'COMPLETED' by default
+ * Fire-and-forget activity logger. Never throws — failures are logged to console only.
  */
 async function logActivity(opts) {
   try {
@@ -54,8 +56,7 @@ async function logActivity(opts) {
       metadata: opts.metadata || {}
     });
   } catch (err) {
-    // Never crash the calling function – just log the error silently in the server console
-    console.error('[ActivityLogger] Failed to write activity log:', err.message);
+    logger.error({ err: err.message }, '[ActivityLogger] Failed to write activity log:');
   }
 }
 

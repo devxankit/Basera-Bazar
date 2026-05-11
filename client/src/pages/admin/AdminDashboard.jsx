@@ -14,6 +14,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 import { Skeleton } from '../../components/common/Skeleton';
 
 const StatCard = ({ title, value, icon: Icon, color, trend, badge, onClick }) => (
@@ -25,7 +26,7 @@ const StatCard = ({ title, value, icon: Icon, color, trend, badge, onClick }) =>
     onClick={onClick}
     className={`bg-white p-7 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between relative overflow-hidden group transition-all ${onClick ? 'cursor-pointer hover:border-indigo-200 hover:shadow-md' : ''}`}
   >
-    <div className="flex flex-col gap-3 min-w-0 flex-grow">
+    <div className="flex flex-col gap-3 min-w-0 grow">
       <div>
         <p className="text-[11px] font-semibold text-slate-400 tracking-tight leading-none mb-2 lg:mb-3 uppercase">{title}</p>
         <h3 className="text-3xl lg:text-4xl font-semibold text-slate-900 tracking-tight truncate">{value}</h3>
@@ -53,7 +54,7 @@ const StatCard = ({ title, value, icon: Icon, color, trend, badge, onClick }) =>
     </div>
 
     {/* Big Icon Background */}
-    <div className={`w-16 h-16 rounded-full ${color} flex-shrink-0 flex items-center justify-center transition-transform group-hover:scale-110 duration-500 bg-opacity-30 ml-4`}>
+    <div className={`w-16 h-16 rounded-full ${color} shrink-0 flex items-center justify-center transition-transform group-hover:scale-110 duration-500 bg-opacity-30 ml-4`}>
       <Icon size={24} className="opacity-90" />
     </div>
   </motion.div>
@@ -133,7 +134,7 @@ export default function AdminDashboard() {
       });
     } catch (err) {
       console.error(err);
-      alert("Status update failed.");
+      toast.error("Status update failed.");
     } finally {
       setIsProcessing(false);
     }

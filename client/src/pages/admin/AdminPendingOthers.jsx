@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ShoppingBag, ArrowLeft, Loader2, AlertCircle, 
+  ShoppingBag, ArrowLeft, Loader2, AlertCircle,
   Search, Eye, CheckCircle2, XCircle, Briefcase,
-  Store, User, Tag
+  Store, User, Tag, Calendar
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 
 export default function AdminPendingOthers() {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ export default function AdminPendingOthers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [actionLoading, setActionLoading] = useState({});
 
   const fetchListings = async () => {
     setLoading(true);
@@ -32,6 +34,19 @@ export default function AdminPendingOthers() {
   useEffect(() => {
     fetchListings();
   }, []);
+
+  const handleStatusUpdate = async (id, status) => {
+    setActionLoading(prev => ({ ...prev, [id]: status }));
+    try {
+      await api.patch(`/admin/listings/${id}/status`, { status });
+      toast.success(status === 'active' ? 'Listing approved.' : 'Listing rejected.');
+      setListings(prev => prev.filter(l => l._id !== id));
+    } catch {
+      toast.error('Failed to update listing status.');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [id]: null }));
+    }
+  };
 
   const filteredListings = listings.filter(l => 
     l.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -131,14 +146,28 @@ export default function AdminPendingOthers() {
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <button className="p-2.5 rounded-xl border border-slate-100 text-slate-400 hover:text-indigo-600 hover:bg-white transition-all shadow-sm">
+                    <button
+                      onClick={() => navigate(`/admin/services/view/${item._id}`)}
+                      className="p-2.5 rounded-xl border border-slate-100 text-slate-400 hover:text-indigo-600 hover:bg-white transition-all shadow-sm"
+                      title="View details"
+                    >
                       <Eye size={18} />
                     </button>
-                    <button className="p-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                      <CheckCircle2 size={18} />
+                    <button
+                      onClick={() => handleStatusUpdate(item._id, 'active')}
+                      disabled={!!actionLoading[item._id]}
+                      className="p-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
+                      title="Approve"
+                    >
+                      {actionLoading[item._id] === 'active' ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
                     </button>
-                    <button className="p-2.5 rounded-xl bg-white border border-rose-100 text-rose-500 hover:bg-rose-50 transition-all shadow-sm">
-                      <XCircle size={18} />
+                    <button
+                      onClick={() => handleStatusUpdate(item._id, 'rejected')}
+                      disabled={!!actionLoading[item._id]}
+                      className="p-2.5 rounded-xl bg-white border border-rose-100 text-rose-500 hover:bg-rose-50 transition-all shadow-sm disabled:opacity-50"
+                      title="Reject"
+                    >
+                      {actionLoading[item._id] === 'rejected' ? <Loader2 size={18} className="animate-spin" /> : <XCircle size={18} />}
                     </button>
                   </div>
                 </div>

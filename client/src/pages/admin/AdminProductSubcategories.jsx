@@ -5,6 +5,8 @@ import {
   ChevronDown, Layers
 } from 'lucide-react';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 const inputClass =
   'w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300';
@@ -14,6 +16,7 @@ export default function AdminProductSubcategories() {
   const [parentCategories, setParentCategories] = useState([]); // top-level supplier/product cats
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '', deleting: false });
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -97,13 +100,17 @@ export default function AdminProductSubcategories() {
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  const handleDelete = (id, name) => setDeleteModal({ isOpen: true, id, name, deleting: false });
+
+  const confirmDelete = async () => {
+    setDeleteModal(m => ({ ...m, deleting: true }));
     try {
-      await api.delete(`/admin/system/categories/${id}`);
+      await api.delete(`/admin/system/categories/${deleteModal.id}`);
+      setDeleteModal({ isOpen: false, id: null, name: '', deleting: false });
       await fetchAll();
     } catch (err) {
-      alert(err.response?.data?.message || 'Delete failed.');
+      toast.error(err.response?.data?.message || 'Delete failed.');
+      setDeleteModal(m => ({ ...m, deleting: false }));
     }
   };
 
@@ -120,7 +127,7 @@ export default function AdminProductSubcategories() {
         prev.map(s => s._id === sub._id ? { ...s, is_active: !s.is_active } : s)
       );
     } catch (err) {
-      alert('Failed to update status.');
+      toast.error('Failed to update status.');
     }
   };
 
@@ -130,6 +137,15 @@ export default function AdminProductSubcategories() {
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null, name: '', deleting: false })}
+        onConfirm={confirmDelete}
+        title="Delete Sub-category"
+        message={`Delete "${deleteModal.name}"? This cannot be undone.`}
+        confirmText="Delete"
+        loading={deleteModal.deleting}
+      />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -154,7 +170,7 @@ export default function AdminProductSubcategories() {
           { label: 'Active', value: subcategories.filter(s => s.is_active).length, color: 'text-emerald-600 bg-emerald-50' },
           { label: 'Parent Categories', value: parentCategories.length, color: 'text-amber-600 bg-amber-50' },
         ].map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
+          <div key={i} className="bg-white p-6 rounded-4xl border border-slate-100 shadow-sm flex items-center gap-5">
             <div className={`p-4 rounded-2xl ${stat.color}`}><Layers size={24} /></div>
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
@@ -165,7 +181,7 @@ export default function AdminProductSubcategories() {
       </div>
 
       {/* Table card */}
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-4xl border border-slate-100 shadow-sm overflow-hidden">
         {/* Table header bar */}
         <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/40 flex items-center justify-between">
           <div className="flex items-center gap-3">

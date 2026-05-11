@@ -1,18 +1,20 @@
 const { User, Otp } = require('../models/User');
+const logger = require('../utils/logger');
 const { Partner } = require('../models/Partner');
 const { AdminUser } = require('../models/Admin');
-const { Category, AppConfig } = require('../models/System');
+const { AppConfig } = require('../models/System');
 const Executive = require('../models/Executive');
 const { sendOTP } = require('../utils/sms');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { getCityCoords } = require('../utils/locationUtils');
 const { logActivity } = require('../utils/activityLogger');
+const { checkLockout, recordFailedAttempt, resetFailedAttempts } = require('../utils/loginLockout');
 
-// Helper function to generate a secure JWT Token
 const generateToken = (id, role, email, version = 0) => {
   return jwt.sign({ id, role, email, version }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '30d',
+    expiresIn: process.env.JWT_EXPIRE || '7d',
   });
 };
 
@@ -29,16 +31,8 @@ const checkExists = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide phone or email.' });
     }
 
-    console.log(`[Signup Check] Checking existence for Phone: ${phone}, Email: ${email}`);
-
-    // Cross-collection check: A user shouldn't be able to register a Customer account 
-    // if their phone/email is already tied to a Partner account, and vice-versa.
-    
-    // 1. Check User Collection
     const userPhoneExists = phone ? await User.findOne({ phone }) : null;
     const userEmailExists = email ? await User.findOne({ email: email.toLowerCase() }) : null;
-
-    // 2. Check Partner Collection
     const partnerPhoneExists = phone ? await Partner.findOne({ phone }) : null;
     const partnerEmailExists = email ? await Partner.findOne({ email: email.toLowerCase() }) : null;
 
@@ -46,7 +40,6 @@ const checkExists = async (req, res) => {
     const emailConflict = userEmailExists || partnerEmailExists;
 
     if (phoneConflict && emailConflict) {
-      console.log(`[Signup Check] Conflict: Both phone and email exist.`);
       return res.status(409).json({
         success: false,
         code: 'USER_EXISTS',
@@ -55,7 +48,6 @@ const checkExists = async (req, res) => {
     }
 
     if (emailConflict) {
-      console.log(`[Signup Check] Conflict: Email already registered.`);
       return res.status(409).json({
         success: false,
         code: 'EMAIL_EXISTS',
@@ -64,7 +56,6 @@ const checkExists = async (req, res) => {
     }
 
     if (phoneConflict) {
-      console.log(`[Signup Check] Conflict: Phone number already registered.`);
       return res.status(409).json({
         success: false,
         code: 'PHONE_EXISTS',
@@ -72,15 +63,13 @@ const checkExists = async (req, res) => {
       });
     }
 
-    console.log(`[Signup Check] No conflicts found. Proceeding...`);
     return res.status(200).json({ success: true, message: 'No conflict. Safe to proceed.' });
 
   } catch (error) {
-    console.error('Error in checkExists:', error);
-    res.status(500).json({ success: false, message: `Server error: ${error.message}` });
+    logger.error({ err: error }, 'Error in checkExists:');
+    res.status(500).json({ success: false, message: 'Server error. Please try again.' });
   }
 };
-
 
 /**
  * @desc    Generate and send OTP to user's phone
@@ -96,7 +85,6 @@ const requestOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide a phone number.' });
     }
 
-    // If called from Login, check if the user exists in the database
     if (shouldCheckExists) {
       const user = await User.findOne({ phone });
       const partner = await Partner.findOne({ phone });
@@ -109,7 +97,6 @@ const requestOtp = async (req, res) => {
         });
       }
 
-      // NEW: Block inactive users from OTP
       const account = user || partner;
       if (account && account.is_active === false) {
         return res.status(403).json({
@@ -120,17 +107,14 @@ const requestOtp = async (req, res) => {
       }
     }
 
-    // Generate a random 6-digit OTP
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Cryptographically secure 6-digit OTP
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
 
-    // Hash the OTP for secure storage
     const salt = await bcrypt.genSalt(10);
     const otpHash = await bcrypt.hash(otpCode, salt);
 
-    // Delete any previous OTP requests for this phone
     await Otp.deleteMany({ phone });
 
-    // Save hashed OTP with expiration
     const expirationDate = new Date();
     expirationDate.setMinutes(expirationDate.getMinutes() + 5);
 
@@ -140,8 +124,13 @@ const requestOtp = async (req, res) => {
       expires_at: expirationDate,
     });
 
-    // Send OTP (non-blocking)
-    sendOTP(phone, otpCode);
+    // Await SMS delivery — return 502 if it fails so the client knows to retry
+    try {
+      await sendOTP(phone, otpCode);
+    } catch (smsErr) {
+      logger.error({ err: smsErr }, '[SMS] Failed to send OTP');
+      return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
+    }
 
     res.status(200).json({
       success: true,
@@ -149,22 +138,20 @@ const requestOtp = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in requestOtp controller:', error);
+    logger.error({ err: error }, 'Error in requestOtp controller:');
     res.status(500).json({ success: false, message: 'Server error processing request.' });
   }
 };
 
 /**
- * @desc    Verify OTP
- *          - If flow is 'login': finds existing user and logs them in
- *          - If flow is 'signup': creates a NEW user with full details
+ * @desc    Verify OTP and log in or sign up
  * @route   POST /api/auth/verify-otp
  * @access  Public
  */
 const verifyOtp = async (req, res) => {
   try {
-    const { 
-      phone: rawPhone, otp, role = 'user', flow = 'login', 
+    const {
+      phone: rawPhone, otp, role = 'user', flow = 'login',
       partner_type,
       name, email, password,
       address, city, state, district, pincode, coords,
@@ -172,38 +159,39 @@ const verifyOtp = async (req, res) => {
     } = req.body;
     const phone = rawPhone ? rawPhone.trim() : '';
 
-    // 1. Find the OTP record for this phone
+    if (!otp || typeof otp !== 'string' || !/^\d{6}$/.test(otp.trim())) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP format.' });
+    }
+
     const otpRecord = await Otp.findOne({ phone }).sort({ createdAt: -1 });
 
     if (!otpRecord) {
       return res.status(400).json({ success: false, message: 'OTP expired or not found. Please request a new one.' });
     }
 
-    // 2. Compare the provided OTP
+    // Check expiry before comparing hash
+    if (otpRecord.expires_at && otpRecord.expires_at < new Date()) {
+      await Otp.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({ success: false, message: 'OTP expired. Please request a new one.' });
+    }
+
     const isMatch = await bcrypt.compare(otp.toString(), otpRecord.otp_hash);
 
     if (!isMatch) {
       return res.status(400).json({ success: false, message: 'Incorrect OTP. Please try again.' });
     }
 
-    // 3. OTP is valid — proceed to account logic
-    // (We delete the OTP record at the end of the function upon success)
-
     let account;
     const assignedRole = role;
 
     if (flow === 'signup') {
-      // SIGNUP flow: Create the new user with all their details
       const Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
 
-      // SILENT FALLBACK: If flow is signup but account actually exists, pivot to LOGIN flow automatically
       const existingAccount = await Model.findOne({ phone });
-      
+
       if (existingAccount) {
         account = existingAccount;
-        
-        // Profile Healing: If the existing account has no name but we just got one, update it!
-        // This ensures inquiries from "partially registered" users get their names saved.
+
         let needsUpdate = false;
         if (!account.name || account.name === 'Unknown' || account.name === 'Potential Customer') {
           account.name = name;
@@ -213,13 +201,12 @@ const verifyOtp = async (req, res) => {
           account.email = email.toLowerCase();
           needsUpdate = true;
         }
-        
+
         if (needsUpdate) {
           await account.save();
-          console.log(`[AUTH] Profile Healed for user ${account.id} - Name: ${account.name}`);
+          logger.info(`[AUTH] Profile healed for user ${account.id}`);
         }
       } else {
-        // Real Signup
         if (!name || !email) {
           return res.status(400).json({ success: false, message: 'Name and email are required for account creation.' });
         }
@@ -229,25 +216,21 @@ const verifyOtp = async (req, res) => {
           return res.status(409).json({ success: false, code: 'EMAIL_EXISTS', message: 'This email is already registered.' });
         }
 
-        // Handle Location Geocoding fallback
         let finalCoords = coords;
         if (!finalCoords && city) {
           finalCoords = getCityCoords(city);
         }
-        
-        // Default to Muzaffarpur if still missing (safety fallback)
         if (!finalCoords) {
           finalCoords = [85.3647, 26.1209];
         }
 
-        // NEW: Cross-collection Conflict Check during signup
         const OtherModel = role === 'partner' ? User : Partner;
         const crossConflict = await OtherModel.findOne({ phone });
         if (crossConflict) {
-          return res.status(409).json({ 
-            success: false, 
-            code: 'PHONE_EXISTS_OTHER', 
-            message: `This phone number is already registered as a ${role === 'partner' ? 'Customer' : 'Partner'}. Same number is not allowed for different roles.` 
+          return res.status(409).json({
+            success: false,
+            code: 'PHONE_EXISTS_OTHER',
+            message: `This phone number is already registered as a ${role === 'partner' ? 'Customer' : 'Partner'}.`
           });
         }
 
@@ -256,12 +239,12 @@ const verifyOtp = async (req, res) => {
           phone,
           name,
           email: email.toLowerCase(),
-          password: password || undefined, // Password optional for OTP auto-signup
-          ...(role === 'partner' && { 
+          password: password || undefined,
+          ...(role === 'partner' && {
             partner_type: initialPartnerType,
             roles: [initialPartnerType],
             active_role: initialPartnerType,
-            service_radius_km: service_radius_km || 100 
+            service_radius_km: service_radius_km || 100
           }),
           default_location: role === 'user' ? {
             type: 'Point',
@@ -275,9 +258,8 @@ const verifyOtp = async (req, res) => {
             type: 'Point',
             coordinates: finalCoords
           } : undefined,
-          // Correctly map Partner fields to flat structure to match schema
           ...(role !== 'user' && {
-            address: typeof address === 'object' ? (address.full_address || '') : address, // address is a string in Partner schema
+            address: typeof address === 'object' ? (address.full_address || '') : address,
             city,
             state,
             district,
@@ -288,18 +270,14 @@ const verifyOtp = async (req, res) => {
           })
         });
 
-        // Handle Referral Logic — Store the link only. Commission credited on paid plan purchase.
         if (role === 'partner' && referral_code) {
-          const executive = await Executive.findOne({ referral_code: referral_code.toUpperCase() });
-          
+          const executive = await Executive.findOne({ referral_code: referral_code.toUpperCase(), is_active: true });
           if (executive && ['approved', 'verified'].includes(executive.onboarding_status)) {
             account.referred_by_executive = executive._id;
             await account.save();
-            console.log(`[REFERRAL] Partner ${account._id} linked to Executive ${executive._id}. Commission will be credited on paid plan purchase.`);
           }
         }
 
-        // Log registration activity for admin dashboard
         logActivity({
           actor_name: account.name,
           actor_id: account._id,
@@ -312,7 +290,6 @@ const verifyOtp = async (req, res) => {
       }
 
     } else {
-      // LOGIN flow: Find existing user
       const Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
       account = await Model.findOne({ phone });
 
@@ -324,7 +301,6 @@ const verifyOtp = async (req, res) => {
         });
       }
 
-      // NEW: Block deactivated accounts
       if (account.is_active === false) {
         return res.status(403).json({
           success: false,
@@ -334,13 +310,11 @@ const verifyOtp = async (req, res) => {
       }
     }
 
-    // 4. OTP is valid and process successful — delete it now
     await Otp.deleteOne({ _id: otpRecord._id });
 
-    // 5. Generate and return JWT
     const token = generateToken(account._id, assignedRole, account.email, account.token_version);
 
-    console.log(`[AUTH] Login successful: ${account.phone} (ID: ${account._id}) as ${assignedRole}`);
+    logger.info(`[AUTH] Login successful: ${account.phone} (ID: ${account._id}) as ${assignedRole}`);
 
     res.status(200).json({
       success: true,
@@ -352,7 +326,6 @@ const verifyOtp = async (req, res) => {
         name: account.name,
         profileImage: account.profileImage || '',
         role: assignedRole,
-        // Multi-role fields
         partner_type: account.partner_type || null,
         roles: account.roles || (account.partner_type ? [account.partner_type] : []),
         active_role: account.active_role || account.partner_type || null,
@@ -360,7 +333,7 @@ const verifyOtp = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('OTP verification error:', error);
+    logger.error({ err: error }, 'OTP verification error:');
     res.status(500).json({ success: false, message: 'Server error during verification.' });
   }
 };
@@ -369,7 +342,7 @@ const getMe = async (req, res) => {
   try {
     res.status(200).json({ success: true, data: req.user });
   } catch (error) {
-    console.error('Error in getMe:', error);
+    logger.error({ err: error }, 'Error in getMe:');
     res.status(500).json({ success: false, message: 'Server error fetching profile.' });
   }
 };
@@ -384,29 +357,32 @@ const updateProfile = async (req, res) => {
     const isPartner = req.user.role === 'partner';
     const Model = isPartner ? Partner : User;
 
-    const updateData = { ...req.body };
+    // Whitelist allowed fields to prevent mass-assignment
+    const ALLOWED_USER_FIELDS = ['name', 'email', 'profileImage', 'default_location', 'city', 'state', 'district', 'pincode'];
+    const ALLOWED_PARTNER_FIELDS = ['name', 'email', 'profileImage', 'business_name', 'business_description', 'business_logo', 'address', 'city', 'state', 'district', 'pincode'];
 
-    // Handle Geocoding fallback for profile updates
-    if (updateData.city && !updateData.coords && !updateData.location) {
+    const allowedFields = isPartner ? ALLOWED_PARTNER_FIELDS : ALLOWED_USER_FIELDS;
+    const updateData = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    }
+
+    // Geocoding fallback for location updates
+    if (updateData.city && !req.body.coords && !req.body.location) {
       const cityCoords = getCityCoords(updateData.city);
       if (cityCoords) {
         if (isPartner) {
           updateData.location = { type: 'Point', coordinates: cityCoords };
         } else {
           updateData.default_location = {
-            ...(updateData.default_location || {}),
+            ...(req.body.default_location || {}),
             type: 'Point',
             coordinates: cityCoords
           };
         }
       }
-    }
-
-    // Explicitly handle partner-specific root fields if provided
-    if (isPartner) {
-      if (req.body.business_name) updateData.business_name = req.body.business_name;
-      if (req.body.business_description) updateData.business_description = req.body.business_description;
-      if (req.body.business_logo) updateData.business_logo = req.body.business_logo;
     }
 
     const updated = await Model.findByIdAndUpdate(
@@ -421,7 +397,7 @@ const updateProfile = async (req, res) => {
       data: updated,
     });
   } catch (error) {
-    console.error('Profile update error:', error);
+    logger.error({ err: error }, 'Profile update error:');
     res.status(500).json({ success: false, message: 'Server error updating profile.' });
   }
 };
@@ -440,11 +416,8 @@ const loginWithPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide your email/phone and password.' });
     }
 
-    console.log(`[Login Attempt] Identifier: ${identifier}, Received Role: ${role}`);
-
     const Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
 
-    // Search by email or phone
     const account = await Model.findOne({
       $or: [
         { email: identifier.toLowerCase() },
@@ -453,35 +426,14 @@ const loginWithPassword = async (req, res) => {
     });
 
     if (!account) {
-      console.log(`[Login Failed] User not found for identifier: ${identifier}`);
       return res.status(404).json({
         success: false,
         code: 'NOT_REGISTERED',
-        message: `No account found for identifier: ${identifier} with role: ${role}.`,
-        debugRole: role
+        message: 'No account found with those credentials.'
       });
     }
 
-    // Check if user has a password set
-    if (!account.password) {
-      console.log(`[Login Failed] No password set for identifier: ${identifier}`);
-      return res.status(400).json({
-        success: false,
-        code: 'NO_PASSWORD',
-        message: 'This account was created using OTP. Please use OTP Login instead.',
-      });
-    }
-
-    // Verify password
-    const isMatch = await account.matchPassword(password);
-    console.log(`[Login Attempt] Identifier: ${identifier}, isMatch: ${isMatch}`);
-    
-    if (!isMatch) {
-      console.log(`[Login Failed] Incorrect password for identifier: ${identifier}`);
-      return res.status(401).json({ success: false, message: `Incorrect password. Please try again.` });
-    }
-
-    // NEW: Block deactivated accounts
+    // Check account status before anything else
     if (account.is_active === false) {
       return res.status(403).json({
         success: false,
@@ -490,8 +442,33 @@ const loginWithPassword = async (req, res) => {
       });
     }
 
+    // Per-account lockout check
+    const lockout = checkLockout(account);
+    if (lockout.locked) {
+      const mins = Math.ceil((lockout.retryAfter - Date.now()) / 60000);
+      return res.status(429).json({
+        success: false,
+        code: 'ACCOUNT_LOCKED',
+        message: `Too many failed attempts. Account locked for ${mins} more minute(s).`
+      });
+    }
+
+    if (!account.password) {
+      return res.status(400).json({
+        success: false,
+        code: 'NO_PASSWORD',
+        message: 'This account was created using OTP. Please use OTP Login instead.',
+      });
+    }
+
+    const isMatch = await account.matchPassword(password);
+    if (!isMatch) {
+      await recordFailedAttempt(Model, account._id);
+      return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });
+    }
+
+    await resetFailedAttempts(Model, account._id);
     const token = generateToken(account._id, role, account.email, account.token_version);
-    console.log(`[Login Success] User: ${account.email}, Role: ${role}`);
 
     res.status(200).json({
       success: true,
@@ -503,7 +480,6 @@ const loginWithPassword = async (req, res) => {
         name: account.name,
         profileImage: account.profileImage || '',
         role,
-        // Multi-role fields
         partner_type: account.partner_type || null,
         roles: account.roles || (account.partner_type ? [account.partner_type] : []),
         active_role: account.active_role || account.partner_type || null,
@@ -511,44 +487,8 @@ const loginWithPassword = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login Error Trace:', error);
-    res.status(500).json({ success: false, message: `Server error: ${error.message}` });
-  }
-};
-
-/**
- * @desc    Register a new user (legacy endpoint, kept for compatibility)
- * @route   POST /api/auth/register
- * @access  Public
- */
-const register = async (req, res) => {
-  try {
-    const { fullName, email, phone, password, role = 'user' } = req.body;
-
-    if (!fullName || !phone || !password) {
-      return res.status(400).json({ success: false, message: 'Please provide all required fields.' });
-    }
-
-    const Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
-
-    const existing = await Model.findOne({ $or: [{ phone }, { email }] });
-    if (existing) {
-      return res.status(400).json({ success: false, message: 'User already exists with this phone or email.' });
-    }
-
-    const newUser = await Model.create({ name: fullName, email, phone, password });
-    const token = generateToken(newUser._id, role, newUser.email, newUser.token_version);
-
-    res.status(201).json({
-      success: true,
-      message: 'Account created successfully!',
-      token,
-      user: { id: newUser._id, name: newUser.name, phone: newUser.phone, email: newUser.email, profileImage: newUser.profileImage || '', role },
-    });
-
-  } catch (error) {
-    console.error('Registration Error:', error);
-    res.status(500).json({ success: false, message: 'Server error during registration.' });
+    logger.error({ err: error }, 'Login Error:');
+    res.status(500).json({ success: false, message: 'Server error. Please try again.' });
   }
 };
 
@@ -565,21 +505,19 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide current and new password.' });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ success: false, message: 'New password must be at least 6 characters.' });
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 8 characters.' });
     }
 
     const isPartner = req.user.role === 'partner';
     const Model = isPartner ? Partner : User;
 
-    // Fetch the full document so .save() triggers the pre-save hook for hashing
     const account = await Model.findById(req.user._id);
 
     if (!account) {
       return res.status(404).json({ success: false, message: 'Account not found.' });
     }
 
-    // If user has no password (OTP-only), allow setting one without checking current
     if (account.password) {
       const isMatch = await account.matchPassword(currentPassword);
       if (!isMatch) {
@@ -587,14 +525,13 @@ const changePassword = async (req, res) => {
       }
     }
 
-    // Set and save — the pre-save hook will hash the new password automatically
     account.password = newPassword;
     await account.save();
 
     res.status(200).json({ success: true, message: 'Password updated successfully!' });
 
   } catch (error) {
-    console.error('Change password error:', error);
+    logger.error({ err: error }, 'Change password error:');
     res.status(500).json({ success: false, message: 'Server error updating password.' });
   }
 };
@@ -610,8 +547,6 @@ const checkSignupConflicts = async (req, res) => {
     const phone = rawPhone ? rawPhone.trim() : '';
     const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
 
-    const Partner = require('../models/Partner').Partner;
-
     const [userPhone, partnerPhone, userEmail, partnerEmail] = await Promise.all([
       phone ? User.findOne({ phone }) : null,
       phone ? Partner.findOne({ phone }) : null,
@@ -625,14 +560,14 @@ const checkSignupConflicts = async (req, res) => {
     res.status(200).json({
       success: true,
       conflicts: {
-         phone: existingPhone,
-         email: existingEmail,
-         both: existingPhone && existingEmail
+        phone: existingPhone,
+        email: existingEmail,
+        both: existingPhone && existingEmail
       }
     });
 
   } catch (error) {
-    console.error("Conflict check error:", error);
+    logger.error({ err: error }, 'Conflict check error:');
     res.status(500).json({ success: false, message: 'Server error checking conflicts.' });
   }
 };
@@ -645,6 +580,5 @@ module.exports = {
   updateProfile,
   changePassword,
   loginWithPassword,
-  register,
   checkSignupConflicts
 };

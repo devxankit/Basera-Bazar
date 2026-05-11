@@ -8,6 +8,8 @@ import {
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -19,6 +21,7 @@ export default function AdminBannerDetails() {
   const [banner, setBanner] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, deleting: false });
 
   const fetchBanner = async () => {
     setLoading(true);
@@ -39,14 +42,16 @@ export default function AdminBannerDetails() {
     fetchBanner();
   }, [id]);
 
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to permanently delete this banner?')) {
-      try {
-        await api.delete(`/admin/system/banners/${id}`);
-        navigate('/admin/banners');
-      } catch (err) {
-        alert('Error deleting banner');
-      }
+  const handleDelete = () => setDeleteModal({ isOpen: true, deleting: false });
+
+  const confirmDelete = async () => {
+    setDeleteModal(m => ({ ...m, deleting: true }));
+    try {
+      await api.delete(`/admin/system/banners/${id}`);
+      navigate('/admin/banners');
+    } catch (err) {
+      toast.error('Error deleting banner');
+      setDeleteModal(m => ({ ...m, deleting: false }));
     }
   };
 
@@ -55,7 +60,7 @@ export default function AdminBannerDetails() {
       await api.put(`/admin/system/banners/${id}`, { is_active: !banner.is_active });
       fetchBanner();
     } catch (err) {
-      alert('Error updating status');
+      toast.error('Error updating status');
     }
   };
 
@@ -78,12 +83,21 @@ export default function AdminBannerDetails() {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
-      <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
-        
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, deleting: false })}
+        onConfirm={confirmDelete}
+        title="Delete Banner"
+        message="Are you sure you want to permanently delete this banner? This action cannot be undone."
+        confirmText="Delete"
+        loading={deleteModal.deleting}
+      />
+      <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
+
         {/* Action Header Block */}
         <div className="relative bg-white rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
            {/* Immersive Background element */}
-           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-orange-100/40 via-purple-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
+           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-linear-to-bl from-orange-100/40 via-purple-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
            
            <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between p-8 gap-6 z-10">
               <div className="flex items-start gap-6">
@@ -289,7 +303,7 @@ export default function AdminBannerDetails() {
  
              {/* Creative Specs Mini */}
              <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 space-y-6 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-orange-500" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-indigo-500 via-purple-500 to-orange-500" />
                 <div className="flex items-center gap-4 text-slate-400">
                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:scale-110 transition-transform">
                       <Layout size={18} className="text-indigo-500 opacity-60" />

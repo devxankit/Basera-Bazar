@@ -1,51 +1,91 @@
-# Dependencies
+# ─── Dependencies ────────────────────────────────────────────────────────────
 node_modules/
 client/node_modules/
 server/node_modules/
 
-# Environment Variables
+# ─── Environment Variables ────────────────────────────────────────────────────
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
 client/.env
+client/.env.*
 server/.env
+server/.env.*
 
-# Build outputs
+# ─── Build Outputs ───────────────────────────────────────────────────────────
 dist/
 client/dist/
+client/dist-ssr/
 build/
 server/build/
 
-# Debug and Logs
+# ─── Logs ────────────────────────────────────────────────────────────────────
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 server/mongo_logs.txt*
-*.log
 
-# OS Specific
+# ─── OS Specific ─────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+Desktop.ini
+ehthumbs.db
 
-# IDEs
+# ─── IDE / Editor ────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
-# Database (Local)
+# ─── Database (Local) ────────────────────────────────────────────────────────
 server/data/
 data/
 *.db
 *.sqlite
 
-# Vercel
-.vercel
-
-# Firebase & Secrets
-*firebase-service-account.json*
-*.json.json
+# ─── Secrets & Credentials ───────────────────────────────────────────────────
+*firebase-service-account*.json
 service-account.json
 credentials.json
+*.pem
+*.key
+*.p12
+*.cert
+
+# ─── Deployment ──────────────────────────────────────────────────────────────
+.vercel
+
+# ─── AI Tool Local Configs (machine-specific, never commit) ──────────────────
+.claude/
+.gemini/
+.kiro/
+.qoder/
+.mcp.json
+.opencode.json
+.cursorrules
+.windsurfrules
+
+# ─── Python (code-review-graph tooling) ──────────────────────────────────────
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.code-review-graph/
+
+# ─── Backup & Scratch ────────────────────────────────────────────────────────
+*.bak
+scratch/
+test_write.txt
+*.tmp
+*.temp
+
+# ─── Misc ────────────────────────────────────────────────────────────────────
+*.json.json
+/package-lock.json

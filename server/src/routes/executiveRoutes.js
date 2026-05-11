@@ -1,5 +1,7 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
+const idempotency = require('../middlewares/idempotencyMiddleware');
 const {
   registerStep1,
   verifyRegistrationOtp,
@@ -13,32 +15,34 @@ const {
   updateProfile,
   updateBankDetails,
 } = require('../controllers/executiveController');
-const { protect, authorize } = require('../middlewares/authMiddleware');
+const { protect } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
 const validate = require('../middlewares/validateMiddleware');
-const { executiveBankDetailsSchema, executiveProfileUpdateSchema } = require('../utils/validators');
+const { executiveBankDetailsSchema, executiveProfileUpdateSchema, withdrawalRequestSchema } = require('../utils/validators');
 
-router.post('/register/step1', registerStep1);
-router.post('/register/verify', verifyRegistrationOtp);
+// OTP limiter scoped only to registration/OTP endpoints
+const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many OTP requests. Please wait 10 minutes before trying again.' }
+});
+
+router.post('/register/step1', otpLimiter, registerStep1);
+router.post('/register/verify', otpLimiter, verifyRegistrationOtp);
 router.post('/login', login);
 
-// Protected routes
+// Protected routes — no OTP limiter here
 router.use(protect);
 
-router.put('/register/step2', updateStep2);
+router.put('/register/step2', validate(executiveBankDetailsSchema), updateStep2);
 router.put('/register/step3', updateStep3);
 router.get('/dashboard', cacheMiddleware(5, true), getDashboard);
 router.get('/my-partners', cacheMiddleware(3, true), getMyPartners);
 router.get('/transactions', cacheMiddleware(5, true), getMyTransactions);
-router.post('/withdraw', requestWithdrawal);
+router.post('/withdraw', validate(withdrawalRequestSchema), idempotency, requestWithdrawal);
 router.put('/profile', validate(executiveProfileUpdateSchema), updateProfile);
 router.put('/bank-details', validate(executiveBankDetailsSchema), updateBankDetails);
-
-// TEMP DEBUG ENDPOINT
-router.get('/debug/:phone', async (req, res) => {
-  const Executive = require('../models/Executive');
-  const execs = await Executive.find({ phone: req.params.phone });
-  res.json({ count: execs.length, execs });
-});
 
 module.exports = router;

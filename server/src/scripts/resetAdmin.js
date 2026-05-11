@@ -16,8 +16,12 @@ const resetAdmin = async () => {
     await mongoose.connect(mongoUri);
     console.log('🚀 Connected to MongoDB');
 
-    const email = 'superadmin@gmail.com';
-    const password = 'password123'; // Default reset password
+    const email = process.env.ADMIN_EMAIL || 'superadmin@gmail.com';
+    const password = process.env.ADMIN_PASSWORD || process.argv[2];
+    if (!password) {
+      console.error('❌ Provide a password via ADMIN_PASSWORD env var or as the first CLI argument.');
+      process.exit(1);
+    }
 
     // Remove existing if any
     await AdminUser.deleteMany({ email });

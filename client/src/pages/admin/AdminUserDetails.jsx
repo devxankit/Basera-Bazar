@@ -12,6 +12,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -24,6 +25,7 @@ export default function AdminUserDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showOptions, setShowOptions] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
 
   useEffect(() => {
     const fetchUserDetail = async () => {
@@ -41,43 +43,55 @@ export default function AdminUserDetails() {
     fetchUserDetail();
   }, [id]);
 
-  const handleToggleStatus = async () => {
-    try {
-      const newActive = !user.is_active;
-      const action = newActive ? 'activate' : 'deactivate';
-      if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
+  const openConfirm = (title, message, action, type = 'danger') => {
+    setConfirmModal({ isOpen: true, title, message, action, loading: false, type });
+  };
 
-      const updateData = { is_active: newActive };
-      
-      // If activating a partner, sync onboarding status
-      if (newActive && isPartner) {
-        updateData.onboarding_status = 'approved';
-        updateData['kyc.status'] = 'approved';
-        updateData['kyc.reviewed_at'] = new Date().toISOString();
-      }
-      
-      const res = await api.put(`/admin/users/${id}`, updateData);
-      if (res.data.success) {
-        setUser({ ...user, ...updateData });
-        toast.success(`User ${action}d successfully`);
-        setShowOptions(false);
-      }
-    } catch (err) {
-      toast.error("Failed to update user status");
+  const executeConfirm = async () => {
+    setConfirmModal(m => ({ ...m, loading: true }));
+    try {
+      await confirmModal.action();
+    } finally {
+      setConfirmModal(m => ({ ...m, isOpen: false, loading: false }));
     }
   };
 
-  const handleDeleteUser = async () => {
-    if (!window.confirm("Are you sure you want to permanently delete this user? This action cannot be undone.")) return;
-    try {
-      const res = await api.delete(`/admin/users/${id}`);
-      if (res.data.success) {
-        toast.success("User deleted successfully");
-        navigate('/admin/users');
+  const handleToggleStatus = () => {
+    const newActive = !user.is_active;
+    const action = newActive ? 'activate' : 'deactivate';
+    openConfirm(
+      `${newActive ? 'Activate' : 'Deactivate'} User`,
+      `Are you sure you want to ${action} this user?`,
+      async () => {
+        const updateData = { is_active: newActive };
+        if (newActive && isPartner) {
+          updateData.onboarding_status = 'approved';
+          updateData['kyc.status'] = 'approved';
+          updateData['kyc.reviewed_at'] = new Date().toISOString();
+        }
+        const res = await api.put(`/admin/users/${id}`, updateData);
+        if (res.data.success) {
+          setUser({ ...user, ...updateData });
+          toast.success(`User ${action}d successfully`);
+          setShowOptions(false);
+        }
+      },
+      newActive ? 'info' : 'warning'
+    );
+  };
+
+  const handleDeleteUser = () => {
+    openConfirm(
+      'Delete User',
+      'Are you sure you want to permanently delete this user? This action cannot be undone.',
+      async () => {
+        const res = await api.delete(`/admin/users/${id}`);
+        if (res.data.success) {
+          toast.success("User deleted successfully");
+          navigate('/admin/users');
+        }
       }
-    } catch (err) {
-      toast.error("Failed to delete user");
-    }
+    );
   };
 
   if (loading) return (
@@ -107,8 +121,17 @@ export default function AdminUserDetails() {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
-      <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
-        
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(m => ({ ...m, isOpen: false }))}
+        onConfirm={executeConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        loading={confirmModal.loading}
+      />
+      <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
+
         {/* Profile Header */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
@@ -376,7 +399,7 @@ function DocumentCard({ title, number, image }) {
           </a>
         )}
       </div>
-      <div className="flex-grow aspect-[3/2] bg-slate-50 relative overflow-hidden flex items-center justify-center">
+      <div className="grow aspect-[3/2] bg-slate-50 relative overflow-hidden flex items-center justify-center">
         {image ? (
           <img src={image} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (

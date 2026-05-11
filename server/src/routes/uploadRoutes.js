@@ -1,4 +1,5 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const router = express.Router();
 const { upload } = require('../config/cloudinary');
 const { protect } = require('../middlewares/authMiddleware');
@@ -11,10 +12,10 @@ const { protect } = require('../middlewares/authMiddleware');
 // We use the `upload.single('image')` middleware from Multer.
 // `image` must match the key name the frontend uses in the FormData object.
 router.post('/', protect, (req, res, next) => {
-  console.log(`[Upload] Request received from user: ${req.user?._id}`);
+  logger.info(`[Upload] Request received from user: ${req.user?._id}`)
   upload.single('image')(req, res, (err) => {
     if (err) {
-      console.error("[Upload] Multer error:", err);
+      logger.error({ err: err }, "[Upload] Multer error:")
       return res.status(400).json({ 
         success: false, 
         message: err.message || 'Error during file upload. Ensure format is jpg/png/webp.' 
@@ -25,8 +26,8 @@ router.post('/', protect, (req, res, next) => {
 }, (req, res) => {
   try {
     if (!req.file) {
-      console.warn("[Upload] Missing req.file. Body:", req.body);
-      console.warn("[Upload] Headers:", req.headers['content-type']);
+      logger.warn({ err: req.body }, "[Upload] Missing req.file. Body:")
+      logger.warn("[Upload] Headers:", req.headers['content-type'])
       return res.status(400).json({ success: false, message: 'Please upload a valid image file.' });
     }
 
@@ -36,7 +37,7 @@ router.post('/', protect, (req, res, next) => {
       url: req.file.path
     });
   } catch (error) {
-    console.error("Upload error:", error);
+    logger.error({ err: error }, "Upload error:")
     res.status(500).json({ success: false, message: 'Server error during upload.' });
   }
 });

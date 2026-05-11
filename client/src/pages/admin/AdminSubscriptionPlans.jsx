@@ -3,13 +3,15 @@ import { IndianRupee, Plus, Edit2, Trash2, Eye, ShieldCheck, Zap, ToggleLeft, La
 import { useNavigate } from 'react-router-dom';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
-
+import { toast } from '../../mockToast';
 import Skeleton from '../../components/common/Skeleton';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 export default function AdminSubscriptionPlans() {
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, deleting: false });
 
   const fetchPlans = async () => {
     setLoading(true);
@@ -38,19 +40,25 @@ export default function AdminSubscriptionPlans() {
         fetchPlans();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error updating status');
+      toast.error(err.response?.data?.message || 'Error updating status');
     }
   };
 
-  const deletePlan = async (id) => {
-    if (!window.confirm('Are you sure you want to permanently delete this plan?')) return;
+  const deletePlan = (id) => {
+    setDeleteModal({ isOpen: true, id, deleting: false });
+  };
+
+  const confirmDeletePlan = async () => {
+    setDeleteModal(m => ({ ...m, deleting: true }));
     try {
-      const res = await api.delete(`/admin/subscriptions/plans/${id}`);
+      const res = await api.delete(`/admin/subscriptions/plans/${deleteModal.id}`);
       if (res.data.success) {
+        setDeleteModal({ isOpen: false, id: null, deleting: false });
         fetchPlans();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error deleting plan');
+      toast.error(err.response?.data?.message || 'Error deleting plan');
+      setDeleteModal(m => ({ ...m, deleting: false }));
     }
   };
 
@@ -175,6 +183,15 @@ export default function AdminSubscriptionPlans() {
 
   return (
     <div className="space-y-8 pb-20 mt-4 animate-in fade-in duration-700">
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null, deleting: false })}
+        onConfirm={confirmDeletePlan}
+        title="Delete Plan"
+        message="Are you sure you want to permanently delete this subscription plan? Any active subscribers will not be affected, but no new subscriptions can be created with this plan."
+        confirmText="Delete Plan"
+        loading={deleteModal.deleting}
+      />
       {/* Upper Dashboard Metrics */}
       <div className="grid grid-cols-12 gap-6">
          {/* Title Block */}
@@ -182,7 +199,7 @@ export default function AdminSubscriptionPlans() {
             {loading ? (
               <div className="flex items-center gap-6 w-full">
                 <Skeleton className="h-16 w-16 rounded-2xl" />
-                <div className="space-y-2 flex-grow">
+                <div className="space-y-2 grow">
                   <Skeleton className="h-6 w-64" />
                   <Skeleton className="h-4 w-96" />
                 </div>

@@ -8,7 +8,7 @@ export const Toaster = () => {
   const { toasts, removeToast } = useToastInternal();
   
   return (
-    <div className="fixed top-6 inset-x-0 z-[9999] flex flex-col items-center gap-3 pointer-events-none px-6">
+    <div className="fixed top-6 inset-x-0 z-9999 flex flex-col items-center gap-3 pointer-events-none px-6">
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => (
           <motion.div
@@ -17,9 +17,9 @@ export const Toaster = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
             layout
-            className="pointer-events-auto min-w-[280px] max-w-sm bg-white rounded-2xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-100 p-4 flex items-center gap-4"
+            className="pointer-events-auto min-w-70 max-w-sm bg-white rounded-2xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-100 p-4 flex items-center gap-4"
           >
-            <div className={`p-2.5 rounded-xl flex-shrink-0 ${
+            <div className={`p-2.5 rounded-xl shrink-0 ${
               toast.type === 'success' ? 'bg-emerald-50 text-emerald-600' :
               toast.type === 'error' ? 'bg-rose-50 text-rose-600' :
               toast.type === 'loading' ? 'bg-indigo-50 text-indigo-600' :
@@ -31,7 +31,7 @@ export const Toaster = () => {
               {toast.type === 'info' && <Info size={20} strokeWidth={2.5} />}
             </div>
             
-            <div className="flex-grow">
+            <div className="grow">
               <p className="text-[14px] font-bold text-slate-900 leading-tight">{toast.message}</p>
             </div>
 

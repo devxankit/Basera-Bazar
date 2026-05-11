@@ -1,4 +1,5 @@
 const CacheManager = require('../utils/cache');
+const logger = require('../utils/logger');
 
 /**
  * Middleware to cache API responses
@@ -21,14 +22,14 @@ const cacheMiddleware = (ttlMinutes = 5, userScoped = false) => {
       const cachedResponse = await CacheManager.get(key);
 
       if (cachedResponse) {
-        console.log(`[Cache] Serving from cache: ${key}`);
+        logger.info(`[Cache] Serving from cache: ${key}`)
         return res.json(cachedResponse);
       } else {
         // Monkey-patch res.json to capture and cache the response
         const originalJson = res.json;
         res.json = (body) => {
           // Fire and forget caching
-          CacheManager.set(key, body, ttlMinutes).catch(err => console.error('[Cache Set Error]', err));
+          CacheManager.set(key, body, ttlMinutes).catch(err => logger.error('[Cache Set Error]', err))
           // Restore original function to avoid infinite loop
           res.json = originalJson;
           return originalJson.call(res, body);
@@ -36,7 +37,7 @@ const cacheMiddleware = (ttlMinutes = 5, userScoped = false) => {
         next();
       }
     } catch (error) {
-      console.error('[Cache Middleware Error]', error);
+      logger.error({ err: error }, '[Cache Middleware Error]')
       next(); // Proceed without cache if there's an error
     }
   };

@@ -182,7 +182,7 @@ export default function AdminServiceForm() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
-        <div className="flex-grow space-y-6">
+        <div className="grow space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* Identity & Experience */}

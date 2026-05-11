@@ -1,157 +1,116 @@
 const jwt = require('jsonwebtoken');
+const logger = require('../utils/logger');
 require('dotenv').config();
 
+const { AdminUser } = require('../models/Admin');
+const { User } = require('../models/User');
+const { Partner } = require('../models/Partner');
+const Executive = require('../models/Executive');
+
+async function resolveUserFromDecoded(decoded) {
+  if (decoded.role === 'super_admin' || decoded.role === 'SuperAdmin') {
+    return AdminUser.findById(decoded.id).select('-password');
+  }
+  if (decoded.role === 'partner') {
+    return Partner.findById(decoded.id).select('-password').populate('active_subscription_id');
+  }
+  if (decoded.role === 'executive') {
+    return Executive.findById(decoded.id).select('-password');
+  }
+  return User.findById(decoded.id).select('-password');
+}
+
+function attachUser(req, userFound, tokenRole) {
+  req.user = userFound.toObject();
+  req.user._id = userFound._id;
+  req.user.id = userFound._id.toString();
+
+  if (tokenRole === 'partner') {
+    req.user.db_role = req.user.role;
+    req.user.role = 'partner';
+  } else if (tokenRole === 'executive') {
+    req.user.role = 'executive';
+  }
+}
+
 /**
- * Middleware: Protect Routes
- * This middleware checks if a user has a valid JWT token in their request headers.
- * If they do, it decodes the token and attaches the user info to the `req` object.
- * If they don't, it blocks the request.
+ * Middleware: Protect Routes — blocks unauthenticated or invalid token requests.
  */
 const protect = async (req, res, next) => {
-  let token;
+  if (!(req.headers.authorization && req.headers.authorization.startsWith('Bearer'))) {
+    return res.status(401).json({ success: false, message: 'Not authorized, no token provided' });
+  }
 
-  // Check if the authorization header exists and starts with 'Bearer'
-  // Example header: "Authorization: Bearer xyz123token"
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    try {
-      // Split the string and grab the actual token part ('xyz123token')
-      token = req.headers.authorization.split(' ')[1];
+  try {
+    const token = req.headers.authorization.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Decode the token using our secret key to verify it hasn't been tampered with
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userFound = await resolveUserFromDecoded(decoded);
 
-      // SYSTEM-WIDE FRESHNESS FIX:
-      // Fetch the latest user data from the database based on the ID.
-      // This ensures that req.user always contains the newest name, email, and photo
-      // even if the user refreshed the page with a "stale" token.
-      const { AdminUser } = require('../models/Admin');
-      const { User } = require('../models/User');
-      const { Partner } = require('../models/Partner');
-      const Executive = require('../models/Executive');
-
-      let userFound;
-      if (decoded.role === 'super_admin' || decoded.role === 'SuperAdmin') {
-        userFound = await AdminUser.findById(decoded.id).select('-password');
-      } else if (decoded.role === 'partner') {
-        userFound = await Partner.findById(decoded.id).select('-password').populate('active_subscription_id');
-      } else if (decoded.role === 'executive') {
-        userFound = await Executive.findById(decoded.id).select('-password');
-      } else {
-        userFound = await User.findById(decoded.id).select('-password');
-      }
-
-      if (!userFound) {
-        return res.status(401).json({ success: false, message: 'User no longer exists.' });
-      }
-
-      // Check if user is active/suspended
-      // For partners, we allow them to be is_active: false (pending approval) 
-      // but we block them if they are explicitly 'suspended'.
-      if (userFound.onboarding_status === 'suspended') {
-        return res.status(403).json({ success: false, message: 'Your account has been suspended. Please contact support.' });
-      }
-
-      // Generic Activity Check (for Users & Executives)
-      if (userFound.is_active === false && decoded.role !== 'partner') {
-        return res.status(403).json({ success: false, message: 'Your account has been deactivated.' });
-      }
-
-      // Token Version Check (Session Closure)
-      // If the incoming token was issued BEFORE the last session reset, block it.
-      if (userFound.token_version !== undefined && decoded.version !== undefined) {
-        if (decoded.version < userFound.token_version) {
-          return res.status(401).json({ success: false, message: 'Session expired. Please re-login.' });
-        }
-      }
-
-      // Attach the REAL database object to req.user
-      req.user = userFound.toObject();
-      req.user._id = userFound._id;
-      req.user.id = userFound._id.toString();
-      
-      // CRITICAL FIX: Ensure role is set correctly from token for authorization
-      if (decoded.role === 'partner') {
-        req.user.db_role = req.user.role; // Save the DB role ('Agent', 'Supplier', etc.)
-        req.user.role = 'partner';        // Use the token role for route authorization
-      } else if (decoded.role === 'executive') {
-        req.user.role = 'executive';
-      }
-      
-      // Move on to the actual router function
-      next();
-    } catch (error) {
-      console.error("JWT Verification Failed:", error.message);
-      res.status(401).json({ success: false, message: 'Not authorized, token failed' });
+    if (!userFound) {
+      return res.status(401).json({ success: false, message: 'User no longer exists.' });
     }
-  } else {
-    // If no token was found at all
-    res.status(401).json({ success: false, message: 'Not authorized, no token provided' });
+
+    if (userFound.onboarding_status === 'suspended') {
+      return res.status(403).json({ success: false, message: 'Your account has been suspended. Please contact support.' });
+    }
+
+    if (userFound.is_active === false) {
+      return res.status(403).json({ success: false, message: 'Your account has been deactivated.' });
+    }
+
+    // Token version check: if the token carries a version, it must match the DB record.
+    // Increment token_version on the user document to invalidate all existing sessions.
+    if (decoded.version !== undefined && decoded.version !== userFound.token_version) {
+      return res.status(401).json({ success: false, message: 'Session expired. Please re-login.' });
+    }
+
+    attachUser(req, userFound, decoded.role);
+    next();
+  } catch (error) {
+    logger.error({ err: error.message }, 'JWT Verification Failed:');
+    res.status(401).json({ success: false, message: 'Not authorized, token failed' });
   }
 };
 
 /**
- * Middleware: Role Authorization
- * This checks if the user mapped to `req.user` has one of the allowed roles.
- * Must be used AFTER the `protect` middleware.
- * 
- * Example usage: router.post('/do-admin-stuff', protect, authorizeRoles('super_admin'), adminController.doThings)
+ * Middleware: Role Authorization — must be used after `protect`.
  */
 const authorizeRoles = (...roles) => {
   return (req, res, next) => {
-    // Check if the current user's role is in the array of allowed roles
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Not authorized, no token provided' });
+    }
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        success: false, 
-        message: `Role (${req.user.role}) is not authorized to access this resource` 
+      return res.status(403).json({
+        success: false,
+        message: `Role (${req.user.role}) is not authorized to access this resource`
       });
     }
     next();
   };
 };
 
+/**
+ * Middleware: Optional auth — sets req.user if a valid token is present, otherwise continues.
+ */
 const optionalProtect = async (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
-      let token = req.headers.authorization.split(' ')[1];
+      const token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      const { Partner } = require('../models/Partner');
-      const { AdminUser } = require('../models/Admin');
-      const { User } = require('../models/User');
-      const Executive = require('../models/Executive');
-
-      let userFound;
-      if (decoded.role === 'super_admin' || decoded.role === 'SuperAdmin') {
-        userFound = await AdminUser.findById(decoded.id).select('-password');
-      } else if (decoded.role === 'partner') {
-        userFound = await Partner.findById(decoded.id).select('-password').populate('active_subscription_id');
-      } else if (decoded.role === 'executive') {
-        userFound = await Executive.findById(decoded.id).select('-password');
-      } else {
-        userFound = await User.findById(decoded.id).select('-password');
-      }
-
-      if (userFound) {
-        req.user = userFound.toObject();
-        req.user._id = userFound._id;
-        req.user.id = userFound._id.toString();
-        
-        if (decoded.role === 'partner') {
-          req.user.role = 'partner';
-        } else if (decoded.role === 'executive') {
-          req.user.role = 'executive';
-        }
-      }
-    } catch (error) {
-      // Token exists but is invalid/expired - just don't set user
+      const userFound = await resolveUserFromDecoded(decoded);
+      if (userFound) attachUser(req, userFound, decoded.role);
+    } catch (_) {
+      // Invalid/expired token in optional context — proceed without user
     }
   }
   next();
 };
 
 /**
- * Middleware: Verify Approved Partner
- * This checks if the partner has completed onboarding and is approved by admin.
+ * Middleware: Verify approved account.
+ * Partners must be approved by admin; executives must be approved or verified.
  */
 const verifyApproved = (req, res, next) => {
   if (req.user.role === 'partner') {
@@ -162,6 +121,16 @@ const verifyApproved = (req, res, next) => {
       });
     }
   }
+
+  if (req.user.role === 'executive') {
+    if (!['approved', 'verified'].includes(req.user.onboarding_status)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Your account is not yet approved. Please complete your profile and wait for approval.'
+      });
+    }
+  }
+
   next();
 };
 

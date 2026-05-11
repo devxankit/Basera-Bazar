@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { IndianRupee, Save, ArrowLeft, Plus, Trash2, Info, CheckCircle2, Infinity as InfinityIcon, Star, Zap, ShieldCheck, Calendar, X, Mail, Phone, Users } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 
 export default function AdminCreateManualSubscription() {
   const { userId } = useParams();
@@ -94,7 +95,7 @@ export default function AdminCreateManualSubscription() {
       await api.post('/admin/subscriptions', payload);
       navigate('/admin/subscriptions');
     } catch (err) {
-      alert(err.response?.data?.message || 'Error processing subscription');
+      toast.error(err.response?.data?.message || 'Error processing subscription');
     } finally {
       setSaving(false);
     }
@@ -120,7 +121,7 @@ export default function AdminCreateManualSubscription() {
               <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-indigo-100 uppercase">
                  {userDetails?.name?.split(' ').map(n => n[0]).join('')}
               </div>
-              <div className="flex-grow">
+              <div className="grow">
                  <h2 className="text-lg font-black text-slate-900 tracking-tight">Create Subscription for {userDetails?.name}</h2>
                  <div className="flex flex-wrap items-center gap-x-6 gap-y-1 mt-1 font-bold">
                     <span className="px-2 py-0.5 bg-slate-900 text-white text-[9px] rounded uppercase tracking-widest">{userDetails?.role?.replace('_', ' ')}</span>

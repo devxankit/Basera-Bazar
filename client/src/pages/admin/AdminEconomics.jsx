@@ -12,6 +12,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import Skeleton from '../../components/common/Skeleton';
@@ -65,7 +67,7 @@ export default function AdminEconomics() {
   if (loading) {
     return (
       <div className="bg-slate-50 min-h-screen pb-20 text-left">
-        <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
+        <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
           <Skeleton className="h-24 w-full rounded-2xl" />
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-8">
@@ -83,7 +85,7 @@ export default function AdminEconomics() {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
-      <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
+      <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
         
         {/* Breadcrumbs & Header */}
         <div className="space-y-4">
@@ -171,7 +173,7 @@ export default function AdminEconomics() {
                          <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest">Performance Impact</h4>
                       </div>
                       <p className="text-[11px] font-medium text-slate-500 leading-relaxed uppercase">
-                        Dynamic rates allow for seasonal incentives. Currently, Executives with ₹100+ rates show 40% higher retention.
+                        Dynamic rates allow you to adjust commission incentives based on season, region, or business goals.
                       </p>
                    </div>
                 </div>

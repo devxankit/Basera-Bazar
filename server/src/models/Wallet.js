@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
 
 const withdrawalRequestSchema = new mongoose.Schema({
-  user_id: { type: mongoose.Schema.Types.ObjectId, required: true },
-  user_type: { 
-    type: String, 
-    enum: ['Partner', 'Executive'], 
+  user_id: { type: mongoose.Schema.Types.ObjectId, required: true, refPath: 'user_type' },
+  user_type: {
+    type: String,
+    enum: ['Partner', 'Executive'],
     required: true,
     default: 'Partner'
   },
@@ -25,7 +25,8 @@ const withdrawalRequestSchema = new mongoose.Schema({
   processed_at: { type: Date }
 }, { timestamps: true });
 
-// For backward compatibility if needed, but better to migrate
-// For now, I'll add a virtual or just keep it simple.
+withdrawalRequestSchema.index({ user_id: 1, createdAt: -1 });
+withdrawalRequestSchema.index({ status: 1, createdAt: -1 });
+withdrawalRequestSchema.index({ user_type: 1, status: 1 });
 
 module.exports = mongoose.model('WithdrawalRequest', withdrawalRequestSchema);

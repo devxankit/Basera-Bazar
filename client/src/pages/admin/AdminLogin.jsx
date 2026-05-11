@@ -127,7 +127,7 @@ export default function AdminLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-slate-900 hover:bg-indigo-600 text-white font-black py-5 rounded-[2rem] shadow-xl shadow-slate-200/50 transition-all duration-300 flex items-center justify-center gap-3 active:scale-[0.97] disabled:opacity-70 group"
+              className="w-full bg-slate-900 hover:bg-indigo-600 text-white font-black py-5 rounded-4xl shadow-xl shadow-slate-200/50 transition-all duration-300 flex items-center justify-center gap-3 active:scale-[0.97] disabled:opacity-70 group"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={20} />

@@ -7,8 +7,8 @@ import {
   ShieldCheck, PartyPopper, Lock, Zap, ArrowRight, Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useExecutive } from '../../context/ExecutiveContext';
 import { toast } from '../../mockToast';
 
 const containerVariants = {
@@ -34,27 +34,8 @@ const itemVariants = {
 export default function ExecutiveDashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data, loading, refetch } = useExecutive();
   const [copied, setCopied] = useState(false);
-
-  const fetchDashboard = async () => {
-    try {
-      const res = await api.get('/executive/dashboard');
-      if (res.data.success) {
-        setData(res.data.data);
-      }
-    } catch (error) {
-      console.error('Dashboard Fetch Error:', error);
-      toast.error('Failed to load dashboard stats');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
 
   const handleCopyCode = () => {
     const code = data?.profile?.referral_code;
@@ -143,12 +124,8 @@ export default function ExecutiveDashboard() {
             <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Operational Console</p>
           </div>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={() => {
-                setLoading(true);
-                fetchDashboard();
-                toast.success('Syncing details...');
-              }}
+            <button
+              onClick={() => { refetch(); toast.success('Syncing details...'); }}
               className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
             >
               <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />

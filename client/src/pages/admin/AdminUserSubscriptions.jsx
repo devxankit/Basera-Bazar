@@ -54,11 +54,11 @@ export default function AdminUserSubscriptions() {
 
       {/* User Summary Card */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-         <div className="xl:col-span-2 bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-8">
+         <div className="xl:col-span-2 bg-white rounded-4xl p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-8">
             <div className="w-24 h-24 rounded-full bg-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-xl uppercase">
               {user?.name ? user.name.split(' ').map(n => n[0]).join('') : 'U'}
             </div>
-            <div className="flex-grow space-y-4 text-center md:text-left">
+            <div className="grow space-y-4 text-center md:text-left">
                <div>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight flex flex-wrap items-center gap-3 justify-center md:justify-start">
                     {user?.name || 'User'}'s Subscriptions
@@ -80,7 +80,7 @@ export default function AdminUserSubscriptions() {
             </div>
          </div>
 
-         <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6">
+         <div className="bg-white rounded-4xl p-8 shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6">
             <div>
               <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Subscriptions</p>
               <h3 className="text-5xl font-black text-slate-900 tracking-tight tabular-nums">{subscriptions.length}</h3>
@@ -93,7 +93,7 @@ export default function AdminUserSubscriptions() {
       </div>
 
       {/* Subscription History Table */}
-      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-4xl shadow-sm border border-slate-100 overflow-hidden">
          <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
            <div className="flex items-center gap-3">
              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">

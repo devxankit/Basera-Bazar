@@ -3,12 +3,15 @@ import { Plus, Edit2, Trash2, Eye, RefreshCw, GripVertical, PauseCircle, PlayCir
 import { useNavigate, Link } from 'react-router-dom';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 export default function AdminBanners() {
   const navigate = useNavigate();
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showInactive, setShowInactive] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, deleting: false });
 
   const fetchData = async () => {
     setLoading(true);
@@ -30,14 +33,19 @@ export default function AdminBanners() {
 
 
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this banner?')) {
-      try {
-        await api.delete(`/admin/system/banners/${id}`);
-        fetchData();
-      } catch (err) {
-        alert('Error deleting banner');
-      }
+  const handleDelete = (id) => {
+    setDeleteModal({ isOpen: true, id, deleting: false });
+  };
+
+  const confirmDelete = async () => {
+    setDeleteModal(m => ({ ...m, deleting: true }));
+    try {
+      await api.delete(`/admin/system/banners/${deleteModal.id}`);
+      setDeleteModal({ isOpen: false, id: null, deleting: false });
+      fetchData();
+    } catch (err) {
+      toast.error('Error deleting banner');
+      setDeleteModal(m => ({ ...m, deleting: false }));
     }
   };
 
@@ -46,7 +54,7 @@ export default function AdminBanners() {
       await api.put(`/admin/system/banners/${id}`, { is_active: !currentStatus });
       fetchData();
     } catch (err) {
-      alert('Error updating status');
+      toast.error('Error updating status');
     }
   };
 
@@ -165,6 +173,15 @@ export default function AdminBanners() {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 mt-4 animate-in fade-in duration-700">
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null, deleting: false })}
+        onConfirm={confirmDelete}
+        title="Delete Banner"
+        message="Are you sure you want to permanently delete this banner? This action cannot be undone."
+        confirmText="Delete"
+        loading={deleteModal.deleting}
+      />
       {/* Platform Breadcrumb Header */}
       <div className="px-8 py-4 flex items-center gap-2 text-sm font-semibold text-slate-400 uppercase tracking-tight">
          <span className="text-slate-800 font-bold">Banner Management</span>

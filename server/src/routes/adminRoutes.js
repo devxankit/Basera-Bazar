@@ -69,9 +69,8 @@ const {
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
-
-// TEST ROUTE NO AUTH
-router.get('/test-listings/:type', getListings);
+const validate = require('../middlewares/validateMiddleware');
+const { idParamSchema } = require('../utils/validators');
 
 // Publicly readable system data
 // Partners need to see plans and active offers during registration
@@ -97,12 +96,13 @@ router.put('/profile/update', updateAdminProfile);
 router.put('/profile/change-password', changeAdminPassword);
 
 // User Management
+const vId = validate(idParamSchema, 'params');
 router.get('/users', getUsers);
-router.get('/users/:id', getUserDetail);
+router.get('/users/:id', vId, getUserDetail);
 router.post('/users', createUser);
-router.put('/users/:id', updateUser);
-router.delete('/users/:id', deleteUser);
-router.get('/users/:id/subscriptions', getUserSubscriptionHistory);
+router.put('/users/:id', vId, updateUser);
+router.delete('/users/:id', vId, deleteUser);
+router.get('/users/:id/subscriptions', vId, getUserSubscriptionHistory);
 router.get('/subscriptions', getAllSubscriptions);
 router.post('/subscriptions', createManualSubscription);
 
@@ -110,10 +110,10 @@ router.post('/subscriptions', createManualSubscription);
 router.get('/listings/:type', getListings);
 router.post('/listings/property', createPropertyListing);
 router.post('/listings/service', createServiceListing);
-router.get('/listings/detail/:id', getListingDetail);
-router.patch('/listings/:id/status', updateListingStatus);
-router.put('/listings/:id', updateListing);
-router.delete('/listings/:id', deleteListing);
+router.get('/listings/detail/:id', vId, getListingDetail);
+router.patch('/listings/:id/status', vId, updateListingStatus);
+router.put('/listings/:id', vId, updateListing);
+router.delete('/listings/:id', vId, deleteListing);
 
 // Lead Management
 router.get('/leads', getLeads);

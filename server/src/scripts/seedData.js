@@ -35,9 +35,14 @@ const seedData = async () => {
     console.log('🧹 Cleared existing collections.');
 
     // 1. Create Super Admin
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD || process.argv[2];
+    if (!adminPassword) {
+      console.error('❌ Provide admin password via SEED_ADMIN_PASSWORD env var or first CLI argument.');
+      process.exit(1);
+    }
     await AdminUser.create({
-      email: 'superadmin@gmail.com',
-      password: 'password123',
+      email: process.env.SEED_ADMIN_EMAIL || 'superadmin@gmail.com',
+      password: adminPassword,
       role: 'super_admin'
     });
     console.log('✅ Created Super Admin');

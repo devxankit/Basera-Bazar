@@ -1,4 +1,5 @@
 const Executive = require('../models/Executive');
+const logger = require('./logger');
 const { Transaction } = require('../models/Finance');
 const { logActivity } = require('./activityLogger');
 const { sendPushNotification } = require('./notificationHelper');
@@ -15,7 +16,7 @@ const creditExecutivePayout = async (referralCode, partnerId, partnerName) => {
 
     const executive = await Executive.findOne({ referral_code: referralCode, is_active: true });
     if (!executive) {
-      console.log(`[PAYOUT] No active executive found for code: ${referralCode}`);
+      logger.info(`[PAYOUT] No active executive found for code: ${referralCode}`)
       return;
     }
 
@@ -57,9 +58,9 @@ const creditExecutivePayout = async (referralCode, partnerId, partnerName) => {
       { type: 'commission_credit', amount: amount.toString() }
     );
 
-    console.log(`[PAYOUT] Successfully credited ₹${amount} to Executive: ${executive.name}`);
+    logger.info(`[PAYOUT] Successfully credited ₹${amount} to Executive: ${executive.name}`)
   } catch (error) {
-    console.error('[PAYOUT ERROR]', error);
+    logger.error({ err: error }, '[PAYOUT ERROR]')
   }
 };
 

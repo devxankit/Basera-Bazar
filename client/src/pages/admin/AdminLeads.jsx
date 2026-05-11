@@ -7,8 +7,10 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -21,6 +23,7 @@ const AdminLeads = () => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(true);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, deleting: false });
   
   // States for dynamic filters
   const [owners, setOwners] = useState([]);
@@ -85,7 +88,7 @@ const AdminLeads = () => {
       await api.put(`/admin/leads/${id}/status`, { is_read: !currentRead });
       fetchData();
     } catch (err) {
-      alert('Error updating status');
+      toast.error('Error updating status');
     }
   };
 
@@ -96,18 +99,21 @@ const AdminLeads = () => {
       });
       fetchData();
     } catch (err) {
-      alert('Error updating status');
+      toast.error('Error updating status');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Permanently delete this lead?')) {
-      try {
-        await api.delete(`/admin/leads/${id}`);
-        fetchData();
-      } catch (err) {
-        alert('Error deleting lead');
-      }
+  const handleDelete = (id) => setDeleteModal({ isOpen: true, id, deleting: false });
+
+  const confirmDelete = async () => {
+    setDeleteModal(m => ({ ...m, deleting: true }));
+    try {
+      await api.delete(`/admin/leads/${deleteModal.id}`);
+      setDeleteModal({ isOpen: false, id: null, deleting: false });
+      fetchData();
+    } catch (err) {
+      toast.error('Error deleting lead');
+      setDeleteModal(m => ({ ...m, deleting: false }));
     }
   };
 
@@ -138,7 +144,16 @@ const AdminLeads = () => {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 pt-4 animate-in fade-in duration-500 text-left">
-      <div className="max-w-[1600px] mx-auto px-6 space-y-6">
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null, deleting: false })}
+        onConfirm={confirmDelete}
+        title="Delete Lead"
+        message="Permanently delete this lead? This action cannot be undone."
+        confirmText="Delete"
+        loading={deleteModal.deleting}
+      />
+      <div className="max-w-400 mx-auto px-6 space-y-6">
         
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between mb-8 gap-6">
@@ -198,7 +213,7 @@ const AdminLeads = () => {
         </div>
 
         {/* Dynamic Filters Card */}
-        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-4xl border border-slate-100 shadow-sm overflow-hidden">
           <button 
             onClick={() => setShowFilters(!showFilters)}
             className="w-full px-8 py-5 flex items-center justify-between border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
@@ -351,7 +366,7 @@ const AdminLeads = () => {
         </div>
 
         {/* Lead List Table Card */}
-        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden text-left">
+        <div className="bg-white rounded-4xl border border-slate-100 shadow-sm overflow-hidden text-left">
           <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
              <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-500">

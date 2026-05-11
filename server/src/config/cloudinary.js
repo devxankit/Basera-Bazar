@@ -31,9 +31,17 @@ const storage = new CloudinaryStorage({
   }
 });
 
-// Step 3: Create the Multer Upload Middleware
-// You will import this `upload` object into your routes whenever a route needs to accept a file.
-// For example: router.post('/upload', upload.single('image'), ...)
-const upload = multer({ storage: storage });
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max (H-3)
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      return cb(new Error('Only jpg, png, webp, and pdf files are allowed.'));
+    }
+    cb(null, true);
+  }
+});
 
 module.exports = { cloudinary, upload };

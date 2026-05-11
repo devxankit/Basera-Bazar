@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 const AdminAllSubscriptions = () => {
   const navigate = useNavigate();
@@ -13,6 +15,7 @@ const AdminAllSubscriptions = () => {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(true);
+  const [cancelModal, setCancelModal] = useState({ isOpen: false, id: null, cancelling: false });
   const [filters, setFilters] = useState({
     plan: 'all',
     status: 'all',
@@ -64,16 +67,22 @@ const AdminAllSubscriptions = () => {
     });
   };
 
-  const handleCancelSubscription = async (id) => {
-    if (!window.confirm("Are you sure you want to cancel/revoke this subscription?")) return;
+  const handleCancelSubscription = (id) => {
+    setCancelModal({ isOpen: true, id, cancelling: false });
+  };
+
+  const confirmCancel = async () => {
+    setCancelModal(m => ({ ...m, cancelling: true }));
     try {
-      const res = await api.patch(`/admin/subscriptions/${id}/status`, { status: 'cancelled' });
+      const res = await api.patch(`/admin/subscriptions/${cancelModal.id}/status`, { status: 'cancelled' });
       if (res.data.success) {
-        alert("Subscription cancelled successfully");
+        toast.success("Subscription cancelled successfully");
+        setCancelModal({ isOpen: false, id: null, cancelling: false });
         fetchData();
       }
     } catch (err) {
-      alert("Failed to cancel subscription: " + (err.response?.data?.message || err.message));
+      toast.error("Failed to cancel subscription: " + (err.response?.data?.message || err.message));
+      setCancelModal(m => ({ ...m, cancelling: false }));
     }
   };
 
@@ -92,7 +101,17 @@ const AdminAllSubscriptions = () => {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 pt-4 animate-in fade-in duration-500 text-left font-Inter">
-      <div className="max-w-[1600px] mx-auto px-6 space-y-6">
+      <ConfirmationModal
+        isOpen={cancelModal.isOpen}
+        onClose={() => setCancelModal({ isOpen: false, id: null, cancelling: false })}
+        onConfirm={confirmCancel}
+        title="Cancel Subscription"
+        message="Are you sure you want to cancel/revoke this subscription? The partner will lose access immediately."
+        confirmText="Cancel Subscription"
+        type="warning"
+        loading={cancelModal.cancelling}
+      />
+      <div className="max-w-400 mx-auto px-6 space-y-6">
         
         {/* Header Section */}
         <div className="flex items-center justify-between mb-8">
@@ -111,7 +130,7 @@ const AdminAllSubscriptions = () => {
         </div>
 
         {/* Unified Filter Card */}
-        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-4xl border border-slate-100 shadow-sm overflow-hidden">
            <div 
              onClick={() => setIsFilterOpen(!isFilterOpen)}
              className="px-8 py-5 flex items-center justify-between cursor-pointer border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
@@ -203,7 +222,7 @@ const AdminAllSubscriptions = () => {
         </div>
 
         {/* List Table Card */}
-        <div className="bg-white border border-slate-200 rounded-[32px] shadow-sm overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-4xl shadow-sm overflow-hidden">
            <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-3">
                  <div className="w-8 h-8 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-500 border border-indigo-100">
@@ -336,7 +355,7 @@ const AdminAllSubscriptions = () => {
            {/* Pagination Console */}
            {subscriptions.length > itemsPerPage && (
              <div className="px-8 py-5 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic tracking-tight">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
                    Showing {startIndex + 1} - {Math.min(startIndex + itemsPerPage, subscriptions.length)} of {subscriptions.length} Node Entries
                 </p>
                 <div className="flex gap-2">

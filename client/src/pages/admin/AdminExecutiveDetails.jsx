@@ -12,6 +12,7 @@ import { twMerge } from 'tailwind-merge';
 import api from '../../services/api';
 import Skeleton from '../../components/common/Skeleton';
 import { toast } from '../../mockToast';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -27,6 +28,7 @@ export default function AdminExecutiveDetails() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
 
   useEffect(() => {
     const fetchExecutiveDetail = async () => {
@@ -67,54 +69,74 @@ export default function AdminExecutiveDetails() {
     }
   };
 
-  const handleToggleStatus = async () => {
+  const openConfirm = (title, message, action, type = 'danger') => {
+    setConfirmModal({ isOpen: true, title, message, action, loading: false, type });
+  };
+
+  const executeConfirm = async () => {
+    setConfirmModal(m => ({ ...m, loading: true }));
+    try {
+      await confirmModal.action();
+    } finally {
+      setConfirmModal(m => ({ ...m, isOpen: false, loading: false }));
+    }
+  };
+
+  const handleToggleStatus = () => {
     const currentStatus = executive?.is_active;
     const action = currentStatus ? 'deactivate' : 'activate';
-    if (!window.confirm(`Are you sure you want to ${action} this executive?`)) return;
+    openConfirm(
+      `${currentStatus ? 'Deactivate' : 'Activate'} Executive`,
+      `Are you sure you want to ${action} this executive?`,
+      async () => {
+        const res = await api.patch(`/admin/executives/${id}/toggle-active`);
+        if (res.data.success) {
+          setExecutive({ ...executive, is_active: !currentStatus });
+          toast.success(res.data.message || `Executive ${action}d successfully`);
+          setShowOptions(false);
+        }
+      },
+      currentStatus ? 'warning' : 'info'
+    );
+  };
 
-    try {
-      const res = await api.patch(`/admin/executives/${id}/toggle-active`);
-      if (res.data.success) {
-        setExecutive({ ...executive, is_active: !currentStatus });
-        toast.success(res.data.message || `Executive ${action}d successfully`);
-        setShowOptions(false);
+  const handleDelete = () => {
+    openConfirm(
+      'Delete Executive',
+      'Are you sure you want to permanently delete this executive? This action cannot be undone.',
+      async () => {
+        await api.delete(`/admin/executives/${id}`);
+        toast.success('Executive deleted successfully');
+        navigate('/admin/executives');
       }
-    } catch (err) {
-      toast.error('Failed to update status');
-    }
+    );
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to permanently delete this executive? This action cannot be undone.")) return;
-    try {
-      await api.delete(`/admin/executives/${id}`);
-      toast.success('Executive deleted successfully');
-      navigate('/admin/executives');
-    } catch (err) {
-      toast.error('Deletion failed');
-    }
-  };
-
-  const handleResetKyc = async () => {
-    if (!window.confirm("Are you sure you want to reset this user's KYC? They will need to re-upload all documents.")) return;
-    setIsActionLoading(true);
-    try {
-      await api.post(`/admin/executives/${id}/reset-kyc`);
-      toast.success('Executive KYC has been reset');
-      // Re-fetch to sync
-      const res = await api.get(`/admin/executives/${id}`);
-      setExecutive(res.data.data);
-      setShowOptions(false);
-    } catch (err) {
-      toast.error('KYC Reset failed');
-    } finally {
-      setIsActionLoading(false);
-    }
+  const handleResetKyc = () => {
+    openConfirm(
+      'Reset KYC',
+      "Are you sure you want to reset this user's KYC? They will need to re-upload all documents.",
+      async () => {
+        setIsActionLoading(true);
+        try {
+          await api.post(`/admin/executives/${id}/reset-kyc`);
+          toast.success('Executive KYC has been reset');
+          const res = await api.get(`/admin/executives/${id}`);
+          setExecutive(res.data.data);
+          setShowOptions(false);
+        } catch (err) {
+          toast.error('KYC Reset failed');
+        } finally {
+          setIsActionLoading(false);
+        }
+      },
+      'warning'
+    );
   };
 
   if (loading) return (
     <div className="bg-slate-50 min-h-screen pb-20 text-left">
-      <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
+      <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
         <Skeleton className="h-40 w-full rounded-2xl" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <Skeleton className="h-24 rounded-2xl" />
@@ -146,8 +168,17 @@ export default function AdminExecutiveDetails() {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
-      <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
-        
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(m => ({ ...m, isOpen: false }))}
+        onConfirm={executeConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        loading={confirmModal.loading}
+      />
+      <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
+
         {/* Profile Header */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
@@ -425,7 +456,7 @@ function DocumentCard({ title, number, image }) {
           </a>
         )}
       </div>
-      <div className="flex-grow aspect-[3/2] bg-slate-50 relative overflow-hidden flex items-center justify-center">
+      <div className="grow aspect-[3/2] bg-slate-50 relative overflow-hidden flex items-center justify-center">
         {image ? (
           <img src={image} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (

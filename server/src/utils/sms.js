@@ -1,4 +1,5 @@
 const axios = require('axios');
+const logger = require('./logger');
 require('dotenv').config();
 
 /**
@@ -21,9 +22,9 @@ const sendOTP = async (phone, otp) => {
 
     // 2. Guard clause: if credentials are not set, run in development mock mode
     if (!apiKey || apiKey === 'your_smsindiahub_api_key') {
-      console.log(`\n[DEVELOPMENT MODE - MOCK SMS]`);
-      console.log(`>> OTP: ${otp} would have been sent to +91${phone}`);
-      console.log(`>> To enable real SMS, set SMS_PASSWORD (API key) in .env\n`);
+      logger.info(`\n[DEVELOPMENT MODE - MOCK SMS]`)
+      logger.info(`>> OTP: ${otp} would have been sent to +91${phone}`)
+      logger.info(`>> To enable real SMS, set SMS_PASSWORD (API key) in .env\n`)
       return true; // Pretend success in dev mode
     }
     const appName = "Basera Bazar";
@@ -58,30 +59,30 @@ const sendOTP = async (phone, otp) => {
       + (templateId ? `&dlttemplateid=${templateId}` : '')
       + (entityId ? `&entityid=${entityId}` : '');
 
-    console.log(`[SMS] Sending OTP to +91${phone} via SMSIndiaHub...`);
+    logger.info(`[SMS] Sending OTP to +91${phone} via SMSIndiaHub...`)
     const startTime = Date.now();
 
     // 6. Fire the HTTP GET request to the SMSIndiaHub REST API
     const response = await axios.get(url, { timeout: 10000 });
     const endTime = Date.now();
-    console.log(`[SMS] Provider responded in ${endTime - startTime}ms`);
+    logger.info(`[SMS] Provider responded in ${endTime - startTime}ms`)
 
     // 7. Log the full response for debugging
-    console.log(`[SMS] Provider Response:`, JSON.stringify(response.data));
+    logger.info(`[SMS] Provider Response:`, JSON.stringify(response.data))
 
     // 8. Check for success — SMSIndiaHub returns ErrorCode "000" for success
     if (response.data && response.data.ErrorCode === '000') {
-      console.log(`[SMS] ✅ OTP sent successfully to +91${phone}`);
-      console.log(`[SMS] Total execution time: ${Date.now() - startTime}ms`);
+      logger.info(`[SMS] ✅ OTP sent successfully to +91${phone}`)
+      logger.info(`[SMS] Total execution time: ${Date.now() - startTime}ms`)
       return true;
     } else {
-      console.error(`[SMS] ❌ Provider rejected:`, response.data?.ErrorMessage || response.data);
+      logger.error(`[SMS] ❌ Provider rejected:`, response.data?.ErrorMessage || response.data)
       return false;
     }
 
   } catch (error) {
     // Network failure or timeout
-    console.error(`[SMS] ❌ Network error sending SMS:`, error.message);
+    logger.error({ err: error.message }, `[SMS] ❌ Network error sending SMS:`)
     return false;
   }
 };

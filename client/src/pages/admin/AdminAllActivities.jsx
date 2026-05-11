@@ -141,7 +141,7 @@ export default function AdminAllActivities() {
       {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[750px]">
+          <table className="w-full text-left min-w-187.5">
             <thead>
               <tr className="bg-slate-50/60">
                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Activity</th>

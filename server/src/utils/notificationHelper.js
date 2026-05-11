@@ -1,4 +1,5 @@
 const { Notification } = require('../models/System');
+const logger = require('./logger');
 const { Partner } = require('../models/Partner');
 const { User } = require('../models/User');
 const { sendPushNotification } = require('../services/firebaseAdmin');
@@ -22,7 +23,7 @@ const createNotification = async (recipientType, recipientId, title, body, data 
       data
     });
     
-    console.log(`[Notification] Created in-app for ${recipientType} (${recipientId}): ${title}`);
+    logger.info(`[Notification] Created in-app for ${recipientType} (${recipientId}): ${title}`)
 
     // 2. Fetch Recipient to get FCM Tokens
     let recipient;
@@ -42,7 +43,7 @@ const createNotification = async (recipientType, recipientId, title, body, data 
       const uniqueTokens = [...new Set(tokens)].filter(t => t && t.length > 0);
 
       if (uniqueTokens.length > 0) {
-        console.log(`[Push Notification] Attempting to send to ${uniqueTokens.length} devices for ${recipientType} ${recipientId}`);
+        logger.info(`[Push Notification] Attempting to send to ${uniqueTokens.length} devices for ${recipientType} ${recipientId}`)
         
         // Prepare payload for FCM (FCM data values must be strings)
         const stringifiedData = {
@@ -67,13 +68,13 @@ const createNotification = async (recipientType, recipientId, title, body, data 
         // Cleanup logic for failed tokens could be added here if needed
         // but admin-sdk's sendEachForMulticast handles basic reporting
       } else {
-        console.log(`[Push Notification] No FCM tokens found for ${recipientType} ${recipientId}`);
+        logger.info(`[Push Notification] No FCM tokens found for ${recipientType} ${recipientId}`)
       }
     }
     
     return notification;
   } catch (error) {
-    console.error('Error creating notification:', error);
+    logger.error({ err: error }, 'Error creating notification:')
     return null;
   }
 };

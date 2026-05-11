@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Landmark, CreditCard, ShieldCheck, 
-  ChevronRight, AlertCircle, Loader2, ArrowRight,
-  Wallet, DollarSign, Clock, CheckCircle2
+import {
+  ArrowLeft, Landmark, ShieldCheck,
+  AlertCircle, Loader2, ArrowRight,
+  Wallet, Clock
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import api from '../../services/api';
+import { useExecutive } from '../../context/ExecutiveContext';
 import { toast } from '../../mockToast';
 
 const containerVariants = {
@@ -28,27 +29,9 @@ const itemVariants = {
 
 export default function ExecutivePayout() {
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data, loading, refetch } = useExecutive();
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const fetchData = async () => {
-    try {
-      const response = await api.get('/executive/dashboard');
-      if (response.data.success) {
-        setData(response.data.data);
-      }
-    } catch (error) {
-      toast.error('Failed to load financial data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const handleWithdraw = async () => {
     if (!withdrawAmount || Number(withdrawAmount) <= 0) {
@@ -66,7 +49,7 @@ export default function ExecutivePayout() {
     try {
       await api.post('/executive/withdraw', { amount: Number(withdrawAmount) });
       toast.success("Payout request submitted successfully!");
-      // Navigate back to wallet after short delay
+      refetch();
       setTimeout(() => navigate('/executive/wallet'), 1500);
     } catch (error) {
       toast.error(error.response?.data?.message || "Payout request failed");
@@ -109,7 +92,7 @@ export default function ExecutivePayout() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="px-6 pt-8 pb-12 space-y-8 flex-grow"
+        className="px-6 pt-8 pb-12 space-y-8 grow"
       >
         
         {/* Balance Status Card */}

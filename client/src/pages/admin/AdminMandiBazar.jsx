@@ -32,6 +32,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import AdminTable from '../../components/common/AdminTable';
 import MediaDropZone from '../../components/common/MediaDropZone';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 import Skeleton from '../../components/common/Skeleton';
 
@@ -53,6 +55,7 @@ export default function AdminMandiBazar() {
   
   // Milestone Config State
   const [milestoneConfigs, setMilestoneConfigs] = useState([]);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false });
   const [newMilestone, setNewMilestone] = useState({
     target_orders: '',
     prize_name: '',
@@ -116,17 +119,35 @@ export default function AdminMandiBazar() {
     }
   };
 
-  const handleDeleteMilestoneConfig = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this milestone? This action cannot be undone.")) return;
+  const openConfirm = (title, message, action) => {
+    setConfirmModal({ isOpen: true, title, message, action, loading: false });
+  };
+
+  const executeConfirm = async () => {
+    setConfirmModal(m => ({ ...m, loading: true }));
     try {
-      setLoading(true);
-      await api.delete(`/milestones/admin/config/${id}`);
-      fetchData();
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete milestone");
+      await confirmModal.action();
     } finally {
-      setLoading(false);
+      setConfirmModal(m => ({ ...m, isOpen: false, loading: false }));
     }
+  };
+
+  const handleDeleteMilestoneConfig = (id) => {
+    openConfirm(
+      'Delete Milestone',
+      'Are you sure you want to delete this milestone? This action cannot be undone.',
+      async () => {
+        setLoading(true);
+        try {
+          await api.delete(`/milestones/admin/config/${id}`);
+          fetchData();
+        } catch (err) {
+          toast.error(err.response?.data?.message || "Failed to delete milestone");
+        } finally {
+          setLoading(false);
+        }
+      }
+    );
   };
 
   const handleToggleMilestoneStatus = async (milestone) => {
@@ -142,7 +163,7 @@ export default function AdminMandiBazar() {
         setViewingMilestone({ ...viewingMilestone, is_active: !milestone.is_active });
       }
     } catch (err) {
-      alert("Failed to update status");
+      toast.error("Failed to update status");
     } finally {
       setLoading(false);
     }
@@ -155,7 +176,7 @@ export default function AdminMandiBazar() {
       setIsModalOpen(false);
       fetchData();
     } catch (err) {
-      alert("Failed to update status");
+      toast.error("Failed to update status");
     } finally {
       setLoading(false);
     }
@@ -172,10 +193,10 @@ export default function AdminMandiBazar() {
           percentage: Number(cat.percentage)
         }))
       });
-      alert("Mandi economics updated successfully!");
+      toast.success("Mandi economics updated successfully!");
       fetchData();
     } catch (err) {
-      alert("Update failed: " + (err.response?.data?.message || err.message));
+      toast.error("Update failed: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
@@ -191,7 +212,7 @@ export default function AdminMandiBazar() {
     try {
       setLoading(true);
       await api.post('/milestones/admin/config', newMilestone);
-      alert("Milestone configuration saved!");
+      toast.success("Milestone configuration saved!");
       fetchData();
       setNewMilestone({
         target_orders: '',
@@ -202,7 +223,7 @@ export default function AdminMandiBazar() {
         is_active: true
       });
     } catch (err) {
-      alert("Failed to save config");
+      toast.error("Failed to save config");
     } finally {
       setLoading(false);
     }
@@ -214,7 +235,7 @@ export default function AdminMandiBazar() {
       await api.patch(`/milestones/admin/rewards/${id}`, { status, tracking_id });
       fetchData();
     } catch (err) {
-      alert("Failed to update status");
+      toast.error("Failed to update status");
     } finally {
       setLoading(false);
     }
@@ -437,7 +458,7 @@ export default function AdminMandiBazar() {
       fetchData();
     } catch (err) {
       console.error("Status update error:", err);
-      alert("Failed: " + (err.response?.data?.message || err.message));
+      toast.error("Failed: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
@@ -533,7 +554,7 @@ export default function AdminMandiBazar() {
              {row.status === 'active' ? 'Hide from Shop' : 'Make Live'}
            </button>
            <button 
-             onClick={() => window.confirm("Permanently delete this listing?") && api.delete(`/listings/${row._id}`).then(() => fetchData()).catch(err => alert("Failed: " + (err.response?.data?.message || err.message)))}
+             onClick={() => openConfirm('Delete Listing', 'Permanently delete this listing? This cannot be undone.', async () => { await api.delete(`/listings/${row._id}`); fetchData(); })}
              className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
            >
              <Trash2 size={16} />
@@ -657,6 +678,14 @@ export default function AdminMandiBazar() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(m => ({ ...m, isOpen: false }))}
+        onConfirm={executeConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        loading={confirmModal.loading}
+      />
       {/* Header Area */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         {loading ? (
@@ -947,7 +976,7 @@ export default function AdminMandiBazar() {
       {/* KYC Verification Modal */}
       <AnimatePresence>
         {isModalOpen && selectedItem && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+          <div className="fixed inset-0 z-100 flex items-center justify-center px-6">
              <motion.div 
                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                onClick={() => setIsModalOpen(false)}
@@ -972,7 +1001,7 @@ export default function AdminMandiBazar() {
                    </button>
                 </div>
 
-                <div className="flex-grow overflow-y-auto p-10">
+                <div className="grow overflow-y-auto p-10">
                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                       {/* PAN Card */}
                       <div className="space-y-4">
@@ -980,7 +1009,7 @@ export default function AdminMandiBazar() {
                             <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">PAN Document</span>
                             <span className="text-[11px] font-black text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">{selectedItem.kyc?.pan_number}</span>
                          </div>
-                         <div className="aspect-[3/4] bg-slate-50 rounded-[32px] border border-slate-100 overflow-hidden group">
+                         <div className="aspect-[3/4] bg-slate-50 rounded-4xl border border-slate-100 overflow-hidden group">
                            {selectedItem.kyc?.pan_image ? (
                              <img src={selectedItem.kyc.pan_image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                            ) : (
@@ -995,7 +1024,7 @@ export default function AdminMandiBazar() {
                             <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Aadhar Front</span>
                             <span className="text-[11px] font-black text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">{selectedItem.kyc?.aadhar_number}</span>
                          </div>
-                         <div className="aspect-[3/4] bg-slate-50 rounded-[32px] border border-slate-100 overflow-hidden group">
+                         <div className="aspect-[3/4] bg-slate-50 rounded-4xl border border-slate-100 overflow-hidden group">
                            {selectedItem.kyc?.aadhar_front_image ? (
                              <img src={selectedItem.kyc.aadhar_front_image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                            ) : (
@@ -1010,7 +1039,7 @@ export default function AdminMandiBazar() {
                             <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">GST Certificate</span>
                             <span className="text-[11px] font-black text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">{selectedItem.kyc?.gst_number || 'N/A'}</span>
                          </div>
-                         <div className="aspect-[3/4] bg-slate-50 rounded-[32px] border border-slate-100 overflow-hidden group">
+                         <div className="aspect-[3/4] bg-slate-50 rounded-4xl border border-slate-100 overflow-hidden group">
                            {selectedItem.kyc?.gst_image ? (
                              <img src={selectedItem.kyc.gst_image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                            ) : (
@@ -1172,7 +1201,7 @@ export default function AdminMandiBazar() {
                 </button>
               </div>
 
-              <div className="flex-grow overflow-y-auto p-8 space-y-10">
+              <div className="grow overflow-y-auto p-8 space-y-10">
                  {/* Customer & Shipping Section */}
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
@@ -1203,7 +1232,7 @@ export default function AdminMandiBazar() {
                     <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Itemized Audit (Materials & Sellers)</h4>
                     <div className="space-y-4">
                        {viewingOrder.items.map((item, idx) => (
-                         <div key={idx} className="bg-white rounded-[32px] border border-slate-100 p-6 shadow-sm space-y-6">
+                         <div key={idx} className="bg-white rounded-4xl border border-slate-100 p-6 shadow-sm space-y-6">
                             <div className="flex justify-between items-start">
                                <div className="flex gap-4">
                                   <div className="w-14 h-14 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
@@ -1247,7 +1276,7 @@ export default function AdminMandiBazar() {
                  {/* Financials Audit */}
                  <div className="space-y-4">
                     <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Transaction Financials</h4>
-                    <div className="bg-[#001b4e] rounded-[32px] p-8 text-white grid grid-cols-2 gap-8 shadow-xl shadow-indigo-900/20">
+                    <div className="bg-[#001b4e] rounded-4xl p-8 text-white grid grid-cols-2 gap-8 shadow-xl shadow-indigo-900/20">
                        <div className="space-y-1">
                           <span className="text-[10px] font-black uppercase tracking-widest opacity-50">Booking Token (BSR Received)</span>
                           <p className="text-2xl font-black">₹{viewingOrder.token_payment?.amount || 0}</p>

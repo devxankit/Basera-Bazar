@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, Trash2, X, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
 export default function ConfirmationModal({ 
@@ -46,9 +46,9 @@ export default function ConfirmationModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4">
           {/* Backdrop */}
-          <motion.div 
+          <Motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -57,7 +57,7 @@ export default function ConfirmationModal({
           />
 
           {/* Modal */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -94,7 +94,7 @@ export default function ConfirmationModal({
                   className={`flex-1 px-6 py-4 rounded-2xl text-white font-black text-sm uppercase tracking-widest transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 ${theme.btn}`}
                 >
                   {loading ? (
-                    <motion.div 
+                    <Motion.div 
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
                       className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
@@ -113,7 +113,7 @@ export default function ConfirmationModal({
             >
               <X size={20} />
             </button>
-          </motion.div>
+          </Motion.div>
         </div>
       )}
     </AnimatePresence>

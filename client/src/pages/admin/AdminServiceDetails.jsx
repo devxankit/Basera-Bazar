@@ -10,6 +10,7 @@ import {
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 function cn(...inputs) {
@@ -49,7 +50,7 @@ export default function AdminServiceDetails() {
         setListing(prev => ({ ...prev, status }));
       }
     } catch (err) {
-      alert("Status update failure protocol initiated.");
+      toast.error('Failed to update listing status.');
     }
   };
 
@@ -62,7 +63,7 @@ export default function AdminServiceDetails() {
         navigate('/admin/services');
       }
     } catch (err) {
-      alert("Operational failure during deletion protocol.");
+      toast.error('Failed to delete listing. Please try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -101,12 +102,12 @@ export default function AdminServiceDetails() {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
-      <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
+      <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
         
         {/* Action Header Block */}
         <div className="relative bg-white rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
            {/* Immersive Background element */}
-           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-100/40 via-purple-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
+           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-linear-to-bl from-indigo-100/40 via-purple-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
            
            <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between p-8 gap-6 z-10">
               <div className="flex items-start gap-6">
@@ -118,7 +119,7 @@ export default function AdminServiceDetails() {
                  </button>
                  <div className="flex items-center gap-6">
                     <div className="relative group">
-                       <div className="absolute -inset-1 bg-gradient-to-tr from-indigo-500 to-orange-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition-opacity" />
+                       <div className="absolute -inset-1 bg-linear-to-tr from-indigo-500 to-orange-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition-opacity" />
                        <div className="relative w-24 h-24 rounded-2xl bg-white p-1 overflow-hidden ring-1 ring-slate-100 shadow-xl">
                           <img 
                             src={listing.thumbnail || 'https://via.placeholder.com/100?text=S'} 
@@ -284,7 +285,7 @@ export default function AdminServiceDetails() {
                               </div>
                            ))
                         ) : (
-                           <div className="col-span-full py-32 text-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] flex flex-col items-center justify-center space-y-4">
+                           <div className="col-span-full py-32 text-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-4xl flex flex-col items-center justify-center space-y-4">
                               <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-sm text-slate-300 transform rotate-3">
                                  <Globe size={32} className="-rotate-3" />
                               </div>
@@ -302,7 +303,7 @@ export default function AdminServiceDetails() {
                       </div>
                       <div className="flex flex-col lg:flex-row items-start lg:items-center gap-12 relative z-10">
                           <div className="relative group shrink-0">
-                             <div className="absolute -inset-1 bg-gradient-to-tr from-orange-500 to-indigo-500 rounded-[32px] blur opacity-20 group-hover:opacity-40 transition-opacity" />
+                             <div className="absolute -inset-1 bg-linear-to-tr from-orange-500 to-indigo-500 rounded-4xl blur opacity-20 group-hover:opacity-40 transition-opacity" />
                              <div className="relative w-40 h-40 rounded-[28px] bg-white p-2 shadow-xl ring-1 ring-slate-100">
                                 <img 
                                   src={listing.partner_id?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(listing.partner_id?.name || 'In')}&background=6366f1&color=fff&bold=true`} 
@@ -311,7 +312,7 @@ export default function AdminServiceDetails() {
                                 />
                              </div>
                           </div>
-                          <div className="space-y-6 flex-grow">
+                          <div className="space-y-6 grow">
                              <div className="space-y-2">
                                 <h3 className="text-4xl font-semibold text-slate-900 tracking-tight leading-none uppercase">{listing.partner_id?.name || 'In-House Service'}</h3>
                                 <div className="flex items-center gap-3">
@@ -386,7 +387,7 @@ export default function AdminServiceDetails() {
  
              {/* Platform Footprint mini */}
              <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 space-y-6 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-orange-500" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-indigo-500 via-purple-500 to-orange-500" />
                 <div className="flex items-center gap-4 text-slate-400">
                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:scale-110 transition-transform">
                       <Zap size={18} className="text-orange-500" />

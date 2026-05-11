@@ -1,4 +1,5 @@
 const { Partner } = require('../models/Partner');
+const logger = require('../utils/logger');
 const Order = require('../models/Order');
 const WithdrawalRequest = require('../models/Wallet');
 const { AppConfig } = require('../models/System');
@@ -44,7 +45,7 @@ const updateSellerKYC = async (req, res) => {
     res.status(200).json({ success: true, message: `KYC ${status} successfully.` });
 
   } catch (error) {
-    console.error("KYC Admin Error:", error);
+    logger.error({ err: error }, "KYC Admin Error:")
     res.status(500).json({ success: false, message: 'Error updating KYC.' });
   }
 };
@@ -85,7 +86,7 @@ const updateCommissionRate = async (req, res) => {
     res.status(200).json({ success: true, message: 'Commission rate updated.', data: config });
 
   } catch (error) {
-    console.error("Commission Update Error:", error);
+    logger.error({ err: error }, "Commission Update Error:")
     res.status(500).json({ success: false, message: 'Error updating commission rate.' });
   }
 };
@@ -135,7 +136,7 @@ const processWithdrawal = async (req, res) => {
     res.status(200).json({ success: true, message: `Request ${status}.` });
 
   } catch (error) {
-    console.error("Process Withdrawal Error:", error);
+    logger.error({ err: error }, "Process Withdrawal Error:")
     res.status(500).json({ success: false, message: 'Error processing withdrawal.' });
   }
 };
@@ -147,7 +148,7 @@ const processWithdrawal = async (req, res) => {
 const getAllWithdrawals = async (req, res) => {
   try {
     const requests = await WithdrawalRequest.find()
-      .populate('partner_id', 'name phone email')
+      .populate('user_id', 'name phone email')
       .sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: requests });
   } catch (error) {
@@ -161,7 +162,7 @@ const getAllWithdrawals = async (req, res) => {
  */
 const getAllOrders = async (req, res) => {
   try {
-    console.log("Admin requesting all marketplace orders...");
+    logger.info("Admin requesting all marketplace orders...")
     const orders = await Order.find({})
       .populate('user_id', 'name phone')
       .populate({
@@ -174,10 +175,10 @@ const getAllOrders = async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
-    console.log(`Successfully fetched ${orders.length} orders for admin`);
+    logger.info(`Successfully fetched ${orders.length} orders for admin`)
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
-    console.error("CRITICAL: Get All Orders Admin Error:", error);
+    logger.error({ err: error }, "CRITICAL: Get All Orders Admin Error:")
     res.status(500).json({ 
       success: false, 
       message: 'Error fetching orders.',

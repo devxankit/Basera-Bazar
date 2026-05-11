@@ -1,4 +1,5 @@
 const { Enquiry } = require('../models/Enquiry');
+const logger = require('../utils/logger');
 const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const { Partner } = require('../models/Partner');
 const { Notification } = require('../models/System');
@@ -87,7 +88,7 @@ const createEnquiry = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error creating enquiry:", error);
+    logger.error({ err: error }, "Error creating enquiry:")
     res.status(500).json({ success: false, message: 'Server error processing enquiry.' });
   }
 };
@@ -105,7 +106,7 @@ const getMyEnquiries = async (req, res) => {
 
     res.status(200).json({ success: true, count: enquiries.length, data: enquiries });
   } catch (error) {
-    console.error("Error getting user enquiries:", error);
+    logger.error({ err: error }, "Error getting user enquiries:")
     res.status(500).json({ success: false, message: 'Server error fetching history.' });
   }
 };
@@ -151,7 +152,7 @@ const getPartnerInquiries = async (req, res) => {
       limitReached
     });
   } catch (error) {
-    console.error("Error getting partner inquiries:", error);
+    logger.error({ err: error }, "Error getting partner inquiries:")
     res.status(500).json({ success: false, message: 'Server error fetching leads.' });
   }
 };
@@ -211,7 +212,7 @@ const getInquiryById = async (req, res) => {
 
     res.status(200).json({ success: true, data });
   } catch (error) {
-    console.error("Error fetching lead detail:", error);
+    logger.error({ err: error }, "Error fetching lead detail:")
     res.status(500).json({ success: false, message: 'Error fetching lead details.' });
   }
 };
@@ -250,7 +251,7 @@ const updateInquiryStatus = async (req, res) => {
 
     res.status(200).json({ success: true, data: inquiry });
   } catch (error) {
-    console.error("Error updating lead status:", error);
+    logger.error({ err: error }, "Error updating lead status:")
     res.status(500).json({ success: false, message: 'Error updating status.' });
   }
 };
@@ -275,7 +276,7 @@ const deleteInquiry = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Lead deleted successfully.' });
   } catch (error) {
-    console.error("Error deleting lead:", error);
+    logger.error({ err: error }, "Error deleting lead:")
     res.status(500).json({ success: false, message: 'Error deleting lead.' });
   }
 };

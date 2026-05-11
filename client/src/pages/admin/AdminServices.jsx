@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Briefcase, Plus, Eye, Edit2, Trash2, MapPin, Search, Filter, Layers, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 import Skeleton from '../../components/common/Skeleton';
@@ -51,7 +52,7 @@ export default function AdminServices() {
         setDeleteId(null);
       }
     } catch (err) {
-      alert("Failed to delete service.");
+      toast.error("Failed to delete service.");
     } finally {
       setIsDeleting(false);
     }
@@ -135,7 +136,7 @@ export default function AdminServices() {
                 try {
                   await api.patch(`/admin/listings/${row._id}/status`, { status: 'active' });
                   fetchData();
-                } catch (err) { alert("Failed to approve."); }
+                } catch (err) { toast.error("Failed to approve."); }
               }}
               className="p-2.5 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all group/tooltip relative"
             >
@@ -148,7 +149,7 @@ export default function AdminServices() {
                   const nextStatus = row.status === 'active' ? 'inactive' : 'active';
                   await api.patch(`/admin/listings/${row._id}/status`, { status: nextStatus });
                   fetchData();
-                } catch (err) { alert("Failed to toggle status."); }
+                } catch (err) { toast.error("Failed to toggle status."); }
               }}
               className={`p-2.5 rounded-xl transition-all group/tooltip relative ${row.status === 'active' ? 'text-amber-500 hover:bg-amber-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
             >

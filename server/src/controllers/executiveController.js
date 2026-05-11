@@ -1,11 +1,14 @@
 const Executive = require('../models/Executive');
+const logger = require('../utils/logger');
 const { Partner } = require('../models/Partner');
 const { Transaction } = require('../models/Finance');
 const { Otp } = require('../models/User');
 const { sendOTP } = require('../utils/sms');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { logActivity } = require('../utils/activityLogger');
+const { checkLockout, recordFailedAttempt, resetFailedAttempts } = require('../utils/loginLockout');
 const WithdrawalRequest = require('../models/Wallet');
 const { AppConfig } = require('../models/System');
 const invalidate = require('../utils/cacheInvalidator');
@@ -13,7 +16,7 @@ const invalidate = require('../utils/cacheInvalidator');
 // Helper function to generate JWT
 const generateToken = (id, role, email, version = 0) => {
   return jwt.sign({ id, role, email, version }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '30d',
+    expiresIn: process.env.JWT_EXPIRE || '7d',
   });
 };
 
@@ -37,8 +40,8 @@ exports.registerStep1 = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Executive already registered.' });
     }
 
-    // Generate OTP
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Cryptographically secure 6-digit OTP
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
     const salt = await bcrypt.genSalt(10);
     const otpHash = await bcrypt.hash(otpCode, salt);
 
@@ -49,16 +52,24 @@ exports.registerStep1 = async (req, res) => {
       expires_at: new Date(Date.now() + 5 * 60 * 1000)
     });
 
-    console.log(`[DEV] Bypass: Use 123456 for ${phone}`);
-    // sendOTP(phone, otpCode); // Disabled for development
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info(`[DEV] OTP for ${phone}: ${otpCode}`);
+    }
+
+    try {
+      await sendOTP(phone, otpCode);
+    } catch (smsErr) {
+      logger.error({ err: smsErr }, '[SMS] Failed to send executive OTP');
+      return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
+    }
 
     res.status(200).json({
       success: true,
       message: 'OTP sent successfully.'
     });
   } catch (error) {
-    console.error('Executive Register Step 1 Error:', error);
-    res.status(500).json({ success: false, message: `Server error: ${error.message}` });
+    logger.error({ err: error }, 'Executive Register Step 1 Error:')
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
@@ -77,9 +88,12 @@ exports.verifyRegistrationOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'OTP expired or not found.' });
     }
 
-    // Check for mock OTP in development
-    const isMockOtp = otp.toString() === '123456';
-    const isMatch = isMockOtp || await bcrypt.compare(otp.toString(), otpRecord.otp_hash);
+    if (otpRecord.expires_at && otpRecord.expires_at < new Date()) {
+      await Otp.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({ success: false, message: 'OTP expired. Please request a new one.' });
+    }
+
+    const isMatch = await bcrypt.compare(otp.toString(), otpRecord.otp_hash);
 
     if (!isMatch) {
       return res.status(400).json({ success: false, message: 'Invalid OTP.' });
@@ -119,8 +133,8 @@ exports.verifyRegistrationOtp = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Executive OTP Verify Error:', error);
-    res.status(500).json({ success: false, message: `Server error: ${error.message}` });
+    logger.error({ err: error }, 'Executive OTP Verify Error:')
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
@@ -145,22 +159,8 @@ exports.updateStep2 = async (req, res) => {
       executive = await Executive.findOne({ phone: req.user.phone });
     }
 
-    // SELF-HEALING: If still not found, create a skeleton record to avoid blocking the user
-    if (!executive && userId) {
-      console.log('Self-healing: Creating missing executive record for ID:', userId);
-      executive = new Executive({
-        _id: userId,
-        name: req.user?.name || 'Executive User',
-        email: req.user?.email || 'pending@baserabazar.com',
-        phone: req.user?.phone || '0000000000',
-        password: 'dummy_password_to_be_reset', // This is safe because they are already authenticated via OTP
-        onboarding_status: 'incomplete'
-      });
-      // We don't save yet, we let the updates below apply first
-    }
-
     if (!executive) {
-      return res.status(401).json({ success: false, message: 'Identification failed. Please verify your OTP again.' });
+      return res.status(404).json({ success: false, message: 'Registration session not found. Please start registration again.' });
     }
 
     executive.address = address;
@@ -176,7 +176,7 @@ exports.updateStep2 = async (req, res) => {
       data: executive
     });
   } catch (error) {
-    console.error('Executive Step 2 Error:', error);
+    logger.error({ err: error }, 'Executive Step 2 Error:')
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
@@ -199,20 +199,8 @@ exports.updateStep3 = async (req, res) => {
       executive = await Executive.findOne({ phone: req.user.phone });
     }
 
-    // SELF-HEALING: Re-create if missing even at this late stage
-    if (!executive && userId) {
-      executive = new Executive({
-        _id: userId,
-        name: req.user?.name || 'Executive User',
-        email: req.user?.email || 'pending@baserabazar.com',
-        phone: req.user?.phone || '0000000000',
-        password: 'dummy_password_to_be_reset',
-        onboarding_status: 'incomplete'
-      });
-    }
-
     if (!executive) {
-      return res.status(401).json({ success: false, message: 'Identification failed. Please verify your OTP again.' });
+      return res.status(404).json({ success: false, message: 'Registration session not found. Please start registration again.' });
     }
 
     // Final Save
@@ -221,7 +209,7 @@ exports.updateStep3 = async (req, res) => {
       executive.onboarding_status = 'pending';
       await executive.save();
     } catch (saveError) {
-      console.error('Executive Final Save Error:', saveError);
+      logger.error({ err: saveError }, 'Executive Final Save Error:')
       return res.status(400).json({ 
         success: false, 
         message: `Failed to save KYC: ${saveError.message || 'Database error'}` 
@@ -240,7 +228,7 @@ exports.updateStep3 = async (req, res) => {
         description: `Executive ${executive.name} submitted onboarding documents.`
       });
     } catch (logError) {
-      console.warn('Non-critical: Activity log failed for executive submission:', logError.message);
+      logger.warn({ err: logError }, 'Non-critical: Activity log failed for executive submission')
     }
 
     res.status(200).json({
@@ -249,7 +237,7 @@ exports.updateStep3 = async (req, res) => {
       executive
     });
   } catch (error) {
-    console.error('Executive Step 3 Error:', error);
+    logger.error({ err: error }, 'Executive Step 3 Error:')
     res.status(500).json({ success: false, message: 'Server error during document submission.' });
   }
 };
@@ -264,36 +252,13 @@ exports.login = async (req, res) => {
     // Normalize phone (strip prefix and spaces)
     phone = phone.replace(/\s+/g, '').replace(/^\+91/, '').replace(/^91/, '').replace(/\D/g, '').slice(-10);
     
-    console.log(`[LOGIN DEBUG] Attempting login for normalized phone: "${phone}"`);
-    
-    // Check for duplicates
-    const allExecs = await Executive.find({ phone });
-    console.log(`[LOGIN DEBUG] Found ${allExecs.length} executives with phone ${phone}`);
-    if (allExecs.length > 0) {
-       allExecs.forEach((ex, i) => console.log(`  Exec ${i+1}: _id=${ex._id}, is_active=${ex.is_active}, name=${ex.name}`));
-    }
-
-    // Find the executive, if duplicates exist, prefer the active one
+    // Find the executive; if duplicates exist (data issue), prefer the active one
     const executive = await Executive.findOne({ phone }).sort({ is_active: -1, createdAt: -1 });
 
     if (!executive) {
-      console.log(`[LOGIN DEBUG] No executive found for phone: "${phone}"`);
       return res.status(404).json({ success: false, message: 'Account not found.' });
     }
 
-    console.log(`[LOGIN DEBUG] Executive found: ${executive.name} (${executive._id})`);
-    
-    const isMatch = await executive.matchPassword(password);
-    console.log(`[LOGIN DEBUG] Password match result: ${isMatch}`);
-    
-    if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials.' });
-    }
-
-    // Block deactivated executives - only block when EXPLICITLY set to false
-    // null/undefined means field was never set → treat as active (schema default: true)
-    console.log(`[LOGIN DEBUG] is_active raw value: ${JSON.stringify(executive.is_active)} | type: ${typeof executive.is_active}`);
-    
     if (executive.is_active === false) {
       return res.status(403).json({
         success: false,
@@ -301,10 +266,26 @@ exports.login = async (req, res) => {
         message: 'Your account is deactivated. Please contact the administrator.'
       });
     }
-    
-    // If is_active is null/undefined (corrupted by old bug), heal it back to true
+
+    const lockout = checkLockout(executive);
+    if (lockout.locked) {
+      const mins = Math.ceil((lockout.retryAfter - Date.now()) / 60000);
+      return res.status(429).json({
+        success: false,
+        code: 'ACCOUNT_LOCKED',
+        message: `Too many failed attempts. Account locked for ${mins} more minute(s).`
+      });
+    }
+
+    const isMatch = await executive.matchPassword(password);
+    if (!isMatch) {
+      await recordFailedAttempt(Executive, executive._id);
+      return res.status(401).json({ success: false, message: 'Invalid credentials.' });
+    }
+
+    await resetFailedAttempts(Executive, executive._id);
+
     if (executive.is_active == null) {
-      console.log(`[LOGIN DEBUG] Healing corrupted is_active field for ${executive._id}`);
       await Executive.findByIdAndUpdate(executive._id, { $set: { is_active: true } });
     }
 
@@ -326,7 +307,7 @@ exports.login = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Executive Login Error:', error);
+    logger.error({ err: error }, 'Executive Login Error:')
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
@@ -386,7 +367,7 @@ exports.getDashboard = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Executive Dashboard Error:', error);
+    logger.error({ err: error }, 'Executive Dashboard Error:')
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
@@ -398,12 +379,21 @@ exports.getDashboard = async (req, res) => {
 exports.getMyPartners = async (req, res) => {
   try {
     const executive = await Executive.findById(req.user.id);
+    if (!executive) {
+      return res.status(404).json({ success: false, message: 'Executive not found.' });
+    }
+
+    if (!executive.referral_code) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
     const partners = await Partner.find({ referral_code_used: executive.referral_code })
       .select('name business_name phone onboarding_status createdAt active_subscription_id')
       .sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, data: partners });
   } catch (error) {
+    logger.error({ err: error }, 'getMyPartners Error:')
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
@@ -437,7 +427,7 @@ exports.getMyTransactions = async (req, res) => {
 
     res.status(200).json({ success: true, data: allActivity });
   } catch (error) {
-    console.error('Fetch Transactions Error:', error);
+    logger.error({ err: error }, 'Fetch Transactions Error:')
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
@@ -449,25 +439,42 @@ exports.getMyTransactions = async (req, res) => {
 exports.requestWithdrawal = async (req, res) => {
   try {
     const { amount } = req.body;
-    const executive = await Executive.findById(req.user.id);
+
+    // Atomic debit: only succeeds if balance is sufficient, preventing race conditions
+    const executive = await Executive.findOneAndUpdate(
+      { _id: req.user.id, wallet_balance: { $gte: amount } },
+      { $inc: { wallet_balance: -amount } },
+      { new: true }
+    );
 
     if (!executive) {
-      return res.status(404).json({ success: false, message: 'Executive not found.' });
-    }
-
-    if (amount > executive.wallet_balance) {
+      // Either executive not found or insufficient balance
+      const exists = await Executive.exists({ _id: req.user.id });
+      if (!exists) {
+        return res.status(404).json({ success: false, message: 'Executive not found.' });
+      }
       return res.status(400).json({ success: false, message: 'Insufficient balance.' });
     }
 
-    const withdrawal = await WithdrawalRequest.create({
-      user_id: executive._id,
-      user_type: 'Executive',
-      amount,
-      bank_details: executive.bank_details
-    });
+    if (!executive.bank_details?.account_number) {
+      // Undo the debit if bank details are missing
+      await Executive.findByIdAndUpdate(req.user.id, { $inc: { wallet_balance: amount } });
+      return res.status(400).json({ success: false, message: 'Please add bank details before requesting a withdrawal.' });
+    }
 
-    executive.wallet_balance -= amount;
-    await executive.save();
+    let withdrawal;
+    try {
+      withdrawal = await WithdrawalRequest.create({
+        user_id: executive._id,
+        user_type: 'Executive',
+        amount,
+        bank_details: executive.bank_details
+      });
+    } catch (createErr) {
+      logger.error({ err: createErr, executiveId: req.user.id, amount }, 'Withdrawal record creation failed — restoring balance');
+      await Executive.findByIdAndUpdate(req.user.id, { $inc: { wallet_balance: amount } });
+      return res.status(500).json({ success: false, message: 'Error processing withdrawal request. Please try again.' });
+    }
 
     await invalidate.executiveProfile(req.user.id);
     await invalidate.adminDashboard();
@@ -478,7 +485,7 @@ exports.requestWithdrawal = async (req, res) => {
       data: withdrawal
     });
   } catch (error) {
-    console.error('Executive Withdrawal Error:', error);
+    logger.error({ err: error }, 'Executive Withdrawal Error:')
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
@@ -505,7 +512,7 @@ exports.updateProfile = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'KYC documents uploaded successfully. Profile under review.',
+      message: 'Profile updated successfully.',
       data: {
         id: executive._id,
         name: executive.name,
@@ -515,7 +522,7 @@ exports.updateProfile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Update Profile Error:', error);
+    logger.error({ err: error }, 'Update Profile Error:')
     res.status(500).json({ success: false, message: 'Server error during profile update.' });
   }
 };
@@ -550,7 +557,7 @@ exports.updateBankDetails = async (req, res) => {
       bank_details: executive.bank_details
     });
   } catch (error) {
-    console.error('Update Bank Details Error:', error);
+    logger.error({ err: error }, 'Update Bank Details Error:')
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };

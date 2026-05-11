@@ -14,7 +14,12 @@ async function seed() {
     await mongoose.connect(MONGO_URI);
     console.log('Connected.');
 
-    const password = await bcrypt.hash('password123', 10);
+    const rawPassword = process.env.SEED_PASSWORD || process.argv[2];
+    if (!rawPassword) {
+      console.error('❌ Provide a seed password via SEED_PASSWORD env var or first CLI argument.');
+      process.exit(1);
+    }
+    const password = await bcrypt.hash(rawPassword, 10);
 
     const usersToCreate = [
       // 3 x Customers

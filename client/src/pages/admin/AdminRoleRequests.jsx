@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 
 import Skeleton from '../../components/common/Skeleton';
 
@@ -62,7 +63,7 @@ export default function AdminRoleRequests() {
       setRejectionReason('');
     } catch (err) {
       console.error("Role request action error:", err);
-      alert(err.response?.data?.message || "Failed to process request");
+      toast.error(err.response?.data?.message || "Failed to process request");
     } finally {
       setProcessing(false);
     }
@@ -122,7 +123,7 @@ export default function AdminRoleRequests() {
           <Skeleton className="h-10 w-full rounded-lg" />
         ) : (
           <>
-            <div className="relative flex-grow">
+            <div className="relative grow">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
                 type="text"
@@ -156,7 +157,7 @@ export default function AdminRoleRequests() {
             {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="flex items-center gap-4 border-b border-slate-50 pb-4">
                 <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="flex-grow space-y-2">
+                <div className="grow space-y-2">
                   <Skeleton className="h-4 w-1/4" />
                   <Skeleton className="h-3 w-1/6" />
                 </div>
@@ -291,7 +292,7 @@ export default function AdminRoleRequests() {
       {/* Modals */}
       <AnimatePresence>
         {selectedRequest && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -426,7 +427,7 @@ export default function AdminRoleRequests() {
                   <button 
                     disabled={processing}
                     onClick={() => handleAction(selectedRequest.partnerId, selectedRequest.role, 'approve')}
-                    className="flex-grow py-4 bg-emerald-600 text-white rounded-xl font-bold uppercase tracking-widest text-sm shadow-xl shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="grow py-4 bg-emerald-600 text-white rounded-xl font-bold uppercase tracking-widest text-sm shadow-xl shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     {processing ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <><CheckCircle2 size={18} /> Approve Request</>}
                   </button>
@@ -436,7 +437,7 @@ export default function AdminRoleRequests() {
                       setRejectingReq(selectedRequest);
                       setShowRejectModal(true);
                     }}
-                    className="flex-grow py-4 bg-rose-600 text-white rounded-xl font-bold uppercase tracking-widest text-sm shadow-xl shadow-rose-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="grow py-4 bg-rose-600 text-white rounded-xl font-bold uppercase tracking-widest text-sm shadow-xl shadow-rose-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     {processing ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <><XCircle size={18} /> Reject Request</>}
                   </button>
@@ -485,14 +486,14 @@ export default function AdminRoleRequests() {
                     setRejectingReq(null);
                     setRejectionReason('');
                   }}
-                  className="flex-grow py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm"
+                  className="grow py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   disabled={processing || !rejectionReason.trim()}
                   onClick={() => handleAction(rejectingReq.partnerId, rejectingReq.role, 'reject', rejectionReason)}
-                  className="flex-grow py-3 bg-rose-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-rose-600/20 disabled:opacity-50"
+                  className="grow py-3 bg-rose-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-rose-600/20 disabled:opacity-50"
                 >
                   {processing ? 'Processing...' : 'Confirm Reject'}
                 </button>

@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BadgePercent, 
-  Gift, 
-  Calendar, 
-  ToggleLeft, 
-  ToggleRight, 
-  AlertCircle,
+import {
+  BadgePercent,
+  Gift,
+  Calendar,
+  ToggleLeft,
+  ToggleRight,
   Save,
-  CheckCircle2,
-  Users2
+  Users2,
+  AlertCircle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 
 export default function AdminOffers() {
   const [loading, setLoading] = useState(true);
@@ -20,7 +20,6 @@ export default function AdminOffers() {
     OFFER_1_PLUS_1: { is_active: false, expiry: null },
     FREE_TRIAL_CONFIG: { duration_days: 30, listings_limit: 1, featured_listings_limit: 0 }
   });
-  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     fetchOffers();
@@ -34,15 +33,10 @@ export default function AdminOffers() {
       }
     } catch (err) {
       console.error("Failed to fetch offers:", err);
-      showToast('Error loading offers', 'error');
+      toast.error('Error loading offers');
     } finally {
       setLoading(false);
     }
-  };
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
   };
 
   const handleToggleOffer = async (key) => {
@@ -50,10 +44,10 @@ export default function AdminOffers() {
     try {
       setOffers(prev => ({ ...prev, [key]: newValue }));
       await api.put('/admin/system/offers', { key, value: newValue });
-      showToast(`${key === 'OFFER_1_PLUS_1' ? '1+1 Offer' : key} ${newValue.is_active ? 'Activated' : 'Deactivated'}`);
+      toast.success(`${key === 'OFFER_1_PLUS_1' ? '1+1 Offer' : key} ${newValue.is_active ? 'Activated' : 'Deactivated'}`);
     } catch (err) {
-      setOffers(prev => ({ ...prev, [key]: offers[key] })); // Revert
-      showToast('Failed to update offer', 'error');
+      setOffers(prev => ({ ...prev, [key]: offers[key] }));
+      toast.error('Failed to update offer');
     }
   };
 
@@ -66,9 +60,9 @@ export default function AdminOffers() {
     setSaving(true);
     try {
       await api.put('/admin/system/offers', { key, value: offers[key] });
-      showToast('Configuration saved successfully');
+      toast.success('Configuration saved successfully');
     } catch (err) {
-      showToast('Failed to save configuration', 'error');
+      toast.error('Failed to save configuration');
     } finally {
       setSaving(false);
     }
@@ -226,22 +220,6 @@ export default function AdminOffers() {
         </motion.div>
       </div>
 
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className={`fixed bottom-8 right-8 px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-3 border ${
-              toast.type === 'success' ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-rose-600 border-rose-400 text-white'
-            }`}
-          >
-            {toast.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
-            <span className="font-black tracking-tight">{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

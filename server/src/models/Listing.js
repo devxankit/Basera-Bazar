@@ -175,6 +175,11 @@ propertyListingSchema.index({ partner_id: 1, status: 1 });
 mandiListingSchema.index({ location: '2dsphere' });
 mandiListingSchema.index({ 'pricing.effective_date': -1 });
 mandiListingSchema.index({ status: 1, createdAt: -1 });
+mandiListingSchema.index({ partner_id: 1, status: 1 });
+
+serviceListingSchema.index({ category_id: 1, status: 1 });
+propertyListingSchema.index({ category_id: 1, status: 1 });
+mandiListingSchema.index({ category_id: 1, status: 1 });
 
 module.exports = {
   ServiceListing: mongoose.model('ServiceListing', serviceListingSchema),

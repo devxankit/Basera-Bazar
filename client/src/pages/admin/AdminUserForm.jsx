@@ -287,7 +287,7 @@ export default function AdminUserForm() {
                 <div>
                   <label className={labelClass}>Profile / Avatar Photo</label>
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0">
                       {previews.profile ? (
                         <img src={previews.profile} className="w-full h-full object-cover" alt="Preview" />
                       ) : (
@@ -465,7 +465,7 @@ export default function AdminUserForm() {
                       <div>
                         <label className={labelClass}>Business Logo / Storefront Image</label>
                         <div className="flex items-center gap-4">
-                          <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0">
+                          <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0">
                             {previews.logo ? (
                               <img src={previews.logo} className="w-full h-full object-cover" alt="Logo Preview" />
                             ) : (

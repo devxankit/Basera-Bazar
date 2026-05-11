@@ -15,7 +15,7 @@ const { protect } = require('../middlewares/authMiddleware');
 
 // Marketplace Transaction Routes
 router.post('/checkout', protect, createMarketplaceOrder);
-router.post('/payment/verify', verifyMarketplacePayment);
+router.post('/payment/verify', protect, verifyMarketplacePayment);
 
 // Tracking Routes
 router.get('/my-orders', protect, getUserOrders);

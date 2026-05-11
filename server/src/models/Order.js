@@ -79,7 +79,8 @@ const orderSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Index for geo-location of delivery if needed - removed to avoid errors when coordinates are missing
-// orderSchema.index({ 'shipping_address.location': '2dsphere' });
+orderSchema.index({ buyer_id: 1, createdAt: -1 });
+orderSchema.index({ seller_id: 1, createdAt: -1 });
+orderSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Order', orderSchema);

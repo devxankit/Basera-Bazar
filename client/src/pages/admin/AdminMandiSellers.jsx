@@ -6,6 +6,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
 
 import Skeleton from '../../components/common/Skeleton';
@@ -44,7 +45,7 @@ export default function AdminMandiSellers() {
         prev.map(s => s._id === seller._id ? { ...s, is_active: !s.is_active } : s)
       );
     } catch (err) {
-      alert('Failed to update seller status.');
+      toast.error('Failed to update seller status.');
     }
   };
 
@@ -197,11 +198,11 @@ export default function AdminMandiSellers() {
           { label: 'Active Sellers', value: sellers.filter(s => s.is_active).length, icon: ToggleRight, color: 'text-emerald-600 bg-emerald-50' },
           { label: 'Flagged Penalties', value: sellers.filter(s => (s.profile?.mandi_profile?.penalty_due || 0) > 0).length, icon: TrendingDown, color: 'text-rose-600 bg-rose-50' }
         ].map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
+          <div key={i} className="bg-white p-6 rounded-4xl border border-slate-100 shadow-sm flex items-center gap-5">
             {loading ? (
               <div className="flex items-center gap-4 w-full">
                 <Skeleton className="h-14 w-14 rounded-2xl" />
-                <div className="space-y-2 flex-grow">
+                <div className="space-y-2 grow">
                   <Skeleton className="h-3 w-20" />
                   <Skeleton className="h-6 w-12" />
                 </div>

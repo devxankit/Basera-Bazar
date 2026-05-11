@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getExecutives, refreshAdminCache } from '../../services/AdminService';
 import { toast } from '../../mockToast';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 import Skeleton from '../../components/common/Skeleton';
 
@@ -24,6 +25,7 @@ export default function AdminExecutives({ filter = 'All' }) {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
 
   const fetchData = async () => {
     setLoading(true);
@@ -71,69 +73,80 @@ export default function AdminExecutives({ filter = 'All' }) {
     }
   };
 
-  const handleToggleStatus = async (id, currentStatus) => {
-    const action = currentStatus ? 'deactivate' : 'activate';
-    if (!window.confirm(`Are you sure you want to ${action} this executive?`)) return;
-    
-    // --- OPTIMISTIC UPDATE: flip UI immediately ---
-    const newStatus = !currentStatus;
-    setExecutives(prev =>
-      prev.map(e => e._id === id ? { ...e, is_active: newStatus } : e)
-    );
-    // Also update the open modal if it's showing this executive
-    setSelectedExec(prev => prev && prev._id === id ? { ...prev, is_active: newStatus } : prev);
-
-    try {
-      const res = await api.patch(`/admin/executives/${id}/toggle-active`);
-      if (res.data.success) {
-        toast.success(res.data.message || 'Status updated!');
-        // Invalidate cache and re-fetch to sync with actual DB state
-        refreshAdminCache();
-        await fetchData(); // Sync from DB — replaces the optimistic update with real data
-      } else {
-        throw new Error(res.data.message || 'Failed to toggle');
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Failed to toggle status');
-      // Revert the optimistic update on error
-      setExecutives(prev =>
-        prev.map(e => e._id === id ? { ...e, is_active: currentStatus } : e)
-      );
-      setSelectedExec(prev => prev && prev._id === id ? { ...prev, is_active: currentStatus } : prev);
-    }
+  const openConfirm = (title, message, action, type = 'danger') => {
+    setConfirmModal({ isOpen: true, title, message, action, loading: false, type });
   };
 
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("CRITICAL: Are you sure you want to PERMANENTLY DELETE this executive? This action cannot be undone.")) return;
-    // Optimistic Update: Remove from UI immediately
-    setExecutives(prev => prev.filter(e => e._id !== id));
-    
+  const executeConfirm = async () => {
+    setConfirmModal(m => ({ ...m, loading: true }));
     try {
-      await api.delete(`/admin/executives/${id}`);
-      toast.success('Executive deleted from database');
-      refreshAdminCache();
-      fetchData();
-      setShowDetailModal(false);
-    } catch (err) {
-      toast.error('Deletion failed');
-    }
-  };
-
-  const handleResetKyc = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this user's KYC from the database? They will need to re-upload everything.")) return;
-    setIsActionLoading(true);
-    try {
-      await api.post(`/admin/executives/${id}/reset-kyc`);
-      toast.success('Executive KYC has been deleted from database');
-      refreshAdminCache();
-      fetchData();
-      setShowDetailModal(false);
-    } catch (err) {
-      toast.error('KYC Reset failed');
+      await confirmModal.action();
     } finally {
-      setIsActionLoading(false);
+      setConfirmModal(m => ({ ...m, isOpen: false, loading: false }));
     }
+  };
+
+  const handleToggleStatus = (id, currentStatus) => {
+    const action = currentStatus ? 'deactivate' : 'activate';
+    const newStatus = !currentStatus;
+    openConfirm(
+      `${newStatus ? 'Activate' : 'Deactivate'} Executive`,
+      `Are you sure you want to ${action} this executive?`,
+      async () => {
+        setExecutives(prev => prev.map(e => e._id === id ? { ...e, is_active: newStatus } : e));
+        setSelectedExec(prev => prev && prev._id === id ? { ...prev, is_active: newStatus } : prev);
+        try {
+          const res = await api.patch(`/admin/executives/${id}/toggle-active`);
+          if (res.data.success) {
+            toast.success(res.data.message || 'Status updated!');
+            refreshAdminCache();
+            await fetchData();
+          } else throw new Error(res.data.message || 'Failed to toggle');
+        } catch (err) {
+          toast.error(err.response?.data?.message || err.message || 'Failed to toggle status');
+          setExecutives(prev => prev.map(e => e._id === id ? { ...e, is_active: currentStatus } : e));
+          setSelectedExec(prev => prev && prev._id === id ? { ...prev, is_active: currentStatus } : prev);
+        }
+      },
+      newStatus ? 'info' : 'warning'
+    );
+  };
+
+  const handleDelete = (id) => {
+    openConfirm(
+      'Delete Executive',
+      'CRITICAL: Are you sure you want to PERMANENTLY DELETE this executive? This action cannot be undone.',
+      async () => {
+        setExecutives(prev => prev.filter(e => e._id !== id));
+        await api.delete(`/admin/executives/${id}`);
+        toast.success('Executive deleted from database');
+        refreshAdminCache();
+        fetchData();
+        setShowDetailModal(false);
+      }
+    );
+  };
+
+  const handleResetKyc = (id) => {
+    openConfirm(
+      'Reset KYC',
+      "Are you sure you want to delete this user's KYC from the database? They will need to re-upload everything.",
+      async () => {
+        setIsActionLoading(true);
+        try {
+          await api.post(`/admin/executives/${id}/reset-kyc`);
+          toast.success('Executive KYC has been deleted from database');
+          refreshAdminCache();
+          fetchData();
+          setShowDetailModal(false);
+        } catch (err) {
+          toast.error('KYC Reset failed');
+        } finally {
+          setIsActionLoading(false);
+        }
+      },
+      'warning'
+    );
   };
 
   const columns = [
@@ -248,6 +261,15 @@ export default function AdminExecutives({ filter = 'All' }) {
 
   return (
     <div className="space-y-8">
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(m => ({ ...m, isOpen: false }))}
+        onConfirm={executeConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        loading={confirmModal.loading}
+      />
       <div className="flex justify-between items-end">
         {loading ? (
           <div className="space-y-2">
@@ -293,7 +315,7 @@ export default function AdminExecutives({ filter = 'All' }) {
               {/* Modal Header */}
               <div className="px-10 py-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 bg-white rounded-[2rem] p-1 border-2 border-indigo-100 shadow-sm overflow-hidden">
+                  <div className="w-20 h-20 bg-white rounded-4xl p-1 border-2 border-indigo-100 shadow-sm overflow-hidden">
                     <img src={selectedExec.kyc?.live_photo || `https://ui-avatars.com/api/?name=${selectedExec.name}&background=6366f1&color=fff`} className="w-full h-full object-cover rounded-[1.8rem]" alt="" />
                   </div>
                   <div>
@@ -313,7 +335,7 @@ export default function AdminExecutives({ filter = 'All' }) {
                 </button>
               </div>
 
-              <div className="flex-grow overflow-y-auto p-10 space-y-12">
+              <div className="grow overflow-y-auto p-10 space-y-12">
                 <div className="grid grid-cols-3 gap-10">
                   {/* Basic Info */}
                   <section className="space-y-6">
@@ -321,7 +343,7 @@ export default function AdminExecutives({ filter = 'All' }) {
                       <UserCircle size={18} className="text-indigo-600" />
                       <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Personal Details</h3>
                     </div>
-                    <div className="space-y-4 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
+                    <div className="space-y-4 bg-slate-50/50 p-6 rounded-4xl border border-slate-100">
                       <DetailRow icon={Mail} label="Email" value={selectedExec.email} />
                       <DetailRow icon={Phone} label="Phone" value={selectedExec.phone} />
                       <DetailRow icon={MapPin} label="Location" value={`${selectedExec.address?.city}, ${selectedExec.address?.state}`} />
@@ -335,7 +357,7 @@ export default function AdminExecutives({ filter = 'All' }) {
                       <Landmark size={18} className="text-indigo-600" />
                       <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Bank Credentials</h3>
                     </div>
-                    <div className="space-y-4 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
+                    <div className="space-y-4 bg-slate-50/50 p-6 rounded-4xl border border-slate-100">
                       <DetailRow icon={Building2} label="Bank" value={selectedExec.bank_details?.bank_name} />
                       <DetailRow icon={CreditCard} label="A/C No" value={selectedExec.bank_details?.account_number} />
                       <DetailRow icon={ShieldCheck} label="IFSC" value={selectedExec.bank_details?.ifsc_code} />
@@ -349,7 +371,7 @@ export default function AdminExecutives({ filter = 'All' }) {
                       <MapPin size={18} className="text-indigo-600" />
                       <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Office Address</h3>
                     </div>
-                    <div className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 space-y-2">
+                    <div className="p-6 bg-slate-50/50 rounded-4xl border border-slate-100 space-y-2">
                        <p className="text-sm font-bold text-slate-600 leading-relaxed">
                          {selectedExec.address?.address_line}<br/>
                          {selectedExec.address?.city}, {selectedExec.address?.state}<br/>
@@ -475,7 +497,7 @@ const DetailRow = ({ icon: Icon, label, value }) => (
 );
 
 const DocCard = ({ label, idNum, src }) => (
-  <div className="bg-white rounded-[2rem] border border-slate-100 p-6 space-y-4 shadow-sm group">
+  <div className="bg-white rounded-4xl border border-slate-100 p-6 space-y-4 shadow-sm group">
     <div className="flex items-center justify-between">
       <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{label}</h4>
       {idNum && <span className="text-[10px] font-bold text-slate-400">ID: {idNum}</span>}

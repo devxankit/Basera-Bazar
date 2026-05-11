@@ -56,9 +56,29 @@ export default function AdminPaymentReport() {
     fetchTransactions();
   }, [filter]);
 
-  const successRate = stats.totalTransactions > 0 
-    ? Math.round((stats.successCount / stats.totalTransactions) * 100) 
+  const successRate = stats.totalTransactions > 0
+    ? Math.round((stats.successCount / stats.totalTransactions) * 100)
     : 0;
+
+  const exportCSV = () => {
+    const rows = [
+      ['Transaction ID', 'Customer', 'Contact', 'Type', 'Amount (₹)', 'Date', 'Status'],
+      ...transactions.map(txn => [
+        txn._id ? txn._id.slice(-8).toUpperCase() : '—',
+        txn.partner_id?.name || 'Anonymous',
+        txn.partner_id?.email || txn.partner_id?.phone || '—',
+        txn.type ? txn.type.replace(/_/g, ' ') : '—',
+        txn.amount != null ? txn.amount : '—',
+        txn.createdAt ? new Date(txn.createdAt).toLocaleDateString('en-IN') : '—',
+        txn.status || '—',
+      ])
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
 
   const statCards = [
     { label: 'Total Revenue', value: `₹${stats.totalRevenue.toLocaleString()}`, sub: 'All successful payments', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: IndianRupee },
@@ -84,7 +104,11 @@ export default function AdminPaymentReport() {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Transaction Ledger</h1>
           <p className="text-slate-400 font-medium text-sm mt-1">Comprehensive transaction ledger and real-time revenue analytics.</p>
         </div>
-        <button className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white font-black text-sm rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">
+        <button
+          onClick={exportCSV}
+          disabled={transactions.length === 0}
+          className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white font-black text-sm rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <Download size={16} /> Export CSV
         </button>
       </div>
@@ -106,7 +130,7 @@ export default function AdminPaymentReport() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden relative">
+      <div className="bg-white rounded-4xl border border-slate-100 shadow-sm overflow-hidden relative">
         {ledgerLoading && (
             <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
@@ -158,7 +182,7 @@ export default function AdminPaymentReport() {
                   return (
                     <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-6 py-5">
-                        <span className="text-[12px] font-black text-indigo-600 font-mono">#{txn._id.slice(-8).toUpperCase()}</span>
+                        <span className="text-[12px] font-black text-indigo-600 font-mono">#{txn._id ? txn._id.slice(-8).toUpperCase() : '—'}</span>
                       </td>
                       <td className="px-6 py-5">
                         <p className="font-black text-sm text-slate-800">{txn.partner_id?.name || 'Anonymous'}</p>
@@ -166,11 +190,11 @@ export default function AdminPaymentReport() {
                       </td>
                       <td className="px-6 py-5">
                         <span className="px-2.5 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200">
-                          {txn.type.replace(/_/g, ' ')}
+                          {txn.type ? txn.type.replace(/_/g, ' ') : '—'}
                         </span>
                       </td>
                       <td className="px-6 py-5">
-                        <span className="text-base font-black text-slate-900">₹{txn.amount.toLocaleString()}</span>
+                        <span className="text-base font-black text-slate-900">₹{txn.amount != null ? txn.amount.toLocaleString() : '—'}</span>
                       </td>
                       <td className="px-6 py-5">
                         <span className="text-xs font-bold text-slate-500">{new Date(txn.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>

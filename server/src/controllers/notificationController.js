@@ -1,4 +1,5 @@
 const { Notification } = require('../models/System');
+const logger = require('../utils/logger');
 
 /**
  * @desc    Get notifications for the logged in partner/user
@@ -26,7 +27,7 @@ const getMyNotifications = async (req, res) => {
       data: notifications
     });
   } catch (error) {
-    console.error("Error fetching notifications:", error);
+    logger.error({ err: error }, "Error fetching notifications:")
     res.status(500).json({ success: false, message: 'Error fetching notifications.' });
   }
 };
@@ -56,7 +57,7 @@ const deleteNotification = async (req, res) => {
       message: 'Notification removed.'
     });
   } catch (error) {
-    console.error("Error deleting notification:", error);
+    logger.error({ err: error }, "Error deleting notification:")
     res.status(500).json({ success: false, message: 'Error deleting notification.' });
   }
 };

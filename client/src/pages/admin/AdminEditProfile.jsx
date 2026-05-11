@@ -214,7 +214,7 @@ export default function AdminEditProfile() {
       <div className="flex flex-col lg:flex-row gap-6 items-start">
 
         {/* ── LEFT: Profile Summary Card ── */}
-        <div className="w-full lg:w-72 flex-shrink-0 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden sticky top-6">
+        <div className="w-full lg:w-72 shrink-0 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden sticky top-6">
           {/* Card Header */}
           <div className="px-5 py-4 border-b border-slate-50 flex items-center gap-2.5">
             <User size={16} className="text-slate-400" />
@@ -256,10 +256,10 @@ export default function AdminEditProfile() {
                 href={`mailto:${profileForm.email}`}
                 className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-orange-200 hover:bg-orange-50 transition-all group"
               >
-                <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 flex-shrink-0 group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-110 transition-transform">
                   <Mail size={18} />
                 </div>
-                <div className="flex-grow min-w-0">
+                <div className="grow min-w-0">
                   <p className="text-[13px] font-bold text-slate-700 break-all leading-tight">
                     {profileForm.email}
                   </p>
@@ -275,10 +275,10 @@ export default function AdminEditProfile() {
                 href={`tel:${profileForm.phone}`}
                 className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-orange-200 hover:bg-orange-50 transition-all group"
               >
-                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0 group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 group-hover:scale-110 transition-transform">
                   <Phone size={18} />
                 </div>
-                <div className="flex-grow min-w-0">
+                <div className="grow min-w-0">
                   <p className="text-[14px] font-bold text-slate-700">
                     {profileForm.phone || 'Not provided'}
                   </p>
@@ -291,7 +291,7 @@ export default function AdminEditProfile() {
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Office Location</p>
               <div className="flex items-start gap-2 text-slate-700">
-                <MapPin size={14} className="mt-0.5 text-slate-400 flex-shrink-0" />
+                <MapPin size={14} className="mt-0.5 text-slate-400 shrink-0" />
                 <p className="text-sm font-bold leading-relaxed">
                   {[profileForm.address, profileForm.city, profileForm.state].filter(Boolean).join(', ') || 'Address not set'}
                 </p>
@@ -309,7 +309,7 @@ export default function AdminEditProfile() {
         </div>
 
         {/* ── RIGHT: Form Sections ── */}
-        <div className="flex-grow space-y-6">
+        <div className="grow space-y-6">
 
           {/* Update Profile Form */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -340,7 +340,7 @@ export default function AdminEditProfile() {
                         {uploadingImage ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} 
                         {uploadingImage ? 'Uploading...' : 'Choose file'}
                       </span>
-                      <span className="px-4 py-3 text-sm text-slate-400 truncate flex-grow flex items-center gap-3">
+                      <span className="px-4 py-3 text-sm text-slate-400 truncate grow flex items-center gap-3">
                         {profileForm.profileImage && (
                           <div className="w-6 h-6 rounded-full overflow-hidden border border-slate-200">
                             <img src={profileForm.profileImage} className="w-full h-full object-cover" alt="Preview" />

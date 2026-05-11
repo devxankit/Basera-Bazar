@@ -1,4 +1,5 @@
 const { MandiListing } = require('../models/Listing');
+const logger = require('../utils/logger');
 const Order = require('../models/Order');
 const { Partner } = require('../models/Partner');
 const { Category } = require('../models/System');
@@ -32,7 +33,7 @@ const getSellerDashboard = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Mandi Dashboard Error:", error);
+    logger.error({ err: error }, "Mandi Dashboard Error:")
     res.status(500).json({ success: false, message: 'Error fetching dashboard stats.' });
   }
 };
@@ -67,7 +68,7 @@ const updateProductInventory = async (req, res) => {
     res.status(200).json({ success: true, message: 'Inventory updated successfully.', data: product });
 
   } catch (error) {
-    console.error("Update Inventory Error:", error);
+    logger.error({ err: error }, "Update Inventory Error:")
     res.status(500).json({ success: false, message: 'Error updating inventory.' });
   }
 };
@@ -125,7 +126,7 @@ const getMarketplaceHome = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Marketplace Home Error:", error);
+    logger.error({ err: error }, "Marketplace Home Error:")
     res.status(500).json({ success: false, message: 'Error fetching marketplace data.' });
   }
 };
@@ -165,7 +166,7 @@ const getCategoryListings = async (req, res) => {
       } 
     });
   } catch (error) {
-    console.error("Category Listings Error:", error);
+    logger.error({ err: error }, "Category Listings Error:")
     res.status(500).json({ success: false, message: 'Error fetching category products.' });
   }
 };

@@ -37,6 +37,18 @@ export default function AdminSubscriptionReport() {
     fetchReport();
   }, []);
 
+  const exportCSV = () => {
+    const rows = [
+      ['Month', 'Revenue (₹)', 'Subscriptions'],
+      ...data.map(row => [row.month, row.revenue, row.count])
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `subscription-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
+
   return (
     <div className="space-y-8 pb-20 mt-4 animate-in fade-in duration-500 text-left">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -52,7 +64,11 @@ export default function AdminSubscriptionReport() {
           </div>
         )}
         {!loading && (
-          <button className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 transition-all hover:bg-slate-800 active:scale-95 text-sm">
+          <button
+            onClick={exportCSV}
+            disabled={data.length === 0}
+            className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 transition-all hover:bg-slate-800 active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Download size={18} /> Download Full Report
           </button>
         )}
@@ -64,7 +80,7 @@ export default function AdminSubscriptionReport() {
           { label: 'Active Subscriptions', value: summary.activeSubscriptions, icon: TrendingUp, color: 'text-emerald-600 bg-emerald-50' },
           { label: 'Conversion Rate', value: `${Number(summary.conversionRate).toFixed(1)}%`, icon: Users, color: 'text-orange-600 bg-orange-50' }
         ].map((stat, i) => (
-          <div key={i} className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
+          <div key={i} className="bg-white p-8 rounded-4xl border border-slate-100 shadow-sm flex flex-col gap-4">
             {loading ? (
               <div className="space-y-4">
                 <Skeleton className="h-12 w-12 rounded-2xl" />

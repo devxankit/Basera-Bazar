@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 const axios = require('axios');
 const { RazorpayOrder, Subscription, SubscriptionPlan, Transaction } = require('../models/Finance');
 const { Partner } = require('../models/Partner');
@@ -66,7 +67,7 @@ const initiateSubscription = async (req, res) => {
 
   } catch (error) {
     const errorMsg = error.response?.data?.error?.description || error.response?.data?.message || error.message;
-    console.error("Subscription Init Error:", errorMsg);
+    logger.error({ err: errorMsg }, "Subscription Init Error:")
     res.status(500).json({ 
       success: false, 
       message: `Failed to initialize payment: ${errorMsg}` 
@@ -177,7 +178,7 @@ const verifySubscription = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Verification Error:", error);
+    logger.error({ err: error }, "Verification Error:")
     res.status(500).json({ success: false, message: 'Verification failed' });
   }
 };
@@ -213,14 +214,14 @@ const getMyTransactions = async (req, res) => {
           });
           transactions = [newTx];
         } catch (txErr) {
-          console.error(`[Finance] Failed to create backfill transaction:`, txErr);
+          logger.error({ err: txErr }, `[Finance] Failed to create backfill transaction:`)
         }
       }
     }
 
     res.status(200).json({ success: true, count: transactions.length, data: transactions });
   } catch (error) {
-    console.error("Error fetching transactions:", error);
+    logger.error({ err: error }, "Error fetching transactions:")
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -257,7 +258,7 @@ const cancelSubscription = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Cancellation Error:", error);
+    logger.error({ err: error }, "Cancellation Error:")
     res.status(500).json({ success: false, message: 'Failed to cancel subscription' });
   }
 };

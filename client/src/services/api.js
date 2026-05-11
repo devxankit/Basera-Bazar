@@ -1,46 +1,29 @@
 import axios from 'axios';
 
-// -----------------------------------------------------
-// API CONFIGURATION
-// -----------------------------------------------------
-// We use the URL from our .env file.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-console.log('📡 API Base URL:', API_BASE_URL);
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-});
+const api = axios.create({ baseURL: API_BASE_URL });
 
-// -----------------------------------------------------
-// AUTH INTERCEPTOR
-// -----------------------------------------------------
-// This automatically grabs the token from localStorage (if it exists)
-// and adds it to the headers of EVERY single request we make.
+// Attach JWT to every request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('baserabazar_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// -----------------------------------------------------
-// RESPONSE INTERCEPTOR
-// -----------------------------------------------------
-// This is used for global error handling. 
-// For example: if a token expires (401), we can redirect the user to login.
+// M-1: Auto-logout on 401 so expired sessions don't leave users stuck
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Responsibility of auto-logout is now moved to AuthContext 
-      // to avoid race conditions and protect persistence keys.
-      console.warn('Unauthorized access detected (401)');
+    if (error.response?.status === 401) {
+      localStorage.removeItem('baserabazar_token');
+      localStorage.removeItem('baserabazar_user');
+      localStorage.removeItem('baserabazar_partner_role');
+      const isAdmin = window.location.pathname.startsWith('/admin');
+      window.location.href = isAdmin ? '/admin/login' : '/login';
     }
     return Promise.reject(error);
   }

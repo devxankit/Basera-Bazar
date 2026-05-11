@@ -162,10 +162,6 @@ const partnerSchema = new mongoose.Schema({
     ref: 'Subscription',
     default: null
   },
-  is_active: {
-    type: Boolean,
-    default: false
-  },
   is_featured: {
     type: Boolean,
     default: false
@@ -179,6 +175,17 @@ const partnerSchema = new mongoose.Schema({
   password: {
     type: String,
     default: null
+  },
+  wallet: {
+    withdrawable_balance: { type: Number, default: 0 },
+    total_earned: { type: Number, default: 0 },
+    pending: { type: Number, default: 0 }
+  },
+  bank_details: {
+    account_number: { type: String, default: null },
+    ifsc_code: { type: String, default: null },
+    bank_name: { type: String, default: null },
+    account_holder_name: { type: String, default: null }
   },
   profile: {
     type: partnerProfileSchema,
@@ -212,7 +219,9 @@ const partnerSchema = new mongoose.Schema({
   referral_code_used: {
     type: String,
     default: null
-  }
+  },
+  failed_login_attempts: { type: Number, default: 0 },
+  lockout_until: { type: Date, default: null }
 }, { timestamps: true });
 
 // Add method to compare password
@@ -248,6 +257,8 @@ partnerSchema.pre('save', function () {
 
 // Indexes
 partnerSchema.index({ location: '2dsphere' });
+partnerSchema.index({ email: 1 });
+partnerSchema.index({ referral_code_used: 1 });
 // phone and unique_seller_id unique indexes are handled by field definitions
 
 module.exports = {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, ArrowLeft, Plus, Image as ImageIcon, Info, CheckCircle2, Calendar, X, Layout, ShieldCheck, Zap, Smartphone, Monitor, AlertCircle, Loader2 } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 import MediaDropZone from '../../components/common/MediaDropZone';
 
 export default function AdminBannerForm() {
@@ -64,7 +65,7 @@ export default function AdminBannerForm() {
       
       if (addAnother) {
         setFormData({ title: '', description: '', priority: 50, is_active: true, image_url: '', start_date: '', end_date: '' });
-        alert('Banner created! You can add another one now.');
+        toast.success('Banner created! You can add another one now.');
       } else {
         navigate('/admin/banners');
       }
@@ -188,7 +189,7 @@ export default function AdminBannerForm() {
               </div>
 
               <div className="p-8 space-y-8">
-                 <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 flex items-center justify-between text-white border border-white/10 shadow-xl shadow-indigo-100">
+                 <div className="relative overflow-hidden bg-linear-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 flex items-center justify-between text-white border border-white/10 shadow-xl shadow-indigo-100">
                     <div className="space-y-4 relative z-10">
                        <h4 className="text-xs font-black uppercase tracking-widest italic leading-none opacity-80">Recommended Specs</h4>
                        <div className="space-y-2">

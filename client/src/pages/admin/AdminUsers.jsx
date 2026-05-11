@@ -8,6 +8,7 @@ import AdminTable from '../../components/common/AdminTable';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
 
 import Skeleton from '../../components/common/Skeleton';
@@ -227,7 +228,7 @@ export default function AdminUsers() {
                               window.location.reload();
                             } catch (err) {
                               console.error(err);
-                              alert(err.response?.data?.message || 'Failed to update user status.');
+                              toast.error(err.response?.data?.message || 'Failed to update user status.');
                             } finally {
                               setIsActionLoading(false);
                               setIsModalOpen(false);

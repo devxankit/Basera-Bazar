@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { IndianRupee, Save, ArrowLeft, Plus, Trash2, Info, CheckCircle2, Infinity as InfinityIcon, Star, Zap, ShieldCheck, ChevronLeft, Minus, X } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 
 export default function AdminSubscriptionPlanForm() {
   const { id } = useParams();
@@ -79,7 +80,7 @@ export default function AdminSubscriptionPlanForm() {
       }
       navigate('/admin/subscriptions/plans');
     } catch (err) {
-      alert(err.response?.data?.message || 'Error saving plan');
+      toast.error(err.response?.data?.message || 'Error saving plan');
     } finally {
       setSaving(false);
     }

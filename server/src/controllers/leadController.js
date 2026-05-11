@@ -1,4 +1,5 @@
 const BroadcastLead = require('../models/BroadcastLead');
+const logger = require('../utils/logger');
 const { Partner } = require('../models/Partner');
 const { createNotification } = require('../utils/notificationHelper');
 const { getPartnerLimits, getActiveSubscription } = require('../utils/subscriptionUtils');
@@ -52,7 +53,7 @@ exports.createBroadcastLead = async (req, res) => {
       is_active: true
     }).select('_id name fcmTokens fcmTokenMobile');
 
-    console.log(`[BroadcastLead] Found ${localPartners.length} partners in ${district} for category ${target_category}`);
+    logger.info(`[BroadcastLead] Found ${localPartners.length} partners in ${district} for category ${target_category}`)
 
     const notificationTitle = `New Requirement: ${target_category === 'service' ? 'Service' : 'Product'} Quotation Request`;
     const notificationBody = `${name} is looking for ${products?.[0]?.item_name || 'materials'} in ${district}. Check details and contact now!`;
@@ -66,7 +67,7 @@ exports.createBroadcastLead = async (req, res) => {
         notificationBody, 
         { type: 'broadcast_lead', lead_id: lead._id.toString() }
       )
-    )).catch(err => console.error("[BroadcastLead] Notification error:", err));
+    )).catch(err => logger.error("[BroadcastLead] Notification error:", err))
 
     res.status(201).json({
       success: true,
@@ -75,7 +76,7 @@ exports.createBroadcastLead = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error in createBroadcastLead:", error);
+    logger.error({ err: error }, "Error in createBroadcastLead:")
     res.status(500).json({ success: false, message: 'Server error broadcasting lead.' });
   }
 };
@@ -131,7 +132,7 @@ exports.getPartnerLeads = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error in getPartnerLeads:", error);
+    logger.error({ err: error }, "Error in getPartnerLeads:")
     res.status(500).json({ success: false, message: 'Server error fetching leads.' });
   }
 };
@@ -165,7 +166,7 @@ exports.getPartnerLeadById = async (req, res) => {
     res.status(200).json({ success: true, data });
 
   } catch (error) {
-    console.error("Error in getPartnerLeadById:", error);
+    logger.error({ err: error }, "Error in getPartnerLeadById:")
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };

@@ -9,6 +9,7 @@ import AdminTable from '../../components/common/AdminTable';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
 
 import Skeleton from '../../components/common/Skeleton';
@@ -70,7 +71,7 @@ export default function AdminPartnerVerification() {
       setRejectionReason('');
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || 'Failed to update partner status.');
+      toast.error(err.response?.data?.message || 'Failed to update partner status.');
     } finally {
       setIsActionLoading(false);
     }
@@ -316,7 +317,7 @@ export default function AdminPartnerVerification() {
               </div>
 
               {/* Modal Content */}
-              <div className="flex-grow overflow-y-auto p-8 custom-scrollbar">
+              <div className="grow overflow-y-auto p-8 custom-scrollbar">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Left Column: Details */}
                   <div className="lg:col-span-1 space-y-6">

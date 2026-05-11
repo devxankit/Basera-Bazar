@@ -34,6 +34,18 @@ export default function AdminUserReport() {
 
   const COLORS = ['#4f46e5', '#818cf8', '#a5b4fc', '#c7d2fe', '#e0e7ff'];
 
+  const exportCSV = () => {
+    const rows = [
+      ['Month', 'New Registrations'],
+      ...data.map(row => [row.month, row.users])
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `user-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
+
   return (
     <div className="space-y-8 pb-20 mt-4 animate-in fade-in duration-500 text-left">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -41,13 +53,17 @@ export default function AdminUserReport() {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">User Logistics & Growth</h1>
           <p className="text-slate-500 font-medium mt-1">Analyzing registration velocity and user demographic trends.</p>
         </div>
-        <button className="flex items-center gap-2 px-6 py-3.5 bg-slate-100 text-slate-700 font-black rounded-2xl transition-all hover:bg-slate-200 active:scale-95 text-sm">
+        <button
+          onClick={exportCSV}
+          disabled={data.length === 0}
+          className="flex items-center gap-2 px-6 py-3.5 bg-slate-100 text-slate-700 font-black rounded-2xl transition-all hover:bg-slate-200 active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <Download size={18} /> Export Analytics
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
+        <div className="bg-white p-8 rounded-4xl border border-slate-100 shadow-sm flex flex-col gap-4">
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
             <UserPlus size={24} />
           </div>
@@ -56,7 +72,7 @@ export default function AdminUserReport() {
             <h3 className="text-3xl font-black text-slate-900 mt-1">{summary.totalUsers}</h3>
           </div>
         </div>
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
+        <div className="bg-white p-8 rounded-4xl border border-slate-100 shadow-sm flex flex-col gap-4">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
             <ShieldCheck size={24} />
           </div>
@@ -65,7 +81,7 @@ export default function AdminUserReport() {
             <h3 className="text-3xl font-black text-slate-900 mt-1">{Number(summary.verifiedPercentage).toFixed(1)}%</h3>
           </div>
         </div>
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
+        <div className="bg-white p-8 rounded-4xl border border-slate-100 shadow-sm flex flex-col gap-4">
           <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
             <TrendingUp size={24} />
           </div>

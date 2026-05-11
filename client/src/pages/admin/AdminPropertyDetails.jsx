@@ -12,6 +12,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -25,7 +26,8 @@ export default function AdminPropertyDetails() {
    const [error, setError] = useState(null);
    const [activeImage, setActiveImage] = useState(0);
    const [showOptions, setShowOptions] = useState(false);
-   
+   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
+
    // Rejection Modal State
    const [isRejecting, setIsRejecting] = useState(false);
    const [rejectReason, setRejectReason] = useState('');
@@ -47,47 +49,64 @@ export default function AdminPropertyDetails() {
       fetchPropertyDetails();
    }, [id]);
 
-   const handleToggleActive = async () => {
+   const openConfirm = (title, message, action, type = 'danger') => {
+      setConfirmModal({ isOpen: true, title, message, action, loading: false, type });
+   };
+
+   const executeConfirm = async () => {
+      setConfirmModal(m => ({ ...m, loading: true }));
+      try {
+         await confirmModal.action();
+      } finally {
+         setConfirmModal(m => ({ ...m, isOpen: false, loading: false }));
+      }
+   };
+
+   const handleToggleActive = () => {
       const newStatus = listing.status === 'active' ? 'draft' : 'active';
       const action = newStatus === 'active' ? 'activate' : 'deactivate';
-      if (!window.confirm(`Are you sure you want to ${action} this property listing?`)) return;
-
-      try {
-         const res = await api.patch(`/admin/listings/${listing._id}/status`, { status: newStatus });
-         if (res.data.success) {
-            setListing({ ...listing, status: newStatus });
-            toast.success(`Property ${action}d successfully`);
-            setShowOptions(false);
-         }
-      } catch (err) {
-         toast.error("Failed to update status");
-      }
+      openConfirm(
+         `${newStatus === 'active' ? 'Activate' : 'Deactivate'} Listing`,
+         `Are you sure you want to ${action} this property listing?`,
+         async () => {
+            const res = await api.patch(`/admin/listings/${listing._id}/status`, { status: newStatus });
+            if (res.data.success) {
+               setListing({ ...listing, status: newStatus });
+               toast.success(`Property ${action}d successfully`);
+               setShowOptions(false);
+            }
+         },
+         newStatus === 'active' ? 'info' : 'warning'
+      );
    };
 
-   const handleDeleteProperty = async () => {
-      if (!window.confirm("Are you sure you want to permanently delete this property? This action cannot be undone.")) return;
-      try {
-         const res = await api.delete(`/admin/listings/${listing._id}`);
-         if (res.data.success) {
-            toast.success("Property deleted successfully");
-            navigate('/admin/properties');
+   const handleDeleteProperty = () => {
+      openConfirm(
+         'Delete Property',
+         'Are you sure you want to permanently delete this property? This action cannot be undone.',
+         async () => {
+            const res = await api.delete(`/admin/listings/${listing._id}`);
+            if (res.data.success) {
+               toast.success("Property deleted successfully");
+               navigate('/admin/properties');
+            }
          }
-      } catch (err) {
-         toast.error("Failed to delete property");
-      }
+      );
    };
 
-   const handleApprove = async () => {
-      if (!window.confirm("Are you sure you want to approve this property listing?")) return;
-      try {
-         const res = await api.patch(`/admin/listings/${id}/status`, { status: 'active' });
-         if (res.data.success) {
-            setListing(prev => ({ ...prev, status: 'active' }));
-            toast.success("Property approved successfully");
-         }
-      } catch (err) {
-         toast.error("Failed to approve property.");
-      }
+   const handleApprove = () => {
+      openConfirm(
+         'Approve Property',
+         'Are you sure you want to approve this property listing? It will become visible to users.',
+         async () => {
+            const res = await api.patch(`/admin/listings/${id}/status`, { status: 'active' });
+            if (res.data.success) {
+               setListing(prev => ({ ...prev, status: 'active' }));
+               toast.success("Property approved successfully");
+            }
+         },
+         'success'
+      );
    };
 
    const handleReject = async () => {
@@ -141,8 +160,17 @@ export default function AdminPropertyDetails() {
 
    return (
       <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
-         <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
-            
+         <ConfirmationModal
+            isOpen={confirmModal.isOpen}
+            onClose={() => setConfirmModal(m => ({ ...m, isOpen: false }))}
+            onConfirm={executeConfirm}
+            title={confirmModal.title}
+            message={confirmModal.message}
+            type={confirmModal.type}
+            loading={confirmModal.loading}
+         />
+         <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
+
             {/* Header */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
@@ -318,7 +346,7 @@ export default function AdminPropertyDetails() {
                               key={i}
                               onClick={() => setActiveImage(i)}
                               className={cn(
-                                 "w-20 h-16 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0",
+                                 "w-20 h-16 rounded-lg overflow-hidden border-2 transition-all shrink-0",
                                  activeImage === i ? "border-indigo-600" : "border-transparent opacity-60 hover:opacity-100"
                               )}
                            >
@@ -369,7 +397,7 @@ export default function AdminPropertyDetails() {
                   {/* Listing Owner / Partner */}
                   <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                     <div className="h-24 bg-slate-900 relative">
-                       <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/40 to-purple-900/40" />
+                       <div className="absolute inset-0 bg-linear-to-r from-indigo-900/40 to-purple-900/40" />
                     </div>
                     <div className="px-8 pb-8 pt-0 relative">
                        <div className="flex justify-between items-end mb-6 -mt-12">
@@ -468,7 +496,7 @@ export default function AdminPropertyDetails() {
 
          {/* Rejection Modal */}
          {isRejecting && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 text-left">
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 text-left">
                <motion.div 
                   initial={{ scale: 0.95, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}

@@ -94,7 +94,9 @@ const userSchema = new mongoose.Schema({
   role_credits: {
     type: Number,
     default: 0
-  }
+  },
+  failed_login_attempts: { type: Number, default: 0 },
+  lockout_until: { type: Date, default: null }
 }, { timestamps: true });
 
 // Add method to compare password
@@ -114,6 +116,7 @@ userSchema.pre('save', async function() {
 
 // Indexes
 userSchema.index({ default_location: '2dsphere' });
+userSchema.index({ email: 1 });
 // phone unique index is handled by field definition
 
 const otpSchema = new mongoose.Schema({

@@ -3,18 +3,21 @@ import { Plus, Edit2, Trash2, Eye, ArrowLeft, Layers, CornerDownRight, Hash, Tag
 import AdminTable from '../../components/common/AdminTable';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
-export default function AdminCategoryManagement({ 
-  type, 
-  title, 
-  description, 
+export default function AdminCategoryManagement({
+  type,
+  title,
+  description,
   showParent = false,
-  endpoint = 'categories' 
+  endpoint = 'categories'
 }) {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, deleting: false });
+
   // Search and Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [parentFilter, setParentFilter] = useState('all');
@@ -41,7 +44,7 @@ export default function AdminCategoryManagement({
       await api.put(`/admin/system/${endpoint}/${item._id}`, { is_active: !item.is_active });
       fetchItems();
     } catch (err) {
-      alert('Failed to update status.');
+      toast.error('Failed to update status.');
     }
   };
 
@@ -49,15 +52,19 @@ export default function AdminCategoryManagement({
     fetchItems();
   }, [type, endpoint]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to deactivate this item?')) return;
+  const handleDelete = (id) => setDeleteModal({ isOpen: true, id, deleting: false });
+
+  const confirmDelete = async () => {
+    setDeleteModal(m => ({ ...m, deleting: true }));
     try {
-      const res = await api.delete(`/admin/system/${endpoint}/${id}`);
+      const res = await api.delete(`/admin/system/${endpoint}/${deleteModal.id}`);
       if (res.data.success) {
+        setDeleteModal({ isOpen: false, id: null, deleting: false });
         fetchItems();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error deleting item');
+      toast.error(err.response?.data?.message || 'Error deleting item');
+      setDeleteModal(m => ({ ...m, deleting: false }));
     }
   };
 
@@ -101,7 +108,7 @@ export default function AdminCategoryManagement({
       render: (row) => (
         <div className="flex items-center gap-4 text-left">
           <div className="flex -space-x-4">
-             <div className="w-10 h-10 border border-slate-200 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 font-bold group-hover:border-indigo-200 transition-all uppercase overflow-hidden flex-shrink-0 relative z-10 shadow-sm" title="Standard Icon">
+             <div className="w-10 h-10 border border-slate-200 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 font-bold group-hover:border-indigo-200 transition-all uppercase overflow-hidden shrink-0 relative z-10 shadow-sm" title="Standard Icon">
                {row.icon ? (
                  <img src={row.icon} className="w-full h-full object-cover" alt="" />
                ) : (
@@ -109,7 +116,7 @@ export default function AdminCategoryManagement({
                )}
              </div>
              {row.mandi_icon && (
-               <div className="w-10 h-10 border border-emerald-200 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-400 font-bold group-hover:border-emerald-400 transition-all uppercase overflow-hidden flex-shrink-0 relative z-20 shadow-lg translate-x-3 translate-y-1 scale-90" title="Mandi Marketplace Icon">
+               <div className="w-10 h-10 border border-emerald-200 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-400 font-bold group-hover:border-emerald-400 transition-all uppercase overflow-hidden shrink-0 relative z-20 shadow-lg translate-x-3 translate-y-1 scale-90" title="Mandi Marketplace Icon">
                   <img src={row.mandi_icon} className="w-full h-full object-cover" alt="Mandi" />
                </div>
              )}
@@ -259,9 +266,18 @@ export default function AdminCategoryManagement({
 
   return (
     <div className="space-y-6 pb-20 mt-4 animate-in fade-in duration-500">
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null, deleting: false })}
+        onConfirm={confirmDelete}
+        title="Delete Item"
+        message="Are you sure you want to permanently delete this item? This action cannot be undone."
+        confirmText="Delete"
+        loading={deleteModal.deleting}
+      />
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
-           <div className="w-14 h-14 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-900/10 flex-shrink-0">
+           <div className="w-14 h-14 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-900/10 shrink-0">
              {showParent ? <CornerDownRight size={24} /> : <Tag size={24} />}
            </div>
            <div>

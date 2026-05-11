@@ -1,8 +1,11 @@
 const { Partner } = require('../models/Partner');
+const logger = require('../utils/logger');
 const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const { Enquiry } = require('../models/Enquiry');
 const { SubscriptionPlan } = require('../models/Finance');
 const Order = require('../models/Order');
+
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const invalidate = require('../utils/cacheInvalidator');
 
 
@@ -79,7 +82,7 @@ const onboardPartner = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error in onboardPartner:", error);
+    logger.error({ err: error }, "Error in onboardPartner:")
     res.status(500).json({ success: false, message: 'Server error during onboarding.' });
   }
 };
@@ -108,7 +111,7 @@ const getMyPartnerProfile = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error in getMyPartnerProfile:", error);
+    logger.error({ err: error }, "Error in getMyPartnerProfile:")
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -177,7 +180,7 @@ const getPartnerStats = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error fetching partner stats:", error);
+    logger.error({ err: error }, "Error fetching partner stats:")
     res.status(500).json({ success: false, message: 'Error fetching dashboard stats.' });
   }
 };
@@ -276,7 +279,7 @@ const addRole = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error in addRole:", error);
+    logger.error({ err: error }, "Error in addRole:")
     res.status(500).json({ success: false, message: 'Server error adding role.' });
   }
 };
@@ -338,7 +341,7 @@ const deleteRole = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error in deleteRole:", error);
+    logger.error({ err: error }, "Error in deleteRole:")
     res.status(500).json({ success: false, message: 'Server error deleting role.' });
   }
 };
@@ -384,7 +387,7 @@ const switchRole = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error in switchRole:", error);
+    logger.error({ err: error }, "Error in switchRole:")
     res.status(500).json({ success: false, message: 'Server error switching role.' });
   }
 };
@@ -416,12 +419,12 @@ const getPublicPartners = async (req, res) => {
     }
 
     // Filter by location
-    if (district) query.district = new RegExp(district, 'i');
-    if (state) query.state = new RegExp(state, 'i');
+    if (district) query.district = new RegExp(escapeRegex(district), 'i');
+    if (state) query.state = new RegExp(escapeRegex(state), 'i');
 
     // Search by name or business name
     if (search) {
-      const searchRegex = new RegExp(search, 'i');
+      const searchRegex = new RegExp(escapeRegex(search), 'i');
       query.$or = [
         ...(query.$or || []),
         { name: searchRegex },
@@ -439,7 +442,7 @@ const getPublicPartners = async (req, res) => {
       data: partners
     });
   } catch (error) {
-    console.error("Error fetching public partners:", error);
+    logger.error({ err: error }, "Error fetching public partners:")
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -461,7 +464,7 @@ const getPublicPartnerById = async (req, res) => {
       data: partner
     });
   } catch (error) {
-    console.error("Error fetching public partner by id:", error);
+    logger.error({ err: error }, "Error fetching public partner by id:")
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -476,7 +479,7 @@ const getPartnerSubscriptionPlans = async (req, res) => {
     const plans = await SubscriptionPlan.find({ is_active: true }).sort({ price: 1 });
     res.status(200).json({ success: true, count: plans.length, data: plans });
   } catch (error) {
-    console.error("Error fetching subscription plans:", error);
+    logger.error({ err: error }, "Error fetching subscription plans:")
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -539,7 +542,7 @@ const getActivities = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error fetching activities:", error);
+    logger.error({ err: error }, "Error fetching activities:")
     res.status(500).json({ success: false, message: 'Server error fetching activities' });
   }
 };
@@ -584,7 +587,7 @@ const toggleFeature = async (req, res) => {
       is_featured: partner.is_featured
     });
   } catch (error) {
-    console.error("Error toggling feature:", error);
+    logger.error({ err: error }, "Error toggling feature:")
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -636,7 +639,7 @@ const getPartnerSubscriptionLimits = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error fetching partner limits:", error);
+    logger.error({ err: error }, "Error fetching partner limits:")
     res.status(500).json({ success: false, message: 'Server error fetching limits.' });
   }
 };

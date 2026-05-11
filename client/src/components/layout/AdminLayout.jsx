@@ -164,7 +164,7 @@ const CollapsibleItem = ({ item, isOpen, onToggle, location, setSidebarOpen }) =
                     {child.label}
                   </div>
                   {child.badge > 0 && (
-                    <div className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                    <div className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-5 text-center shadow-sm">
                       {child.badge}
                     </div>
                   )}
@@ -303,7 +303,7 @@ export default function AdminLayout({ children }) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-grow overflow-y-auto py-8 px-5 space-y-1.5 custom-scrollbar">
+          <nav className="grow overflow-y-auto py-8 px-5 space-y-1.5 custom-scrollbar">
             {navItems.map((item) => {
               // Inject badges dynamically
               const itemWithBadges = { ...item };
@@ -365,7 +365,7 @@ export default function AdminLayout({ children }) {
 
           {/* Sidebar Footer */}
           <div className="p-6 border-t border-slate-50">
-            <div className="bg-slate-50 rounded-[2rem] p-4 flex items-center gap-3 border border-slate-100/50">
+            <div className="bg-slate-50 rounded-4xl p-4 flex items-center gap-3 border border-slate-100/50">
               <div className="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-lg font-black shadow-lg shadow-indigo-100 overflow-hidden">
                 {user?.profileImage ? (
                   <img src={user.profileImage} alt="Profile" className="w-full h-full object-cover" />
@@ -373,7 +373,7 @@ export default function AdminLayout({ children }) {
                   initials
                 )}
               </div>
-              <div className="flex-grow min-w-0">
+              <div className="grow min-w-0">
                 <p className="text-sm font-black text-slate-900 truncate tracking-tight">{user?.name || 'Admin User'}</p>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{user?.role?.replace('_', ' ') || 'Root Access'}</p>
               </div>
@@ -390,9 +390,9 @@ export default function AdminLayout({ children }) {
       </aside>
 
       {/* ── MAIN CONTENT ── */}
-      <main className="flex-grow flex flex-col min-w-0 h-screen overflow-hidden">
+      <main className="grow flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Top Header */}
-        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-30">
+        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-30">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setSidebarOpen(true)}
@@ -410,7 +410,7 @@ export default function AdminLayout({ children }) {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            <div className="h-8 w-[1px] bg-slate-200 mx-1 md:mx-2 hidden sm:block"></div>
+            <div className="h-8 w-px bg-slate-200 mx-1 md:mx-2 hidden sm:block"></div>
             <button 
               onClick={() => navigate('/admin/profile')}
               className="flex items-center gap-3 ml-2 group hover:bg-slate-50 p-2 rounded-2xl transition-all border border-transparent hover:border-slate-100"
@@ -431,15 +431,15 @@ export default function AdminLayout({ children }) {
         </header>
 
         {/* Page Content */}
-        <div className="flex-grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
-          <div className="max-w-[1600px] mx-auto">
+        <div className="grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
+          <div className="max-w-400 mx-auto">
             {children}
           </div>
         </div>
         {/* Logout Confirmation Modal */}
         <AnimatePresence>
           {showLogoutConfirm && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -454,7 +454,7 @@ export default function AdminLayout({ children }) {
                 className="relative bg-white rounded-[2.5rem] p-8 shadow-2xl border border-slate-100 max-w-sm w-full text-center overflow-hidden"
               >
                 {/* Decorative Background */}
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-400 to-indigo-600" />
+                <div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-orange-400 to-indigo-600" />
                 
                 <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 mx-auto mb-6">
                   <LogOut size={40} />

@@ -9,6 +9,7 @@ import AdminTable from '../../components/common/AdminTable';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { toast } from '../../mockToast';
 
 import Skeleton from '../../components/common/Skeleton';
 
@@ -134,7 +135,7 @@ export default function AdminProperties() {
         setIsModalOpen(false);
       }
     } catch (err) {
-      alert("Failed to remove listing.");
+      toast.error("Failed to remove listing.");
     } finally {
       setIsDeleting(false);
     }
@@ -145,7 +146,7 @@ export default function AdminProperties() {
       header: 'PROPERTY', 
       render: (row) => (
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-50 overflow-hidden border border-indigo-100 flex-shrink-0 relative group">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-50 overflow-hidden border border-indigo-100 shrink-0 relative group">
             {row.images?.[0] ? (
               <img src={row.images[0]} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -256,7 +257,7 @@ export default function AdminProperties() {
                 try {
                   await api.patch(`/admin/listings/${row._id}/status`, { status: 'active' });
                   fetchProperties();
-                } catch (err) { alert("Failed to approve."); }
+                } catch (err) { toast.error("Failed to approve."); }
               }}
               className="w-10 h-10 flex items-center justify-center bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all shadow-md active:scale-95 group/btn relative"
             >
@@ -269,7 +270,7 @@ export default function AdminProperties() {
                   const nextStatus = row.status === 'active' ? 'inactive' : 'active';
                   await api.patch(`/admin/listings/${row._id}/status`, { status: nextStatus });
                   fetchProperties();
-                } catch (err) { alert("Failed to toggle status."); }
+                } catch (err) { toast.error("Failed to toggle status."); }
               }}
               className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all shadow-sm active:scale-95 group/btn relative border ${
                 row.status === 'active' ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'
@@ -347,7 +348,7 @@ export default function AdminProperties() {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-8">
+            <div className="bg-white p-8 rounded-4xl border border-slate-100 shadow-sm space-y-8">
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {/* Category */}
                   <div className="space-y-2">

@@ -12,6 +12,7 @@ import { twMerge } from 'tailwind-merge';
 import api from '../../services/api';
 import AdminTable from '../../components/common/AdminTable';
 import { toast } from '../../mockToast';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -25,6 +26,7 @@ export default function AdminCategoryDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('Subcategories');
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, catId: null, isSub: false, deleting: false });
 
   // Listings state
   const [listings, setListings] = useState([]);
@@ -82,20 +84,27 @@ export default function AdminCategoryDetails() {
     fetchListings();
   }, [data, id]);
 
-  const handleDelete = async (catId, isSub = false) => {
-    if (!window.confirm(`Are you sure you want to permanently delete this category?`)) return;
+  const handleDelete = (catId, isSub = false) => {
+    setDeleteModal({ isOpen: true, catId, isSub, deleting: false });
+  };
+
+  const confirmDelete = async () => {
+    const { catId, isSub } = deleteModal;
+    setDeleteModal(m => ({ ...m, deleting: true }));
     try {
       const res = await api.delete(`/admin/system/categories/${catId}`);
       if (res.data.success) {
         toast.success("Category deleted successfully");
+        setDeleteModal({ isOpen: false, catId: null, isSub: false, deleting: false });
         if (isSub) {
-           setData(prev => ({ ...prev, subcategories: prev.subcategories.filter(s => s._id !== catId) }));
+          setData(prev => ({ ...prev, subcategories: prev.subcategories.filter(s => s._id !== catId) }));
         } else {
-           navigate(-1);
+          navigate(-1);
         }
       }
     } catch (err) {
       toast.error("Failed to delete category");
+      setDeleteModal(m => ({ ...m, deleting: false }));
     }
   };
 
@@ -221,8 +230,17 @@ export default function AdminCategoryDetails() {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
-      <div className="max-w-[1600px] mx-auto px-8 space-y-8 mt-6">
-        
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, catId: null, isSub: false, deleting: false })}
+        onConfirm={confirmDelete}
+        title="Delete Category"
+        message="Are you sure you want to permanently delete this category? This action cannot be undone."
+        confirmText="Delete"
+        loading={deleteModal.deleting}
+      />
+      <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
+
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
