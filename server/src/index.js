@@ -61,6 +61,7 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, Postman, server-to-server)
     if (!origin) return callback(null, true);
+
     // Allow any origin in the local network during development
     if (
       process.env.NODE_ENV !== 'production' &&
@@ -68,8 +69,16 @@ app.use(cors({
     ) {
       return callback(null, true);
     }
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error(`CORS: origin '${origin}' not allowed`));
+
+    // Explicitly allow production domain variations if in production
+    const isProductionDomain = /^https?:\/\/(www\.)?baserabazar\.in$/.test(origin);
+    
+    if (allowedOrigins.includes(origin) || isProductionDomain) {
+      return callback(null, true);
+    }
+
+    // Instead of throwing an Error (which causes 500), we return false to reject
+    callback(null, false);
   },
   credentials: true
 }));

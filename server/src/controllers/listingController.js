@@ -399,10 +399,14 @@ const getAllListings = async (req, res) => {
     
     
     // SANITIZATION: Prevent "undefined" or "null" strings from breaking queries
-    if (district === 'undefined' || district === 'null') district = null;
-    if (state === 'undefined' || state === 'null') state = null;
+    if (district === 'undefined' || district === 'null' || !district) district = null;
+    if (state === 'undefined' || state === 'null' || !state) state = null;
     if (q === 'undefined' || q === 'null') q = null;
     if (partner_id === 'undefined' || partner_id === 'null') partner_id = null;
+    
+    // Ensure they are strings if they exist
+    if (district && typeof district !== 'string') district = String(district);
+    if (state && typeof state !== 'string') state = String(state);
 
     const hasLocation = !!(district || state);
     const searchQuery = q || req.query.search;
@@ -530,8 +534,13 @@ const getAllListings = async (req, res) => {
 
     res.status(200).json({ success: true, count: sorted.length, data: sorted });
   } catch (error) {
-    logger.error({ err: error.message }, "CRITICAL: Error in getAllListings:")
-    res.status(500).json({ success: false, message: 'Server error.' });
+    logger.error({ 
+      err: error.message, 
+      stack: error.stack,
+      query: req.query,
+      requestId: req.id 
+    }, "CRITICAL: Error in getAllListings:");
+    res.status(500).json({ success: false, message: 'Server error.', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 

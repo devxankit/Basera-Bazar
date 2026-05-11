@@ -12,6 +12,14 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
+// Validate config before initialization
+const requiredConfig = ['apiKey', 'authDomain', 'projectId', 'appId'];
+const missingKeys = requiredConfig.filter(key => !firebaseConfig[key]);
+
+if (missingKeys.length > 0) {
+  console.error(`❌ Firebase Configuration Error: Missing values for [${missingKeys.join(', ')}]. Check your .env file.`);
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
