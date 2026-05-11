@@ -11,6 +11,7 @@ const crypto = require('crypto');
 const { getCityCoords } = require('../utils/locationUtils');
 const { logActivity } = require('../utils/activityLogger');
 const { checkLockout, recordFailedAttempt, resetFailedAttempts } = require('../utils/loginLockout');
+const { createNotification } = require('../utils/notificationHelper');
 
 const generateToken = (id, role, email, version = 0) => {
   return jwt.sign({ id, role, email, version }, process.env.JWT_SECRET, {
@@ -591,6 +592,35 @@ const checkSignupConflicts = async (req, res) => {
   }
 };
 
+const testNotification = async (req, res) => {
+  try {
+    const { title, body } = req.body;
+    const recipientId = req.user._id;
+    const recipientType = req.user.role === 'partner' ? 'partner' : 'user';
+
+    const notification = await createNotification(
+      recipientType,
+      recipientId,
+      title || 'Test Notification',
+      body || 'This is a test notification from Basera Bazar!',
+      { type: 'test' }
+    );
+
+    if (notification) {
+      res.status(200).json({ success: true, message: 'Test notification sent.', id: notification._id });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to send notification. Check server logs for details.',
+        debug: { recipientId, recipientType }
+      });
+    }
+  } catch (error) {
+    logger.error({ err: error }, 'Test notification error:');
+    res.status(500).json({ success: false, message: 'Server error sending test notification.' });
+  }
+};
+
 module.exports = {
   checkExists,
   requestOtp,
@@ -599,5 +629,6 @@ module.exports = {
   updateProfile,
   changePassword,
   loginWithPassword,
-  checkSignupConflicts
+  checkSignupConflicts,
+  testNotification
 };

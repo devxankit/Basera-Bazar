@@ -4,6 +4,7 @@ import { Mail, Lock, Eye, EyeOff, Loader2, ShieldCheck, ArrowRight } from 'lucid
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { registerFCMToken } from '../../services/pushNotificationService';
 import baseraLogo from '../../assets/baseralogo.png';
 
 const inputClass = "w-full pl-12 pr-12 py-4 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all bg-white placeholder-slate-300 shadow-sm shadow-slate-100/50";
@@ -36,6 +37,8 @@ export default function AdminLogin() {
       if (response.data.success) {
         const { token, user } = response.data;
         login(user, token);
+        // Explicitly trigger FCM registration after login
+        registerFCMToken(true);
         navigate('/admin/dashboard');
       }
     } catch (error) {

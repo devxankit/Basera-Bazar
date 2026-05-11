@@ -4,6 +4,7 @@ import { ArrowLeft, Phone, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { registerFCMToken } from '../../services/pushNotificationService';
 import { toast } from '../../mockToast';
 
 export default function ExecutiveLogin() {
@@ -39,6 +40,8 @@ export default function ExecutiveLogin() {
         setTimeout(() => {
           const execData = response.data.executive || response.data.data;
           login(execData, response.data.token);
+          // Explicitly trigger FCM registration after login
+          registerFCMToken(true);
           navigate('/executive/dashboard');
         }, 800);
       }

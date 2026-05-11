@@ -76,6 +76,8 @@ async function getFCMToken() {
  */
 async function registerFCMToken(forceUpdate = false) {
   try {
+    console.log('[Push] Initializing token registration...');
+    
     // 1. Check if token already exists in session to avoid redundant calls
     const savedToken = sessionStorage.getItem('fcm_token_registered');
     if (savedToken && !forceUpdate) {
@@ -84,12 +86,22 @@ async function registerFCMToken(forceUpdate = false) {
     }
     
     // 2. Request permission
+    console.log('[Push] Requesting permission...');
     const hasPermission = await requestNotificationPermission();
-    if (!hasPermission) return null;
+    if (!hasPermission) {
+      console.warn('[Push] Permission denied or not granted');
+      return null;
+    }
     
     // 3. Get device token
+    console.log('[Push] Getting device token...');
     const token = await getFCMToken();
-    if (!token) return null;
+    if (!token) {
+      console.warn('[Push] No token generated');
+      return null;
+    }
+    
+    console.log('[Push] Token generated, sending to backend...');
     
     // 4. Send to backend
     const res = await api.post('/push/save', {
@@ -102,6 +114,8 @@ async function registerFCMToken(forceUpdate = false) {
       localStorage.setItem('last_fcm_token', token); // Useful for logout cleanup
       console.log('✅ FCM token registered with Basera Bazar backend');
       return token;
+    } else {
+      console.error('[Push] Backend registration failed:', res.data.message);
     }
   } catch (error) {
     console.error('❌ Error registering FCM token:', error);

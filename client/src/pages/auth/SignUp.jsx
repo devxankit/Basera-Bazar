@@ -4,6 +4,7 @@ import { ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff, Loader2, CheckCircle2,
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { registerFCMToken } from '../../services/pushNotificationService';
 import LocationPicker from '../../components/common/LocationPicker';
 
 // ─── Small reusable popup modal ───────────────────────────────────────────────
@@ -220,6 +221,8 @@ export default function SignUp() {
       if (response.data.success) {
         const { token, user } = response.data;
         login(user, token);
+        // Explicitly trigger FCM registration after signup
+        registerFCMToken(true);
         navigate('/');
       }
     } catch (error) {

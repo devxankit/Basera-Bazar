@@ -76,12 +76,28 @@ export default function PartnerProfile() {
           </button>
           <h2 className="text-[16px] font-bold text-[#001b4e] uppercase tracking-widest">Profile Hub</h2>
         </div>
-        <button 
-          onClick={() => navigate('/partner/edit-profile')}
-          className="p-1.5 text-[#001b4e] hover:bg-slate-50 rounded-xl transition-colors active:scale-95"
-        >
-          <Edit2 size={20} strokeWidth={2.5} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={async () => {
+              try {
+                const res = await api.post('/auth/test-notification', { title: 'Partner Test', body: 'Push notifications are working for partners!' });
+                if (res.data.success) alert('Test notification triggered!');
+              } catch (err) {
+                alert('Failed to send test notification');
+              }
+            }} 
+            className="p-1.5 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
+            title="Test Push Notification"
+          >
+            <Bell size={20} />
+          </button>
+          <button 
+            onClick={() => navigate('/partner/edit-profile')}
+            className="p-1.5 text-[#001b4e] hover:bg-slate-50 rounded-xl transition-colors active:scale-95"
+          >
+            <Edit2 size={20} strokeWidth={2.5} />
+          </button>
+        </div>
       </div>
 
       <div className="p-6 space-y-8">

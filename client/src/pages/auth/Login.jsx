@@ -4,10 +4,18 @@ import { ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2, Phone, User, CheckCircle2 
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { registerFCMToken } from '../../services/pushNotificationService';
 
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  const onLoginSuccess = async (user, token) => {
+    login(user, token);
+    // Explicitly trigger FCM registration after login
+    registerFCMToken(true);
+    navigate('/');
+  };
   const handleBack = () => { window.history.length > 2 ? navigate(-1) : navigate('/'); };
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -73,8 +81,7 @@ export default function Login() {
       
       if (response.data.success) {
         const { token, user } = response.data;
-        login(user, token);
-        navigate('/');
+        onLoginSuccess(user, token);
       }
     } catch (error) {
       if (error.response?.status === 403 && error.response?.data?.code === 'ACCOUNT_INACTIVE') {
@@ -102,8 +109,7 @@ export default function Login() {
         });
         if (response.data.success) {
           const { token, user } = response.data;
-          login(user, token);
-          navigate('/');
+          onLoginSuccess(user, token);
         }
       } catch (error) {
         const code = error.response?.data?.code;

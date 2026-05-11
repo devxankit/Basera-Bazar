@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 
-const { checkExists, requestOtp, verifyOtp, getMe, updateProfile, changePassword, loginWithPassword, checkSignupConflicts } = require('../controllers/authController');
+const { 
+  checkExists, requestOtp, verifyOtp, getMe, updateProfile, 
+  changePassword, loginWithPassword, checkSignupConflicts, testNotification 
+} = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
 const { loginSchema, otpVerifySchema } = require('../utils/validators');
@@ -29,5 +32,8 @@ router.put('/profile', protect, updateProfile);
 
 // PUT /api/auth/change-password (Change password with verification)
 router.put('/change-password', protect, changePassword);
+
+// POST /api/auth/test-notification (Send test push notification)
+router.post('/test-notification', protect, testNotification);
 
 module.exports = router;

@@ -19,14 +19,23 @@ exports.saveFCMToken = async (req, res) => {
     let recipient;
     let Model;
 
-    // In authMiddleware, we set req.user.role = 'partner' for all partners
-    if (userRole === 'partner' || req.user.db_role) {
+    if (userRole === 'partner') {
       Model = Partner;
       recipient = await Partner.findById(userId);
+    } else if (userRole === 'executive') {
+      const Executive = require('../models/Executive');
+      Model = Executive;
+      recipient = await Executive.findById(userId);
+    } else if (userRole === 'super_admin') {
+      const { AdminUser } = require('../models/Admin');
+      Model = AdminUser;
+      recipient = await AdminUser.findById(userId);
     } else {
       Model = User;
       recipient = await User.findById(userId);
     }
+
+    logger.info({ userId, userRole, platform, tokenFound: !!token }, '[Push] Attempting to save FCM token');
 
     if (!recipient) return res.status(404).json({ success: false, message: 'Recipient not found' });
 
@@ -62,8 +71,21 @@ exports.removeFCMToken = async (req, res) => {
   try {
     const { token, platform = 'web' } = req.body;
     const userId = req.user.id;
+    const userRole = req.user.role;
 
-    let recipient = await User.findById(userId) || await Partner.findById(userId);
+    let recipient;
+    if (userRole === 'partner') {
+      recipient = await Partner.findById(userId);
+    } else if (userRole === 'executive') {
+      const Executive = require('../models/Executive');
+      recipient = await Executive.findById(userId);
+    } else if (userRole === 'super_admin') {
+      const { AdminUser } = require('../models/Admin');
+      recipient = await AdminUser.findById(userId);
+    } else {
+      recipient = await User.findById(userId);
+    }
+
     if (!recipient) return res.status(404).json({ success: false, message: 'User not found' });
 
     const tokenField = platform === 'mobile' ? 'fcmTokenMobile' : 'fcmTokens';
@@ -87,7 +109,20 @@ exports.removeFCMToken = async (req, res) => {
 exports.sendTestNotification = async (req, res) => {
   try {
     const userId = req.user.id;
-    const recipient = await User.findById(userId) || await Partner.findById(userId);
+    const userRole = req.user.role;
+    
+    let recipient;
+    if (userRole === 'partner') {
+      recipient = await Partner.findById(userId);
+    } else if (userRole === 'executive') {
+      const Executive = require('../models/Executive');
+      recipient = await Executive.findById(userId);
+    } else if (userRole === 'super_admin') {
+      const { AdminUser } = require('../models/Admin');
+      recipient = await AdminUser.findById(userId);
+    } else {
+      recipient = await User.findById(userId);
+    }
     
     if (!recipient) return res.status(404).json({ success: false, message: 'User not found' });
 

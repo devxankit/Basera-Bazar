@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import logo from '../../assets/baseralogo.png';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { registerFCMToken } from '../../services/pushNotificationService';
 
 export default function PartnerLogin() {
   const navigate = useNavigate();
@@ -16,6 +17,13 @@ export default function PartnerLogin() {
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [timer, setTimer] = useState(0);
   const { login } = useAuth();
+
+  const onLoginSuccess = async (user, token) => {
+    login(user, token);
+    // Explicitly trigger FCM registration after login
+    registerFCMToken(true);
+    navigate('/partner/home');
+  };
 
   // Timer Countdown Logic
   React.useEffect(() => {
@@ -70,8 +78,7 @@ export default function PartnerLogin() {
         localStorage.setItem('baserabazar_partner_role', response.data.user.role);
         
         // login function now handles baserabazar_user and baserabazar_token
-        login(response.data.user, response.data.token);
-        navigate('/partner/home');
+        onLoginSuccess(response.data.user, response.data.token);
       }
     } catch (error) {
       if (error.response?.status === 403 && error.response?.data?.code === 'ACCOUNT_INACTIVE') {

@@ -1,4 +1,3 @@
-const { Notification } = require('../models/System');
 const logger = require('./logger');
 const { Partner } = require('../models/Partner');
 const { User } = require('../models/User');
@@ -13,7 +12,11 @@ const { sendPushNotification } = require('../services/firebaseAdmin');
  * @param   {object} data - Optional deep link or metadata payload
  */
 const createNotification = async (recipientType, recipientId, title, body, data = {}) => {
+  const { Notification } = require('../models/System');
   try {
+    if (!Notification) {
+      throw new Error('Notification model is not defined. Check imports in notificationHelper.js');
+    }
     // 1. Create In-App Notification Record
     const notification = await Notification.create({
       recipient_type: recipientType,
@@ -74,6 +77,7 @@ const createNotification = async (recipientType, recipientId, title, body, data 
     
     return notification;
   } catch (error) {
+    console.error('NOTIFICATION ERROR:', error);
     logger.error({ err: error }, 'Error creating notification:')
     return null;
   }

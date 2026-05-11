@@ -41,6 +41,14 @@ const adminUserSchema = new mongoose.Schema({
   token_version: {
     type: Number,
     default: 0
+  },
+  fcmTokens: {
+    type: [String],
+    default: []
+  },
+  fcmTokenMobile: {
+    type: [String],
+    default: []
   }
 }, { timestamps: true });
 
