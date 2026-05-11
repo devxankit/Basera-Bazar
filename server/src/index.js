@@ -55,7 +55,7 @@ app.use((req, res, next) => { if (!req.timedout) next(); });
 // -----------------------------------------------------
 const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map(u => u.trim())
-  : ['http://localhost:5173', 'http://localhost:3000'];
+  : ['http://localhost:5173', 'http://localhost:3000', 'https://baserabazar.in', 'https://www.baserabazar.in'];
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -71,7 +71,7 @@ app.use(cors({
     }
 
     // Explicitly allow production domain variations if in production
-    const isProductionDomain = /^https?:\/\/(www\.)?baserabazar\.in$/.test(origin);
+    const isProductionDomain = /^https?:\/\/(www\.)?baserabazar\.in\/?$/.test(origin);
     
     if (allowedOrigins.includes(origin) || isProductionDomain) {
       return callback(null, true);
