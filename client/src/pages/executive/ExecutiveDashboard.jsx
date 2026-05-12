@@ -4,7 +4,8 @@ import {
   LogOut, Wallet, Users, ChevronRight, Copy, CheckCircle2, 
   Clock, AlertCircle, RefreshCw, Send, TrendingUp, 
   UserCheck, CreditCard, Sparkles, Share2, ArrowUpRight,
-  ShieldCheck, PartyPopper, Lock, Zap, ArrowRight, Star
+  ShieldCheck, PartyPopper, Lock, Zap, ArrowRight, Star,
+  Target, IndianRupee, FileText, Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -103,6 +104,8 @@ export default function ExecutiveDashboard() {
 
   const profile = data?.profile;
   const stats = data?.stats;
+  const dailyTask = data?.daily_task;
+  const salary = data?.salary;
   const onboardingStatus = profile?.onboarding_status;
   const isVerified = onboardingStatus === 'approved' || onboardingStatus === 'verified';
 
@@ -222,6 +225,101 @@ export default function ExecutiveDashboard() {
         </AnimatePresence>
 
 
+
+        {/* Daily Task Progress Widget */}
+        <AnimatePresence>
+          {dailyTask?.exists && (
+            <motion.div
+              variants={itemVariants}
+              className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4 relative overflow-hidden"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                    <Target size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Today's Active Target</h3>
+                    <p className="text-[10px] font-bold text-slate-400">{dailyTask.date}</p>
+                  </div>
+                </div>
+                <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border ${
+                  dailyTask.percentage >= 50 
+                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                    : dailyTask.percentage >= 25 
+                    ? 'bg-amber-50 text-amber-600 border-amber-100' 
+                    : 'bg-rose-50 text-rose-600 border-rose-100'
+                }`}>
+                  {dailyTask.percentage >= 50 ? 'Threshold Met' : 'At Risk (<50%)'}
+                </span>
+              </div>
+
+              {dailyTask.description && (
+                <p className="text-xs font-medium text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100/50">
+                  {dailyTask.description}
+                </p>
+              )}
+
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-end text-xs">
+                  <span className="font-bold text-slate-500">Completion Status</span>
+                  <span className="font-black text-slate-900">
+                    {dailyTask.completed} <span className="text-[10px] font-bold text-slate-400">/ {dailyTask.target_count} sellers</span> ({dailyTask.percentage}%)
+                  </span>
+                </div>
+                {/* Progress bar */}
+                <div className="h-3 bg-slate-50 rounded-full overflow-hidden p-0.5 border border-slate-100">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, dailyTask.percentage)}%` }}
+                    transition={{ duration: 1, ease: 'easeOut' }}
+                    className={`h-full rounded-full ${
+                      dailyTask.percentage >= 50 
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500' 
+                        : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={() => navigate('/executive/task-history')}
+                className="w-full pt-2 text-[11px] font-black text-indigo-600 hover:text-indigo-700 transition-colors flex items-center justify-center gap-1 uppercase tracking-widest"
+              >
+                View History & Monthly Averages <ChevronRight size={14} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Salary Status Widget */}
+        <motion.div variants={itemVariants} className="bg-gradient-to-br from-slate-900 to-slate-800 p-5 rounded-3xl text-white shadow-xl space-y-3 relative overflow-hidden">
+          <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-5 pointer-events-none">
+            <IndianRupee size={160} />
+          </div>
+          
+          <div className="flex items-center justify-between relative z-10">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Current Effective Salary</span>
+            <button
+              onClick={() => navigate('/executive/salary')}
+              className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 uppercase tracking-widest flex items-center gap-0.5 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10 backdrop-blur-sm"
+            >
+              Ledger <ChevronRight size={12} />
+            </button>
+          </div>
+
+          <div className="relative z-10">
+            <span className="text-3xl font-black tracking-tight block">₹{salary?.effective || 0}</span>
+            <span className="text-[10px] font-medium text-slate-400 block mt-0.5">Disbursed per month based on active network status</span>
+          </div>
+
+          {salary?.last_month?.deduction_applied && (
+            <div className="pt-2 border-t border-white/10 flex items-center gap-2 text-[10px] font-bold text-rose-400 relative z-10">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              <span>Last month average below 50%: -₹{salary.last_month.deduction_amount} compounded penalty applied</span>
+            </div>
+          )}
+        </motion.div>
 
         {/* Simplified Metrics */}
         <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">

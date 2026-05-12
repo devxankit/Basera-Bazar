@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, Wallet, UserCircle, LayoutGrid, Zap } from 'lucide-react';
+import { Home, Users, Wallet, UserCircle, LayoutGrid, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const ExecutiveBottomNav = () => {
@@ -10,6 +10,7 @@ const ExecutiveBottomNav = () => {
   const navItems = [
     { id: 'home', label: 'Home', icon: LayoutGrid, path: '/executive/dashboard' },
     { id: 'partners', label: 'Partners', icon: Users, path: '/executive/partners' },
+    { id: 'tasks', label: 'Tasks', icon: Target, path: '/executive/task-history' },
     { id: 'wallet', label: 'Wallet', icon: Wallet, path: '/executive/wallet' },
     { id: 'profile', label: 'Profile', icon: UserCircle, path: '/executive/profile' }
   ];

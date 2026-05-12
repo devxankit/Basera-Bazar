@@ -69,6 +69,8 @@ const ExecutivePartners = lazy(() => import('./pages/executive/ExecutivePartners
 const ExecutiveWallet = lazy(() => import('./pages/executive/ExecutiveWallet'));
 const ExecutiveProfile = lazy(() => import('./pages/executive/ExecutiveProfile'));
 const ExecutivePayout = lazy(() => import('./pages/executive/ExecutivePayout'));
+const ExecutiveTaskHistory = lazy(() => import('./pages/executive/ExecutiveTaskHistory'));
+const ExecutiveSalary = lazy(() => import('./pages/executive/ExecutiveSalary'));
 
 // --- Lazy-loaded Admin pages ---
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
@@ -296,6 +298,8 @@ function App() {
                     <Route path="/executive/wallet" element={<ExecutiveRoute><ExecutiveLayout><ExecutiveWallet /></ExecutiveLayout></ExecutiveRoute>} />
                     <Route path="/executive/profile" element={<ExecutiveRoute><ExecutiveLayout><ExecutiveProfile /></ExecutiveLayout></ExecutiveRoute>} />
                     <Route path="/executive/payout" element={<ExecutiveRoute><ExecutiveLayout><ExecutivePayout /></ExecutiveLayout></ExecutiveRoute>} />
+                    <Route path="/executive/task-history" element={<ExecutiveRoute><ExecutiveLayout><ExecutiveTaskHistory /></ExecutiveLayout></ExecutiveRoute>} />
+                    <Route path="/executive/salary" element={<ExecutiveRoute><ExecutiveLayout><ExecutiveSalary /></ExecutiveLayout></ExecutiveRoute>} />
 
                     {/* Admin Routes */}
                     <Route path="/admin/login" element={<AdminLogin />} />

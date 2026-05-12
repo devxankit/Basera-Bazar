@@ -14,6 +14,10 @@ import { toast } from '../../mockToast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 import Skeleton from '../../components/common/Skeleton';
+import AdminDailyTaskTab from '../../components/executive/AdminDailyTaskTab';
+import AdminSalaryTab from '../../components/executive/AdminSalaryTab';
+import AdminTaskHistoryTab from '../../components/executive/AdminTaskHistoryTab';
+
 
 export default function AdminExecutives({ filter = 'All' }) {
   const navigate = useNavigate();
@@ -26,6 +30,8 @@ export default function AdminExecutives({ filter = 'All' }) {
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
+  const [activeTab, setActiveTab] = useState('executives'); // 'executives' | 'tasks' | 'salary' | 'history'
+
 
   const fetchData = async () => {
     setLoading(true);
@@ -286,13 +292,39 @@ export default function AdminExecutives({ filter = 'All' }) {
         )}
       </div>
 
-      <AdminTable 
-        columns={columns} 
-        data={filteredData} 
-        loading={loading} 
-        onSearch={setSearchTerm}
-        searchPlaceholder="Search by name, code or phone..."
-      />
+      {filter !== 'pending' && (
+        <div className="flex items-center gap-2 bg-slate-50/80 p-2 rounded-2xl border border-slate-100/80 w-fit backdrop-blur-md shadow-inner">
+          {[
+            { id: 'executives', label: 'Field Agents' },
+            { id: 'tasks', label: 'Daily Tasks' },
+            { id: 'salary', label: 'Salary Controls' },
+            { id: 'history', label: 'Task History' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 ${activeTab === tab.id ? 'bg-white text-indigo-600 shadow-md shadow-slate-200/50 scale-[1.02]' : 'text-slate-400 hover:text-slate-900'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'executives' && (
+        <AdminTable 
+          columns={columns} 
+          data={filteredData} 
+          loading={loading} 
+          onSearch={setSearchTerm}
+          searchPlaceholder="Search by name, code or phone..."
+        />
+      )}
+
+      {activeTab === 'tasks' && <AdminDailyTaskTab />}
+      {activeTab === 'salary' && <AdminSalaryTab />}
+      {activeTab === 'history' && <AdminTaskHistoryTab />}
+
 
       {/* Detail & Verification Modal */}
       <AnimatePresence>

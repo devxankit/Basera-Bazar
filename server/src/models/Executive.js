@@ -98,7 +98,12 @@ const executiveSchema = new mongoose.Schema({
     }
   },
   failed_login_attempts: { type: Number, default: 0 },
-  lockout_until: { type: Date, default: null }
+  lockout_until: { type: Date, default: null },
+  salary: {
+    base: { type: Number, default: 0 },
+    effective: { type: Number, default: 0 },
+    last_processed_month: { type: String, default: null }
+  }
 }, { timestamps: true });
 
 // Strip sensitive PII from all JSON responses

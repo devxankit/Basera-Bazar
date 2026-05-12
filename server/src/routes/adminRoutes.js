@@ -70,7 +70,15 @@ const {
   createSupplierCategory,
   updateSupplierCategory,
   deleteSupplierCategory,
-  validateReferralCode
+  validateReferralCode,
+  createDailyTask,
+  getDailyTaskHistory,
+  getTodayTaskProgress,
+  setExecutiveSalary,
+  getMonthlyPerformance,
+  getSalaryRecords,
+  markSalaryPaid,
+  triggerMonthlyDeduction
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
@@ -176,13 +184,27 @@ router.put('/system/offers', updateOfferConfig);
 
 // Executive Management
 router.get('/executives', getAllExecutives);
+router.get('/executives/config/settings', getExecutiveSettings);
+router.put('/executives/config/settings', updateExecutiveSettings);
+
+// Executive Daily Tasks
+router.get('/executives/tasks/today', getTodayTaskProgress);
+router.get('/executives/tasks', getDailyTaskHistory);
+router.post('/executives/tasks', createDailyTask);
+
+// Executive Salary
+router.get('/executives/performance', getMonthlyPerformance);
+router.get('/executives/salary-records', getSalaryRecords);
+router.put('/executives/salary-records/:id/pay', markSalaryPaid);
+router.post('/executives/process-monthly', triggerMonthlyDeduction);
+
+// Parameterized Executive Routes (Must come after sub-resource routes)
 router.get('/executives/:id', getExecutiveDetail);
 router.patch('/executives/:id/status', updateExecutiveStatus);
 router.patch('/executives/:id/toggle-active', toggleExecutiveActiveStatus);
 router.delete('/executives/:id', deleteExecutive);
-router.get('/executives/config/settings', getExecutiveSettings);
-router.put('/executives/config/settings', updateExecutiveSettings);
 router.post('/executives/:id/reset-kyc', resetExecutiveKyc);
+router.put('/executives/:id/salary', setExecutiveSalary);
 
 // Withdrawal Requests
 router.get('/withdrawals', getWithdrawalRequests);
@@ -190,8 +212,9 @@ router.patch('/withdrawals/:id/status', updateWithdrawalStatus);
 
 // Dynamic Form Data Endpoints
 // Subscription Plan Management
-router.get('/subscriptions/:id', getSubscriptionById);
+router.get('/subscriptions/plans', getSubscriptionPlans);
 router.post('/subscriptions/plans', createSubscriptionPlan);
+router.get('/subscriptions/:id', getSubscriptionById);
 router.put('/subscriptions/plans/:id', updateSubscriptionPlan);
 router.delete('/subscriptions/plans/:id', deleteSubscriptionPlan);
 router.patch('/subscriptions/:id/status', updateSubscriptionStatus);

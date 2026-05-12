@@ -14,6 +14,8 @@ const {
   requestWithdrawal,
   updateProfile,
   updateBankDetails,
+  getMyTaskHistory,
+  getMySalary
 } = require('../controllers/executiveController');
 const { protect } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
@@ -44,5 +46,7 @@ router.get('/transactions', cacheMiddleware(5, true), getMyTransactions);
 router.post('/withdraw', validate(withdrawalRequestSchema), idempotency, requestWithdrawal);
 router.put('/profile', validate(executiveProfileUpdateSchema), updateProfile);
 router.put('/bank-details', validate(executiveBankDetailsSchema), updateBankDetails);
+router.get('/task-history', cacheMiddleware(1, true), getMyTaskHistory);
+router.get('/salary', cacheMiddleware(5, true), getMySalary);
 
 module.exports = router;

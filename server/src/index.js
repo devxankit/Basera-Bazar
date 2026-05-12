@@ -109,6 +109,10 @@ const connectDB = require('./config/db');
 // Connect to Database
 connectDB();
 
+// Initialize Monthly Salary Deduction Scheduler
+const { scheduleMonthlyDeduction } = require('./jobs/monthlyDeductionJob');
+scheduleMonthlyDeduction();
+
 // -----------------------------------------------------
 // IMPORT ROUTES
 // -----------------------------------------------------

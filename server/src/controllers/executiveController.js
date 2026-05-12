@@ -12,6 +12,9 @@ const { checkLockout, recordFailedAttempt, resetFailedAttempts } = require('../u
 const WithdrawalRequest = require('../models/Wallet');
 const { AppConfig } = require('../models/System');
 const invalidate = require('../utils/cacheInvalidator');
+const DailyTask = require('../models/DailyTask');
+const SalaryRecord = require('../models/SalaryRecord');
+
 
 // Helper function to generate JWT
 const generateToken = (id, role, email, version = 0) => {
@@ -338,6 +341,51 @@ exports.getDashboard = async (req, res) => {
     const commissionSetting = await AppConfig.findOne({ key: 'executive_commission_amount' });
     const commissionAmount = commissionSetting ? commissionSetting.value : 100;
 
+    // Fetch today's DailyTask
+    const now = new Date();
+    const todayStr = new Date(now.getTime() + 5.5 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const dailyTaskDoc = await DailyTask.findOne({ date: todayStr }).lean();
+    
+    let daily_task = { exists: false, status: 'no_task' };
+    if (dailyTaskDoc) {
+      const dayStart = new Date(`${todayStr}T00:00:00.000Z`);
+      const dayEnd = new Date(`${todayStr}T23:59:59.999Z`);
+      const completed = executive.referral_code ? await Partner.countDocuments({
+        referral_code_used: executive.referral_code,
+        createdAt: { $gte: dayStart, $lte: dayEnd }
+      }) : 0;
+      
+      const percentage = dailyTaskDoc.target_count > 0 ? Math.round((completed / dailyTaskDoc.target_count) * 100) : 0;
+      let status = 'at_risk';
+      if (percentage >= 50) status = 'on_track';
+      else if (percentage >= 25) status = 'in_progress';
+      
+      daily_task = {
+        exists: true,
+        date: todayStr,
+        target_count: dailyTaskDoc.target_count,
+        description: dailyTaskDoc.description,
+        completed,
+        percentage,
+        status
+      };
+    }
+
+    // Fetch Last Month's Salary Record
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthStr = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+    const lastMonthRecord = await SalaryRecord.findOne({ executive_id: executive._id, month: lastMonthStr }).lean();
+
+    const salary = {
+      effective: executive.salary?.effective || executive.salary?.base || 0,
+      last_month: lastMonthRecord ? {
+        month: lastMonthRecord.month,
+        completion_rate: lastMonthRecord.completion_rate,
+        deduction_applied: lastMonthRecord.deduction_applied,
+        deduction_amount: lastMonthRecord.deduction_amount
+      } : null
+    };
+
     res.status(200).json({
       success: true,
       data: {
@@ -359,11 +407,13 @@ exports.getDashboard = async (req, res) => {
           totalSellers,
           pendingVerify,
           paidSellers,
-          commissioned: paidSellers // Currently 1:1 payout on first subscription
+          commissioned: paidSellers
         },
         settings: {
           referral_commission: commissionAmount
-        }
+        },
+        daily_task,
+        salary
       }
     });
   } catch (error) {
@@ -559,5 +609,112 @@ exports.updateBankDetails = async (req, res) => {
   } catch (error) {
     logger.error({ err: error }, 'Update Bank Details Error:')
     res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+/**
+ * @desc    Get My Daily Task History
+ * @route   GET /api/executive/task-history
+ */
+exports.getMyTaskHistory = async (req, res) => {
+  try {
+    const executive = await Executive.findById(req.user.id);
+    if (!executive) {
+      return res.status(404).json({ success: false, message: 'Executive not found.' });
+    }
+
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const total = await DailyTask.countDocuments();
+    const tasks = await DailyTask.find().sort({ date: -1 }).skip(skip).limit(limit).lean();
+
+    const history = await Promise.all(tasks.map(async (task) => {
+      const dayStart = new Date(`${task.date}T00:00:00.000Z`);
+      const dayEnd = new Date(`${task.date}T23:59:59.999Z`);
+
+      const completed = executive.referral_code ? await Partner.countDocuments({
+        referral_code_used: executive.referral_code,
+        createdAt: { $gte: dayStart, $lte: dayEnd }
+      }) : 0;
+
+      const percentage = task.target_count > 0 ? Math.round((completed / task.target_count) * 100) : 0;
+      const met = percentage >= 50;
+
+      return {
+        date: task.date,
+        target_count: task.target_count,
+        description: task.description,
+        completed,
+        percentage,
+        met
+      };
+    }));
+
+    const now = new Date();
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const currentMonthTasks = await DailyTask.find({
+      date: { $gte: `${currentMonthStr}-01`, $lte: `${currentMonthStr}-31` }
+    }).lean();
+
+    let currentMonthMetDays = 0;
+    for (const t of currentMonthTasks) {
+      const dStart = new Date(`${t.date}T00:00:00.000Z`);
+      const dEnd = new Date(`${t.date}T23:59:59.999Z`);
+      const cnt = executive.referral_code ? await Partner.countDocuments({
+        referral_code_used: executive.referral_code,
+        createdAt: { $gte: dStart, $lte: dEnd }
+      }) : 0;
+      if (t.target_count > 0 && cnt / t.target_count >= 0.5) {
+        currentMonthMetDays++;
+      }
+    }
+
+    const currentMonthAvg = currentMonthTasks.length > 0 ? Math.round((currentMonthMetDays / currentMonthTasks.length) * 100) : 0;
+
+    res.status(200).json({
+      success: true,
+      summary: {
+        month: currentMonthStr,
+        average_completion: currentMonthAvg,
+        days_met: currentMonthMetDays,
+        total_days: currentMonthTasks.length
+      },
+      data: history,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'getMyTaskHistory Error:');
+    res.status(500).json({ success: false, message: 'Server error fetching task history.' });
+  }
+};
+
+/**
+ * @desc    Get My Salary Details
+ * @route   GET /api/executive/salary
+ */
+exports.getMySalary = async (req, res) => {
+  try {
+    const executive = await Executive.findById(req.user.id);
+    if (!executive) {
+      return res.status(404).json({ success: false, message: 'Executive not found.' });
+    }
+
+    const records = await SalaryRecord.find({ executive_id: executive._id })
+      .sort({ month: -1, createdAt: -1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      current_salary: executive.salary?.effective || executive.salary?.base || 0,
+      base_salary: executive.salary?.base || 0,
+      data: records
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'getMySalary Error:');
+    res.status(500).json({ success: false, message: 'Server error fetching salary details.' });
   }
 };
