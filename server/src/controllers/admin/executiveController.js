@@ -8,6 +8,7 @@ const { createNotification } = require('../../utils/notificationHelper');
 const invalidate = require('../../utils/cacheInvalidator');
 const DailyTask = require('../../models/DailyTask');
 const SalaryRecord = require('../../models/SalaryRecord');
+const StaffAttendance = require('../../models/StaffAttendance');
 
 const getAllExecutives = async (req, res) => {
   try {
@@ -41,13 +42,19 @@ const getExecutiveDetail = async (req, res) => {
     const executive = await Executive.findById(req.params.id).lean();
     if (!executive) return res.status(404).json({ success: false, message: 'Executive not found' });
 
-    const partners = await Partner.find({ referral_code_used: executive.referral_code })
-      .select('name business_name phone onboarding_status createdAt')
-      .sort({ createdAt: -1 });
+    const [partners, attendance] = await Promise.all([
+      Partner.find({ referral_code_used: executive.referral_code })
+        .select('name business_name phone onboarding_status createdAt')
+        .sort({ createdAt: -1 }),
+      StaffAttendance.find({ staff_id: executive._id })
+        .sort({ date: -1 })
+        .limit(30)
+        .lean()
+    ]);
 
     res.status(200).json({
       success: true,
-      data: { ...executive, partners, onboardedCount: partners.length }
+      data: { ...executive, partners, attendance, onboardedCount: partners.length }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

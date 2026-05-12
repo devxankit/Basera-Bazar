@@ -363,6 +363,35 @@ export default function ExecutiveDashboard() {
           </div>
         </motion.div>
 
+        {/* Quick Actions Grid */}
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
+          <button 
+            onClick={() => navigate('/executive/wallet')}
+            className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col items-start gap-3 hover:border-slate-200 transition-all active:scale-95"
+          >
+            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+              <Wallet size={20} />
+            </div>
+            <div className="text-left">
+              <h4 className="text-sm font-medium text-slate-900">My Wallet</h4>
+              <p className="text-[10px] text-slate-400 uppercase">Earnings & Payouts</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => navigate('/executive/targets')}
+            className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col items-start gap-3 hover:border-slate-200 transition-all active:scale-95"
+          >
+            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+              <Target size={20} />
+            </div>
+            <div className="text-left">
+              <h4 className="text-sm font-medium text-slate-900">My Targets</h4>
+              <p className="text-[10px] text-slate-400 uppercase">Goals & Incentives</p>
+            </div>
+          </button>
+        </motion.div>
+
         {/* Navigation Link */}
         <motion.div variants={itemVariants}>
           <button 

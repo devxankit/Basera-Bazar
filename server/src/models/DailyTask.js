@@ -14,7 +14,7 @@ const dailyTaskSchema = new mongoose.Schema({
   },
   task_type: {
     type: String,
-    enum: ['onboard_partners'],
+    enum: ['onboard_partners', 'calling', 'lead_generation', 'sales', 'subscription', 'custom'],
     default: 'onboard_partners'
   },
   description: {

@@ -132,12 +132,20 @@ const pushRoutes = require('./routes/pushRoutes');
 const milestoneRoutes = require('./routes/milestoneRoutes');
 const leadRoutes = require('./routes/leadRoutes');
 const executiveRoutes = require('./routes/executiveRoutes');
+const staffAuthRoutes = require('./routes/staffAuthRoutes');
+const adminStaffRoutes = require('./routes/adminStaffRoutes');
+const teamLeaderRoutes = require('./routes/teamLeaderRoutes');
+const officeStaffRoutes = require('./routes/officeStaffRoutes');
 
 // -----------------------------------------------------
 // MOUNT ROUTES
 // -----------------------------------------------------
 app.use('/api/auth', authRoutes);
+app.use('/api/auth/staff', staffAuthRoutes);
 app.use('/api/executive', executiveRoutes);
+app.use('/api/admin/staff', adminStaffRoutes);
+app.use('/api/team-leader', teamLeaderRoutes);
+app.use('/api/office-staff', officeStaffRoutes);
 app.use('/api/partners', partnerRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/notifications', notificationRoutes);

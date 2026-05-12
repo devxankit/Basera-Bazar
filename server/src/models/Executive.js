@@ -103,6 +103,11 @@ const executiveSchema = new mongoose.Schema({
     base: { type: Number, default: 0 },
     effective: { type: Number, default: 0 },
     last_processed_month: { type: String, default: null }
+  },
+  team_leader_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TeamLeader',
+    default: null
   }
 }, { timestamps: true });
 

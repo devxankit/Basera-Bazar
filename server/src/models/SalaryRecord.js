@@ -4,8 +4,18 @@ const salaryRecordSchema = new mongoose.Schema({
   executive_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Executive',
-    required: true,
     index: true
+  },
+  // Polymorphic staff support (team_leader / office_staff)
+  staff_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    index: true,
+    default: null
+  },
+  staff_type: {
+    type: String,
+    enum: ['executive', 'team_leader', 'office_staff'],
+    default: 'executive'
   },
   month: {
     type: String,         // 'YYYY-MM' e.g. '2026-05'
@@ -52,10 +62,15 @@ const salaryRecordSchema = new mongoose.Schema({
     ref: 'AdminUser',
     default: null
   },
-  note: { type: String, default: '' }
+  note: { type: String, default: '' },
+  // Incentive and commission (new staff types)
+  incentive_amount: { type: Number, default: 0 },
+  team_commission_amount: { type: Number, default: 0 }
 }, { timestamps: true });
 
-// One record per executive per month
-salaryRecordSchema.index({ executive_id: 1, month: 1 }, { unique: true });
+// Legacy: one record per executive per month
+salaryRecordSchema.index({ executive_id: 1, month: 1 }, { unique: true, sparse: true });
+// New: one record per staff per month
+salaryRecordSchema.index({ staff_id: 1, month: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('SalaryRecord', salaryRecordSchema);

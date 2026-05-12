@@ -98,6 +98,6 @@ const auditLogSchema = new mongoose.Schema({
 // Logs shouldn't be mutable after creation so we only allow insert, usually managed at app layer.
 
 module.exports = {
-  AdminUser: mongoose.model('AdminUser', adminUserSchema),
-  AuditLog: mongoose.model('AuditLog', auditLogSchema)
+  AdminUser: mongoose.models.AdminUser || mongoose.model('AdminUser', adminUserSchema),
+  AdminAuditLog: mongoose.models.AdminAuditLog || mongoose.model('AdminAuditLog', auditLogSchema)
 };

@@ -1,7 +1,7 @@
 const logger = require('../../utils/logger');
 const { Partner } = require('../../models/Partner');
 const { Enquiry } = require('../../models/Enquiry');
-const { AuditLog } = require('../../models/Admin');
+const { AdminAuditLog } = require('../../models/Admin');
 const { logActivity } = require('../../utils/activityLogger');
 const { createNotification } = require('../../utils/notificationHelper');
 const invalidate = require('../../utils/cacheInvalidator');
@@ -37,7 +37,7 @@ const assignMandiEnquiry = async (req, res) => {
     enquiry.mandi_assignment = { assigned_to_partner_id: target_partner_id, assigned_by: adminId, fulfillment_status: 'assigned' };
     await enquiry.save();
 
-    await AuditLog.create({ performed_by: adminId, action: 'assign_mandi_enquiry', entity_type: 'Enquiry', entity_id: enquiryId, changes: { after: { assigned_to: target_partner_id } } });
+    await AdminAuditLog.create({ performed_by: adminId, action: 'assign_mandi_enquiry', entity_type: 'Enquiry', entity_id: enquiryId, changes: { after: { assigned_to: target_partner_id } } });
 
     res.status(200).json({ success: true, message: 'Successfully assigned Mandi lead to partner.', data: enquiry });
   } catch (error) {

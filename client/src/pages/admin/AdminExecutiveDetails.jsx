@@ -13,6 +13,7 @@ import api from '../../services/api';
 import Skeleton from '../../components/common/Skeleton';
 import { toast } from '../../mockToast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
+import AdminTable from '../../components/common/AdminTable';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -28,6 +29,7 @@ export default function AdminExecutiveDetails() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [tab, setTab] = useState('Overview');
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
 
   useEffect(() => {
@@ -314,6 +316,19 @@ export default function AdminExecutiveDetails() {
            ))}
         </div>
 
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 mb-5 gap-1">
+        {['Overview', 'Attendance', 'Partners', 'Payouts'].map((t) => (
+          <button key={t} onClick={() => setTab(t)}
+            className={cn(
+              "px-4 py-2.5 text-sm font-bold border-b-2 transition-colors",
+              tab === t ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-800"
+            )}
+          >{t}</button>
+        ))}
+      </div>
+
+      {tab === 'Overview' && (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           <div className="md:col-span-4 space-y-8">
              {/* Contact Details */}
@@ -423,6 +438,68 @@ export default function AdminExecutiveDetails() {
              </div>
           </div>
         </div>
+      )}
+
+      {tab === 'Attendance' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4">
+          <AdminTable 
+            title="Attendance History"
+            columns={[
+              { header: 'Date', render: (r) => <span className="font-bold text-slate-700">{r.date}</span> },
+              { header: 'Check In', render: (r) => r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString() : '—' },
+              { header: 'Check Out', render: (r) => r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString() : '—' },
+              { header: 'Selfie', render: (r) => r.check_in_selfie ? (
+                <a href={r.check_in_selfie} target="_blank" rel="noreferrer" className="block w-12 h-12 rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors">
+                  <img src={r.check_in_selfie} alt="Check-in Selfie" className="w-full h-full object-cover" />
+                </a>
+              ) : <span className="text-xs text-slate-400">—</span> },
+              { header: 'Status', render: (r) => (
+                <span className={cn(
+                  "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest",
+                  r.status === 'present' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                )}>
+                  {r.status}
+                </span>
+              )},
+              { header: 'Verified', render: (r) => (
+                r.verified_by_admin ? <span className="text-[10px] font-bold text-green-600">YES</span> : <span className="text-[10px] font-bold text-slate-400">PENDING</span>
+              )}
+            ]}
+            data={executive.attendance || []}
+            loading={false}
+          />
+        </div>
+      )}
+
+      {tab === 'Partners' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4">
+          <AdminTable 
+            title="Onboarded Partners"
+            columns={[
+              { header: 'Partner Name', render: (r) => <span className="font-bold text-slate-800">{r.name}</span> },
+              { header: 'Business', key: 'business_name' },
+              { header: 'Phone', key: 'phone' },
+              { header: 'Joined', render: (r) => new Date(r.createdAt).toLocaleDateString() },
+              { header: 'Status', render: (r) => (
+                <span className={cn(
+                  "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest",
+                  r.onboarding_status === 'verified' ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                )}>
+                  {r.onboarding_status}
+                </span>
+              )}
+            ]}
+            data={executive.partners || []}
+            loading={false}
+          />
+        </div>
+      )}
+
+      {tab === 'Payouts' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
+           <p className="text-sm font-medium">Payout history will be available soon.</p>
+        </div>
+      )}
       </div>
     </div>
   );

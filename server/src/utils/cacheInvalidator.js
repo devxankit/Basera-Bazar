@@ -14,6 +14,11 @@ const cacheInvalidator = {
     await CacheManager.clearByPrefix('__express__public:/api/admin');
     await CacheManager.clearByPrefix('__express__user:'); // For any admin-scoped calls
   },
+
+  adminStaff: async () => {
+    await CacheManager.clearByPrefix('__express__public:/api/admin/staff');
+    await CacheManager.clearByPrefix('__express__user:');
+  },
   
   // -----------------------------------------------------
   // PUBLIC / GLOBAL CACHE

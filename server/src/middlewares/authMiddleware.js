@@ -6,6 +6,7 @@ const { AdminUser } = require('../models/Admin');
 const { User } = require('../models/User');
 const { Partner } = require('../models/Partner');
 const Executive = require('../models/Executive');
+const { TeamLeader, OfficeStaff } = require('../models/Staff');
 
 async function resolveUserFromDecoded(decoded) {
   if (decoded.role === 'super_admin' || decoded.role === 'SuperAdmin') {
@@ -16,6 +17,12 @@ async function resolveUserFromDecoded(decoded) {
   }
   if (decoded.role === 'executive') {
     return Executive.findById(decoded.id).select('-password');
+  }
+  if (decoded.role === 'team_leader') {
+    return TeamLeader.findById(decoded.id).select('-password');
+  }
+  if (decoded.role === 'office_staff') {
+    return OfficeStaff.findById(decoded.id).select('-password');
   }
   return User.findById(decoded.id).select('-password');
 }
@@ -30,6 +37,10 @@ function attachUser(req, userFound, tokenRole) {
     req.user.role = 'partner';
   } else if (tokenRole === 'executive') {
     req.user.role = 'executive';
+  } else if (tokenRole === 'team_leader') {
+    req.user.role = 'team_leader';
+  } else if (tokenRole === 'office_staff') {
+    req.user.role = 'office_staff';
   }
 }
 
@@ -127,6 +138,15 @@ const verifyApproved = (req, res, next) => {
       return res.status(403).json({
         success: false,
         message: 'Access Denied: Your account is not yet approved. Please complete your profile and wait for approval.'
+      });
+    }
+  }
+
+  if (req.user.role === 'team_leader' || req.user.role === 'office_staff') {
+    if (req.user.onboarding_status !== 'approved') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Your account is not yet approved by the Admin.'
       });
     }
   }

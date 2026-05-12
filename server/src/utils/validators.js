@@ -85,6 +85,156 @@ const idParamSchema = z.object({
   id: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid ID format")
 });
 
+// ---------------------------------------------------------
+// STAFF MANAGEMENT SCHEMAS
+// ---------------------------------------------------------
+
+const indianPhone = z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number');
+const mongoId = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ID format');
+const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format');
+
+const strongPassword = z.string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number')
+  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+
+const teamLeaderSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100),
+  phone: indianPhone,
+  email: z.string().email('Invalid email address').toLowerCase(),
+  state: z.string().min(2, 'State is required').max(100),
+  district: z.string().max(100).optional(),
+  zone: z.string().max(100).optional(),
+  fixed_salary: z.number({ invalid_type_error: 'Salary must be a number' })
+    .int('Salary must be a whole number')
+    .min(25000, 'Minimum salary is ₹25,000')
+    .max(50000, 'Maximum salary is ₹50,000'),
+  commission_rate: z.number().min(0).max(20),
+  password: strongPassword,
+  address: z.object({
+    address_line: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    pincode: z.string().regex(/^\d{6}$/, 'Pincode must be 6 digits').optional(),
+  }).optional(),
+});
+
+const teamLeaderUpdateSchema = teamLeaderSchema.partial().omit({ password: true });
+
+const officeStaffSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100),
+  phone: indianPhone,
+  email: z.string().email('Invalid email address').toLowerCase(),
+  team_leader_id: mongoId,
+  fixed_salary: z.number({ invalid_type_error: 'Salary must be a number' })
+    .int('Salary must be a whole number')
+    .min(8000, 'Minimum salary is ₹8,000')
+    .max(15000, 'Maximum salary is ₹15,000'),
+  calling_specialization: z.enum(['lead_generation', 'follow_up', 'customer_support', 'data_update']),
+  password: strongPassword,
+  address: z.object({
+    address_line: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    pincode: z.string().regex(/^\d{6}$/, 'Pincode must be 6 digits').optional(),
+  }).optional(),
+});
+
+const officeStaffUpdateSchema = officeStaffSchema.partial().omit({ password: true });
+
+const staffLoginSchema = z.object({
+  identifier: z.string()
+    .min(5, 'Email or phone is required')
+    .refine(
+      (val) =>
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) ||
+        /^[6-9]\d{9}$/.test(val),
+      { message: 'Please enter a valid email address or 10-digit mobile number' }
+    ),
+  password: z.string().min(1, 'Password is required'),
+  role: z.enum(['team_leader', 'office_staff', 'executive'], {
+    errorMap: () => ({ message: 'Role must be team_leader, office_staff, or executive' }),
+  }),
+});
+
+const gpsCheckinSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  selfie_url: z.string().url('Invalid selfie URL'),
+  accuracy: z.number().optional(),
+});
+
+const officeCheckinSchema = z.object({
+  check_in_time: z.string().datetime().optional(),
+});
+
+const leaveRequestSchema = z.object({
+  leave_type: z.enum(['sick', 'casual', 'earned']),
+  start_date: dateStr,
+  end_date: dateStr,
+  reason: z.string().min(10, 'Reason must be at least 10 characters').max(500),
+}).refine((d) => d.start_date <= d.end_date, {
+  message: 'End date must be on or after start date',
+  path: ['end_date'],
+});
+
+const targetAssignSchema = z.object({
+  target_type: z.enum(['partner_onboarding', 'calling', 'lead_generation', 'sales', 'subscription', 'custom']),
+  target_period: z.enum(['daily', 'weekly', 'monthly']),
+  target_value: z.number().int().min(1, 'Target value must be at least 1'),
+  start_date: dateStr,
+  end_date: dateStr,
+  description: z.string().max(500).optional(),
+  incentive_type: z.enum(['percentage', 'fixed']),
+  incentive_rate: z.number().min(0, 'Incentive rate cannot be negative'),
+  assign_to_type: z.enum(['all', 'team_leader', 'field_executive', 'office_staff']),
+  assign_to_ids: z.array(mongoId).optional(),
+}).refine((d) => d.start_date <= d.end_date, {
+  message: 'End date must be on or after start date',
+  path: ['end_date'],
+});
+
+const leaveApprovalSchema = z.object({
+  action: z.enum(['approve', 'reject']),
+  note: z.string().max(500).optional(),
+});
+
+const salaryFinalizeSchema = z.object({
+  base_salary: z.number().min(0, 'Base salary cannot be negative'),
+  incentive_amount: z.number().min(0).optional(),
+  team_commission_amount: z.number().min(0).optional(),
+  notes: z.string().max(1000).optional(),
+});
+
+const geoFenceSchema = z.object({
+  team_leader_id: mongoId,
+  name: z.string().min(2).max(100),
+  center_lat: z.number().min(-90).max(90),
+  center_lng: z.number().min(-180).max(180),
+  radius_meters: z.number().min(50, 'Minimum radius is 50 meters').max(5000, 'Maximum radius is 5000 meters'),
+});
+
+const dailyReportSchema = z.object({
+  // Field executive fields
+  partners_visited: z.number().int().min(0).optional(),
+  partners_registered: z.number().int().min(0).optional(),
+  subscriptions_sold: z.number().int().min(0).optional(),
+  leads_uploaded: z.number().int().min(0).optional(),
+  // Office staff fields
+  calls_made: z.number().int().min(0).optional(),
+  follow_ups_done: z.number().int().min(0).optional(),
+  leads_generated: z.number().int().min(0).optional(),
+  data_entries_updated: z.number().int().min(0).optional(),
+  notes: z.string().max(1000).optional(),
+  report_attachments: z.array(z.string().url()).optional(),
+});
+
+const staffPasswordResetSchema = z.object({
+  current_password: z.string().min(1, 'Current password is required'),
+  new_password: strongPassword,
+});
+
 module.exports = {
   partnerRegistrationSchema,
   executiveBankDetailsSchema,
@@ -92,5 +242,20 @@ module.exports = {
   withdrawalRequestSchema,
   loginSchema,
   otpVerifySchema,
-  idParamSchema
+  idParamSchema,
+  // Staff management schemas
+  teamLeaderSchema,
+  teamLeaderUpdateSchema,
+  officeStaffSchema,
+  officeStaffUpdateSchema,
+  staffLoginSchema,
+  gpsCheckinSchema,
+  officeCheckinSchema,
+  leaveRequestSchema,
+  targetAssignSchema,
+  leaveApprovalSchema,
+  salaryFinalizeSchema,
+  geoFenceSchema,
+  dailyReportSchema,
+  staffPasswordResetSchema,
 };

@@ -9,6 +9,8 @@ import BottomNav from './components/layout/BottomNav';
 import PartnerLayout from './components/layout/PartnerLayout';
 import AdminLayout from './components/layout/AdminLayout';
 import ExecutiveLayout from './components/layout/ExecutiveLayout';
+import TeamLeaderLayout from './components/layout/TeamLeaderLayout';
+import OfficeStaffLayout from './components/layout/OfficeStaffLayout';
 import { initializeFCM, setupForegroundHandler, registerFCMToken } from './services/pushNotificationService';
 
 // --- Lazy-loaded User pages ---
@@ -71,6 +73,55 @@ const ExecutiveProfile = lazy(() => import('./pages/executive/ExecutiveProfile')
 const ExecutivePayout = lazy(() => import('./pages/executive/ExecutivePayout'));
 const ExecutiveTaskHistory = lazy(() => import('./pages/executive/ExecutiveTaskHistory'));
 const ExecutiveSalary = lazy(() => import('./pages/executive/ExecutiveSalary'));
+
+// --- Lazy-loaded Staff Login ---
+const StaffLogin = lazy(() => import('./pages/staff/StaffLogin'));
+const StaffForgotPassword = lazy(() => import('./pages/staff/StaffForgotPassword'));
+
+// --- Lazy-loaded Team Leader pages ---
+const TeamLeaderDashboard = lazy(() => import('./pages/team-leader/TeamLeaderDashboard'));
+const TeamLeaderExecutives = lazy(() => import('./pages/team-leader/TeamLeaderExecutives'));
+const TeamLeaderOfficeStaff = lazy(() => import('./pages/team-leader/TeamLeaderOfficeStaff'));
+const TeamLeaderAttendance = lazy(() => import('./pages/team-leader/TeamLeaderAttendance'));
+const TeamLeaderLeaves = lazy(() => import('./pages/team-leader/TeamLeaderLeaves'));
+const TeamLeaderReports = lazy(() => import('./pages/team-leader/TeamLeaderReports'));
+const TeamLeaderTargets = lazy(() => import('./pages/team-leader/TeamLeaderTargets'));
+const TeamLeaderSalary = lazy(() => import('./pages/team-leader/TeamLeaderSalary'));
+const TeamLeaderProfile = lazy(() => import('./pages/team-leader/TeamLeaderProfile'));
+
+// --- Lazy-loaded Office Staff pages ---
+const OfficeStaffDashboard = lazy(() => import('./pages/office-staff/OfficeStaffDashboard'));
+const OfficeStaffAttendance = lazy(() => import('./pages/office-staff/OfficeStaffAttendance'));
+const OfficeStaffTargets = lazy(() => import('./pages/office-staff/OfficeStaffTargets'));
+const OfficeStaffReports = lazy(() => import('./pages/office-staff/OfficeStaffReports'));
+const OfficeStaffReportForm = lazy(() => import('./pages/office-staff/OfficeStaffReportForm'));
+const OfficeStaffLeaves = lazy(() => import('./pages/office-staff/OfficeStaffLeaves'));
+const OfficeStaffSalary = lazy(() => import('./pages/office-staff/OfficeStaffSalary'));
+const OfficeStaffProfile = lazy(() => import('./pages/office-staff/OfficeStaffProfile'));
+
+// --- Lazy-loaded Executive extension pages ---
+const ExecutiveAttendance = lazy(() => import('./pages/executive/ExecutiveAttendance'));
+const ExecutiveTargets = lazy(() => import('./pages/executive/ExecutiveTargets'));
+const ExecutiveReports = lazy(() => import('./pages/executive/ExecutiveReports'));
+const ExecutiveReportForm = lazy(() => import('./pages/executive/ExecutiveReportForm'));
+const ExecutiveLeaves = lazy(() => import('./pages/executive/ExecutiveLeaves'));
+
+// --- Lazy-loaded Admin Staff pages ---
+const AdminStaffOverview = lazy(() => import('./pages/admin/staff/AdminStaffOverview'));
+const AdminTeamLeaders = lazy(() => import('./pages/admin/staff/AdminTeamLeaders'));
+const AdminTeamLeaderForm = lazy(() => import('./pages/admin/staff/AdminTeamLeaderForm'));
+const AdminTeamLeaderDetails = lazy(() => import('./pages/admin/staff/AdminTeamLeaderDetails'));
+const AdminOfficeStaff = lazy(() => import('./pages/admin/staff/AdminOfficeStaff'));
+const AdminOfficeStaffForm = lazy(() => import('./pages/admin/staff/AdminOfficeStaffForm'));
+const AdminOfficeStaffDetails = lazy(() => import('./pages/admin/staff/AdminOfficeStaffDetails'));
+const AdminTargetManagement = lazy(() => import('./pages/admin/staff/AdminTargetManagement'));
+const AdminAttendanceMonitor = lazy(() => import('./pages/admin/staff/AdminAttendanceMonitor'));
+const AdminAttendanceReport = lazy(() => import('./pages/admin/staff/AdminAttendanceReport'));
+const AdminLeaveApproval = lazy(() => import('./pages/admin/staff/AdminLeaveApproval'));
+const AdminStaffSalary = lazy(() => import('./pages/admin/staff/AdminStaffSalary'));
+const AdminStaffPerformance = lazy(() => import('./pages/admin/staff/AdminStaffPerformance'));
+const AdminStaffLeaderboard = lazy(() => import('./pages/admin/staff/AdminStaffLeaderboard'));
+const AdminStaffReports = lazy(() => import('./pages/admin/staff/AdminStaffReports'));
 
 // --- Lazy-loaded Admin pages ---
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
@@ -169,7 +220,21 @@ const VerifiedPartnerRoute = ({ children }) => {
 const ExecutiveRoute = ({ children }) => {
   const { user, isAuthenticated, loading } = useAuth();
   if (loading) return null;
-  if (!isAuthenticated || user?.role !== 'executive') return <Navigate to="/executive/login" replace />;
+  if (!isAuthenticated || user?.role !== 'executive') return <Navigate to="/staff/login" replace />;
+  return children;
+};
+
+const TeamLeaderRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return null;
+  if (!isAuthenticated || user?.role !== 'team_leader') return <Navigate to="/staff/login" replace />;
+  return children;
+};
+
+const OfficeStaffRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return null;
+  if (!isAuthenticated || user?.role !== 'office_staff') return <Navigate to="/staff/login" replace />;
   return children;
 };
 
@@ -361,6 +426,57 @@ function App() {
                     <Route path="/admin/executives/pending" element={<AdminRoute><AdminLayout><AdminExecutives filter="pending" /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/executives/withdrawals" element={<AdminRoute><AdminLayout><AdminWithdrawals /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/executives/economics" element={<AdminRoute><AdminLayout><AdminEconomics /></AdminLayout></AdminRoute>} />
+
+                    {/* --- Staff unified login --- */}
+                    <Route path="/staff/login" element={<StaffLogin />} />
+                    <Route path="/staff/forgot-password" element={<StaffForgotPassword />} />
+
+                    {/* --- Team Leader portal --- */}
+                    <Route path="/team-leader/dashboard" element={<TeamLeaderRoute><TeamLeaderLayout><TeamLeaderDashboard /></TeamLeaderLayout></TeamLeaderRoute>} />
+                    <Route path="/team-leader/team/executives" element={<TeamLeaderRoute><TeamLeaderLayout><TeamLeaderExecutives /></TeamLeaderLayout></TeamLeaderRoute>} />
+                    <Route path="/team-leader/team/office-staff" element={<TeamLeaderRoute><TeamLeaderLayout><TeamLeaderOfficeStaff /></TeamLeaderLayout></TeamLeaderRoute>} />
+                    <Route path="/team-leader/attendance" element={<TeamLeaderRoute><TeamLeaderLayout><TeamLeaderAttendance /></TeamLeaderLayout></TeamLeaderRoute>} />
+                    <Route path="/team-leader/leaves" element={<TeamLeaderRoute><TeamLeaderLayout><TeamLeaderLeaves /></TeamLeaderLayout></TeamLeaderRoute>} />
+                    <Route path="/team-leader/reports" element={<TeamLeaderRoute><TeamLeaderLayout><TeamLeaderReports /></TeamLeaderLayout></TeamLeaderRoute>} />
+                    <Route path="/team-leader/targets" element={<TeamLeaderRoute><TeamLeaderLayout><TeamLeaderTargets /></TeamLeaderLayout></TeamLeaderRoute>} />
+                    <Route path="/team-leader/salary" element={<TeamLeaderRoute><TeamLeaderLayout><TeamLeaderSalary /></TeamLeaderLayout></TeamLeaderRoute>} />
+                    <Route path="/team-leader/profile" element={<TeamLeaderRoute><TeamLeaderLayout><TeamLeaderProfile /></TeamLeaderLayout></TeamLeaderRoute>} />
+
+                    {/* --- Office Staff portal --- */}
+                    <Route path="/office-staff/dashboard" element={<OfficeStaffRoute><OfficeStaffLayout><OfficeStaffDashboard /></OfficeStaffLayout></OfficeStaffRoute>} />
+                    <Route path="/office-staff/attendance" element={<OfficeStaffRoute><OfficeStaffLayout><OfficeStaffAttendance /></OfficeStaffLayout></OfficeStaffRoute>} />
+                    <Route path="/office-staff/targets" element={<OfficeStaffRoute><OfficeStaffLayout><OfficeStaffTargets /></OfficeStaffLayout></OfficeStaffRoute>} />
+                    <Route path="/office-staff/reports" element={<OfficeStaffRoute><OfficeStaffLayout><OfficeStaffReports /></OfficeStaffLayout></OfficeStaffRoute>} />
+                    <Route path="/office-staff/reports/submit" element={<OfficeStaffRoute><OfficeStaffLayout><OfficeStaffReportForm /></OfficeStaffLayout></OfficeStaffRoute>} />
+                    <Route path="/office-staff/leaves" element={<OfficeStaffRoute><OfficeStaffLayout><OfficeStaffLeaves /></OfficeStaffLayout></OfficeStaffRoute>} />
+                    <Route path="/office-staff/salary" element={<OfficeStaffRoute><OfficeStaffLayout><OfficeStaffSalary /></OfficeStaffLayout></OfficeStaffRoute>} />
+                    <Route path="/office-staff/profile" element={<OfficeStaffRoute><OfficeStaffLayout><OfficeStaffProfile /></OfficeStaffLayout></OfficeStaffRoute>} />
+
+                    {/* --- Field Executive extensions --- */}
+                    <Route path="/executive/attendance" element={<ExecutiveRoute><ExecutiveLayout><ExecutiveAttendance /></ExecutiveLayout></ExecutiveRoute>} />
+                    <Route path="/executive/targets" element={<ExecutiveRoute><ExecutiveLayout><ExecutiveTargets /></ExecutiveLayout></ExecutiveRoute>} />
+                    <Route path="/executive/reports" element={<ExecutiveRoute><ExecutiveLayout><ExecutiveReports /></ExecutiveLayout></ExecutiveRoute>} />
+                    <Route path="/executive/reports/submit" element={<ExecutiveRoute><ExecutiveLayout><ExecutiveReportForm /></ExecutiveLayout></ExecutiveRoute>} />
+                    <Route path="/executive/leaves" element={<ExecutiveRoute><ExecutiveLayout><ExecutiveLeaves /></ExecutiveLayout></ExecutiveRoute>} />
+
+                    {/* --- Admin Staff Management --- */}
+                    <Route path="/admin/staff" element={<AdminRoute><AdminLayout><AdminStaffOverview /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/team-leaders" element={<AdminRoute><AdminLayout><AdminTeamLeaders /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/team-leaders/add" element={<AdminRoute><AdminLayout><AdminTeamLeaderForm /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/team-leaders/edit/:id" element={<AdminRoute><AdminLayout><AdminTeamLeaderForm /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/team-leaders/view/:id" element={<AdminRoute><AdminLayout><AdminTeamLeaderDetails /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/office-staff" element={<AdminRoute><AdminLayout><AdminOfficeStaff /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/office-staff/add" element={<AdminRoute><AdminLayout><AdminOfficeStaffForm /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/office-staff/edit/:id" element={<AdminRoute><AdminLayout><AdminOfficeStaffForm /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/office-staff/view/:id" element={<AdminRoute><AdminLayout><AdminOfficeStaffDetails /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/targets" element={<AdminRoute><AdminLayout><AdminTargetManagement /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/attendance" element={<AdminRoute><AdminLayout><AdminAttendanceMonitor /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/attendance/report" element={<AdminRoute><AdminLayout><AdminAttendanceReport /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/leaves" element={<AdminRoute><AdminLayout><AdminLeaveApproval /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/salary" element={<AdminRoute><AdminLayout><AdminStaffSalary /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/performance" element={<AdminRoute><AdminLayout><AdminStaffPerformance /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/leaderboard" element={<AdminRoute><AdminLayout><AdminStaffLeaderboard /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/staff/reports" element={<AdminRoute><AdminLayout><AdminStaffReports /></AdminLayout></AdminRoute>} />
                   </Routes>
                 </Suspense>
               </Router>

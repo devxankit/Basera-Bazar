@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const logger = require('../../utils/logger');
 const { Partner } = require('../../models/Partner');
-const { AuditLog, AdminUser } = require('../../models/Admin');
+const { AdminAuditLog, AdminUser } = require('../../models/Admin');
 const { User } = require('../../models/User');
 const { PropertyListing, ServiceListing, MandiListing } = require('../../models/Listing');
 const { Transaction } = require('../../models/Finance');

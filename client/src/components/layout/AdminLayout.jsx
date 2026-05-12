@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, Users, Building2, Briefcase, ShoppingBag, 
-  Store, BadgePercent, MessageSquare, Image, BarChart3, 
-  Menu, X, LogOut, Bell, Settings, ChevronRight
+import {
+  LayoutDashboard, Users, Building2, Briefcase, ShoppingBag,
+  Store, BadgePercent, MessageSquare, Image, BarChart3,
+  Menu, X, LogOut, Bell, Settings, ChevronRight, Users2,
+  Target, ClipboardCheck, FileBarChart, Trophy, Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -33,6 +34,23 @@ const navItems = [
       { label: 'Pending Verification', path: '/admin/executives/pending' },
       { label: 'Payout Requests', path: '/admin/executives/withdrawals' },
       { label: 'Economics', path: '/admin/executives/economics' },
+    ]
+  },
+  {
+    id: 'staff-management',
+    label: 'Staff Management',
+    icon: Users2,
+    children: [
+      { label: 'Overview', path: '/admin/staff' },
+      { label: 'Team Leaders', path: '/admin/staff/team-leaders' },
+      { label: 'Office Staff', path: '/admin/staff/office-staff' },
+      { label: 'Assign Targets', path: '/admin/staff/targets' },
+      { label: 'Attendance Monitor', path: '/admin/staff/attendance' },
+      { label: 'Leave Approval', path: '/admin/staff/leaves', badge: 'pending_leaves' },
+      { label: 'Salary & Incentives', path: '/admin/staff/salary' },
+      { label: 'Performance Reports', path: '/admin/staff/performance' },
+      { label: 'Leaderboard', path: '/admin/staff/leaderboard' },
+      { label: 'Download Reports', path: '/admin/staff/reports' },
     ]
   },
   { 
@@ -191,7 +209,14 @@ export default function AdminLayout({ children }) {
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [badges, setBadges] = useState({ verification: 0, upgrades: 0, executives: 0, withdrawals: 0 });
+  const [badges, setBadges] = useState({ 
+    verification: 0, 
+    upgrades: 0, 
+    executives: 0, 
+    withdrawals: 0,
+    pendingLeaves: 0,
+    pendingReports: 0
+  });
 
   React.useEffect(() => {
     const fetchBadges = async (force = false) => {
@@ -203,6 +228,9 @@ export default function AdminLayout({ children }) {
         const upgrades = data.upgrades || [];
         const executives = data.executives || [];
         const withdrawals = data.withdrawals || [];
+        
+        // Staff stats (F-2)
+        const staffStats = data.staffStats || {};
         
         const verificationCount = users.filter(u => 
           (['Agent', 'Supplier', 'Service Provider', 'mandi_seller'].includes(u.role) || u.partner_type || (u.roles && u.roles.length > 0)) && 
@@ -217,7 +245,9 @@ export default function AdminLayout({ children }) {
           verification: verificationCount, 
           upgrades: upgradesCount,
           executives: executivePendingCount,
-          withdrawals: withdrawalsCount
+          withdrawals: withdrawalsCount,
+          pendingLeaves: staffStats.pending_leaves || 0,
+          pendingReports: staffStats.pending_reports || 0
         });
       } catch (err) {
         console.error("Failed to fetch sidebar badges:", err);
@@ -324,6 +354,15 @@ export default function AdminLayout({ children }) {
                   return child;
                 });
                 itemWithBadges.badge = badges.executives + badges.withdrawals;
+              }
+
+              if (itemWithBadges.id === 'staff-management') {
+                itemWithBadges.children = itemWithBadges.children.map(child => {
+                  if (child.label === 'Leave Approval') return { ...child, badge: badges.pendingLeaves };
+                  if (child.label === 'Performance Reports') return { ...child, badge: badges.pendingReports };
+                  return child;
+                });
+                itemWithBadges.badge = badges.pendingLeaves + badges.pendingReports;
               }
 
               if (itemWithBadges.children) {
