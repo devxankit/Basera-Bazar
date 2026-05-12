@@ -62,7 +62,7 @@ const navItems = [
     icon: ShoppingBag,
     children: [
       { label: 'All Suppliers', path: '/admin/suppliers' },
-      { label: 'Product Categories', path: '/admin/suppliers/categories' },
+      { label: 'Supplier Categories', path: '/admin/suppliers/categories' },
     ]
   },
   { 
@@ -73,6 +73,7 @@ const navItems = [
       { label: 'KYC Queue', path: '/admin/mandi-bazar/kyc' },
       { label: 'Payouts', path: '/admin/mandi-bazar/withdrawals' },
       { label: 'Sellers', path: '/admin/mandi-bazar/sellers' },
+      { label: 'Product Categories', path: '/admin/mandi-bazar/categories' },
       { label: 'Materials', path: '/admin/mandi-bazar/products' },
       { label: 'Economics', path: '/admin/mandi-bazar/economics' },
       { label: 'Market Orders', path: '/admin/mandi-bazar/orders' },

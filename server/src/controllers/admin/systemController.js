@@ -1,7 +1,7 @@
 const logger = require('../../utils/logger');
 const { Partner } = require('../../models/Partner');
 const { PropertyListing, ServiceListing, MandiListing } = require('../../models/Listing');
-const { Category, Banner, AppConfig } = require('../../models/System');
+const { Category, SupplierCategory, Banner, AppConfig } = require('../../models/System');
 const invalidate = require('../../utils/cacheInvalidator');
 const pick = require('../../utils/pick');
 
@@ -17,34 +17,7 @@ const getSystemCategories = async (req, res) => {
     if (type) query.type = type;
     if (parent_id !== undefined) query.parent_id = parent_id === 'null' ? null : parent_id;
 
-    let categories = await Category.find(query).populate('parent_id').sort({ name: 1 });
-
-    const nameMap = {};
-    const mergedCategories = [];
-
-    for (let cat of categories) {
-      let cleanName = cat.name.toLowerCase().replace(/\s*supplier[s]?\s*/gi, '').trim();
-      if (cleanName.endsWith('s') && cleanName.length > 3 && !['glass', 'gas', 'brass'].includes(cleanName)) {
-        cleanName = cleanName.slice(0, -1);
-      }
-
-      if (!nameMap[cleanName]) {
-        if (cat.name !== cleanName) { cat.name = cleanName; cat.slug = cleanName.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''); await cat.save(); }
-        nameMap[cleanName] = cat;
-        mergedCategories.push(cat);
-      } else {
-        const master = nameMap[cleanName];
-        logger.info(`[MERGE] Merging duplicate category "${cat.name}" (${cat._id}) into "${master.name}" (${master._id})`);
-        const mockPrices = [7500, 62000, 420, 4500];
-        await MandiListing.updateMany({ category_id: cat._id }, { category_id: master._id });
-        await MandiListing.updateMany({ $or: [{ 'pricing.price_per_unit': { $in: mockPrices } }, { material_name: /Bricks|Saria|Aggregate|Sand/i }] }, { status: 'inactive' });
-        await Partner.updateMany({ 'profile.supplier_profile.material_categories': cat._id }, { $set: { 'profile.supplier_profile.material_categories.$[elem]': master._id } }, { arrayFilters: [{ 'elem': cat._id }] });
-        cat.is_active = false;
-        cat.name = `${cat.name} (Merged)`;
-        await cat.save();
-      }
-    }
-    categories = mergedCategories;
+    const categories = await Category.find(query).populate('parent_id').sort({ name: 1 });
 
     const processedCategories = await Promise.all(categories.map(async (cat) => {
       const catObj = cat.toObject();
@@ -120,6 +93,76 @@ const getCategoryDetail = async (req, res) => {
     const subcategories = await Category.find({ parent_id: req.params.id, is_active: true });
     const propertyCount = await PropertyListing.countDocuments({ category_id: req.params.id });
     res.status(200).json({ success: true, data: { ...category.toObject(), subcategories, stats: { properties: propertyCount } } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+/* ── Supplier Categories ── */
+const getSupplierCategories = async (req, res) => {
+  try {
+    const { parent_id, include_inactive } = req.query;
+    const query = include_inactive === 'true' ? {} : { is_active: true };
+    if (parent_id !== undefined) query.parent_id = parent_id === 'null' ? null : parent_id;
+
+    const categories = await SupplierCategory.find(query).populate('parent_id').sort({ name: 1 });
+    
+    const processed = await Promise.all(categories.map(async (cat) => {
+      const catObj = cat.toObject();
+      catObj.supplier_count = await Partner.countDocuments({ 
+        'profile.supplier_profile.material_categories': cat._id, 
+        isActive: true 
+      });
+      catObj.count = catObj.supplier_count;
+      return catObj;
+    }));
+
+    res.status(200).json({ success: true, count: processed.length, data: processed });
+  } catch (error) {
+    logger.error({ err: error }, 'getSupplierCategories ERROR:');
+    res.status(500).json({ success: false, message: 'Error fetching supplier categories.' });
+  }
+};
+
+const createSupplierCategory = async (req, res) => {
+  try {
+    let { name, parent_id, icon, description } = req.body;
+    const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+    const category = await SupplierCategory.create({ name, slug, parent_id: parent_id || null, icon, description });
+    res.status(201).json({ success: true, data: category });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+const updateSupplierCategory = async (req, res) => {
+  try {
+    const categoryUpdate = pick(req.body, ['name', 'slug', 'parent_id', 'icon', 'is_active', 'description']);
+    const category = await SupplierCategory.findByIdAndUpdate(req.params.id, categoryUpdate, { new: true });
+    res.status(200).json({ success: true, data: category });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+const deleteSupplierCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const supplierCount = await Partner.countDocuments({ 'profile.supplier_profile.material_categories': id });
+    if (supplierCount > 0) return res.status(400).json({ success: false, message: `Cannot delete category. It is assigned to ${supplierCount} suppliers.` });
+    const deleted = await SupplierCategory.findByIdAndDelete(id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'Category not found.' });
+    res.status(200).json({ success: true, message: 'Supplier category deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+const getSupplierCategoryDetail = async (req, res) => {
+  try {
+    const category = await SupplierCategory.findById(req.params.id).populate('parent_id');
+    const subcategories = await SupplierCategory.find({ parent_id: req.params.id, is_active: true });
+    res.status(200).json({ success: true, data: { ...category.toObject(), subcategories } });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.' });
   }
@@ -238,6 +281,11 @@ module.exports = {
   updateCategory,
   deleteCategory,
   getCategoryDetail,
+  getSupplierCategories,
+  createSupplierCategory,
+  updateSupplierCategory,
+  deleteSupplierCategory,
+  getSupplierCategoryDetail,
   getBanners,
   getBannerById,
   createBanner,

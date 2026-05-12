@@ -14,14 +14,7 @@ import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
 
 const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
-const SUPPLIER_CATEGORIES = [
-  'Aggregate supplier', 
-  'bricks suppliers', 
-  'cement supplier', 
-  'construction materials supplier', 
-  'sand supplier', 
-  'tmt supplier'
-];
+// SUPPLIER_CATEGORIES will be fetched dynamically from API
 
 // Helper to find best matching district from our list
 const findMatchingDistrict = (state, rawDistrict) => {
@@ -56,6 +49,23 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   const [referralStatus, setReferralStatus] = useState('idle'); // 'idle', 'validating', 'success', 'error'
   const [executiveName, setExecutiveName] = useState('');
   const [shake, setShake] = useState(false);
+  const [dynamicSupplierCategories, setDynamicSupplierCategories] = useState([]);
+
+  useEffect(() => {
+    if (role === 'supplier') {
+      const fetchSupplierCats = async () => {
+        try {
+          const res = await api.get('/listings/categories?type=supplier');
+          if (res.data.success) {
+            setDynamicSupplierCategories(res.data.data);
+          }
+        } catch (err) {
+          console.error("Error fetching supplier categories:", err);
+        }
+      };
+      fetchSupplierCats();
+    }
+  }, [role]);
   
   
   const profileInputRef = useRef(null);
@@ -520,7 +530,8 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
           <div className="pt-2">
             <h3 className="text-[14px] font-bold text-[#001b4e] uppercase tracking-wider mb-4 px-1">Supplier Categories *</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {SUPPLIER_CATEGORIES.map(category => {
+              {dynamicSupplierCategories.map(cat => {
+                const category = cat.name;
                 let currentCats = [];
                 if (typeof formData.category === 'string') {
                   currentCats = formData.category ? formData.category.split(', ') : [];
@@ -548,7 +559,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
 
                 return (
                   <div 
-                    key={category} 
+                    key={cat._id} 
                     onClick={toggleCategory}
                     className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all active:scale-[0.98] ${
                       isSelected 

@@ -574,28 +574,38 @@ const getPublicCategories = async (req, res) => {
     if (state && typeof state !== 'string') state = null;
     if (parent_id && typeof parent_id !== 'string') parent_id = undefined;
 
-    const query = { is_active: true };
-    if (type) query.type = type;
-    
-    // Handle hierarchy
-    if (parent_id !== undefined) {
-      query.parent_id = parent_id === 'null' ? null : parent_id;
+    let categories;
+    if (type === 'supplier') {
+      const { SupplierCategory } = require('../models/System');
+      const supplierQuery = { is_active: true };
+      if (parent_id !== undefined) {
+        supplierQuery.parent_id = parent_id === 'null' ? null : parent_id;
+      } else {
+        supplierQuery.parent_id = null;
+      }
+      categories = await SupplierCategory.find(supplierQuery).sort({ name: 1 });
     } else {
-      query.parent_id = null;
-    }
+      const query = { is_active: true };
+      if (type) query.type = type;
+      
+      // Handle hierarchy
+      if (parent_id !== undefined) {
+        query.parent_id = parent_id === 'null' ? null : parent_id;
+      } else {
+        query.parent_id = null;
+      }
 
-    // Handle partner-specific categories
-    // Logic: Return global categories (partner_id: null) OR those belonging to the specific partner
-    if (partner_id) {
-      query.$or = [
-        { partner_id: null },
-        { partner_id: partner_id }
-      ];
-    } else {
-      query.partner_id = null;
+      // Handle partner-specific categories
+      if (partner_id) {
+        query.$or = [
+          { partner_id: null },
+          { partner_id: partner_id }
+        ];
+      } else {
+        query.partner_id = null;
+      }
+      categories = await Category.find(query).sort({ name: 1 });
     }
-
-    const categories = await Category.find(query).sort({ name: 1 });
 
     // Count listings per category
     let ListingModel;
@@ -630,7 +640,11 @@ const getPublicCategories = async (req, res) => {
       } else if (type === 'supplier') {
         let countQuery = { 
           $or: [{ roles: 'supplier' }, { partner_type: 'supplier' }],
-          'profile.supplier_profile.material_categories': cat.name,
+          // Match by name for now as existing data uses names
+          $or: [
+            { 'profile.supplier_profile.material_categories': cat.name },
+            { 'profile.supplier_profile.material_categories': String(cat._id) }
+          ],
           onboarding_status: 'approved',
           is_active: true
         };

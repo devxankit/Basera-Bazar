@@ -35,7 +35,8 @@ export default function AdminCategoryForm() {
   const fetchParents = async (type) => {
     setFetchingParents(true);
     try {
-      const res = await api.get(`/admin/system/categories?type=${type}&parent_id=null`);
+      const endpoint = type === 'supplier' ? '/admin/system/supplier-categories' : '/admin/system/categories';
+      const res = await api.get(`${endpoint}?type=${type}&parent_id=null`);
       if (res.data.success) {
         // Exclude current category if editing to prevent circular dependency
         setAvailableParents(res.data.data.filter(p => p._id !== id));
@@ -51,14 +52,27 @@ export default function AdminCategoryForm() {
     const fetchDetails = async () => {
       try {
         if (isEdit) {
-          const res = await api.get(`/admin/system/categories/${id}`);
+          // Try regular category first, then supplier category if it fails or if we know it's a supplier
+          // But since we have the ID, we might not know the type yet.
+          // Let's try both or use a search param if available.
+          const isSupplierRoute = window.location.pathname.includes('suppliers');
+          const endpoint = isSupplierRoute ? '/admin/system/supplier-categories' : '/admin/system/categories';
+          
+          let res;
+          try {
+            res = await api.get(`${endpoint}/${id}`);
+          } catch (e) {
+            if (!isSupplierRoute) res = await api.get(`/admin/system/supplier-categories/${id}`);
+            else throw e;
+          }
+
           if (res.data.success) {
             const data = res.data.data;
             setFormData({
               ...data,
               parent_id: data.parent_id?._id || data.parent_id || null
             });
-            await fetchParents(data.type);
+            await fetchParents(data.type || (isSupplierRoute ? 'supplier' : 'property'));
           }
         } else {
           await fetchParents(typeFromUrl);
@@ -90,9 +104,10 @@ export default function AdminCategoryForm() {
       const payload = { ...formData };
       if (!payload.parent_id || payload.parent_id === 'null') payload.parent_id = null;
 
+      const endpoint = formData.type === 'supplier' ? '/admin/system/supplier-categories' : '/admin/system/categories';
       const res = isEdit 
-        ? await api.put(`/admin/system/categories/${id}`, payload)
-        : await api.post('/admin/system/categories', payload);
+        ? await api.put(`${endpoint}/${id}`, payload)
+        : await api.post(endpoint, payload);
 
       if (res.data.success) {
         setSuccess(`Category managed successfully!`);

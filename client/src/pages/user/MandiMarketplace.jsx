@@ -67,7 +67,7 @@ export default function MandiMarketplace() {
 
             const [mandiRes, supplierRes, bannerRes] = await Promise.all([
                api.get(`/mandi/marketplace/home${locationParams}`),
-               api.get(`/listings/categories?type=supplier&district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}`),
+               api.get(`/listings/categories?type=product&district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}`),
                api.get('/listings/banners')
             ]);
 

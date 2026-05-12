@@ -69,8 +69,18 @@ const appConfigSchema = new mongoose.Schema({
   updated_by: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser' }
 }, { timestamps: true });
 
+const supplierCategorySchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  slug: { type: String, required: true, unique: true },
+  parent_id: { type: mongoose.Schema.Types.ObjectId, ref: 'SupplierCategory', default: null }, // Hierarchy support
+  description: { type: String },
+  icon: { type: String },
+  is_active: { type: Boolean, default: true }
+}, { timestamps: true });
+
 module.exports = {
   Category: mongoose.model('Category', categorySchema),
+  SupplierCategory: mongoose.model('SupplierCategory', supplierCategorySchema),
   Banner: mongoose.model('Banner', bannerSchema),
   Location: mongoose.model('Location', locationSchema),
   Notification: mongoose.model('Notification', notificationSchema),

@@ -24,8 +24,8 @@ const inputClass =
 
 const TYPE_META = {
   supplier: {
-    label: 'Product Categories',
-    desc: 'Material/product types that suppliers can be classified under. A supplier may cover multiple.',
+    label: 'Supplier Categories',
+    desc: 'Business classifications and material types that suppliers specialize in.',
     partnerLabel: 'Suppliers',
     color: 'text-amber-600 bg-amber-50',
     icon: Package,
@@ -81,8 +81,12 @@ export default function AdminDynamicCategoryManager({ type = 'supplier' }) {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
+      const baseUrl = type === 'supplier' ? '/admin/system/supplier-categories' : '/admin/system/categories';
+      const separator = baseUrl.includes('?') ? '&' : '?';
+      const endpoint = `${baseUrl}${separator}include_inactive=true${type !== 'supplier' ? `&type=${type}` : ''}`;
+      
       const [catRes, usersRes] = await Promise.all([
-        api.get(`/admin/system/categories?type=${type}`),
+        api.get(endpoint),
         type === 'supplier' || type === 'service'
           ? api.get('/admin/users')
           : Promise.resolve({ data: { success: false } }),
@@ -188,10 +192,11 @@ export default function AdminDynamicCategoryManager({ type = 'supplier' }) {
         related_categories: formRelated,
         is_active: formActive,
       };
+      const endpoint = type === 'supplier' ? '/admin/system/supplier-categories' : '/admin/system/categories';
       if (editTarget) {
-        await api.put(`/admin/system/categories/${editTarget._id}`, payload);
+        await api.put(`${endpoint}/${editTarget._id}`, payload);
       } else {
-        await api.post('/admin/system/categories', payload);
+        await api.post(endpoint, payload);
       }
       closeModal();
       await fetchAll();
@@ -205,7 +210,8 @@ export default function AdminDynamicCategoryManager({ type = 'supplier' }) {
   const handleDelete = async (id, name) => {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
     try {
-      await api.delete(`/admin/system/categories/${id}`);
+      const endpoint = type === 'supplier' ? '/admin/system/supplier-categories' : '/admin/system/categories';
+      await api.delete(`${endpoint}/${id}`);
       await fetchAll();
     } catch (err) {
       alert(err.response?.data?.message || 'Delete failed.');
@@ -214,7 +220,8 @@ export default function AdminDynamicCategoryManager({ type = 'supplier' }) {
 
   const handleToggleActive = async (cat) => {
     try {
-      await api.put(`/admin/system/categories/${cat._id}`, {
+      const endpoint = type === 'supplier' ? '/admin/system/supplier-categories' : '/admin/system/categories';
+      await api.put(`${endpoint}/${cat._id}`, {
         ...cat,
         is_active: !cat.is_active,
       });
@@ -227,9 +234,11 @@ export default function AdminDynamicCategoryManager({ type = 'supplier' }) {
     }
   };
 
-  const filtered = categories.filter(c =>
-    !searchTerm || c.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = categories.filter(c => {
+    const matchesSearch = !searchTerm || c.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const isRoot = !c.parent_id;
+    return matchesSearch && isRoot;
+  });
 
   const totalCount = filtered.reduce((sum, c) => sum + getCount(c), 0);
 

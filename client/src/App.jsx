@@ -104,6 +104,7 @@ const AdminPropertySubcategories = lazy(() => import('./pages/admin/AdminPropert
 const AdminServiceCategories = lazy(() => import('./pages/admin/AdminServiceCategories'));
 const AdminServiceSubcategories = lazy(() => import('./pages/admin/AdminServiceSubcategories'));
 const AdminSupplierCategories = lazy(() => import('./pages/admin/AdminSupplierCategories'));
+const AdminMandiCategories = lazy(() => import('./pages/admin/AdminMandiCategories'));
 const AdminBanners = lazy(() => import('./pages/admin/AdminBanners'));
 const AdminBannerForm = lazy(() => import('./pages/admin/AdminBannerForm'));
 const AdminBannerDetails = lazy(() => import('./pages/admin/AdminBannerDetails'));
@@ -319,7 +320,7 @@ function App() {
                     <Route path="/admin/services/add" element={<AdminRoute><AdminLayout><AdminServiceForm /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/services/edit/:id" element={<AdminRoute><AdminLayout><AdminServiceForm /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/services/view/:id" element={<AdminRoute><AdminLayout><AdminServiceDetails /></AdminLayout></AdminRoute>} />
-                    <Route path="/admin/suppliers" element={<AdminRoute><AdminLayout><AdminSuppliers /></AdminLayout></AdminRoute>} />
+                    <Route path="/admin/suppliers/:tab?" element={<AdminRoute><AdminLayout><AdminSuppliers /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/leads" element={<AdminRoute><AdminLayout><AdminLeads /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/leads/view/:id" element={<AdminRoute><AdminLayout><AdminLeadDetails /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/properties/categories" element={<AdminRoute><AdminLayout><AdminPropertyCategories /></AdminLayout></AdminRoute>} />
@@ -334,10 +335,8 @@ function App() {
                     <Route path="/admin/services/subcategories/view/:id" element={<AdminRoute><AdminLayout><AdminCategoryDetails /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/services/categories/add" element={<AdminRoute><AdminLayout><AdminCategoryForm /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/services/categories/edit/:id" element={<AdminRoute><AdminLayout><AdminCategoryForm /></AdminLayout></AdminRoute>} />
-                    <Route path="/admin/suppliers/categories" element={<AdminRoute><AdminLayout><AdminSupplierCategories /></AdminLayout></AdminRoute>} />
-                    <Route path="/admin/suppliers/categories/add" element={<AdminRoute><AdminLayout><AdminCategoryForm /></AdminLayout></AdminRoute>} />
-                    <Route path="/admin/suppliers/categories/edit/:id" element={<AdminRoute><AdminLayout><AdminCategoryForm /></AdminLayout></AdminRoute>} />
-                    <Route path="/admin/suppliers/categories/view/:id" element={<AdminRoute><AdminLayout><AdminCategoryDetails /></AdminLayout></AdminRoute>} />
+                                        <Route path="/admin/mandi-bazar/categories" element={<AdminRoute><AdminLayout><AdminMandiCategories /></AdminLayout></AdminRoute>} />
+
                     <Route path="/admin/subscriptions" element={<AdminRoute><AdminLayout><AdminAllSubscriptions /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/subscriptions/add-manual/:userId" element={<AdminRoute><AdminLayout><AdminCreateManualSubscription /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/subscriptions/view/:id" element={<AdminRoute><AdminLayout><AdminSubscriptionDetails /></AdminLayout></AdminRoute>} />

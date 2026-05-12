@@ -36,7 +36,17 @@ export default function AdminCategoryDetails() {
     const fetchDetail = async () => {
       setLoading(true);
       try {
-        const res = await api.get(`/admin/system/categories/${id}`);
+        const isSupplierRoute = window.location.pathname.includes('suppliers');
+        const endpoint = isSupplierRoute ? '/admin/system/supplier-categories' : '/admin/system/categories';
+        
+        let res;
+        try {
+          res = await api.get(`${endpoint}/${id}`);
+        } catch (e) {
+          if (!isSupplierRoute) res = await api.get(`/admin/system/supplier-categories/${id}`);
+          else throw e;
+        }
+
         if (res.data.success) {
           setData(res.data.data);
         }
@@ -92,7 +102,8 @@ export default function AdminCategoryDetails() {
     const { catId, isSub } = deleteModal;
     setDeleteModal(m => ({ ...m, deleting: true }));
     try {
-      const res = await api.delete(`/admin/system/categories/${catId}`);
+      const endpoint = data?.type === 'supplier' ? '/admin/system/supplier-categories' : '/admin/system/categories';
+      const res = await api.delete(`${endpoint}/${catId}`);
       if (res.data.success) {
         toast.success("Category deleted successfully");
         setDeleteModal({ isOpen: false, catId: null, isSub: false, deleting: false });

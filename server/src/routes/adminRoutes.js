@@ -65,6 +65,11 @@ const {
   updateWithdrawalStatus,
   getExecutiveSettings,
   updateExecutiveSettings,
+  getSupplierCategories,
+  getSupplierCategoryDetail,
+  createSupplierCategory,
+  updateSupplierCategory,
+  deleteSupplierCategory,
   validateReferralCode
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
@@ -127,6 +132,13 @@ router.get('/system/categories/:id', getCategoryDetail);
 router.post('/system/categories', createCategory);
 router.put('/system/categories/:id', updateCategory);
 router.delete('/system/categories/:id', deleteCategory);
+
+// Supplier Category Management
+router.get('/system/supplier-categories', getSupplierCategories);
+router.get('/system/supplier-categories/:id', getSupplierCategoryDetail);
+router.post('/system/supplier-categories', createSupplierCategory);
+router.put('/system/supplier-categories/:id', updateSupplierCategory);
+router.delete('/system/supplier-categories/:id', deleteSupplierCategory);
 
 
 
