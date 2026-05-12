@@ -26,24 +26,20 @@ const navItems = [
     ]
   },
   {
-    id: 'executive-management',
-    label: 'Field Executive',
-    icon: Users,
-    children: [
-      { label: 'All Executives', path: '/admin/executives' },
-      { label: 'Pending Verification', path: '/admin/executives/pending' },
-      { label: 'Payout Requests', path: '/admin/executives/withdrawals' },
-      { label: 'Economics', path: '/admin/executives/economics' },
-    ]
-  },
-  {
     id: 'staff-management',
     label: 'Staff Management',
     icon: Users2,
     children: [
       { label: 'Overview', path: '/admin/staff' },
+      { type: 'heading', label: 'Core Team' },
       { label: 'Team Leaders', path: '/admin/staff/team-leaders' },
       { label: 'Office Staff', path: '/admin/staff/office-staff' },
+      { type: 'heading', label: 'Field Team' },
+      { label: 'Field Executives', path: '/admin/executives' },
+      { label: 'Pending Verification', path: '/admin/executives/pending' },
+      { label: 'Payout Requests', path: '/admin/executives/withdrawals' },
+      { label: 'Executive Economics', path: '/admin/executives/economics' },
+      { type: 'heading', label: 'Operations' },
       { label: 'Assign Targets', path: '/admin/staff/targets' },
       { label: 'Attendance Monitor', path: '/admin/staff/attendance' },
       { label: 'Leave Approval', path: '/admin/staff/leaves', badge: 'pending_leaves' },
@@ -347,22 +343,15 @@ export default function AdminLayout({ children }) {
                 itemWithBadges.badge = badges.verification + badges.upgrades;
               }
 
-              if (itemWithBadges.id === 'executive-management') {
+              if (itemWithBadges.id === 'staff-management') {
                 itemWithBadges.children = itemWithBadges.children.map(child => {
                   if (child.label === 'Pending Verification') return { ...child, badge: badges.executives };
                   if (child.label === 'Payout Requests') return { ...child, badge: badges.withdrawals };
-                  return child;
-                });
-                itemWithBadges.badge = badges.executives + badges.withdrawals;
-              }
-
-              if (itemWithBadges.id === 'staff-management') {
-                itemWithBadges.children = itemWithBadges.children.map(child => {
                   if (child.label === 'Leave Approval') return { ...child, badge: badges.pendingLeaves };
                   if (child.label === 'Performance Reports') return { ...child, badge: badges.pendingReports };
                   return child;
                 });
-                itemWithBadges.badge = badges.pendingLeaves + badges.pendingReports;
+                itemWithBadges.badge = badges.executives + badges.withdrawals + badges.pendingLeaves + badges.pendingReports;
               }
 
               if (itemWithBadges.children) {
