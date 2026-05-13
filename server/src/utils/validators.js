@@ -112,11 +112,12 @@ const teamLeaderSchema = z.object({
     .max(50000, 'Maximum salary is ₹50,000'),
   commission_rate: z.number().min(0).max(20),
   password: strongPassword,
+  profile_image: z.string().optional(),
   address: z.object({
     address_line: z.string().optional(),
     city: z.string().optional(),
     state: z.string().optional(),
-    pincode: z.string().regex(/^\d{6}$/, 'Pincode must be 6 digits').optional(),
+    pincode: z.union([z.literal(''), z.string().regex(/^\d{6}$/, 'Pincode must be 6 digits')]).optional(),
   }).optional(),
 });
 
@@ -133,11 +134,12 @@ const officeStaffSchema = z.object({
     .max(15000, 'Maximum salary is ₹15,000'),
   calling_specialization: z.enum(['lead_generation', 'follow_up', 'customer_support', 'data_update']),
   password: strongPassword,
+  profile_image: z.string().optional(),
   address: z.object({
     address_line: z.string().optional(),
     city: z.string().optional(),
     state: z.string().optional(),
-    pincode: z.string().regex(/^\d{6}$/, 'Pincode must be 6 digits').optional(),
+    pincode: z.union([z.literal(''), z.string().regex(/^\d{6}$/, 'Pincode must be 6 digits')]).optional(),
   }).optional(),
 });
 

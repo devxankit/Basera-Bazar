@@ -64,7 +64,6 @@ const PartnerMilestones = lazy(() => import('./pages/partner/PartnerMilestones')
 const PartnerOrderHistory = lazy(() => import('./pages/partner/PartnerOrderHistory'));
 
 // --- Lazy-loaded Executive pages ---
-const ExecutiveLogin = lazy(() => import('./pages/executive/ExecutiveLogin'));
 const ExecutiveSignUp = lazy(() => import('./pages/executive/ExecutiveSignUp'));
 const ExecutiveDashboard = lazy(() => import('./pages/executive/ExecutiveDashboard'));
 const ExecutivePartners = lazy(() => import('./pages/executive/ExecutivePartners'));
@@ -355,7 +354,7 @@ function App() {
                     <Route path="/partner/milestones" element={<PartnerLayout><PartnerMilestones /></PartnerLayout>} />
 
                     {/* Executive Routes */}
-                    <Route path="/executive/login" element={<ExecutiveLogin />} />
+                    <Route path="/executive/login" element={<Navigate to="/staff/login?role=field_executive" replace />} />
                     <Route path="/executive/register" element={<ExecutiveSignUp />} />
                     <Route path="/executive/signup" element={<ExecutiveSignUp />} />
                     <Route path="/executive/dashboard" element={<ExecutiveRoute><ExecutiveLayout><ExecutiveDashboard /></ExecutiveLayout></ExecutiveRoute>} />
