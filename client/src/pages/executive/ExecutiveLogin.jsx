@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Phone, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Phone, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -71,13 +71,6 @@ export default function ExecutiveLogin() {
 
       {/* Header Section */}
       <div className="relative px-6 pt-10 pb-6">
-        <button 
-          onClick={() => navigate('/')} 
-          className="p-2.5 bg-white shadow-sm border border-slate-100 rounded-xl text-slate-600 mb-8"
-        >
-          <ArrowLeft size={18} />
-        </button>
-
         <div className="space-y-2">
           <h1 className="text-3xl font-medium text-slate-900">
             Welcome Back
