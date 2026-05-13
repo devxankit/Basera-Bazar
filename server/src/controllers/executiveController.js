@@ -9,6 +9,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { logActivity } = require('../utils/activityLogger');
 const { checkLockout, recordFailedAttempt, resetFailedAttempts } = require('../utils/loginLockout');
+const { signAccessToken, signRefreshToken, setAuthCookies } = require('../utils/cookieAuth');
 const WithdrawalRequest = require('../models/Wallet');
 const { AppConfig } = require('../models/System');
 const invalidate = require('../utils/cacheInvalidator');
@@ -292,11 +293,13 @@ exports.login = async (req, res) => {
       await Executive.findByIdAndUpdate(executive._id, { $set: { is_active: true } });
     }
 
-    const token = generateToken(executive._id, 'executive', executive.email, executive.token_version);
+    const accessToken  = signAccessToken(executive._id, 'executive', executive.email, executive.token_version);
+    const refreshTokenVal = signRefreshToken(executive._id, 'executive', executive.token_version);
+    setAuthCookies(res, accessToken, refreshTokenVal);
 
     res.status(200).json({
       success: true,
-      token,
+      token: accessToken, // kept for localStorage fallback on older clients
       executive: {
         id: executive._id,
         name: executive.name,

@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const timeout = require('connect-timeout');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
+const cookieParser = require('cookie-parser');
 const { randomUUID } = require('crypto');
 const pinoHttp = require('pino-http');
 const Sentry = require('@sentry/node');
@@ -82,6 +83,9 @@ app.use(cors({
   },
   credentials: true
 }));
+
+// Cookie parser — must come before routes so req.cookies is populated
+app.use(cookieParser());
 
 // -----------------------------------------------------
 // Body parsers — 100 KB for JSON/form; upload routes

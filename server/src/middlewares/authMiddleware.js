@@ -46,14 +46,25 @@ function attachUser(req, userFound, tokenRole) {
 
 /**
  * Middleware: Protect Routes — blocks unauthenticated or invalid token requests.
+ *
+ * Token resolution order:
+ *   1. Authorization: Bearer <token>  (API clients, mobile localStorage fallback)
+ *   2. bb_access HttpOnly cookie      (browser PWA — persistent across app kills)
  */
 const protect = async (req, res, next) => {
-  if (!(req.headers.authorization && req.headers.authorization.startsWith('Bearer'))) {
+  let token;
+
+  if (req.headers.authorization?.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies?.bb_access) {
+    token = req.cookies.bb_access;
+  }
+
+  if (!token) {
     return res.status(401).json({ success: false, message: 'Not authorized, no token provided' });
   }
 
   try {
-    const token = req.headers.authorization.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const userFound = await resolveUserFromDecoded(decoded);
@@ -106,9 +117,15 @@ const authorizeRoles = (...roles) => {
  * Middleware: Optional auth — sets req.user if a valid token is present, otherwise continues.
  */
 const optionalProtect = async (req, res, next) => {
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+  let token;
+  if (req.headers.authorization?.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies?.bb_access) {
+    token = req.cookies.bb_access;
+  }
+
+  if (token) {
     try {
-      const token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userFound = await resolveUserFromDecoded(decoded);
       if (userFound) attachUser(req, userFound, decoded.role);

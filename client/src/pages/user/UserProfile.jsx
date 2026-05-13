@@ -34,7 +34,7 @@ const UserProfile = () => {
   }, [isAuthenticated, navigate]);
 
   const handleLogout = () => {
-    logout();
+    logout(true);
     navigate('/');
     setShowLogoutConfirm(false);
   };

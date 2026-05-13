@@ -134,7 +134,7 @@ export default function ExecutiveDashboard() {
               <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
             </button>
             <button 
-              onClick={() => { logout(); navigate('/executive/login'); }}
+              onClick={() => { logout(true); navigate('/executive/login'); }}
               className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
             >
               <LogOut size={20} />

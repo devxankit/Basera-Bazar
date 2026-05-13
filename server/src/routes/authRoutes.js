@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 
-const { 
-  checkExists, requestOtp, verifyOtp, getMe, updateProfile, 
-  changePassword, loginWithPassword, checkSignupConflicts, testNotification 
+const {
+  checkExists, requestOtp, verifyOtp, getMe, updateProfile,
+  changePassword, loginWithPassword, checkSignupConflicts, testNotification,
+  refreshToken, logoutUser,
 } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
@@ -55,5 +56,11 @@ router.put('/change-password', protect, changePassword);
 
 // POST /api/auth/test-notification (Send test push notification)
 router.post('/test-notification', protect, testNotification);
+
+// POST /api/auth/refresh — issue new access token from refresh cookie (no auth required)
+router.post('/refresh', refreshToken);
+
+// POST /api/auth/logout — clear cookies + invalidate token version
+router.post('/logout', protect, logoutUser);
 
 module.exports = router;

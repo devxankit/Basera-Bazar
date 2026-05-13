@@ -71,7 +71,7 @@ export default function ExecutiveProfile() {
   }, []);
 
   const handleLogout = () => {
-    logout();
+    logout(true);
     navigate('/executive/login');
   };
 

@@ -1,0 +1,19 @@
+{
+  "name": "Basera Bazar",
+  "short_name": "BaseraBazar",
+  "description": "Basera Bazar — Properties, Services, and Mandi in one place",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#1e293b",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

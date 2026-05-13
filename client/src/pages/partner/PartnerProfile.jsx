@@ -30,7 +30,7 @@ export default function PartnerProfile() {
   const isIncomplete = partner.onboarding_status === 'incomplete' || isKYCPending || !partner.is_active;
 
   const handleLogout = () => {
-    logout();
+    logout(true);
     navigate('/partner/login');
   };
 

@@ -12,6 +12,7 @@ const DailyReport = require('../../models/DailyReport');
 const AuditLog = require('../../models/AuditLog');
 const { AdminUser } = require('../../models/Admin');
 const { checkLockout, recordFailedAttempt, resetFailedAttempts } = require('../../utils/loginLockout');
+const { signAccessToken, signRefreshToken, setAuthCookies } = require('../../utils/cookieAuth');
 const invalidate = require('../../utils/cacheInvalidator');
 
 const generateToken = (id, role, email, version = 0) =>
@@ -61,21 +62,22 @@ const staffLogin = async (req, res) => {
 
     await resetFailedAttempts(Model, staff._id);
 
-    const token = generateToken(staff._id, role, staff.email, staff.token_version);
-    
-    // Curate safe user object (B-14)
-    const { 
-      _id, name, phone, email, profile_image, onboarding_status, 
-      is_active, state, calling_specialization, fixed_salary, commission_rate 
+    const accessToken  = signAccessToken(staff._id, role, staff.email, staff.token_version);
+    const refreshTokenVal = signRefreshToken(staff._id, role, staff.token_version);
+    setAuthCookies(res, accessToken, refreshTokenVal);
+
+    const {
+      _id, name, phone, email, profile_image, onboarding_status,
+      is_active, state, calling_specialization, fixed_salary, commission_rate
     } = staff.toJSON();
-    
-    res.status(200).json({ 
-      success: true, 
-      token, 
-      user: { 
-        _id, name, phone, email, profile_image, onboarding_status, 
-        is_active, state, calling_specialization, fixed_salary, commission_rate, role 
-      } 
+
+    res.status(200).json({
+      success: true,
+      token: accessToken, // kept for localStorage fallback on older clients
+      user: {
+        _id, name, phone, email, profile_image, onboarding_status,
+        is_active, state, calling_specialization, fixed_salary, commission_rate, role
+      }
     });
   } catch (err) {
     logger.error({ err }, 'staffLogin Error');

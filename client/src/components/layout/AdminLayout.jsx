@@ -290,7 +290,7 @@ export default function AdminLayout({ children }) {
   };
 
   const handleLogout = () => {
-    logout();
+    logout(true);
     navigate('/admin/login');
   };
 

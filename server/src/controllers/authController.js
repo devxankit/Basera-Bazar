@@ -12,12 +12,11 @@ const { getCityCoords } = require('../utils/locationUtils');
 const { logActivity } = require('../utils/activityLogger');
 const { checkLockout, recordFailedAttempt, resetFailedAttempts } = require('../utils/loginLockout');
 const { createNotification } = require('../utils/notificationHelper');
-
-const generateToken = (id, role, email, version = 0) => {
-  return jwt.sign({ id, role, email, version }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '7d',
-  });
-};
+const {
+  signAccessToken, signRefreshToken, verifyRefreshToken,
+  setAuthCookies, clearAuthCookies,
+} = require('../utils/cookieAuth');
+const { TeamLeader, OfficeStaff } = require('../models/Staff');
 
 /**
  * @desc    Check if email/phone already exists before signup
@@ -321,13 +320,15 @@ const verifyOtp = async (req, res) => {
 
     await Otp.deleteOne({ _id: otpRecord._id });
 
-    const token = generateToken(account._id, assignedRole, account.email, account.token_version);
+    const accessToken  = signAccessToken(account._id, assignedRole, account.email, account.token_version);
+    const refreshToken = signRefreshToken(account._id, assignedRole, account.token_version);
+    setAuthCookies(res, accessToken, refreshToken);
 
     logger.info(`[AUTH] Login successful: ${account.phone} (ID: ${account._id}) as ${assignedRole}`);
 
     res.status(200).json({
       success: true,
-      token,
+      token: accessToken, // kept for localStorage fallback on older clients
       user: {
         id: account._id,
         phone: account.phone,
@@ -488,11 +489,14 @@ const loginWithPassword = async (req, res) => {
     }
 
     await resetFailedAttempts(Model, account._id);
-    const token = generateToken(account._id, role, account.email, account.token_version);
+
+    const accessToken  = signAccessToken(account._id, role, account.email, account.token_version);
+    const refreshToken = signRefreshToken(account._id, role, account.token_version);
+    setAuthCookies(res, accessToken, refreshToken);
 
     res.status(200).json({
       success: true,
-      token,
+      token: accessToken, // kept for localStorage fallback on older clients
       user: {
         id: account._id,
         phone: account.phone,
@@ -621,6 +625,77 @@ const testNotification = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Issue a new access token using the refresh cookie
+ * @route   POST /api/auth/refresh
+ * @access  Public (cookie required)
+ */
+const refreshToken = async (req, res) => {
+  const token = req.cookies?.bb_refresh;
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'No refresh token.' });
+  }
+
+  const decoded = verifyRefreshToken(token);
+  if (!decoded) {
+    return res.status(401).json({ success: false, message: 'Invalid or expired refresh token.' });
+  }
+
+  try {
+    // Resolve user and check they still exist + token version matches
+    let user;
+    const role = decoded.role;
+    if (role === 'super_admin') user = await AdminUser.findById(decoded.id).select('_id email token_version is_active');
+    else if (role === 'partner')  user = await Partner.findById(decoded.id).select('_id email token_version is_active');
+    else if (role === 'executive') user = await Executive.findById(decoded.id).select('_id email token_version is_active');
+    else if (role === 'team_leader') user = await TeamLeader.findById(decoded.id).select('_id email token_version is_active');
+    else if (role === 'office_staff') user = await OfficeStaff.findById(decoded.id).select('_id email token_version is_active');
+    else user = await User.findById(decoded.id).select('_id email token_version is_active');
+
+    if (!user) return res.status(401).json({ success: false, message: 'User no longer exists.' });
+    if (user.is_active === false) return res.status(403).json({ success: false, message: 'Account deactivated.' });
+    if ((user.token_version || 0) !== (decoded.version || 0)) {
+      return res.status(401).json({ success: false, message: 'Session invalidated. Please log in again.' });
+    }
+
+    const newAccessToken  = signAccessToken(user._id, role, user.email, user.token_version);
+    const newRefreshToken = signRefreshToken(user._id, role, user.token_version);
+    setAuthCookies(res, newAccessToken, newRefreshToken);
+
+    res.status(200).json({ success: true, token: newAccessToken });
+  } catch (error) {
+    logger.error({ err: error }, 'Token refresh error:');
+    res.status(500).json({ success: false, message: 'Server error during token refresh.' });
+  }
+};
+
+/**
+ * @desc    Logout — clear cookies and invalidate token version
+ * @route   POST /api/auth/logout
+ * @access  Private
+ */
+const logoutUser = async (req, res) => {
+  try {
+    // Increment token_version so all existing JWTs for this user become invalid
+    const role = req.user?.role;
+    let Model = User;
+    if (role === 'super_admin') Model = AdminUser;
+    else if (role === 'partner') Model = Partner;
+    else if (role === 'executive') Model = Executive;
+    else if (role === 'team_leader') Model = TeamLeader;
+    else if (role === 'office_staff') Model = OfficeStaff;
+
+    await Model.findByIdAndUpdate(req.user._id, { $inc: { token_version: 1 } });
+    clearAuthCookies(res);
+    res.status(200).json({ success: true, message: 'Logged out successfully.' });
+  } catch (error) {
+    logger.error({ err: error }, 'Logout error:');
+    // Still clear cookies even if DB update fails
+    clearAuthCookies(res);
+    res.status(200).json({ success: true, message: 'Logged out.' });
+  }
+};
+
 module.exports = {
   checkExists,
   requestOtp,
@@ -630,5 +705,7 @@ module.exports = {
   changePassword,
   loginWithPassword,
   checkSignupConflicts,
-  testNotification
+  testNotification,
+  refreshToken,
+  logoutUser,
 };
