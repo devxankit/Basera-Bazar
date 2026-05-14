@@ -104,7 +104,7 @@ export default function AddMandiProduct() {
   const fetchCategories = async () => {
     try {
       setFetchingCats(true);
-      const res = await api.get('/listings/categories?type=supplier&parent_id=null');
+      const res = await api.get('/listings/categories?type=product&parent_id=null');
       if (res.data.success) setCategories(res.data.data);
     } catch (err) {
       console.error("Error fetching categories:", err);
