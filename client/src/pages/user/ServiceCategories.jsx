@@ -98,7 +98,7 @@ const ServiceCategories = () => {
                     <div className="w-full h-full bg-slate-50 rounded-xl" />
                   )}
                 </div>
-                <h3 className="text-[12px] font-semibold text-primary-900 leading-tight tracking-wide text-center uppercase min-h-[32px] flex items-center justify-center">
+                <h3 className="text-[12px] font-semibold text-black leading-tight tracking-wide text-center uppercase min-h-[32px] flex items-center justify-center">
                   {cat.name}
                 </h3>
               </button>

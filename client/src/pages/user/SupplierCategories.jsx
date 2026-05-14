@@ -80,7 +80,7 @@ const SupplierCategories = () => {
                     />
                   </div>
                   <div className="text-left space-y-2">
-                    <h3 className="text-[14px] font-semibold text-primary-900 leading-tight tracking-wide">{cat.name}</h3>
+                    <h3 className="text-[14px] font-semibold text-black leading-tight tracking-wide">{cat.name}</h3>
                     <div className="flex gap-2">
                       <span className="bg-indigo-50 text-indigo-600 text-[9px] font-semibold px-2.5 py-1 rounded-full border border-indigo-100 uppercase tracking-widest leading-none">
                         {cat.listing_count || 0} supplier(s)

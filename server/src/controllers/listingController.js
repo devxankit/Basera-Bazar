@@ -1,6 +1,6 @@
 const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const logger = require('../utils/logger');
-const { Category } = require('../models/System');
+const { Category, SupplierCategory } = require('../models/System');
 const { Subscription } = require('../models/Finance');
 const { Partner } = require('../models/Partner');
 const { 
@@ -576,8 +576,7 @@ const getPublicCategories = async (req, res) => {
 
     let categories;
     if (type === 'supplier') {
-      const { SupplierCategory } = require('../models/System');
-      const supplierQuery = { is_active: true };
+      const supplierQuery = { is_active: { $ne: false } };
       if (parent_id !== undefined) {
         supplierQuery.parent_id = parent_id === 'null' ? null : parent_id;
       } else {
@@ -585,7 +584,7 @@ const getPublicCategories = async (req, res) => {
       }
       categories = await SupplierCategory.find(supplierQuery).sort({ name: 1 });
     } else {
-      const query = { is_active: true };
+      const query = { is_active: { $ne: false } };
       if (type) query.type = type;
       
       // Handle hierarchy
@@ -639,11 +638,13 @@ const getPublicCategories = async (req, res) => {
         count = await ListingModel.countDocuments(countQuery);
       } else if (type === 'supplier') {
         let countQuery = { 
-          $or: [{ roles: 'supplier' }, { partner_type: 'supplier' }],
-          // Match by name for now as existing data uses names
-          $or: [
-            { 'profile.supplier_profile.material_categories': cat.name },
-            { 'profile.supplier_profile.material_categories': String(cat._id) }
+          $and: [
+            { $or: [{ roles: 'supplier' }, { partner_type: 'supplier' }] },
+            { $or: [
+                { 'profile.supplier_profile.material_categories': cat.name },
+                { 'profile.supplier_profile.material_categories': String(cat._id) }
+              ] 
+            }
           ],
           onboarding_status: 'approved',
           is_active: true

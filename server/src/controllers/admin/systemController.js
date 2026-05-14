@@ -126,9 +126,10 @@ const getSupplierCategories = async (req, res) => {
 
 const createSupplierCategory = async (req, res) => {
   try {
-    let { name, parent_id, icon, description } = req.body;
+    let { name, parent_id, icon, description, is_active } = req.body;
     const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
-    const category = await SupplierCategory.create({ name, slug, parent_id: parent_id || null, icon, description });
+    const category = await SupplierCategory.create({ name, slug, parent_id: parent_id || null, icon, description, is_active });
+    await invalidate.publicCategories();
     res.status(201).json({ success: true, data: category });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.' });
@@ -139,6 +140,7 @@ const updateSupplierCategory = async (req, res) => {
   try {
     const categoryUpdate = pick(req.body, ['name', 'slug', 'parent_id', 'icon', 'is_active', 'description']);
     const category = await SupplierCategory.findByIdAndUpdate(req.params.id, categoryUpdate, { new: true });
+    await invalidate.publicCategories();
     res.status(200).json({ success: true, data: category });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.' });
@@ -152,6 +154,7 @@ const deleteSupplierCategory = async (req, res) => {
     if (supplierCount > 0) return res.status(400).json({ success: false, message: `Cannot delete category. It is assigned to ${supplierCount} suppliers.` });
     const deleted = await SupplierCategory.findByIdAndDelete(id);
     if (!deleted) return res.status(404).json({ success: false, message: 'Category not found.' });
+    await invalidate.publicCategories();
     res.status(200).json({ success: true, message: 'Supplier category deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.' });

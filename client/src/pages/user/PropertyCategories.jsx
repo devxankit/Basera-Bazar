@@ -77,7 +77,7 @@ const PropertyCategories = () => {
                   )}
                 </div>
                 <div className="text-left space-y-1">
-                  <h3 className="text-[14px] font-semibold text-primary-900 leading-tight tracking-wide">{cat.name}</h3>
+                  <h3 className="text-[14px] font-semibold text-black leading-tight tracking-wide">{cat.name}</h3>
                   <span className="inline-block bg-primary-50 text-primary-600 text-[10px] font-semibold px-3 py-1 rounded-full border border-primary-100 uppercase tracking-widest leading-none">
                     {cat.listing_count || 0} properties
                   </span>
