@@ -47,7 +47,7 @@ const sendOTP = async (phone, otp) => {
     //   text         = the OTP message
     //   route        = 2 (Transactional route)
     //   dlttemplateid = your approved DLT Template ID (mandatory in India)
-    const url = `http://cloud.smsindiahub.in/api/mt/SendSMS`
+    const url = `https://cloud.smsindiahub.in/api/mt/SendSMS`
       + `?APIKey=${encodeURIComponent(apiKey)}`
       + `&senderid=${encodeURIComponent(senderId)}`
       + `&channel=2`
@@ -76,14 +76,16 @@ const sendOTP = async (phone, otp) => {
       logger.info(`[SMS] Total execution time: ${Date.now() - startTime}ms`)
       return true;
     } else {
-      logger.error(`[SMS] ❌ Provider rejected:`, response.data?.ErrorMessage || response.data)
-      return false;
+      const errorMsg = response.data?.ErrorMessage || response.data;
+      logger.error(`[SMS] ❌ Provider rejected:`, errorMsg)
+      // Throwing so the controller catch block handles it
+      throw new Error(`SMS Provider Error: ${JSON.stringify(errorMsg)}`);
     }
 
   } catch (error) {
     // Network failure or timeout
     logger.error({ err: error.message }, `[SMS] ❌ Network error sending SMS:`)
-    return false;
+    throw error; // Re-throw so controllers catch it
   }
 };
 

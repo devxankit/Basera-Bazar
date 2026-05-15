@@ -7,6 +7,7 @@ const { Partner } = require('../models/Partner');
 const { RazorpayOrder, Transaction } = require('../models/Finance');
 const { AppConfig, Category } = require('../models/System');
 const axios = require('axios');
+const { sendOTP } = require('../utils/sms');
 
 /**
  * @desc    Create Marketplace Order (Initiate Payment)
@@ -512,14 +513,12 @@ const resendOrderOTP = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Customer phone not found.' });
     }
 
-    const { sendOTP } = require('../utils/sms');
-    // Using a more generic message for delivery
-    const success = await sendOTP(customerPhone, item.delivery_otp);
-
-    if (success) {
+    try {
+      await sendOTP(customerPhone, item.delivery_otp);
       return res.status(200).json({ success: true, message: 'OTP sent to customer.' });
-    } else {
-      return res.status(500).json({ success: false, message: 'Failed to send SMS.' });
+    } catch (smsErr) {
+      logger.error({ err: smsErr }, '[SMS] Failed to resend order OTP');
+      return res.status(502).json({ success: false, message: 'Failed to send SMS. Please try again later.' });
     }
   } catch (error) {
     logger.error({ err: error }, 'Update order status error')

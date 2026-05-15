@@ -56,29 +56,32 @@ app.use((req, res, next) => { if (!req.timedout) next(); });
 // -----------------------------------------------------
 const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map(u => u.trim())
-  : ['http://localhost:5173', 'http://localhost:3000', 'https://baserabazar.in', 'https://www.baserabazar.in'];
+  : [];
+
+// Default fallback origins for development
+const devOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:8000'];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, Postman, server-to-server)
+    // 1. Allow requests with no origin (mobile apps, Postman, server-to-server)
     if (!origin) return callback(null, true);
 
-    // Allow any origin in the local network during development
-    if (
-      process.env.NODE_ENV !== 'production' &&
-      /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(origin)
-    ) {
-      return callback(null, true);
-    }
-
-    // Explicitly allow production domain variations if in production
+    // 2. Check if it's a known production domain
     const isProductionDomain = /^https?:\/\/(www\.)?baserabazar\.in\/?$/.test(origin);
-    
-    if (allowedOrigins.includes(origin) || isProductionDomain) {
-      return callback(null, true);
+    if (isProductionDomain) return callback(null, true);
+
+    // 3. Check if it's in the explicitly allowed origins from .env
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+
+    // 4. Allow any origin in the local network during development
+    if (process.env.NODE_ENV !== 'production') {
+      if (devOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
     }
 
-    // Instead of throwing an Error (which causes 500), we return false to reject
+    // 5. Reject otherwise
+    logger.warn({ origin }, 'CORS request blocked');
     callback(null, false);
   },
   credentials: true
