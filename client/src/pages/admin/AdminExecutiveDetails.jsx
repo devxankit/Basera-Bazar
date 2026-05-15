@@ -5,7 +5,8 @@ import {
   MapPin, Clock, ArrowLeft, MoreVertical,
   IndianRupee, Activity, CheckCircle2, AlertCircle,
   Briefcase, TrendingUp, ChevronRight, Zap, FileText, ExternalLink,
-  UserMinus, UserCheck, Trash2, Landmark, CreditCard, ShieldCheck, Building2, XCircle
+  UserMinus, UserCheck, Trash2, Landmark, CreditCard, ShieldCheck, Building2, XCircle,
+  ArrowRightLeft, X
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -31,6 +32,9 @@ export default function AdminExecutiveDetails() {
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [tab, setTab] = useState('Overview');
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
+  const [transferModal, setTransferModal] = useState({ isOpen: false, loading: false });
+  const [executives, setExecutives] = useState([]);
+  const [toExecutiveId, setToExecutiveId] = useState('');
 
   useEffect(() => {
     const fetchExecutiveDetail = async () => {
@@ -114,6 +118,32 @@ export default function AdminExecutiveDetails() {
     );
   };
 
+  const openTransferModal = async () => {
+    setShowOptions(false);
+    try {
+      const res = await api.get('/admin/executives');
+      const all = (res.data?.data || res.data || []).filter(e => e._id !== id && e.is_active);
+      setExecutives(all);
+      setToExecutiveId('');
+      setTransferModal({ isOpen: true, loading: false });
+    } catch {
+      toast.error('Failed to load executives list');
+    }
+  };
+
+  const handleTransferLeads = async () => {
+    if (!toExecutiveId) { toast.error('Please select a target executive'); return; }
+    setTransferModal(m => ({ ...m, loading: true }));
+    try {
+      const res = await api.post(`/admin/staff/executives/${id}/transfer-leads`, { to_executive_id: toExecutiveId });
+      toast.success(res.data.message || 'Leads transferred successfully');
+      setTransferModal({ isOpen: false, loading: false });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Transfer failed');
+      setTransferModal(m => ({ ...m, loading: false }));
+    }
+  };
+
   const handleResetKyc = () => {
     openConfirm(
       'Reset KYC',
@@ -179,6 +209,45 @@ export default function AdminExecutiveDetails() {
         type={confirmModal.type}
         loading={confirmModal.loading}
       />
+
+      {/* Transfer Leads Modal */}
+      {transferModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setTransferModal({ isOpen: false, loading: false })} />
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 p-8 w-full max-w-md mx-4 z-10">
+            <button onClick={() => setTransferModal({ isOpen: false, loading: false })} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"><X size={18} /></button>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><ArrowRightLeft size={20} /></div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Transfer Leads</h3>
+                <p className="text-xs text-slate-400">Move all partners from <strong>{executive.name}</strong> to another executive</p>
+              </div>
+            </div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Select Target Executive</label>
+            <select
+              value={toExecutiveId}
+              onChange={e => setToExecutiveId(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 mb-6"
+            >
+              <option value="">-- Select Executive --</option>
+              {executives.map(e => (
+                <option key={e._id} value={e._id}>{e.name} ({e.phone})</option>
+              ))}
+            </select>
+            {executives.length === 0 && <p className="text-xs text-amber-600 bg-amber-50 p-3 rounded-xl mb-4">No other active executives found.</p>}
+            <div className="flex gap-3">
+              <button onClick={() => setTransferModal({ isOpen: false, loading: false })} className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all">Cancel</button>
+              <button
+                onClick={handleTransferLeads}
+                disabled={transferModal.loading || !toExecutiveId}
+                className="flex-1 px-4 py-3 bg-indigo-600 text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50"
+              >
+                {transferModal.loading ? 'Transferring...' : 'Transfer Leads'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
 
         {/* Profile Header */}
@@ -258,6 +327,12 @@ export default function AdminExecutiveDetails() {
                            >
                               {executive.is_active ? <UserMinus size={14} /> : <UserCheck size={14} />}
                               {executive.is_active ? 'Deactivate' : 'Activate Account'}
+                           </button>
+                           <button
+                              onClick={openTransferModal}
+                              className="w-full px-4 py-2.5 text-left text-[11px] font-bold text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
+                           >
+                              <ArrowRightLeft size={14} /> Transfer Leads
                            </button>
                            <div className="h-px bg-slate-50 my-1 mx-2" />
                            <button 

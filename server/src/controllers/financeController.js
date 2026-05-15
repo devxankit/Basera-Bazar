@@ -162,12 +162,29 @@ const verifySubscription = async (req, res) => {
       reference_id: subscription._id
     });
 
-    // 6. Trigger Executive Payout if referred and this is a PAID plan above ₹100
-    if (plan.price > 100) {
+    // 6. Trigger Executive Commission if referred — applies to EVERY paid plan above ₹1
+    if (plan.price > 1) {
       const partner = await Partner.findById(partnerId);
       if (partner && partner.referral_code_used) {
-        // We use the helper to handle the logic (checks for active exec, records tx, etc.)
-        await creditExecutivePayout(partner.referral_code_used, partnerId, partner.business_name || partner.name);
+        // Pass plan price so commission is calculated as a % of the plan value
+        await creditExecutivePayout(
+          partner.referral_code_used,
+          partnerId,
+          partner.business_name || partner.name,
+          plan.price
+        );
+
+        // Set assigned_executive on first subscription (if not already set)
+        if (!partner.referred_by_executive || !partner.assigned_executive) {
+          const Executive = require('../models/Executive');
+          const exec = await Executive.findOne({ referral_code: partner.referral_code_used, is_active: true });
+          if (exec) {
+            await Partner.findByIdAndUpdate(partnerId, {
+              referred_by_executive: exec._id,
+              assigned_executive: exec._id
+            });
+          }
+        }
       }
     }
 

@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const logger = require('../../utils/logger');
 const { TeamLeader, OfficeStaff } = require('../../models/Staff');
 const Executive = require('../../models/Executive');
+const { Partner } = require('../../models/Partner');
 const SalaryRecord = require('../../models/SalaryRecord');
 const StaffTarget = require('../../models/StaffTarget');
 const StaffPerformance = require('../../models/StaffPerformance');
@@ -1356,6 +1357,86 @@ const exportReportsToCSV = async (req, res) => {
   }
 };
 
+
+// ─── Admin: Executive Lead Transfer ─────────────────────────────────────────
+
+/**
+ * @desc    Transfer all onboarded partners from one executive to another.
+ * @route   POST /api/admin/staff/executives/:id/transfer-leads
+ * @body    { to_executive_id: string }
+ */
+const transferExecutiveLeads = async (req, res) => {
+  try {
+    const fromExecutiveId = req.params.id;
+    const { to_executive_id } = req.body;
+
+    if (!to_executive_id) {
+      return res.status(400).json({ success: false, message: 'to_executive_id is required.' });
+    }
+    if (fromExecutiveId === to_executive_id) {
+      return res.status(400).json({ success: false, message: 'Source and destination executive cannot be the same.' });
+    }
+
+    // Validate both executives exist
+    const [fromExec, toExec] = await Promise.all([
+      Executive.findById(fromExecutiveId),
+      Executive.findById(to_executive_id)
+    ]);
+
+    if (!fromExec) return res.status(404).json({ success: false, message: 'Source executive not found.' });
+    if (!toExec) return res.status(404).json({ success: false, message: 'Destination executive not found.' });
+    if (!toExec.is_active) return res.status(400).json({ success: false, message: 'Destination executive is inactive.' });
+
+    // Find all partners linked to the source executive (via referral code OR assigned_executive)
+    const affectedPartners = await Partner.find({
+      $or: [
+        { referral_code_used: fromExec.referral_code },
+        { assigned_executive: fromExec._id }
+      ]
+    }).select('_id name');
+
+    const count = affectedPartners.length;
+    if (count === 0) {
+      return res.status(200).json({ success: true, message: 'No partners found for this executive.', transferred: 0 });
+    }
+
+    // Transfer: update assigned_executive to the new executive
+    // Note: referral_code_used & referred_by_executive are preserved for historical accuracy
+    await Partner.updateMany(
+      { _id: { $in: affectedPartners.map(p => p._id) } },
+      { $set: { assigned_executive: toExec._id } }
+    );
+
+    // Create Audit Log
+    await AuditLog.create({
+      admin_id: req.user.id,
+      action: 'TRANSFER_EXECUTIVE_LEADS',
+      resource_id: fromExec._id,
+      resource_type: 'Executive',
+      details: {
+        from_executive: fromExec.name,
+        to_executive: toExec.name,
+        partners_transferred: count
+      },
+      ip_address: req.ip,
+      user_agent: req.get('User-Agent')
+    });
+
+    logger.info(`[LEAD TRANSFER] ${count} partners transferred from ${fromExec.name} to ${toExec.name} by admin ${req.user.id}`);
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully transferred ${count} partner(s) from ${fromExec.name} to ${toExec.name}.`,
+      transferred: count,
+      from_executive: { _id: fromExec._id, name: fromExec.name },
+      to_executive: { _id: toExec._id, name: toExec.name }
+    });
+  } catch (err) {
+    logger.error({ err }, 'transferExecutiveLeads Error');
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
 module.exports = {
   // Auth
   staffLogin,
@@ -1384,6 +1465,8 @@ module.exports = {
   rejectOfficeStaff,
   reassignOfficeStaff,
   assignExecutiveToTL,
+  // Executive Lead Transfer
+  transferExecutiveLeads,
   // Targets
   getAllTargets,
   createTarget,

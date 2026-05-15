@@ -440,13 +440,80 @@ exports.getMyPartners = async (req, res) => {
       return res.status(200).json({ success: true, data: [] });
     }
 
-    const partners = await Partner.find({ referral_code_used: executive.referral_code })
-      .select('name business_name phone onboarding_status createdAt active_subscription_id')
-      .sort({ createdAt: -1 });
+    // Find all partners referred by this executive OR currently assigned to them
+    const { Subscription } = require('../models/Finance');
+    const partners = await Partner.find({
+      $or: [
+        { referral_code_used: executive.referral_code },
+        { assigned_executive: executive._id }
+      ]
+    })
+      .select('name business_name phone onboarding_status createdAt active_subscription_id address city state roles partner_type referred_by_executive assigned_executive')
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.status(200).json({ success: true, data: partners });
+    // Enrich each partner with subscription details
+    const enriched = await Promise.all(partners.map(async (p) => {
+      let subscription = null;
+      if (p.active_subscription_id) {
+        subscription = await Subscription.findById(p.active_subscription_id)
+          .select('plan_snapshot status starts_at ends_at')
+          .lean();
+      }
+      return { ...p, subscription };
+    }));
+
+    res.status(200).json({ success: true, data: enriched });
   } catch (error) {
     logger.error({ err: error }, 'getMyPartners Error:')
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+/**
+ * @desc    Get Full Details of a Single Onboarded Partner
+ * @route   GET /api/executive/my-partners/:partnerId
+ */
+exports.getMyPartnerDetail = async (req, res) => {
+  try {
+    const executive = await Executive.findById(req.user.id);
+    if (!executive) return res.status(404).json({ success: false, message: 'Executive not found.' });
+
+    const { Subscription } = require('../models/Finance');
+    const partner = await Partner.findOne({
+      _id: req.params.partnerId,
+      $or: [
+        { referral_code_used: executive.referral_code },
+        { assigned_executive: executive._id }
+      ]
+    })
+      .select('-password -fcmTokens -fcmTokenMobile -token_version -failed_login_attempts -lockout_until')
+      .lean();
+
+    if (!partner) {
+      return res.status(404).json({ success: false, message: 'Partner not found or not in your network.' });
+    }
+
+    let subscription = null;
+    if (partner.active_subscription_id) {
+      subscription = await Subscription.findById(partner.active_subscription_id)
+        .select('plan_snapshot status starts_at ends_at')
+        .lean();
+    }
+
+    // Fetch all subscription history for this partner
+    const subscriptionHistory = await Subscription.find({ partner_id: partner._id })
+      .select('plan_snapshot status starts_at ends_at')
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      data: { ...partner, subscription, subscriptionHistory }
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'getMyPartnerDetail Error:')
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };

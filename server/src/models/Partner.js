@@ -216,6 +216,12 @@ const partnerSchema = new mongoose.Schema({
     ref: 'Executive',
     default: null
   },
+  assigned_executive: {
+    // Tracks the CURRENT responsible executive (may differ from referral if leads were transferred)
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Executive',
+    default: null
+  },
   referral_code_used: {
     type: String,
     default: null

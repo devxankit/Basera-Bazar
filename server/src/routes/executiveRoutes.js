@@ -10,6 +10,7 @@ const {
   login,
   getDashboard,
   getMyPartners,
+  getMyPartnerDetail,
   getMyTransactions,
   requestWithdrawal,
   updateProfile,
@@ -56,6 +57,7 @@ router.put('/register/step2', validate(executiveBankDetailsSchema), updateStep2)
 router.put('/register/step3', updateStep3);
 router.get('/dashboard', cacheMiddleware(10, true), getDashboard);
 router.get('/my-partners', cacheMiddleware(3, true), getMyPartners);
+router.get('/my-partners/:partnerId', getMyPartnerDetail);
 router.get('/transactions', cacheMiddleware(5, true), getMyTransactions);
 router.post('/withdraw', validate(withdrawalRequestSchema), idempotency, requestWithdrawal);
 router.put('/profile', validate(executiveProfileUpdateSchema), updateProfile);

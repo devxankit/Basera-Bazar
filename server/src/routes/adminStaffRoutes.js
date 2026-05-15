@@ -33,6 +33,7 @@ const {
   rejectOfficeStaff,
   reassignOfficeStaff,
   assignExecutiveToTL,
+  transferExecutiveLeads,
   getAllTargets,
   createTarget,
   updateTarget,
@@ -90,6 +91,9 @@ router.put('/office-staff/:id/reassign', reassignOfficeStaff);
 
 // ─── Executive → Team Leader assignment ────────────────────────────────────
 router.put('/executives/:id/assign-tl', assignExecutiveToTL);
+
+// ─── Executive Lead Transfer ─────────────────────────────────────────────────
+router.post('/executives/:id/transfer-leads', transferExecutiveLeads);
 
 // ─── Targets ────────────────────────────────────────────────────────────────
 router.get('/targets', cacheMiddleware(5, true), getAllTargets);
