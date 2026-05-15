@@ -58,33 +58,39 @@ const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map(u => u.trim())
   : [];
 
-// Default fallback origins for development
-const devOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:8000'];
-
 app.use(cors({
   origin: (origin, callback) => {
     // 1. Allow requests with no origin (mobile apps, Postman, server-to-server)
     if (!origin) return callback(null, true);
 
-    // 2. Check if it's a known production domain
-    const isProductionDomain = /^https?:\/\/(www\.)?baserabazar\.in\/?$/.test(origin);
+    // 2. Normalize origin for comparison (remove trailing slash)
+    const normalizedOrigin = origin.replace(/\/$/, '');
+
+    // 3. Check if it's a known production domain (baserabazar.in or its subdomains)
+    const isProductionDomain = normalizedOrigin === 'https://baserabazar.in' || 
+                               normalizedOrigin === 'https://www.baserabazar.in' ||
+                               normalizedOrigin.endsWith('.baserabazar.in');
+
     if (isProductionDomain) return callback(null, true);
 
-    // 3. Check if it's in the explicitly allowed origins from .env
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    // 4. Check explicitly allowed origins from .env
+    if (allowedOrigins.includes(normalizedOrigin)) return callback(null, true);
 
-    // 4. Allow any origin in the local network during development
+    // 5. Allow localhost and local network in development
     if (process.env.NODE_ENV !== 'production') {
-      if (devOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(origin)) {
+      if (
+        /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(normalizedOrigin)
+      ) {
         return callback(null, true);
       }
     }
 
-    // 5. Reject otherwise
-    logger.warn({ origin }, 'CORS request blocked');
+    // 6. Reject otherwise
+    logger.warn({ origin: normalizedOrigin }, 'CORS request blocked');
     callback(null, false);
   },
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 200 // Essential for some legacy environments
 }));
 
 // Cookie parser — must come before routes so req.cookies is populated
