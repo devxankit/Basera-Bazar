@@ -68,7 +68,7 @@ const PropertyCategories = () => {
           categories.map((cat) => (
             <button
               key={cat._id}
-              onClick={() => navigate(`/browse/property?sub=${cat.slug}`)}
+              onClick={() => navigate(`/browse/property?category_id=${cat._id}`)}
               className="w-full bg-white p-5 rounded-[28px] border border-slate-100 shadow-xl shadow-slate-200/40 flex items-center justify-between group active:scale-[0.98] transition-all"
             >
               <div className="flex items-center gap-5">

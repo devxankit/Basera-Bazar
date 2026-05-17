@@ -126,7 +126,10 @@ const BrowseCategory = () => {
           };
           flatten(cats);
           
-          if (subCategory) {
+          if (category_id_param) {
+            const current = allCats.find(c => String(c._id) === category_id_param);
+            if (current) setCurrentCategoryDetails(current);
+          } else if (subCategory) {
             const current = allCats.find(c => c.slug === subCategory);
             if (current) setCurrentCategoryDetails(current);
           } else {

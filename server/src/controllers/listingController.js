@@ -630,15 +630,8 @@ const getPublicCategories = async (req, res) => {
       };
 
       if (ListingModel) {
-        let countQuery = { 
-          $or: [{ category_id: cat._id }, { subcategory_id: cat._id }], 
-          status: 'active' 
-        };
-
-        if (type === 'property' && cat.slug) {
-          const primaryKeyword = cat.slug.split(/[-_]/)[0];
-          countQuery.$or.push({ property_type: { $regex: new RegExp(escapeRegex(primaryKeyword), 'i') } });
-        }
+        // Use the same filter as the browse page (category_id only) so count always matches listings shown
+        let countQuery = { category_id: cat._id, status: 'active' };
         countQuery = applyLocationFilter(countQuery, 'Listing');
         count = await ListingModel.countDocuments(countQuery);
       } else if (type === 'supplier') {
