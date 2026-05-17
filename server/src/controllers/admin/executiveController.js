@@ -1,7 +1,7 @@
 const { Partner } = require('../../models/Partner');
 const logger = require('../../utils/logger');
 const { AppConfig } = require('../../models/System');
-const { ActivityLog, logActivity } = require('../../utils/activityLogger');
+const { logActivity } = require('../../utils/activityLogger');
 const Executive = require('../../models/Executive');
 const WithdrawalRequest = require('../../models/Wallet');
 const { createNotification } = require('../../utils/notificationHelper');

@@ -3,7 +3,7 @@ const router = express.Router();
 const { protect, authorizeRoles, verifyApproved } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
 const validate = require('../middlewares/validateMiddleware');
-const { leaveApprovalSchema, dailyReportSchema } = require('../utils/validators');
+const { leaveApprovalSchema } = require('../utils/validators');
 const {
   getTLDashboard,
   getTLExecutives,

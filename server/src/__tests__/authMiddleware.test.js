@@ -24,7 +24,6 @@ jest.mock('../models/Executive', () => ({
 
 const jwt = require('jsonwebtoken');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
-const { AdminUser } = require('../models/Admin');
 const { User } = require('../models/User');
 
 const JWT_SECRET = 'test-secret';

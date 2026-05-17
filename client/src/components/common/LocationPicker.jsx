@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, Search, Check, ChevronRight, X, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
 
-// Common cities mapping for manual selection center points
 const MAJOR_CITIES = [
   { name: 'Muzaffarpur', state: 'Bihar', district: 'Muzaffarpur' },
   { name: 'Patna', state: 'Bihar', district: 'Patna' },
@@ -15,6 +12,22 @@ const MAJOR_CITIES = [
   { name: 'Bengaluru', state: 'Karnataka', district: 'Bengaluru' },
 ];
 
+const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+function parseComponents(components) {
+  const get = (type) =>
+    (components || []).find(c => c.types.includes(type))?.long_name || '';
+  return {
+    city:
+      get('locality') ||
+      get('sublocality_level_1') ||
+      get('administrative_area_level_3') ||
+      '',
+    district: get('administrative_area_level_2') || '',
+    state: get('administrative_area_level_1') || '',
+  };
+}
+
 export default function LocationPicker({ onSelect, onClose, initialLocation = null }) {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,7 +35,6 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState(null);
 
-  // Search Logic with Debounce
   useEffect(() => {
     if (searchQuery.length < 3) {
       setSearchResults([]);
@@ -34,31 +46,27 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
       setIsSearching(true);
       setError(null);
       try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${searchQuery}&addressdetails=1&countrycodes=in&limit=8`);
-        const data = await response.json();
-        
-        const cleanName = (name) => {
-          if (!name) return '';
-          return name.replace(/\s(Tahsil|District|Zila|Subdivision|Township|Taluk|Mandal)$/i, '').trim();
-        };
-
-        const mapped = data.map(item => {
-          const adr = item.address;
-          const cityName = cleanName(adr.city || adr.town || adr.village || adr.suburb || item.display_name.split(',')[0]);
-          const stateName = adr.state || '';
-          const districtName = cleanName(adr.county || adr.state_district || adr.city_district || cityName);
-          
-          return {
-            name: cityName,
-            state: stateName,
-            district: districtName,
-            coordinates: [parseFloat(item.lon), parseFloat(item.lat)],
-            display: item.display_name
-          };
-        });
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(searchQuery)}&components=country:IN&key=${GMAPS_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const mapped = (data.results || [])
+          .map(item => {
+            const { city, district, state } = parseComponents(item.address_components);
+            const lat = item.geometry.location.lat;
+            const lng = item.geometry.location.lng;
+            return {
+              name: city || item.formatted_address.split(',')[0].trim(),
+              district,
+              state,
+              coordinates: [lng, lat],
+              display: item.formatted_address,
+            };
+          })
+          .filter(r => r.state);
         setSearchResults(mapped);
       } catch (err) {
-        console.error("Search error:", err);
+        console.error('Location search error:', err);
+        setError('Search failed. Please try again.');
       } finally {
         setIsSearching(false);
       }
@@ -69,112 +77,61 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
 
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser");
+      setError('Geolocation is not supported by your browser');
       return;
     }
-
     setLoading(true);
     setError(null);
 
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+      async ({ coords: { latitude, longitude } }) => {
         try {
-          // Reverse geocode using OpenStreetMap Nominatim (Free & No Key Required)
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
-          const data = await response.json();
-          
-          if (data && data.address) {
-            const adr = data.address;
-            
-            // Utility to clean up names (removes suffixes like Tahsil, District, etc)
-            const cleanName = (name) => {
-              if (!name) return '';
-              return name
-                .replace(/\s(Tahsil|District|Zila|Subdivision|Township|Taluk|Mandal)$/i, '')
-                .trim();
-            };
+          const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GMAPS_KEY}`;
+          const res = await fetch(url);
+          const data = await res.json();
 
-            const cityName = cleanName(
-              adr.city || 
-              adr.town || 
-              adr.village || 
-              adr.suburb || 
-              adr.neighbourhood || 
-              adr.municipality || 
-              adr.residential ||
-              adr.road || // Fallback to road if it's a very specific coordinate
-              'Unknown'
+          if (data.status === 'OK' && data.results.length > 0) {
+            const { city, district, state } = parseComponents(
+              data.results[0].address_components
             );
-            // Normalization logic for Indian states
-            const INDIAN_STATES = [
-              "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", 
-              "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", 
-              "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", 
-              "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", 
-              "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", 
-              "Telangana", "Tripura", "Uttarakhand", "Uttar Pradesh", "West Bengal"
-            ];
-            
-            const stateName = adr.state || '';
-            const normalizedState = INDIAN_STATES.find(s => s.toLowerCase() === stateName.toLowerCase()) || stateName;
-            const rawDistrict = adr.county || adr.state_district || adr.city_district || cityName;
-
-            // Find matching district from our list
-            const clean = (s) => s.toLowerCase().replace(/\s(district|zila|tahsil|division)$/i, '').trim();
-            const cleanedRaw = clean(rawDistrict);
-            const availableDistricts = INDIAN_STATES_DISTRICTS[normalizedState] || [];
-            
-            const matchedDistrict = availableDistricts.find(d => clean(d) === cleanedRaw) || 
-                                   availableDistricts.find(d => clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))) || 
-                                   rawDistrict;
-
             onSelect({
               coordinates: [longitude, latitude],
-              name: cityName === 'Unknown' ? null : cityName,
-              state: normalizedState,
-              district: matchedDistrict,
+              name: city || null,
+              state,
+              district,
               isGPS: true,
-              rawAddress: adr
             });
           } else {
-            // Fallback to coordinates only if geocoding fails
-            onSelect({
-              coordinates: [longitude, latitude],
-              isGPS: true
-            });
+            onSelect({ coordinates: [longitude, latitude], isGPS: true });
           }
-        } catch (err) {
-          console.error("Geocoding error:", err);
-          onSelect({
-            coordinates: [longitude, latitude],
-            isGPS: true
-          });
+        } catch {
+          onSelect({ coordinates: [longitude, latitude], isGPS: true });
         } finally {
           setLoading(false);
         }
       },
-      (err) => {
-        setError(err.message || "Failed to detect location");
+      err => {
+        setError(err.message || 'Failed to detect location');
         setLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
-  const handleCitySelect = (city) => {
+  const handleCitySelect = city => {
     onSelect({
       name: city.name,
       district: city.district,
       state: city.state,
       coordinates: city.coordinates || null,
-      isManual: true
+      isManual: true,
     });
   };
 
-  const popularCities = MAJOR_CITIES.filter(city => 
-    city.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    city.state.toLowerCase().includes(searchQuery.toLowerCase())
+  const popularCities = MAJOR_CITIES.filter(
+    city =>
+      city.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      city.state.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -187,15 +144,13 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
             <X size={20} />
           </button>
         </div>
-
-        {/* Search Bar */}
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Search city or area..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             className="w-full bg-slate-50 border-none rounded-2xl py-4 pl-12 pr-4 text-[15px] font-medium text-[#001b4e] outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#001b4e]/5 transition-all"
           />
         </div>
@@ -203,7 +158,7 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
 
       <div className="flex-grow overflow-y-auto px-6 py-6 space-y-8">
         {/* GPS Button */}
-        <button 
+        <button
           onClick={handleDetectLocation}
           disabled={loading}
           className="w-full bg-[#001b4e] p-6 rounded-2xl flex items-center gap-4 text-white shadow-xl shadow-blue-900/10 active:scale-[0.98] transition-all disabled:opacity-70"
@@ -235,28 +190,30 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
                 <Loader2 size={32} className="animate-spin mb-3 text-[#001b4e]" />
                 <p className="text-[13px] font-bold tracking-wide uppercase">Searching across India...</p>
               </div>
-            ) : (searchQuery.length >= 3 ? searchResults : popularCities).map((city, idx) => (
-              <button 
-                key={city.name + idx}
-                onClick={() => handleCitySelect(city)}
-                className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 hover:border-[#001b4e]/20 hover:bg-slate-50/50 transition-all active:scale-[0.98]"
-              >
-                <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400">
-                  <MapPin size={20} />
-                </div>
-                <div className="text-left flex-1 min-w-0">
-                  <div className="text-[15px] font-bold text-[#001b4e] truncate">{city.name}</div>
-                  <div className="text-[12px] text-slate-400 truncate">
-                    {city.district ? `${city.district}, ` : ''}{city.state}
+            ) : (
+              (searchQuery.length >= 3 ? searchResults : popularCities).map((city, idx) => (
+                <button
+                  key={city.name + idx}
+                  onClick={() => handleCitySelect(city)}
+                  className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 hover:border-[#001b4e]/20 hover:bg-slate-50/50 transition-all active:scale-[0.98]"
+                >
+                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400">
+                    <MapPin size={20} />
                   </div>
-                </div>
-                {initialLocation?.city === city.name && (
-                  <div className="ml-auto bg-emerald-100 text-emerald-600 p-1.5 rounded-full">
-                    <Check size={14} />
+                  <div className="text-left flex-1 min-w-0">
+                    <div className="text-[15px] font-bold text-[#001b4e] truncate">{city.name}</div>
+                    <div className="text-[12px] text-slate-400 truncate">
+                      {city.district ? `${city.district}, ` : ''}{city.state}
+                    </div>
                   </div>
-                )}
-              </button>
-            ))}
+                  {initialLocation?.city === city.name && (
+                    <div className="ml-auto bg-emerald-100 text-emerald-600 p-1.5 rounded-full">
+                      <Check size={14} />
+                    </div>
+                  )}
+                </button>
+              ))
+            )}
 
             {!isSearching && searchQuery.length >= 3 && searchResults.length === 0 && (
               <div className="text-center py-12 px-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">

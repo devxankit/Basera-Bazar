@@ -55,10 +55,10 @@ export default function AdminExecutives({ filter = 'All' }) {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       return (
-        item.name?.toLowerCase().includes(searchLower) ||
-        item.email?.toLowerCase().includes(searchLower) ||
-        item.phone?.includes(searchTerm) ||
-        item.referral_code?.toLowerCase().includes(searchLower)
+        (item.name ?? '').toLowerCase().includes(searchLower) ||
+        (item.email ?? '').toLowerCase().includes(searchLower) ||
+        (item.phone ?? '').includes(searchTerm) ||
+        (item.referral_code ?? '').toLowerCase().includes(searchLower)
       );
     }
     return true;
@@ -123,12 +123,18 @@ export default function AdminExecutives({ filter = 'All' }) {
       'Delete Executive',
       'CRITICAL: Are you sure you want to PERMANENTLY DELETE this executive? This action cannot be undone.',
       async () => {
+        const snapshot = [...executives];
         setExecutives(prev => prev.filter(e => e._id !== id));
-        await api.delete(`/admin/executives/${id}`);
-        toast.success('Executive deleted from database');
-        refreshAdminCache();
-        fetchData();
-        setShowDetailModal(false);
+        try {
+          await api.delete(`/admin/executives/${id}`);
+          toast.success('Executive deleted from database');
+          refreshAdminCache();
+          fetchData();
+          setShowDetailModal(false);
+        } catch (err) {
+          setExecutives(snapshot);
+          toast.error(err.response?.data?.message || 'Failed to delete executive');
+        }
       }
     );
   };

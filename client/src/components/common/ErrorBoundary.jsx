@@ -1,5 +1,17 @@
 import React from 'react';
 
+/**
+ * ErrorBoundary — two modes:
+ *
+ * 1. Full-page (default): wraps an entire route, shows a full-screen error UI.
+ * 2. Inline: pass a `fallback` prop (ReactNode) to render it instead when the
+ *    subtree throws — useful for wrapping individual dashboard sections so one
+ *    broken widget doesn't kill the entire page.
+ *
+ *    <ErrorBoundary fallback={<p>Stats unavailable</p>}>
+ *      <StatCards />
+ *    </ErrorBoundary>
+ */
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -21,6 +33,12 @@ export default class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      // Inline mode — render the caller-supplied fallback
+      if (this.props.fallback !== undefined) {
+        return this.props.fallback;
+      }
+
+      // Full-page mode — default behaviour
       return (
         <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
           <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-6">

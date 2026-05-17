@@ -6,8 +6,6 @@ const { connectTestDB, clearCollections, disconnectTestDB } = require('./setup/t
 let app;
 let buyerToken;
 let sellerToken;
-let buyerPartnerId;
-let sellerPartnerId;
 
 beforeAll(async () => {
   await connectTestDB();
@@ -24,7 +22,7 @@ beforeEach(async () => {
   const { Partner } = require('../models/Partner');
 
   // Buyer partner (property_agent)
-  const buyer = await Partner.create({
+  await Partner.create({
     name: 'Buyer Partner',
     phone: '9600000001',
     password: 'Buyer@12345',
@@ -34,10 +32,8 @@ beforeEach(async () => {
     is_active: true,
     location: { type: 'Point', coordinates: [85.0, 25.0] }
   });
-  buyerPartnerId = buyer._id.toString();
-
   // Seller partner (mandi_seller)
-  const seller = await Partner.create({
+  await Partner.create({
     name: 'Seller Partner',
     phone: '9600000002',
     password: 'Seller@12345',
@@ -47,7 +43,6 @@ beforeEach(async () => {
     is_active: true,
     location: { type: 'Point', coordinates: [85.1, 25.1] }
   });
-  sellerPartnerId = seller._id.toString();
 
   const [buyerLogin, sellerLogin] = await Promise.all([
     request(app)

@@ -47,7 +47,7 @@ const deleteNotification = async (req, res) => {
 
     // Security: Ensure the notification belongs to the requester
     if (notification.recipient_id.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ success: false, message: 'Not authorized to delete this notification.' });
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this notification.' });
     }
 
     await notification.deleteOne();
@@ -62,7 +62,56 @@ const deleteNotification = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Mark a single notification as read
+ * @route   PATCH /api/notifications/:id/read
+ * @access  Private
+ */
+const markAsRead = async (req, res) => {
+  try {
+    const notification = await Notification.findById(req.params.id);
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found.' });
+    }
+    if (notification.recipient_id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized.' });
+    }
+    notification.is_read = true;
+    await notification.save();
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error({ err: error }, 'Error marking notification as read:');
+    res.status(500).json({ success: false, message: 'Error updating notification.' });
+  }
+};
+
+/**
+ * @desc    Mark all notifications as read for the logged-in user
+ * @route   PATCH /api/notifications/read-all
+ * @access  Private
+ */
+const markAllAsRead = async (req, res) => {
+  try {
+    let recipient_type = 'user';
+    if (['Agent', 'Supplier', 'Service Provider', 'Partner', 'partner'].includes(req.user.role)) {
+      recipient_type = 'partner';
+    } else if (['Admin', 'super_admin'].includes(req.user.role)) {
+      recipient_type = 'admin';
+    }
+    await Notification.updateMany(
+      { recipient_type, recipient_id: req.user._id, is_read: false },
+      { $set: { is_read: true } }
+    );
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error({ err: error }, 'Error marking all notifications as read:');
+    res.status(500).json({ success: false, message: 'Error updating notifications.' });
+  }
+};
+
 module.exports = {
   getMyNotifications,
-  deleteNotification
+  deleteNotification,
+  markAsRead,
+  markAllAsRead,
 };

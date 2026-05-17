@@ -39,7 +39,7 @@ const initiateSubscription = async (req, res) => {
 
     // 1. Create Razorpay Order (Fallback to mock if keys missing)
     let rpOrder;
-    const hasKeys = process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_ID !== 'your_razorpay_key_id';
+    const hasKeys = process.env.NODE_ENV !== 'test' && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_ID !== 'your_razorpay_key_id';
     
     if (hasKeys) {
       rpOrder = await createRPOrder(plan.price);
@@ -85,8 +85,9 @@ const verifySubscription = async (req, res) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan_id } = req.body;
     const partnerId = req.user.id;
 
-    // 1. Signature Verification (Only if not mock)
-    if (!razorpay_order_id.startsWith('order_mock_')) {
+    // 1. Signature Verification (Only if not mock — mock bypass only allowed outside production)
+    const isMock = process.env.NODE_ENV !== 'production' && razorpay_order_id.startsWith('order_mock_');
+    if (!isMock) {
       const body = razorpay_order_id + "|" + razorpay_payment_id;
       const expectedSignature = crypto
         .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
@@ -100,11 +101,13 @@ const verifySubscription = async (req, res) => {
 
     // 2. Update Order Status
     const order = await RazorpayOrder.findOne({ razorpay_order_id });
-    if (order) {
-      order.status = 'paid';
-      order.razorpay_payment_id = razorpay_payment_id;
-      await order.save();
+    if (!order) {
+      logger.warn({ razorpay_order_id }, 'RazorpayOrder record not found during subscription verification');
+      return res.status(404).json({ success: false, message: 'Payment record not found.' });
     }
+    order.status = 'paid';
+    order.razorpay_payment_id = razorpay_payment_id;
+    await order.save();
 
     // 3. Activate Subscription
     const plan = await SubscriptionPlan.findById(plan_id);
@@ -126,9 +129,6 @@ const verifySubscription = async (req, res) => {
     });
 
     // 4. Update Partner Profile & Grant Role Credit if 1+1 Offer is active
-    const updatePayload = {
-      active_subscription_id: subscription._id
-    };
 
     // Check for 1+1 Offer (Buy 1 role get 1 free)
     // Only for premium plans (Price > 1)
@@ -142,12 +142,12 @@ const verifySubscription = async (req, res) => {
         });
       } else {
         await Partner.findByIdAndUpdate(partnerId, {
-          active_subscription_id: subscription._id
+          $set: { active_subscription_id: subscription._id }
         });
       }
     } else {
       await Partner.findByIdAndUpdate(partnerId, {
-        active_subscription_id: subscription._id
+        $set: { active_subscription_id: subscription._id }
       });
     }
 

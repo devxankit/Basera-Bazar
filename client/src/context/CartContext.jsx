@@ -2,12 +2,20 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const CartContext = createContext();
 
-export const useCart = () => useContext(CartContext);
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) throw new Error('useCart must be used within a CartProvider');
+  return context;
+};
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(() => {
-    const savedCart = localStorage.getItem('basera_cart');
-    return savedCart ? JSON.parse(savedCart) : {};
+    try {
+      const savedCart = localStorage.getItem('basera_cart');
+      return savedCart ? JSON.parse(savedCart) : {};
+    } catch (e) {
+      return {};
+    }
   });
 
   useEffect(() => {
@@ -16,40 +24,36 @@ export const CartProvider = ({ children }) => {
 
   /**
    * addToCart supports composite keys for attribute-based variants.
-   * If the product has a `_cartKey`, use that; otherwise fall back to `_id`.
-   * The product's selectedType, selectedSubType, selectedBrand are stored alongside.
+   * Returns { success: boolean, reason?: string } so callers can show feedback.
    */
   const addToCart = (product) => {
-    if (!product) return;
-    
-    setCart((prev) => {
-      const cartKey = product._cartKey || product._id || product.id;
-      if (!cartKey) return prev;
+    if (!product) return { success: false, reason: 'invalid_product' };
 
-      const currentQty = prev[cartKey]?.qty || 0;
-      
-      // Support both 'inventory.quantity' (system products) and 'stock_quantity' (mandi products)
-      const stockLimit = product.inventory?.quantity ?? product.stock_quantity ?? 999;
-      
-      if (currentQty >= stockLimit) {
-        console.warn(`Cannot add more. Stock limit reached: ${stockLimit}`);
-        return prev;
-      }
+    const cartKey = product._cartKey || product._id || product.id;
+    if (!cartKey) return { success: false, reason: 'invalid_product' };
 
-      return {
-        ...prev,
-        [cartKey]: {
-          item: {
-            ...product,
-            _cartKey: cartKey
-          },
-          qty: currentQty + 1,
-          selectedType: product.selectedType || prev[cartKey]?.selectedType || product.type_name || null,
-          selectedSubType: product.selectedSubType || prev[cartKey]?.selectedSubType || product.sub_type_name || null,
-          selectedBrand: product.selectedBrand || prev[cartKey]?.selectedBrand || product.brand_name || product.brand || null
-        }
-      };
-    });
+    // Read current qty synchronously from cart state snapshot
+    const currentQty = cart[cartKey]?.qty || 0;
+
+    // Support both 'inventory.quantity' (system products) and 'stock_quantity' (mandi products)
+    const stockLimit = product.inventory?.quantity ?? product.stock_quantity ?? 999;
+
+    if (currentQty >= stockLimit) {
+      return { success: false, reason: 'stock_limit', limit: stockLimit };
+    }
+
+    setCart((prev) => ({
+      ...prev,
+      [cartKey]: {
+        item: { ...product, _cartKey: cartKey },
+        qty: (prev[cartKey]?.qty || 0) + 1,
+        selectedType: product.selectedType || prev[cartKey]?.selectedType || product.type_name || null,
+        selectedSubType: product.selectedSubType || prev[cartKey]?.selectedSubType || product.sub_type_name || null,
+        selectedBrand: product.selectedBrand || prev[cartKey]?.selectedBrand || product.brand_name || product.brand || null,
+      },
+    }));
+
+    return { success: true };
   };
 
   const removeFromCart = (productId) => {
@@ -81,6 +85,7 @@ export const CartProvider = ({ children }) => {
   const clearCart = () => setCart({});
 
   const cartTotal = Object.values(cart).reduce((sum, item) => {
+    if (!item?.item) return sum;
     const price = item.item.pricing?.price_per_unit || item.item.price?.value || 0;
     return sum + (price * item.qty);
   }, 0);

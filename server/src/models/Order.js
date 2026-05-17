@@ -79,8 +79,9 @@ const orderSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-orderSchema.index({ buyer_id: 1, createdAt: -1 });
-orderSchema.index({ seller_id: 1, createdAt: -1 });
-orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.index({ user_id: 1, createdAt: -1 });        // buyer queries
+orderSchema.index({ 'items.seller_id': 1, createdAt: -1 }); // seller dashboard
+orderSchema.index({ status: 1, createdAt: -1 });            // admin status filters
+orderSchema.index({ 'token_payment.razorpay_order_id': 1 }, { sparse: true }); // payment verification lookup
 
 module.exports = mongoose.model('Order', orderSchema);

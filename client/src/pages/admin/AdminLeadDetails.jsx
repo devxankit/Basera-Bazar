@@ -25,31 +25,34 @@ const AdminLeadDetails = () => {
   const [error, setError] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, deleting: false });
 
-  const fetchLead = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/admin/leads/${id}`);
-      if (res.data.success) {
-        setLead(res.data.data);
-        if (res.data.metrics) {
-          setMetrics(res.data.metrics);
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Lead not found or connection error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const controller = new AbortController();
+    const fetchLead = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/admin/leads/${id}`, { signal: controller.signal });
+        if (res.data.success) {
+          setLead(res.data.data);
+          if (res.data.metrics) {
+            setMetrics(res.data.metrics);
+          }
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError' && err.code !== 'ERR_CANCELED') {
+          setError('Lead not found or connection error');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchLead();
+    return () => controller.abort();
   }, [id]);
 
   const handleCopy = (text) => {
-    navigator.clipboard.writeText(text);
-    console.log('Copied to clipboard');
+    navigator.clipboard.writeText(text)
+      .then(() => toast.success('Copied!'))
+      .catch(() => toast.error('Could not copy to clipboard'));
   };
 
   const toggleContactStatus = async () => {
@@ -82,7 +85,7 @@ const AdminLeadDetails = () => {
       case 'property': return `/admin/properties/view/${lead.listing_id}`;
       case 'service': return `/admin/services/view/${lead.listing_id}`;
       case 'mandi': return `/admin/products/view/${lead.listing_id}`;
-      case 'supplier': return `/admin/products/view/${lead.listing_id}`;
+      case 'supplier': return `/admin/mandi-bazar`;
       default: return `/admin/leads`;
     }
   };

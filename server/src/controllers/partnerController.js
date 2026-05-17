@@ -99,6 +99,7 @@ const getMyPartnerProfile = async (req, res) => {
     // Fetch the partner from the database
     // .populate() automatically fetches related data if we ref another collection
     const partner = await Partner.findById(partnerId)
+      .select('-password')
       .populate('active_subscription_id');
 
     if (!partner) {
@@ -304,7 +305,7 @@ const deleteRole = async (req, res) => {
     }
 
     // Cannot delete the only active role
-    if (partner.roles.length <= 1) {
+    if (!partner.roles || partner.roles.length <= 1) {
       return res.status(400).json({ success: false, message: 'Cannot delete your only active role.' });
     }
 
@@ -552,7 +553,7 @@ function formatRelativeTime(date) {
   const now = new Date();
   const diff = now - date;
   const mins = Math.floor(diff / 60000);
-  const hours = Math.floor(mins / 600);
+  const hours = Math.floor(mins / 60);
   const days = Math.floor(hours / 24);
 
   if (mins < 1) return 'Just now';

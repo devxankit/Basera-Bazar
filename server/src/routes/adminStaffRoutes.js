@@ -11,7 +11,12 @@ const {
   leaveApprovalSchema,
   salaryFinalizeSchema,
   idParamSchema,
+  targetUpdateSchema,
+  attendanceVerifySchema,
+  reportVerifySchema,
 } = require('../utils/validators');
+
+const vId = validate(idParamSchema, 'params');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
 const idempotency = require('../middlewares/idempotencyMiddleware');
 const {
@@ -71,46 +76,46 @@ router.get('/stats', cacheMiddleware(5, true), getStaffStats);
 // ─── Team Leaders ───────────────────────────────────────────────────────────
 router.get('/team-leaders', cacheMiddleware(5, true), getAllTeamLeaders);
 router.post('/team-leaders', validate(teamLeaderSchema), createTeamLeader);
-router.get('/team-leaders/:id', getTeamLeaderById);
-router.put('/team-leaders/:id', validate(teamLeaderUpdateSchema), updateTeamLeader);
-router.put('/team-leaders/:id/toggle', toggleTeamLeaderActive);
-router.put('/team-leaders/:id/approve', approveTeamLeader);
-router.put('/team-leaders/:id/reject', rejectTeamLeader);
-router.put('/team-leaders/:id/salary', updateTeamLeaderSalary);
-router.get('/team-leaders/:id/team', getTeamLeaderTeam);
+router.get('/team-leaders/:id', vId, getTeamLeaderById);
+router.put('/team-leaders/:id', vId, validate(teamLeaderUpdateSchema), updateTeamLeader);
+router.put('/team-leaders/:id/toggle', vId, toggleTeamLeaderActive);
+router.put('/team-leaders/:id/approve', vId, approveTeamLeader);
+router.put('/team-leaders/:id/reject', vId, rejectTeamLeader);
+router.put('/team-leaders/:id/salary', vId, updateTeamLeaderSalary);
+router.get('/team-leaders/:id/team', vId, getTeamLeaderTeam);
 
 // ─── Office Staff ───────────────────────────────────────────────────────────
 router.get('/office-staff', cacheMiddleware(5, true), getAllOfficeStaff);
 router.post('/office-staff', validate(officeStaffSchema), createOfficeStaff);
-router.get('/office-staff/:id', getOfficeStaffById);
-router.put('/office-staff/:id', validate(officeStaffUpdateSchema), updateOfficeStaff);
-router.put('/office-staff/:id/toggle', toggleOfficeStaffActive);
-router.put('/office-staff/:id/approve', approveOfficeStaff);
-router.put('/office-staff/:id/reject', rejectOfficeStaff);
-router.put('/office-staff/:id/reassign', reassignOfficeStaff);
+router.get('/office-staff/:id', vId, getOfficeStaffById);
+router.put('/office-staff/:id', vId, validate(officeStaffUpdateSchema), updateOfficeStaff);
+router.put('/office-staff/:id/toggle', vId, toggleOfficeStaffActive);
+router.put('/office-staff/:id/approve', vId, approveOfficeStaff);
+router.put('/office-staff/:id/reject', vId, rejectOfficeStaff);
+router.put('/office-staff/:id/reassign', vId, reassignOfficeStaff);
 
 // ─── Executive → Team Leader assignment ────────────────────────────────────
-router.put('/executives/:id/assign-tl', assignExecutiveToTL);
+router.put('/executives/:id/assign-tl', vId, assignExecutiveToTL);
 
 // ─── Executive Lead Transfer ─────────────────────────────────────────────────
-router.post('/executives/:id/transfer-leads', transferExecutiveLeads);
+router.post('/executives/:id/transfer-leads', vId, transferExecutiveLeads);
 
 // ─── Targets ────────────────────────────────────────────────────────────────
 router.get('/targets', cacheMiddleware(5, true), getAllTargets);
 router.post('/targets', validate(targetAssignSchema), createTarget);
-router.put('/targets/:id', updateTarget);
-router.put('/targets/:id/toggle', toggleTargetStatus);
-router.delete('/targets/:id', deleteTarget);
-router.get('/targets/:id/progress', getTargetProgress);
+router.put('/targets/:id', vId, validate(targetUpdateSchema), updateTarget);
+router.put('/targets/:id/toggle', vId, toggleTargetStatus);
+router.delete('/targets/:id', vId, deleteTarget);
+router.get('/targets/:id/progress', vId, getTargetProgress);
 
 // ─── Attendance ─────────────────────────────────────────────────────────────
 router.get('/attendance', cacheMiddleware(5, true), getAllAttendance);
 router.get('/attendance/export', exportAttendanceToCSV);
-router.put('/attendance/:id/verify', adminVerifyAttendance);
+router.put('/attendance/:id/verify', vId, validate(attendanceVerifySchema), adminVerifyAttendance);
 
 // ─── Leaves ─────────────────────────────────────────────────────────────────
 router.get('/leaves', cacheMiddleware(5, true), getAllLeaves);
-router.put('/leaves/:id', validate(leaveApprovalSchema), adminApproveLeave);
+router.put('/leaves/:id', vId, validate(leaveApprovalSchema), adminApproveLeave);
 
 // ─── Performance ────────────────────────────────────────────────────────────
 router.get('/performance', cacheMiddleware(5, true), getStaffPerformance);
@@ -119,8 +124,8 @@ router.post('/performance/finalize', finalizeMonthPerformance);
 // ─── Salary ─────────────────────────────────────────────────────────────────
 router.get('/salary', cacheMiddleware(5, true), getStaffSalaryRecords);
 router.post('/salary/process-monthly', idempotency, processMonthlyStaffSalary);
-router.put('/salary/:id/pay', validate(salaryFinalizeSchema), markSalaryPaid);
-router.get('/salary/:id/slip', async (req, res) => {
+router.put('/salary/:id/pay', vId, validate(salaryFinalizeSchema), markSalaryPaid);
+router.get('/salary/:id/slip', vId, async (req, res) => {
   try {
     const record = await SalaryRecord.findById(req.params.id).lean();
     if (!record) return res.status(404).json({ success: false, message: 'Record not found.' });
@@ -168,6 +173,6 @@ router.get('/leaderboard', cacheMiddleware(5, true), getStaffLeaderboard);
 // ─── Daily Reports ──────────────────────────────────────────────────────────
 router.get('/reports/daily', cacheMiddleware(5, true), getAllDailyReports);
 router.get('/reports/daily/export', exportReportsToCSV);
-router.put('/reports/daily/:id/verify', adminVerifyDailyReport);
+router.put('/reports/daily/:id/verify', vId, validate(reportVerifySchema), adminVerifyDailyReport);
 
 module.exports = router;

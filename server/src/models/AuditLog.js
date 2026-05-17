@@ -33,4 +33,7 @@ const auditLogSchema = new mongoose.Schema({
   user_agent: String
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
+auditLogSchema.index({ admin_id: 1, createdAt: -1 });
+auditLogSchema.index({ resource_type: 1, resource_id: 1 });
+
 module.exports = mongoose.models.AuditLog || mongoose.model('AuditLog', auditLogSchema);

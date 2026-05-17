@@ -2,7 +2,7 @@ const logger = require('../../utils/logger');
 const StaffAttendance = require('../../models/StaffAttendance');
 const LeaveRequest = require('../../models/LeaveRequest');
 const { calculateDistance } = require('../../utils/geoFence');
-const { TeamLeader, OfficeStaff } = require('../../models/Staff');
+const { OfficeStaff } = require('../../models/Staff');
 const Executive = require('../../models/Executive');
 
 const GEO_FENCE_RADIUS_METERS = parseInt(process.env.GEO_FENCE_RADIUS_METERS || '500', 10);
@@ -12,7 +12,7 @@ const OFFICE_LNG = parseFloat(process.env.OFFICE_LNG || '77.2090');
 // ─── Field Executive: GPS Check-in ──────────────────────────────────────────
 
 const fieldExecutiveCheckIn = async (req, res) => {
-  const { latitude, longitude, selfie_url, accuracy } = req.body;
+  const { latitude, longitude, selfie_url } = req.body;
   const today = new Date().toISOString().split('T')[0];
 
   try {
@@ -26,7 +26,7 @@ const fieldExecutiveCheckIn = async (req, res) => {
 
     const exec = await Executive.findById(req.user.id).select('team_leader_id').lean();
 
-    const attendance = await StaffAttendance.findOneAndUpdate(
+    await StaffAttendance.findOneAndUpdate(
       { staff_id: req.user.id, date: today },
       {
         staff_id: req.user.id,

@@ -5,7 +5,7 @@ const Order = require('../models/Order');
 const { MandiListing } = require('../models/Listing');
 const { Partner } = require('../models/Partner');
 const { RazorpayOrder, Transaction } = require('../models/Finance');
-const { AppConfig, Category } = require('../models/System');
+const { AppConfig } = require('../models/System');
 const axios = require('axios');
 const { sendOTP } = require('../utils/sms');
 
@@ -46,6 +46,17 @@ const createMarketplaceOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cart is empty' });
     }
 
+    // 2.4 — Validate each item's shape before any DB work
+    for (const item of items) {
+      const id = item.productId || item.product_id;
+      if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ success: false, message: `Invalid or missing product_id in cart items.` });
+      }
+      if (!Number.isInteger(item.qty) || item.qty < 1) {
+        return res.status(400).json({ success: false, message: `qty must be a positive integer for each cart item.` });
+      }
+    }
+
     // Fetch Global Fallbacks
     const tokenConfig = await AppConfig.findOne({ key: 'mandi_token_amount' });
     const commissionConfig = await AppConfig.findOne({ key: 'mandi_commission_rate' });
@@ -57,27 +68,41 @@ const createMarketplaceOrder = async (req, res) => {
     let totalBookingToken = 0;
     const processedItems = [];
 
-    // 1. Validate Stock and Calculate Commissions per Category
+    // 1. Batch-fetch all products in one query (eliminates N+1)
+    const productIds = items.map(item => item.productId || item.product_id);
+    const products = await MandiListing.find({ _id: { $in: productIds } }).populate('category_id');
+    const productMap = new Map(products.map(p => [p._id.toString(), p]));
+
     for (const item of items) {
-      const product = await MandiListing.findById(item.productId || item.product_id).populate('category_id');
+      const id = (item.productId || item.product_id).toString();
+      const product = productMap.get(id);
       if (!product) {
-        return res.status(404).json({ success: false, message: `Product ${item.productId || item.product_id} not found` });
+        return res.status(404).json({ success: false, message: `Product ${id} not found` });
       }
 
       if (product.stock_quantity < item.qty) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Insufficient stock for ${product.title}. Only ${product.stock_quantity} available.` 
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for ${product.title}. Only ${product.stock_quantity} available.`
         });
       }
 
-      const itemTotal = product.pricing.price_per_unit * item.qty;
-      
-      // Calculate dynamic commission
-      // Use category percentage, fallback to global default
+      // 2.5 — Guard against missing pricing fields before arithmetic
+      const pricePerUnit = product.pricing?.price_per_unit;
+      const unit = product.pricing?.unit;
+      if (!pricePerUnit || !unit) {
+        return res.status(422).json({
+          success: false,
+          message: `Product "${product.title}" has incomplete pricing data and cannot be ordered.`,
+        });
+      }
+
+      const itemTotal = pricePerUnit * item.qty;
+
+      // Calculate dynamic commission — use category rate, fallback to global default
       const categoryRate = product.category_id?.mandi_commission_percentage ?? globalDefaultRate;
       const itemCommission = itemTotal * (categoryRate / 100);
-      
+
       totalAmount += itemTotal;
       totalBookingToken += itemCommission;
 
@@ -86,8 +111,8 @@ const createMarketplaceOrder = async (req, res) => {
         seller_id: product.partner_id,
         name: product.title,
         qty: item.qty,
-        price: product.pricing.price_per_unit,
-        unit: product.pricing.unit,
+        price: pricePerUnit,
+        unit,
         status: 'pending',
         commission_rate: categoryRate,
         commission_amount: itemCommission,
@@ -103,7 +128,7 @@ const createMarketplaceOrder = async (req, res) => {
 
     // 2. Create Razorpay order (Actual or Mock)
     let rpOrder;
-    const hasKeys = process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_ID !== 'your_razorpay_key_id';
+    const hasKeys = process.env.NODE_ENV !== 'test' && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_ID !== 'your_razorpay_key_id';
     
     if (hasKeys) {
       rpOrder = await createRPOrder(totalBookingToken);
@@ -166,8 +191,8 @@ const verifyMarketplacePayment = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
-    // 1. Signature Verification (Only if not mock)
-    const isMock = razorpay_order_id.startsWith('order_mock_');
+    // 1. Signature Verification (Only if not mock — mock bypass only allowed outside production)
+    const isMock = process.env.NODE_ENV !== 'production' && razorpay_order_id.startsWith('order_mock_');
     if (!isMock) {
       const body = razorpay_order_id + "|" + razorpay_payment_id;
       const expectedSignature = crypto
@@ -206,16 +231,36 @@ const verifyMarketplacePayment = async (req, res) => {
     order.token_payment.razorpay_payment_id = rzOrder.razorpay_payment_id;
     order.status = 'token_paid';
 
-    // 4. Reduce Stock (The lead is now committed)
-    for (let item of order.items) {
-      await MandiListing.findByIdAndUpdate(item.productId, {
-        $inc: { stock_quantity: -item.qty }
-      });
+    // 4. Reduce stock atomically inside a transaction — prevents overselling
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      for (const item of order.items) {
+        const updated = await MandiListing.findOneAndUpdate(
+          { _id: item.productId, stock_quantity: { $gte: item.qty } },
+          { $inc: { stock_quantity: -item.qty } },
+          { session, new: true }
+        );
+        if (!updated) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: `Stock no longer available for "${item.name}". Please refresh your cart.`,
+          });
+        }
+      }
+      await session.commitTransaction();
+    } catch (txErr) {
+      await session.abortTransaction();
+      throw txErr;
+    } finally {
+      session.endSession();
     }
 
     // 5. Record Transaction for Financial Report
     await Transaction.create({
-      partner_id: order.user_id, // The payer
+      user_id: order.user_id, // The payer (customer)
       type: 'mandi_commission',
       amount: order.token_payment.amount,
       direction: 'credit', // Credit to the platform
@@ -261,8 +306,25 @@ const verifyMarketplacePayment = async (req, res) => {
 const updateLeadStatus = async (req, res) => {
   try {
     const { orderId, itemId } = req.params;
-    const { status, note, method } = req.body; // method = 'cod' or 'online'
+    const { status, note } = req.body;
     const sellerId = req.user.id;
+
+    // 1. Validate incoming status before any DB lookup
+    const statusPriority = {
+      'pending': 1,
+      'accepted': 2,
+      'contacted': 2, // Backward compatibility
+      'processing': 3,
+      'shipped': 4,
+      'delivered': 5,
+      'cancelled': 0,
+    };
+    if (!status || !Object.prototype.hasOwnProperty.call(statusPriority, status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${Object.keys(statusPriority).join(', ')}.`,
+      });
+    }
 
     const order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
@@ -274,17 +336,8 @@ const updateLeadStatus = async (req, res) => {
 
     const currentStatus = item.status;
 
-    // 1. Validation Logic: Enforce linear progression
-    // Flow: pending -> contacted -> processing -> shipped -> delivered
-    const statusPriority = {
-      'pending': 1,
-      'accepted': 2,
-      'contacted': 2, // Backward compatibility
-      'processing': 3,
-      'shipped': 4,
-      'delivered': 5,
-      'cancelled': 0
-    };
+    // 2. Enforce linear progression
+    // Flow: pending -> accepted -> processing -> shipped -> delivered
 
     // Block updates to terminal states
     if (currentStatus === 'delivered' || currentStatus === 'cancelled') {
@@ -292,7 +345,7 @@ const updateLeadStatus = async (req, res) => {
     }
 
     // Block backwards progression
-    if (status !== 'cancelled' && statusPriority[status] <= statusPriority[currentStatus]) {
+    if (status !== 'cancelled' && statusPriority[status] < statusPriority[currentStatus]) {
       return res.status(400).json({ success: false, message: `Cannot move status back from ${currentStatus} to ${status}.` });
     }
 
@@ -346,6 +399,28 @@ const updateLeadStatus = async (req, res) => {
     const allDelivered = order.items.every(i => i.status === 'delivered');
     if (allDelivered) order.status = 'delivered';
     await order.save();
+
+    // Send notification to customer about status change
+    try {
+      const { createNotification } = require('../utils/notificationHelper');
+      const STATUS_MESSAGES = {
+        accepted:   { title: 'Order Accepted',   body: 'Your order has been accepted and is being processed.' },
+        processing: { title: 'Order Processing', body: 'Your order is being prepared for delivery.' },
+        shipped:    { title: 'Order Shipped',    body: 'Your order is on its way!' },
+        delivered:  { title: 'Order Delivered',  body: 'Your order has been delivered successfully.' },
+        cancelled:  { title: 'Order Cancelled',  body: 'Your order item has been cancelled.' },
+      };
+      const msgTemplate = STATUS_MESSAGES[status];
+      if (msgTemplate) {
+        await createNotification(
+          'user', order.user_id,
+          msgTemplate.title, msgTemplate.body,
+          { type: 'order_status', redirect_url: '/profile/my-orders', order_id: String(order._id) }
+        );
+      }
+    } catch (notifErr) {
+      logger.warn({ err: notifErr }, 'Failed to send order status notification');
+    }
 
     res.status(200).json({ success: true, message: `Lead status updated to ${status}` });
   } catch (error) {

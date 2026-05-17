@@ -26,6 +26,7 @@ const BrowseCategory = () => {
   const { category } = useParams();
   const [searchParams] = useSearchParams();
   const subCategory = searchParams.get('sub');
+  const category_id_param = searchParams.get('category_id');
   const navigate = useNavigate();
   const { location } = useLocationContext();
   const { cart, addToCart, removeFromCart } = useCart();
@@ -215,7 +216,7 @@ const BrowseCategory = () => {
       const params = {
         category: category !== 'all' ? category : undefined,
         subCategory: subCategory || undefined,
-        category_id: (category === 'mandi') ? (activeSubCat || activeMandiCat || undefined) : undefined,
+        category_id: (category === 'mandi') ? (activeSubCat || activeMandiCat || undefined) : (category_id_param || undefined),
         search: searchQuery || undefined,
         ...locationParams,
         ...activeFilters // Price ranges etc
@@ -298,7 +299,7 @@ const BrowseCategory = () => {
       setLoading(false);
     };
     fetchItems();
-  }, [category, subCategory, location, searchQuery, activeFilters, sortBy, selectedDistricts]);
+  }, [category, subCategory, category_id_param, location, searchQuery, activeFilters, sortBy, selectedDistricts]);
 
   const isService = category === 'service';
   const isSupplier = category === 'supplier';

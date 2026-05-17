@@ -4,12 +4,25 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLocationContext } from '../../context/LocationContext';
 import LocationPicker from '../common/LocationPicker';
+import api from '../../services/api';
 
 const Header = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const { location, setLocation } = useLocationContext();
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    api.get('/notifications')
+      .then(res => {
+        if (res.data.success) {
+          setUnreadCount(res.data.data.filter(n => !n.is_read).length);
+        }
+      })
+      .catch(() => {});
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const handleOpenSelector = () => setIsModalOpen(true);
@@ -72,7 +85,9 @@ const Header = () => {
             className="w-10 h-10 bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex items-center justify-center text-slate-700 relative active:scale-95 transition-all"
           >
             <Bell size={20} strokeWidth={2.5} />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
+            {unreadCount > 0 && (
+              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
+            )}
           </button>
         </div>
 

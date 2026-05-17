@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const Executive = require('../models/Executive');
 const DailyTask = require('../models/DailyTask');
 const SalaryRecord = require('../models/SalaryRecord');

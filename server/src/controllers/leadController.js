@@ -93,6 +93,10 @@ exports.getPartnerLeads = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Partner not found.' });
     }
 
+    if (!partner.district) {
+      return res.status(200).json({ success: true, count: 0, data: [], limitReached: false });
+    }
+
     const query = {
       'delivery_location.district': { $regex: new RegExp(partner.district, 'i') },
       status: 'active'
@@ -117,7 +121,7 @@ exports.getPartnerLeads = async (req, res) => {
     const processedLeads = leads.map(l => {
       const obj = l.toObject();
       if (limitReached) {
-        obj.phone = obj.phone.substring(0, 3) + '*******';
+        obj.phone = obj.phone ? obj.phone.substring(0, 3) + '*******' : '***';
         obj.email = obj.email ? '*******@' + (obj.email.split('@')[1] || 'hidden.com') : null;
         obj.limitReached = true;
       }
@@ -158,7 +162,7 @@ exports.getPartnerLeadById = async (req, res) => {
 
     const data = lead.toObject();
     if (limitReached) {
-      data.phone = data.phone.substring(0, 3) + '*******';
+      data.phone = data.phone ? data.phone.substring(0, 3) + '*******' : '***';
       data.email = data.email ? '*******@' + (data.email.split('@')[1] || 'hidden.com') : null;
       data.limitReached = true;
     }

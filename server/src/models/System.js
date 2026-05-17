@@ -62,6 +62,9 @@ const notificationSchema = new mongoose.Schema({
   }
 }); // No updatedAt needed
 
+notificationSchema.index({ recipient_type: 1, recipient_id: 1, created_at: -1 });
+notificationSchema.index({ recipient_id: 1, is_read: 1 }); // unread badge count
+
 const appConfigSchema = new mongoose.Schema({
   key: { type: String, required: true, unique: true },
   value: { type: mongoose.Schema.Types.Mixed, required: true },

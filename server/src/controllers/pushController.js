@@ -17,21 +17,16 @@ exports.saveFCMToken = async (req, res) => {
 
     // Robust recipient identification
     let recipient;
-    let Model;
 
     if (userRole === 'partner') {
-      Model = Partner;
       recipient = await Partner.findById(userId);
     } else if (userRole === 'executive') {
       const Executive = require('../models/Executive');
-      Model = Executive;
       recipient = await Executive.findById(userId);
     } else if (userRole === 'super_admin') {
       const { AdminUser } = require('../models/Admin');
-      Model = AdminUser;
       recipient = await AdminUser.findById(userId);
     } else {
-      Model = User;
       recipient = await User.findById(userId);
     }
 

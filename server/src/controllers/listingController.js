@@ -3,13 +3,12 @@ const logger = require('../utils/logger');
 const { Category, SupplierCategory } = require('../models/System');
 const { Subscription } = require('../models/Finance');
 const { Partner } = require('../models/Partner');
-const { 
-  getPartnerLimits, 
-  checkListingLimit, 
+const {
+  checkListingLimit,
   checkFeaturedLimit,
-  getMandiLimits
+  getMandiLimits,
+  enforceMandiLimits
 } = require('../utils/subscriptionUtils');
-const CacheManager = require('../utils/cache');
 const invalidate = require('../utils/cacheInvalidator');
 
 const mongoose = require('mongoose');
@@ -17,12 +16,6 @@ const mongoose = require('mongoose');
 // Escape special regex metacharacters so user input can't cause ReDoS (H-1)
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const buildLocationQuery = (district, state) => {
-  if (!district && !state) return {};
-  if (district) return { 'address.district': { $regex: new RegExp(escapeRegex(district), 'i') } };
-  if (state) return { 'address.state': { $regex: new RegExp(escapeRegex(state), 'i') } };
-  return {};
-};
 
 /**
  * Sort listings by location priority:
@@ -224,9 +217,9 @@ const createPropertyListing = async (req, res) => {
       status: 'pending_approval'
     });
 
-    res.status(201).json({ success: true, message: 'Property submitted for Admin review.', data: newProperty });
     await invalidate.publicListings();
     await invalidate.adminDashboard();
+    res.status(201).json({ success: true, message: 'Property submitted for Admin review.', data: newProperty });
 
   } catch (error) {
     logger.error({ err: error.message }, "Error creating property:")
@@ -246,7 +239,6 @@ const createPropertyListing = async (req, res) => {
 const createServiceListing = async (req, res) => {
   try {
     const partnerId = req.user.id;
-    const partnerPhone = req.user.phone;
 
     // 1. Check Subscription Limit
     const limitCheck = await checkListingLimit(partnerId);
@@ -321,9 +313,9 @@ const createServiceListing = async (req, res) => {
       });
     }
 
-    res.status(201).json({ success: true, message: 'Service listing created successfully.', data: newService });
     await invalidate.publicListings();
     await invalidate.adminDashboard();
+    res.status(201).json({ success: true, message: 'Service listing created successfully.', data: newService });
   } catch (error) {
     logger.error({ err: error }, "Error creating service listing:")
     if (error.name === 'ValidationError') {
@@ -531,6 +523,19 @@ const getAllListings = async (req, res) => {
     // Sort combined results by location priority
     const sorted = sortByLocationPriority(results, district, state);
 
+    // Apply relevance ranking when a search query is present
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      sorted.sort((a, b) => {
+        const score = (item) => {
+          const title = (item.title || item.name || item.material_name || '').toLowerCase();
+          const sd = (item.short_description || '').toLowerCase();
+          const desc = (item.description || item.full_description || '').toLowerCase();
+          return (title.includes(q) ? 10 : 0) + (sd.includes(q) ? 3 : 0) + (desc.includes(q) ? 1 : 0);
+        };
+        return score(b) - score(a);
+      });
+    }
 
     res.status(200).json({ success: true, count: sorted.length, data: sorted });
   } catch (error) {
@@ -793,9 +798,9 @@ const updateListing = async (req, res) => {
     );
 
     const message = nextStatus === 'active' ? 'Listing updated successfully' : 'Listing updated and submitted for review';
-    res.status(200).json({ success: true, message, data: updated });
     await invalidate.publicListings();
     await invalidate.adminDashboard();
+    res.status(200).json({ success: true, message, data: updated });
   } catch (error) {
     logger.error({ err: error }, "Error updating listing:")
     res.status(500).json({ success: false, message: 'Server error updating listing' });
@@ -952,9 +957,9 @@ const createMandiListing = async (req, res) => {
       is_featured: finalFeatured
     });
 
-    res.status(201).json({ success: true, message: 'Material listed successfully.', data: newMandiItem });
     await invalidate.publicListings();
     await invalidate.adminDashboard();
+    res.status(201).json({ success: true, message: 'Material listed successfully.', data: newMandiItem });
   } catch (error) {
     logger.error({ err: error }, "Error creating Mandi listing:")
     res.status(500).json({ success: false, message: 'Server error creating mandi listing.' });
@@ -1238,7 +1243,7 @@ const toggleFeaturedListing = async (req, res) => {
     if (!listing) return res.status(404).json({ success: false, message: 'Listing not found' });
 
     // 2. Security Check
-    if (listing.partner_id.toString() !== partnerId.toString()) {
+    if (!listing.partner_id || listing.partner_id.toString() !== partnerId.toString()) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 

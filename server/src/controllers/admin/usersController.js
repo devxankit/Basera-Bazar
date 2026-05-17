@@ -197,7 +197,7 @@ const createUser = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { is_active, role, material_categories, delivery_radius_km, subscription_id, active_subscription_id, service_category_id, state, district, address, name, email, phone, business_name, business_description, roles, active_role, onboarding_status, rejection_reason, image, business_logo } = req.body;
+    const { is_active, material_categories, delivery_radius_km, subscription_id, active_subscription_id, service_category_id, state, district, address, name, email, phone, business_name, business_description, roles, active_role, onboarding_status, rejection_reason, image, business_logo } = req.body;
 
     let account = await User.findById(id) || await Partner.findById(id);
     if (!account) return res.status(404).json({ success: false, message: 'User not found.' });

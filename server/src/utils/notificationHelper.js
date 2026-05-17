@@ -66,7 +66,7 @@ const createNotification = async (recipientType, recipientId, title, body, data 
           data: stringifiedData
         };
 
-        const result = await sendPushNotification(uniqueTokens, pushPayload);
+        await sendPushNotification(uniqueTokens, pushPayload);
         
         // Cleanup logic for failed tokens could be added here if needed
         // but admin-sdk's sendEachForMulticast handles basic reporting

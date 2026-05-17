@@ -27,7 +27,10 @@ const PropertyCategories = () => {
   useEffect(() => {
     const fetchCats = async () => {
       try {
-        const res = await api.get('/listings/categories?type=property');
+        const params = new URLSearchParams({ type: 'property' });
+        if (location.district) params.set('district', location.district);
+        if (location.state) params.set('state', location.state);
+        const res = await api.get(`/listings/categories?${params}`);
         if (res.data.success) {
           setCategories(res.data.data);
         }

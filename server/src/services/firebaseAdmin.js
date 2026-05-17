@@ -1,6 +1,5 @@
 const admin = require('firebase-admin');
 const logger = require('../utils/logger');
-const path = require('path');
 
 // Try to load service account from environment variable first (recommended for production)
 // Otherwise fallback to the config file

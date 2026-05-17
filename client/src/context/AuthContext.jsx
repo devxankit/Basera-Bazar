@@ -129,6 +129,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = (updates) => {
     setUser(prev => {
+      if (!prev) return prev; // guard: no user in state, nothing to update
       const newUser = { ...prev, ...updates };
       localStorage.setItem('baserabazar_user', JSON.stringify(newUser));
       return newUser;

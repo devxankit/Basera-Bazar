@@ -1,9 +1,8 @@
 const mongoose = require('mongoose');
 const logger = require('../../utils/logger');
-const { Partner } = require('../../models/Partner');
 const { Enquiry } = require('../../models/Enquiry');
 const { PropertyListing, ServiceListing, MandiListing } = require('../../models/Listing');
-const { Transaction, SubscriptionPlan } = require('../../models/Finance');
+const { SubscriptionPlan } = require('../../models/Finance');
 const invalidate = require('../../utils/cacheInvalidator');
 
 const getSubscriptionPlans = async (req, res) => {

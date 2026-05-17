@@ -450,7 +450,7 @@ export default function AdminExecutiveDetails() {
                    </div>
                    <div className="flex items-center justify-between">
                       <span className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Joined On</span>
-                      <span className="text-sm font-semibold text-slate-900">{new Date(executive.createdAt).toLocaleDateString('en-GB')}</span>
+                      <span className="text-sm font-semibold text-slate-900">{executive.createdAt ? new Date(executive.createdAt).toLocaleDateString('en-GB') : 'N/A'}</span>
                    </div>
                 </div>
              </div>

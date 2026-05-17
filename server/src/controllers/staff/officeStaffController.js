@@ -5,7 +5,6 @@ const StaffTarget = require('../../models/StaffTarget');
 const StaffPerformance = require('../../models/StaffPerformance');
 const DailyReport = require('../../models/DailyReport');
 const StaffAttendance = require('../../models/StaffAttendance');
-const LeaveRequest = require('../../models/LeaveRequest');
 
 const getOSDashboard = async (req, res) => {
   try {

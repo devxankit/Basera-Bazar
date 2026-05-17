@@ -42,7 +42,7 @@ const getListings = async (req, res) => {
       listings = await ServiceListing.find(query).populate('partner_id', 'name phone').sort({ createdAt: -1 }).skip(skip).limit(limit);
     } else if (type === 'product') {
       total = await MandiListing.countDocuments(query);
-      listings = await MandiListing.find(query).populate('partner_id', 'name phone').populate('category_id', 'name').populate('subcategory_id', 'name').populate('brand_id', 'name logo').populate('pricing.unit_id', 'name abbreviation').sort({ createdAt: -1 }).skip(skip).limit(limit);
+      listings = await MandiListing.find(query).populate('partner_id', 'name phone').populate('category_id', 'name').populate('subcategory_id', 'name').sort({ createdAt: -1 }).skip(skip).limit(limit);
     } else {
       return res.status(400).json({ success: false, message: 'Invalid listing type.' });
     }

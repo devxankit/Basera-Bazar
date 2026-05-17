@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# Pre-commit gate: lint staged files, then run unit tests
+# Integration tests are skipped here (too slow) — they run in CI.
+
+set -e
+
+# 1. Lint only staged files
+npx lint-staged
+
+# 2. Run server unit tests (fast, ~1s)
+cd server && npm run test:unit

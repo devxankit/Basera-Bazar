@@ -19,6 +19,7 @@ const authLimiter = rateLimit({
   max: 30, // Relaxed slightly from 20
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: { success: false, message: 'Too many authentication attempts. Please try again in 15 minutes.' }
 });
 
@@ -27,6 +28,7 @@ const otpLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: { success: false, message: 'Too many OTP requests. Please wait 10 minutes before trying again.' }
 });
 

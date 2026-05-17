@@ -1,7 +1,6 @@
-const mongoose = require('mongoose');
 const logger = require('../../utils/logger');
 const { Partner } = require('../../models/Partner');
-const { AdminAuditLog, AdminUser } = require('../../models/Admin');
+const { AdminUser } = require('../../models/Admin');
 const { User } = require('../../models/User');
 const { PropertyListing, ServiceListing, MandiListing } = require('../../models/Listing');
 const { Transaction } = require('../../models/Finance');
@@ -23,19 +22,15 @@ const getDashboardStats = async (req, res) => {
 
     let startDate = new Date();
     let dateFormat = "%Y-%m-%d";
-    let limitDays = 7;
 
     if (range === 'monthly') {
       startDate.setDate(startDate.getDate() - 30);
       dateFormat = "%Y-W%V";
-      limitDays = 5;
     } else if (range === 'yearly') {
       startDate.setFullYear(startDate.getFullYear() - 1);
       dateFormat = "%Y-%m";
-      limitDays = 12;
     } else {
       startDate.setDate(startDate.getDate() - 7);
-      limitDays = 7;
     }
 
     const [

@@ -242,10 +242,19 @@ const FCMHandler = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
 
   React.useEffect(() => {
-    initializeFCM();
-    const unsubscribe = setupForegroundHandler((payload) => {
-      console.log('FCM Foreground Message:', payload);
-    });
+    let unsubscribe;
+    const setup = async () => {
+      try {
+        await initializeFCM();
+        unsubscribe = setupForegroundHandler((payload) => {
+          console.log('FCM Foreground Message:', payload);
+        });
+      } catch (err) {
+        // Push notifications are non-critical — app stays fully functional without them
+        console.warn('[FCM] Push notifications unavailable:', err.message);
+      }
+    };
+    setup();
     return () => { if (unsubscribe) unsubscribe(); };
   }, []);
 

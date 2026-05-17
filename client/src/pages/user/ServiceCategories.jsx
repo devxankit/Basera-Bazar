@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, Loader2 } from 'lucide-react';
 import api from '../../services/api';
+import { useLocationContext } from '../../context/LocationContext';
 
 import acImg from '../../assets/professional service/ac maintenance.jpg';
 import arcImg from '../../assets/professional service/architect.jpg';
@@ -35,13 +36,17 @@ const localImages = {
 
 const ServiceCategories = () => {
   const navigate = useNavigate();
+  const { location } = useLocationContext();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCats = async () => {
       try {
-        const res = await api.get('/listings/categories?type=service');
+        const params = new URLSearchParams({ type: 'service' });
+        if (location.district) params.set('district', location.district);
+        if (location.state) params.set('state', location.state);
+        const res = await api.get(`/listings/categories?${params}`);
         if (res.data.success) {
           setCategories(res.data.data);
         }
@@ -52,7 +57,7 @@ const ServiceCategories = () => {
       }
     };
     fetchCats();
-  }, []);
+  }, [location]);
 
   return (
     <div className="bg-slate-50 flex flex-col font-sans">
@@ -88,7 +93,7 @@ const ServiceCategories = () => {
             {categories.map((cat) => (
               <button
                 key={cat._id}
-                onClick={() => navigate(`/browse/service?sub=${cat.slug}`)}
+                onClick={() => navigate(`/browse/service?category_id=${cat._id}`)}
                 className="bg-white p-5 rounded-[28px] border border-slate-100 shadow-xl shadow-slate-200/40 flex flex-col items-center gap-4 group transition-all"
               >
                 <div className="w-full h-24 rounded-2xl bg-white flex items-center justify-center p-3 group-hover:scale-110 transition-transform overflow-hidden">

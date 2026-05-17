@@ -2,10 +2,8 @@ const { User, Otp } = require('../models/User');
 const logger = require('../utils/logger');
 const { Partner } = require('../models/Partner');
 const { AdminUser } = require('../models/Admin');
-const { AppConfig } = require('../models/System');
 const Executive = require('../models/Executive');
 const { sendOTP } = require('../utils/sms');
-const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { getCityCoords } = require('../utils/locationUtils');
@@ -25,7 +23,7 @@ const { TeamLeader, OfficeStaff } = require('../models/Staff');
  */
 const checkExists = async (req, res) => {
   try {
-    const { phone, email, role = 'user' } = req.body;
+    const { phone, email } = req.body;
 
     if (!phone && !email) {
       return res.status(400).json({ success: false, message: 'Please provide phone or email.' });
@@ -187,8 +185,9 @@ const verifyOtp = async (req, res) => {
     let account;
     const assignedRole = role;
 
-    // Handle "verify only" flow — just check OTP and return success
+    // Handle "verify only" flow — consume OTP and return success
     if (flow === 'verify_only') {
+      await Otp.deleteOne({ _id: otpRecord._id });
       return res.status(200).json({ success: true, message: 'OTP verified successfully.' });
     }
 
@@ -355,7 +354,7 @@ const verifyOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: messages.join(', ') });
     }
     
-    res.status(500).json({ success: false, message: 'Server error during verification.', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error during verification.' });
   }
 };
 

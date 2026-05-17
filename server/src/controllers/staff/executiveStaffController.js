@@ -2,7 +2,6 @@ const logger = require('../../utils/logger');
 const Executive = require('../../models/Executive');
 const DailyReport = require('../../models/DailyReport');
 const StaffTarget = require('../../models/StaffTarget');
-const SalaryRecord = require('../../models/SalaryRecord');
 
 const submitExecutiveDailyReport = async (req, res) => {
   try {

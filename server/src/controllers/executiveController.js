@@ -31,6 +31,7 @@ const generateToken = (id, role, email, version = 0) => {
 exports.registerStep1 = async (req, res) => {
   try {
     let { name, email, phone, password } = req.body;
+    if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
     // Normalize phone
     phone = phone.replace(/\s+/g, '').replace(/^\+91/, '').replace(/^91/, '').replace(/\D/g, '').slice(-10);
 
@@ -84,6 +85,7 @@ exports.registerStep1 = async (req, res) => {
 exports.verifyRegistrationOtp = async (req, res) => {
   try {
     let { phone, otp, name, email, password } = req.body;
+    if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
     // Normalize phone
     phone = phone.replace(/\s+/g, '').replace(/^\+91/, '').replace(/^91/, '').replace(/\D/g, '').slice(-10);
 
@@ -253,6 +255,7 @@ exports.updateStep3 = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     let { phone, password } = req.body;
+    if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
     // Normalize phone (strip prefix and spaces)
     phone = phone.replace(/\s+/g, '').replace(/^\+91/, '').replace(/^91/, '').replace(/\D/g, '').slice(-10);
     
@@ -558,7 +561,10 @@ exports.getMyTransactions = async (req, res) => {
  */
 exports.requestWithdrawal = async (req, res) => {
   try {
-    const { amount } = req.body;
+    const amount = Number(req.body.amount);
+    if (!amount || amount <= 0 || !Number.isFinite(amount)) {
+      return res.status(400).json({ success: false, message: 'Withdrawal amount must be a positive number.' });
+    }
 
     // Atomic debit: only succeeds if balance is sufficient, preventing race conditions
     const executive = await Executive.findOneAndUpdate(

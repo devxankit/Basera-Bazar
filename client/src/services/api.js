@@ -1,11 +1,15 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+
+if (!import.meta.env.VITE_API_BASE_URL && import.meta.env.PROD) {
+  console.error('[api] VITE_API_BASE_URL is not set. API calls will fail in production.');
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  // Send HttpOnly cookies on every cross-origin request (Phase 3)
   withCredentials: true,
+  timeout: 15000, // 15 s — requests never hang indefinitely
 });
 
 // Attach localStorage token as Authorization header fallback.

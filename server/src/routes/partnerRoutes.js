@@ -19,7 +19,12 @@ const {
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
 const validate = require('../middlewares/validateMiddleware');
-const { partnerRegistrationSchema } = require('../utils/validators');
+const {
+  partnerRegistrationSchema,
+  partnerAddRoleSchema,
+  partnerDeleteRoleSchema,
+  partnerSwitchRoleSchema,
+} = require('../utils/validators');
 
 // -------------------------------------------------------------------------
 // PUBLIC ROUTES
@@ -61,6 +66,7 @@ router.post(
   '/add-role',
   protect,
   authorizeRoles('partner'),
+  validate(partnerAddRoleSchema),
   addRole
 );
 
@@ -68,6 +74,7 @@ router.delete(
   '/delete-role',
   protect,
   authorizeRoles('partner'),
+  validate(partnerDeleteRoleSchema),
   deleteRole
 );
 
@@ -75,6 +82,7 @@ router.put(
   '/switch-role',
   protect,
   authorizeRoles('partner'),
+  validate(partnerSwitchRoleSchema),
   switchRole
 );
 

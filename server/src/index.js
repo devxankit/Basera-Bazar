@@ -10,11 +10,10 @@ const pinoHttp = require('pino-http');
 const Sentry = require('@sentry/node');
 const mongoose = require('mongoose');
 const logger = require('./utils/logger');
-const ApiError = require('./utils/apiError');
 require('dotenv').config();
 
 // Fail fast if required environment variables are missing
-const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'NODE_ENV'];
+const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET', 'NODE_ENV'];
 const missingEnv = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missingEnv.length) {
   console.error(`[STARTUP] Missing required environment variables: ${missingEnv.join(', ')}`);
@@ -34,8 +33,16 @@ if (process.env.SENTRY_DSN) {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Security headers
-app.use(helmet());
+// Security headers — tightened for a pure JSON API (no HTML served)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],      // block all resource loading
+      frameAncestors: ["'none'"],  // deny framing (clickjacking)
+    },
+  },
+  crossOriginEmbedderPolicy: false, // not relevant for an API
+}));
 
 // Request correlation ID — included in all log lines and response headers
 app.use((req, res, next) => {
@@ -151,6 +158,32 @@ const teamLeaderRoutes = require('./routes/teamLeaderRoutes');
 const officeStaffRoutes = require('./routes/officeStaffRoutes');
 
 // -----------------------------------------------------
+// RATE LIMITING
+// -----------------------------------------------------
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please try again later.' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
+const heavyLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Rate limit exceeded on this endpoint.' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
+app.use('/api', globalLimiter);
+app.use('/api/orders/checkout', heavyLimiter);
+app.use('/api/finance/subscription/initiate', heavyLimiter);
+app.use('/api/wallet/withdraw', heavyLimiter);
+
+// -----------------------------------------------------
 // MOUNT ROUTES
 // -----------------------------------------------------
 app.use('/api/auth', authRoutes);
@@ -204,7 +237,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Global error handler — catches unhandled Express errors
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   if (process.env.SENTRY_DSN) Sentry.captureException(err);
   logger.error({ err, requestId: req.id, url: req.url, method: req.method }, 'Unhandled Express error');
 

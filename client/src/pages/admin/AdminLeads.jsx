@@ -46,20 +46,25 @@ const AdminLeads = () => {
       if (res.data.success) {
         setLeads(res.data.data);
       }
-
-      // Fetch potential owners (partners) for filter dropdown if not already fetched
-      if (owners.length === 0) {
-        const partnersRes = await api.get('/admin/users?role=partner'); 
-        if (partnersRes.data.success) {
-          setOwners(partnersRes.data.data);
-        }
-      }
     } catch (err) {
       console.error("Error fetching leads:", err);
     } finally {
       setLoading(false);
     }
-  }, [filters, owners.length]);
+  }, [filters]);
+
+  // Fetch owners once on mount for the filter dropdown
+  useEffect(() => {
+    const fetchOwners = async () => {
+      try {
+        const res = await api.get('/admin/users?role=partner');
+        if (res.data.success) setOwners(res.data.data);
+      } catch (err) {
+        console.error('Error fetching owners:', err);
+      }
+    };
+    fetchOwners();
+  }, []);
 
   // Real-time filtering with debounce for search
   useEffect(() => {
@@ -398,7 +403,7 @@ const AdminLeads = () => {
               <tbody className="divide-y divide-slate-50">
                 {loading && leads.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="px-8 py-20 text-center">
+                    <td colSpan="7" className="px-8 py-20 text-center">
                       <div className="flex flex-col items-center gap-3">
                          <Loader2 className="animate-spin text-orange-500" size={32} />
                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic animate-pulse">Syncing lead pipeline...</p>
@@ -407,7 +412,7 @@ const AdminLeads = () => {
                   </tr>
                 ) : leads.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="px-8 py-20 text-center">
+                    <td colSpan="7" className="px-8 py-20 text-center">
                       <div className="flex flex-col items-center gap-4 opacity-40">
                          <MailSearch size={48} className="text-slate-200" />
                          <span className="text-xs font-black text-slate-300 uppercase tracking-widest italic">No matching leads in your CRM</span>
@@ -516,10 +521,10 @@ const AdminLeads = () => {
                       <td className="px-8 py-5 text-center">
                           <div className="flex flex-col">
                              <span className="text-sm font-bold text-slate-700 tracking-tight whitespace-nowrap">
-                               {new Date(lead.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                               {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                              </span>
                              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 whitespace-nowrap">
-                                {new Date(lead.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {lead.createdAt ? new Date(lead.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                              </span>
                           </div>
                       </td>

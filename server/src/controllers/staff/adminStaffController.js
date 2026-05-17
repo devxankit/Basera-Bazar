@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const jwt = require('jsonwebtoken');
 const logger = require('../../utils/logger');
 const { TeamLeader, OfficeStaff } = require('../../models/Staff');
 const Executive = require('../../models/Executive');
@@ -11,13 +10,9 @@ const StaffAttendance = require('../../models/StaffAttendance');
 const LeaveRequest = require('../../models/LeaveRequest');
 const DailyReport = require('../../models/DailyReport');
 const AuditLog = require('../../models/AuditLog');
-const { AdminUser } = require('../../models/Admin');
 const { checkLockout, recordFailedAttempt, resetFailedAttempts } = require('../../utils/loginLockout');
 const { signAccessToken, signRefreshToken, setAuthCookies } = require('../../utils/cookieAuth');
 const invalidate = require('../../utils/cacheInvalidator');
-
-const generateToken = (id, role, email, version = 0) =>
-  jwt.sign({ id, role, email, version }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
 // ─── Staff Unified Login ─────────────────────────────────────────────────────
 
@@ -750,7 +745,7 @@ const getTargetProgress = async (req, res) => {
     const assignType = target.assign_to_type;
     const assignIds = target.assign_to_ids || [];
 
-    const getQuery = (type) => {
+    const getQuery = (_type) => {
       const q = { onboarding_status: { $in: ['approved', 'verified'] }, is_active: true };
       if (assignIds.length > 0) q._id = { $in: assignIds };
       return q;

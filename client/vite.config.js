@@ -19,7 +19,7 @@ export default defineConfig({
       },
       manifest: false, // We manage our own manifest.json in /public
       devOptions: {
-        enabled: true,
+        enabled: false, // prevents workbox scanning public/ in dev (EPERM on basera-home-hero.jpeg)
       },
     }),
   ],

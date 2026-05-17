@@ -2,7 +2,6 @@ const { Enquiry } = require('../models/Enquiry');
 const logger = require('../utils/logger');
 const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const { Partner } = require('../models/Partner');
-const { Notification } = require('../models/System');
 const { getPartnerLimits, getActiveSubscription } = require('../utils/subscriptionUtils');
 
 /**

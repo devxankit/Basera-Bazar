@@ -181,7 +181,7 @@ const leaveRequestSchema = z.object({
   path: ['end_date'],
 });
 
-const targetAssignSchema = z.object({
+const targetBaseSchema = z.object({
   target_type: z.enum(['partner_onboarding', 'calling', 'lead_generation', 'sales', 'subscription', 'custom']),
   target_period: z.enum(['daily', 'weekly', 'monthly']),
   target_value: z.number().int().min(1, 'Target value must be at least 1'),
@@ -192,7 +192,9 @@ const targetAssignSchema = z.object({
   incentive_rate: z.number().min(0, 'Incentive rate cannot be negative'),
   assign_to_type: z.enum(['all', 'team_leader', 'field_executive', 'office_staff']),
   assign_to_ids: z.array(mongoId).optional(),
-}).refine((d) => d.start_date <= d.end_date, {
+});
+
+const targetAssignSchema = targetBaseSchema.refine((d) => d.start_date <= d.end_date, {
   message: 'End date must be on or after start date',
   path: ['end_date'],
 });
@@ -237,14 +239,78 @@ const staffPasswordResetSchema = z.object({
   new_password: strongPassword,
 });
 
+// ---------------------------------------------------------
+// PARTNER MULTI-ROLE SCHEMAS
+// ---------------------------------------------------------
+
+const PARTNER_ROLES = ['service_provider', 'property_agent', 'supplier', 'mandi_seller'];
+
+const partnerAddRoleSchema = z.object({
+  new_role: z.enum(PARTNER_ROLES, {
+    errorMap: () => ({ message: `new_role must be one of: ${PARTNER_ROLES.join(', ')}` }),
+  }),
+  use_role_credit: z.boolean().optional(),
+  profile_data: z.record(z.unknown()).optional(),
+  gst_number: z.string().max(15).optional(),
+  gst_image: z.string().url().optional(),
+  rera_number: z.string().max(20).optional(),
+  rera_certificate_image: z.string().url().optional(),
+});
+
+const partnerDeleteRoleSchema = z.object({
+  role: z.enum(PARTNER_ROLES, {
+    errorMap: () => ({ message: `role must be one of: ${PARTNER_ROLES.join(', ')}` }),
+  }),
+});
+
+const partnerSwitchRoleSchema = z.object({
+  role: z.enum(PARTNER_ROLES, {
+    errorMap: () => ({ message: `role must be one of: ${PARTNER_ROLES.join(', ')}` }),
+  }),
+});
+
+// ---------------------------------------------------------
+// ADMIN MARKETPLACE SCHEMAS
+// ---------------------------------------------------------
+
+const commissionUpdateSchema = z.object({
+  rate: z.number({ invalid_type_error: 'rate must be a number' })
+    .min(0, 'Commission rate cannot be negative')
+    .max(100, 'Commission rate cannot exceed 100%'),
+});
+
+// ---------------------------------------------------------
+// TARGET / ATTENDANCE / REPORT SCHEMAS
+// ---------------------------------------------------------
+
+const targetUpdateSchema = targetBaseSchema.partial();
+
+const attendanceVerifySchema = z.object({
+  action: z.enum(['approve', 'reject'], {
+    errorMap: () => ({ message: 'action must be approve or reject' }),
+  }),
+  note: z.string().max(500).optional(),
+});
+
+const reportVerifySchema = z.object({
+  action: z.enum(['approve', 'reject'], {
+    errorMap: () => ({ message: 'action must be approve or reject' }),
+  }),
+  note: z.string().max(500).optional(),
+});
+
 module.exports = {
   partnerRegistrationSchema,
+  partnerAddRoleSchema,
+  partnerDeleteRoleSchema,
+  partnerSwitchRoleSchema,
   executiveBankDetailsSchema,
   executiveProfileUpdateSchema,
   withdrawalRequestSchema,
   loginSchema,
   otpVerifySchema,
   idParamSchema,
+  commissionUpdateSchema,
   // Staff management schemas
   teamLeaderSchema,
   teamLeaderUpdateSchema,
@@ -255,9 +321,12 @@ module.exports = {
   officeCheckinSchema,
   leaveRequestSchema,
   targetAssignSchema,
+  targetUpdateSchema,
   leaveApprovalSchema,
   salaryFinalizeSchema,
   geoFenceSchema,
   dailyReportSchema,
   staffPasswordResetSchema,
+  attendanceVerifySchema,
+  reportVerifySchema,
 };

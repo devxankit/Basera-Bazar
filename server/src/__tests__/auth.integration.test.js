@@ -1,7 +1,6 @@
 'use strict';
 
 const request = require('supertest');
-const mongoose = require('mongoose');
 const { connectTestDB, clearCollections, disconnectTestDB } = require('./setup/testHelpers');
 
 // The app must be required AFTER env vars are set by globalSetup
@@ -25,12 +24,10 @@ afterAll(async () => {
 // POST /api/auth/login — password login
 // ---------------------------------------------------------------------------
 describe('POST /api/auth/login', () => {
-  let partnerId;
-
   beforeEach(async () => {
     // Seed a partner directly via model
     const { Partner } = require('../models/Partner');
-    const partner = await Partner.create({
+    await Partner.create({
       name: 'Test Partner',
       phone: '9876543210',
       email: 'partner@test.com',
@@ -41,7 +38,6 @@ describe('POST /api/auth/login', () => {
       is_active: true,
       location: { type: 'Point', coordinates: [85.0, 25.0] }
     });
-    partnerId = partner._id;
   });
 
   test('returns 200 and token on valid credentials', async () => {

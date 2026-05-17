@@ -40,8 +40,10 @@ function signAccessToken(id, role, email, version = 0) {
  * Uses a separate secret so a leaked access token cannot forge a refresh token.
  */
 function signRefreshToken(id, role, version = 0) {
-  const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET + '_refresh';
-  return jwt.sign({ id, role, version }, secret, {
+  if (!process.env.JWT_REFRESH_SECRET) {
+    throw new Error('JWT_REFRESH_SECRET is required but not set.');
+  }
+  return jwt.sign({ id, role, version }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: REFRESH_TTL_SEC,
   });
 }
@@ -50,9 +52,11 @@ function signRefreshToken(id, role, version = 0) {
  * Verify a refresh token and return its payload, or null on failure.
  */
 function verifyRefreshToken(token) {
+  if (!process.env.JWT_REFRESH_SECRET) {
+    throw new Error('JWT_REFRESH_SECRET is required but not set.');
+  }
   try {
-    const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET + '_refresh';
-    return jwt.verify(token, secret);
+    return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
   } catch {
     return null;
   }

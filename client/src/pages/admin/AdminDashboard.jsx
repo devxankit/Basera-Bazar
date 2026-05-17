@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Users, Building2, Briefcase, ShoppingBag, 
-  IndianRupee, TrendingUp, Clock, ArrowUpRight, 
-  ArrowDownRight, Activity, UserCog, Crown, 
-  CreditCard, ExternalLink, CheckCircle2, XCircle, 
+import {
+  Users, Building2, Briefcase, ShoppingBag,
+  IndianRupee, TrendingUp, Clock, ArrowUpRight,
+  ArrowDownRight, Activity, UserCog, Crown,
+  CreditCard, ExternalLink, CheckCircle2, XCircle,
   Eye, Loader2, AlertCircle, MessageSquare, Zap, Home,
   Landmark
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import { Skeleton } from '../../components/common/Skeleton';
+import ErrorBoundary from '../../components/common/ErrorBoundary';
 
 const StatCard = ({ title, value, icon: Icon, color, trend, badge, onClick }) => (
   <motion.div
@@ -60,6 +62,16 @@ const StatCard = ({ title, value, icon: Icon, color, trend, badge, onClick }) =>
   </motion.div>
 );
 
+StatCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  icon: PropTypes.elementType.isRequired,
+  color: PropTypes.string,
+  trend: PropTypes.shape({ value: PropTypes.string, isUp: PropTypes.bool }),
+  badge: PropTypes.shape({ text: PropTypes.string, color: PropTypes.string, icon: PropTypes.elementType, subtext: PropTypes.string }),
+  onClick: PropTypes.func,
+};
+
 const QuickActionCard = ({ title, desc, icon: Icon, color, path }) => {
   const navigate = useNavigate();
   return (
@@ -78,6 +90,14 @@ const QuickActionCard = ({ title, desc, icon: Icon, color, path }) => {
       </div>
     </motion.button>
   );
+};
+
+QuickActionCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  desc: PropTypes.string,
+  icon: PropTypes.elementType.isRequired,
+  color: PropTypes.string,
+  path: PropTypes.string,
 };
 
 export default function AdminDashboard() {
@@ -123,6 +143,7 @@ export default function AdminDashboard() {
 
       // Update local state instead of refetching for better UX
       setData(prev => {
+        if (!prev?.pending?.properties) return prev;
         const newProperties = prev.pending.properties.filter(p => p._id !== id);
         return {
           ...prev,
@@ -141,8 +162,8 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    fetchDashboardData(chartRange, false);
+  }, [chartRange]); // re-fetch when range changes
 
 
   if (error || (!data && !loading)) {
@@ -290,11 +311,17 @@ export default function AdminDashboard() {
 
       {/* Stats Cards Grid */}
       <Skeleton name="admin-stats-grid" loading={loading}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {statsData.map((stat, i) => (
-            <StatCard key={i} {...stat} onClick={() => stat.path && navigate(stat.path)} />
-          ))}
-        </div>
+        <ErrorBoundary fallback={
+          <div className="p-4 rounded-xl border border-rose-100 bg-rose-50 text-rose-600 text-sm font-medium">
+            Stats unavailable — please refresh.
+          </div>
+        }>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {statsData.map((stat) => (
+              <StatCard key={stat.title} {...stat} onClick={() => stat.path && navigate(stat.path)} />
+            ))}
+          </div>
+        </ErrorBoundary>
       </Skeleton>
 
       {/* Quick Actions Section */}
