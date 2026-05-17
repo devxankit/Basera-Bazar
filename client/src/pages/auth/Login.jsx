@@ -81,15 +81,13 @@ export default function Login() {
     } finally { setFpLoading(false); }
   };
 
-  const handleFpVerifyOtp = async () => {
+  const handleFpVerifyOtp = () => {
+    // Don't call the API here — verify_only would delete the OTP from DB,
+    // then resetPassword (step 3) would find nothing. Verify OTP atomically
+    // in the final reset call instead.
     if (fpOtp.length !== 6) return;
-    setFpLoading(true); setFpError('');
-    try {
-      await api.post('/auth/verify-otp', { phone: fpPhone, otp: fpOtp, role: 'user', flow: 'verify_only' });
-      setFpStep(3);
-    } catch (err) {
-      setFpError(err.response?.data?.message || 'Incorrect OTP. Please try again.');
-    } finally { setFpLoading(false); }
+    setFpError('');
+    setFpStep(3);
   };
 
   const handleFpReset = async () => {
@@ -708,9 +706,9 @@ export default function Login() {
                     </button>
                   )}
                 </div>
-                <button onClick={handleFpVerifyOtp} disabled={fpOtp.length !== 6 || fpLoading}
+                <button onClick={handleFpVerifyOtp} disabled={fpOtp.length !== 6}
                   style={{ padding: '16px', backgroundColor: fpOtp.length === 6 ? '#2334b2' : '#a0a8e0', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: fpOtp.length === 6 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  {fpLoading ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : 'Verify OTP'}
+                  Continue
                 </button>
               </div>
             )}
