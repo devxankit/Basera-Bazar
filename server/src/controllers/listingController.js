@@ -140,9 +140,19 @@ const createPropertyListing = async (req, res) => {
       return res.status(403).json({ success: false, message: limitCheck.message });
     }
 
+    // Require a valid category
+    const rawCategoryId = item.categoryId || item.category_id;
+    if (!rawCategoryId || String(rawCategoryId).length !== 24) {
+      return res.status(400).json({ success: false, message: 'Property category is required. Please select a category before submitting.' });
+    }
+    const categoryExists = await Category.exists({ _id: rawCategoryId, type: 'property', is_active: { $ne: false } });
+    if (!categoryExists) {
+      return res.status(400).json({ success: false, message: 'Selected property category is invalid or inactive.' });
+    }
+
     const title = item.title || 'Untitled Property';
     const description = item.description || item.details?.description || '';
-    
+
     // Map property type from frontend to lowercase enum
     let property_type = (item.propertyType || 'residential').toLowerCase();
     if (!['apartment', 'hostel_pg', 'office', 'plot', 'warehouse', 'residential', 'commercial', 'agricultural', 'industrial', 'house', 'villa'].includes(property_type)) {
@@ -197,7 +207,7 @@ const createPropertyListing = async (req, res) => {
       property_type,
       listing_intent,
       pricing,
-      category_id: (item.categoryId && item.categoryId.length === 24) ? item.categoryId : undefined,
+      category_id: rawCategoryId,
       subcategory_id: (item.subcategoryId && item.subcategoryId.length === 24) ? item.subcategoryId : undefined,
       location: {
         type: 'Point',
@@ -265,7 +275,11 @@ const createServiceListing = async (req, res) => {
     }
 
     if (!final_category_id) {
-       return res.status(400).json({ success: false, message: 'Top category is mandatory for service registration.' });
+      return res.status(400).json({ success: false, message: 'Service category is required. Please select a category before submitting.' });
+    }
+    const svcCatExists = await Category.exists({ _id: final_category_id, type: 'service', is_active: { $ne: false } });
+    if (!svcCatExists) {
+      return res.status(400).json({ success: false, message: 'Selected service category is invalid or inactive.' });
     }
 
     if (is_featured) {
@@ -925,9 +939,22 @@ const createMandiListing = async (req, res) => {
       }
     }
 
+    const mandiCategoryId = material_id || req.body.category_id;
+    if (!mandiCategoryId || String(mandiCategoryId).length !== 24) {
+      return res.status(400).json({ success: false, message: 'Product category is required. Please select a material category before submitting.' });
+    }
+    const mandiCatExists = await SupplierCategory.exists({ _id: mandiCategoryId, is_active: { $ne: false } })
+      .catch(() => null);
+    if (!mandiCatExists) {
+      const altExists = await Category.exists({ _id: mandiCategoryId, type: 'product', is_active: { $ne: false } });
+      if (!altExists) {
+        return res.status(400).json({ success: false, message: 'Selected product category is invalid or inactive.' });
+      }
+    }
+
     const newMandiItem = await MandiListing.create({
       partner_id: partnerId,
-      category_id: material_id || req.body.category_id,
+      category_id: mandiCategoryId,
       subcategory_id: grade_id || req.body.subcategory_id || null,
       brand,
       type_name: type_name || null,
