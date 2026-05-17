@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const axios = require('axios');
 const { RazorpayOrder, Subscription, SubscriptionPlan, Transaction } = require('../models/Finance');
 const { Partner } = require('../models/Partner');
+const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const { AppConfig } = require('../models/System');
 const { creditExecutivePayout } = require('../utils/executiveHelper');
 
@@ -151,7 +152,19 @@ const verifySubscription = async (req, res) => {
       });
     }
 
-    // 5. Create Transaction Record for Payment History
+    // 5. Re-activate partner if their subscription had expired, and restore their listings
+    const expiredFilter = { partner_id: partnerId, status: 'inactive', status_reason: 'subscription_expired' };
+    const restoreUpdate = { $set: { status: 'active', status_reason: null } };
+    await Promise.all([
+      Partner.findByIdAndUpdate(partnerId, {
+        $set: { subscription_expired: false, subscription_expired_at: null }
+      }),
+      ServiceListing.updateMany(expiredFilter, restoreUpdate),
+      PropertyListing.updateMany(expiredFilter, restoreUpdate),
+      MandiListing.updateMany(expiredFilter, restoreUpdate),
+    ]);
+
+    // 6. Create Transaction Record for Payment History
     await Transaction.create({
       partner_id: partnerId,
       type: 'subscription_payment',

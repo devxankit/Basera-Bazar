@@ -14,7 +14,7 @@ import { loadScript } from '../../utils/loadScript';
 
 export default function PartnerSubscription() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
@@ -36,11 +36,14 @@ export default function PartnerSubscription() {
   }, [user, navigate]);
 
   useEffect(() => {
-    const fetchPlans = async () => {
+    const init = async () => {
       try {
-        const res = await api.get('/partners/subscriptions/plans');
-        if (res.data.success) {
-          setPlans(res.data.data);
+        const [plansRes] = await Promise.all([
+          api.get('/partners/subscriptions/plans'),
+          refreshUser(), // always fetch fresh subscription data on page open
+        ]);
+        if (plansRes.data.success) {
+          setPlans(plansRes.data.data);
         }
       } catch (err) {
         console.error("Error fetching plans:", err);
@@ -48,15 +51,16 @@ export default function PartnerSubscription() {
         setLoading(false);
       }
     };
-    fetchPlans();
+    init();
   }, []);
 
   if (!user) return null;
   const partner = user;
+  const sub = partner.active_subscription_id;
 
   const dbFreePlan = plans.find(p => p.price === 0 || p.name?.toLowerCase().includes('free'));
-  const currentPlanName = partner.active_subscription_id?.plan_snapshot?.name || dbFreePlan?.name || 'Free Trial';
-  const isActivePro = !!partner.active_subscription_id && partner.active_subscription_id.plan_snapshot?.price > 0;
+  const currentPlanName = sub?.plan_snapshot?.name || dbFreePlan?.name || 'Free Trial';
+  const isActivePro = !!sub && sub.plan_snapshot?.price > 0;
 
   const getPlanTheme = (planName) => {
     if (planName?.toLowerCase().includes('pro') || planName?.toLowerCase().includes('gold') || planName?.toLowerCase().includes('premium')) {
@@ -77,16 +81,38 @@ export default function PartnerSubscription() {
 
   const currentTheme = getPlanTheme(currentPlanName);
 
+  const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+  const freePlanDays = dbFreePlan?.duration_days || 30;
+
+  // Resolve start date: use subscription start, fallback to account creation date
+  const computedStart = sub?.starts_at
+    ? new Date(sub.starts_at)
+    : partner.createdAt
+      ? new Date(partner.createdAt)
+      : new Date();
+
+  // Resolve end date:
+  //   1. Real subscription with ends_at → use directly
+  //   2. Real subscription with duration_days but no ends_at → start + duration
+  //   3. Free trial → account creation + free plan validity
+  const computedEnd = sub?.ends_at
+    ? new Date(sub.ends_at)
+    : sub?.plan_snapshot?.duration_days
+      ? new Date(computedStart.getTime() + sub.plan_snapshot.duration_days * MS_PER_DAY)
+      : new Date(computedStart.getTime() + freePlanDays * MS_PER_DAY);
+
+  const daysLeft = Math.max(0, Math.ceil((computedEnd - new Date()) / MS_PER_DAY));
   const planInfo = {
     name: currentPlanName,
-    startDate: partner.active_subscription_id?.starts_at ? new Date(partner.active_subscription_id.starts_at).toLocaleDateString() : 'Today',
-    endDate: partner.active_subscription_id?.ends_at ? new Date(partner.active_subscription_id.ends_at).toLocaleDateString() : 'N/A',
-    daysLeft: partner.active_subscription_id?.ends_at ? Math.ceil((new Date(partner.active_subscription_id.ends_at) - new Date()) / (1000 * 60 * 60 * 24)) : 29,
-    status: 'Active',
+    startDate: fmt(computedStart),
+    endDate: fmt(computedEnd),
+    daysLeft,
+    status: sub?.status || 'active',
     limits: {
-      listings: partner.active_subscription_id?.plan_snapshot?.listings_limit === -1 ? '∞' : (partner.active_subscription_id?.plan_snapshot?.listings_limit || 1),
-      featured: partner.active_subscription_id?.plan_snapshot?.featured_listings_limit === -1 ? '∞' : (partner.active_subscription_id?.plan_snapshot?.featured_listings_limit || '0'),
-      leads: partner.active_subscription_id?.plan_snapshot?.leads_limit === -1 ? '∞' : (partner.active_subscription_id?.plan_snapshot?.leads_limit || 5)
+      listings: sub?.plan_snapshot?.listings_limit === -1 ? '∞' : (sub?.plan_snapshot?.listings_limit ?? 1),
+      featured: sub?.plan_snapshot?.featured_listings_limit === -1 ? '∞' : (sub?.plan_snapshot?.featured_listings_limit ?? 0),
+      leads: sub?.plan_snapshot?.leads_limit === -1 ? '∞' : (sub?.plan_snapshot?.leads_limit ?? 5)
     }
   };
 
@@ -256,13 +282,13 @@ export default function PartnerSubscription() {
               <div>
                 <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Remaining</div>
                 <div className="flex items-baseline gap-1">
-                   <span className="text-[22px] font-black leading-none">{planInfo.daysLeft}</span>
-                   <span className="text-[12px] font-bold text-white/60 uppercase">Days</span>
+                  <span className="text-[22px] font-black leading-none">{planInfo.daysLeft}</span>
+                  <span className="text-[12px] font-bold text-white/60 uppercase">Days</span>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">
-                  {partner.active_subscription_id?.cancel_at_period_end ? 'Access Until' : 'Expiry Date'}
+                  {sub?.cancel_at_period_end ? 'Access Until' : 'Expiry Date'}
                 </div>
                 <div className="text-[15px] font-black tracking-tight">{planInfo.endDate}</div>
               </div>

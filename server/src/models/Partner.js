@@ -63,6 +63,14 @@ const partnerSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  subscription_expired: {
+    type: Boolean,
+    default: false
+  },
+  subscription_expired_at: {
+    type: Date,
+    default: null
+  },
   email: {
     type: String,
     trim: true,

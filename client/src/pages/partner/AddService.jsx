@@ -9,6 +9,7 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../services/DataEngine';
+import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 const SERVICE_CATEGORIES = [
@@ -266,25 +267,22 @@ export default function AddService() {
 
     try {
       setIsSubmitting(true);
-      
-      // 1. Upload Images
-      let thumbnailUrl = formData.thumbnail;
-      if (formData.thumbnail && formData.thumbnail.startsWith('data:')) {
-        const thumbBlob = await fetch(formData.thumbnail).then(r => r.blob());
-        const thumbRes = await db.uploadFile(thumbBlob);
-        thumbnailUrl = thumbRes.url;
-      }
 
-      const portfolioUrls = [];
-      for (const img of formData.portfolio) {
+      // Upload all images in parallel (thumbnail + portfolio in one shot)
+      const uploadIfNeeded = async (img) => {
+        if (!img) return null;
         if (img.startsWith('data:')) {
           const blob = await fetch(img).then(r => r.blob());
           const res = await db.uploadFile(blob);
-          portfolioUrls.push(res.url);
-        } else {
-          portfolioUrls.push(img);
+          return res.url;
         }
-      }
+        return img;
+      };
+
+      const [thumbnailUrl, ...portfolioUrls] = await Promise.all([
+        uploadIfNeeded(formData.thumbnail),
+        ...formData.portfolio.map(uploadIfNeeded),
+      ]);
 
       // 2. Prepare Payload natively matching the Mongoose schema
       const payload = {

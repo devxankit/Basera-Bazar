@@ -133,6 +133,30 @@ connectDB();
 const { scheduleMonthlyDeduction } = require('./jobs/monthlyDeductionJob');
 scheduleMonthlyDeduction();
 
+const { scheduleSubscriptionExpiryJob } = require('./jobs/subscriptionExpiryJob');
+scheduleSubscriptionExpiryJob();
+
+// One-time backfill: grant free trials to already-approved partners with no subscription
+setTimeout(async () => {
+  try {
+    const { Partner } = require('./models/Partner');
+    const { grantFreeTrial } = require('./utils/trialHelper');
+    const orphans = await Partner.find({
+      onboarding_status: 'approved',
+      active_subscription_id: null,
+      subscription_expired: { $ne: true },
+    }).select('_id').lean();
+    for (const p of orphans) {
+      await grantFreeTrial(p._id);
+    }
+    if (orphans.length > 0) {
+      require('./utils/logger').info(`[BACKFILL] Granted free trials to ${orphans.length} existing partners.`);
+    }
+  } catch (err) {
+    require('./utils/logger').error({ err }, '[BACKFILL] Free trial backfill failed');
+  }
+}, 20000);
+
 // -----------------------------------------------------
 // IMPORT ROUTES
 // -----------------------------------------------------

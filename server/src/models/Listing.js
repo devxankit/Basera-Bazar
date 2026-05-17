@@ -154,6 +154,7 @@ const mandiListingSchema = new mongoose.Schema({
     enum: ['pending_approval', 'active', 'inactive', 'suspended', 'rejected', 'deleted'],
     default: 'active'
   },
+  status_reason: { type: String },
   stats: {
     views: { type: Number, default: 0 },
     enquiries: { type: Number, default: 0 },

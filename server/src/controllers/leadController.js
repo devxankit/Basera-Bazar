@@ -106,6 +106,14 @@ exports.getPartnerLeads = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Partner not found.' });
     }
 
+    if (partner.subscription_expired) {
+      return res.status(403).json({
+        success: false,
+        code: 'SUBSCRIPTION_EXPIRED',
+        message: 'Your subscription has expired. Please renew your plan to access leads.'
+      });
+    }
+
     if (!partner.district) {
       return res.status(200).json({ success: true, count: 0, data: [], limitReached: false });
     }
@@ -160,6 +168,14 @@ exports.getPartnerLeads = async (req, res) => {
  */
 exports.getPartnerLeadById = async (req, res) => {
   try {
+    if (req.user.subscription_expired) {
+      return res.status(403).json({
+        success: false,
+        code: 'SUBSCRIPTION_EXPIRED',
+        message: 'Your subscription has expired. Please renew your plan to access leads.'
+      });
+    }
+
     const lead = await BroadcastLead.findById(req.params.id);
     if (!lead) return res.status(404).json({ success: false, message: 'Lead not found.' });
 

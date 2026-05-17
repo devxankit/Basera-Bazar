@@ -148,6 +148,13 @@ const verifyApproved = (req, res, next) => {
         message: 'Access Denied: Your account is not yet verified by the Admin. Please complete your profile and wait for approval.'
       });
     }
+    if (req.user.subscription_expired === true) {
+      return res.status(403).json({
+        success: false,
+        code: 'SUBSCRIPTION_EXPIRED',
+        message: 'Your subscription has expired. Please renew your plan to add or edit listings.'
+      });
+    }
   }
 
   if (req.user.role === 'executive') {

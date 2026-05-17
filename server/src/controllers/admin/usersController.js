@@ -7,6 +7,7 @@ const { User } = require('../../models/User');
 const { PropertyListing, ServiceListing, MandiListing } = require('../../models/Listing');
 const { logActivity } = require('../../utils/activityLogger');
 const { createNotification } = require('../../utils/notificationHelper');
+const { grantFreeTrial } = require('../../utils/trialHelper');
 
 const getUserDetail = async (req, res) => {
   try {
@@ -157,8 +158,8 @@ const createUser = async (req, res) => {
       newAccount = await Partner.create({
         name, phone, email: email?.toLowerCase(), password, partner_type: pType,
         roles: (roles && roles.length > 0) ? roles : [pType], active_role: pType, role,
-        state: req.body.state || 'Bihar', 
-        district: req.body.district || 'Muzaffarpur', 
+        state: req.body.state || 'Bihar',
+        district: req.body.district || 'Muzaffarpur',
         city: req.body.city || 'Muzaffarpur',
         address: req.body.address || 'Muzaffarpur, Bihar',
         location: {
@@ -169,6 +170,11 @@ const createUser = async (req, res) => {
         profile, onboarding_status: 'approved',
         service_radius_km: req.body.service_radius_km || 100
       });
+
+      // Grant free trial if no subscription was explicitly assigned
+      if (!newAccount.active_subscription_id) {
+        await grantFreeTrial(newAccount._id);
+      }
     } else {
       return res.status(400).json({ success: false, message: 'Invalid role selection.' });
     }
@@ -230,6 +236,10 @@ const updateUser = async (req, res) => {
         else if (onboarding_status === 'pending_approval') updateData['kyc.status'] = 'pending';
         updateData['kyc.reviewed_at'] = new Date();
         updateData['kyc.reviewed_by'] = req.user.id;
+      }
+      // Grant free trial when a partner gets approved for the first time (fire-and-forget)
+      if (onboarding_status === 'approved' && isPartnerModel) {
+        grantFreeTrial(id).catch(() => {});
       }
       if (rejection_reason !== undefined) updateData['kyc.rejection_reason'] = rejection_reason;
       const subId = active_subscription_id || subscription_id;
