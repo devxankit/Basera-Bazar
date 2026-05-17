@@ -198,15 +198,30 @@ const MyEnquiriesPage = () => {
               <MessageSquare size={48} />
             </div>
             <div className="space-y-1">
-              <h3 className="text-[18px] font-black text-[#001b4e]">No enquiries found</h3>
-              <p className="text-[13px] text-slate-400 font-medium">We couldn't find any enquiries in this category.</p>
+              <h3 className="text-[18px] font-black text-[#001b4e]">
+                {activeFilter !== 'all' ? 'No enquiries in this category' : 'No enquiries yet'}
+              </h3>
+              <p className="text-[13px] text-slate-400 font-medium">
+                {activeFilter !== 'all'
+                  ? 'Try a different filter or view all your enquiries.'
+                  : 'Browse listings and send an enquiry to get started.'}
+              </p>
             </div>
-            <button 
-              onClick={() => setActiveFilter('all')}
-              className="px-8 py-4 bg-[#001b4e] text-white rounded-2xl font-bold text-[13px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-indigo-900/10"
-            >
-              View All Enquiries
-            </button>
+            {activeFilter !== 'all' ? (
+              <button
+                onClick={() => setActiveFilter('all')}
+                className="px-8 py-4 bg-[#001b4e] text-white rounded-2xl font-bold text-[13px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-indigo-900/10"
+              >
+                View All Enquiries
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate('/')}
+                className="px-8 py-4 bg-orange-500 text-white rounded-2xl font-bold text-[13px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-orange-200"
+              >
+                Browse Listings
+              </button>
+            )}
           </div>
         )}
       </div>

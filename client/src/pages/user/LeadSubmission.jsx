@@ -1,19 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  ArrowLeft, Send, MapPin, Package, Plus, Trash2, 
-  Upload, CheckCircle2, Loader2, AlertCircle, Phone, Mail, User
+import {
+  ArrowLeft, Send, MapPin, Package, Plus, Trash2,
+  Upload, CheckCircle2, Loader2, AlertCircle, Phone, Mail, User, LogIn
 } from 'lucide-react';
 import { db } from '../../services/DataEngine';
 import { useLocationContext } from '../../context/LocationContext';
+import { useAuth } from '../../context/AuthContext';
 import { INDIAN_STATES_DISTRICTS, INDIAN_STATES } from '../../constants/indiaGeoData';
 import clsx from 'clsx';
+
+// Map any browse category type to valid backend enum values
+const toValidCategory = (type) => {
+  if (type === 'service') return 'service';
+  return 'supplier'; // mandi, supplier, property, all → supplier
+};
 
 const LeadSubmission = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { location } = useLocationContext();
-  const targetCategory = searchParams.get('type') || 'supplier'; // 'service' or 'supplier'
+  const { isAuthenticated, user } = useAuth();
+  const rawType = searchParams.get('type') || 'supplier';
+  const targetCategory = toValidCategory(rawType);
 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -71,8 +80,17 @@ const LeadSubmission = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (products.some(p => !p.item_name)) {
-      alert("Please fill at least the product name for all rows.");
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: window.location.pathname + window.location.search } });
+      return;
+    }
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    if (products.some(p => !p.item_name.trim())) {
+      alert("Please fill the item name for all rows.");
       return;
     }
 
@@ -100,6 +118,42 @@ const LeadSubmission = () => {
       setLoading(false);
     }
   };
+
+  // Pre-fill name/phone from auth user if available
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: prev.name || user.name || '',
+        phone: prev.phone || user.phone || '',
+        email: prev.email || user.email || '',
+      }));
+    }
+  }, [user]);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center gap-5">
+        <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center">
+          <LogIn size={36} className="text-orange-500" />
+        </div>
+        <div>
+          <h1 className="text-xl font-black text-[#1f2355] uppercase mb-2">Login Required</h1>
+          <p className="text-slate-400 font-medium text-sm">You need to be logged in to send a broadcast requirement.</p>
+        </div>
+        <button
+          onClick={() => navigate('/login', { state: { from: window.location.pathname + window.location.search } })}
+          className="w-full max-w-xs py-4 bg-[#1f2355] text-white rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+        >
+          <LogIn size={18} />
+          Login to Continue
+        </button>
+        <button onClick={() => navigate(-1)} className="text-slate-400 text-sm font-medium underline">
+          Go Back
+        </button>
+      </div>
+    );
+  }
 
   if (success) {
     return (

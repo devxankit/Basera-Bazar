@@ -3,7 +3,7 @@ const router = express.Router();
 
 const {
   checkExists, requestOtp, verifyOtp, getMe, updateProfile,
-  changePassword, loginWithPassword, checkSignupConflicts, testNotification,
+  changePassword, resetPassword, loginWithPassword, checkSignupConflicts, testNotification,
   refreshToken, logoutUser,
 } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
@@ -55,6 +55,9 @@ router.put('/profile', protect, updateProfile);
 
 // PUT /api/auth/change-password (Change password with verification)
 router.put('/change-password', protect, changePassword);
+
+// POST /api/auth/reset-password (Forgot password — OTP verified, no auth required)
+router.post('/reset-password', otpLimiter, resetPassword);
 
 // POST /api/auth/test-notification (Send test push notification)
 router.post('/test-notification', protect, testNotification);

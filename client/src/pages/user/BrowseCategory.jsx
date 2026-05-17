@@ -237,17 +237,55 @@ const BrowseCategory = () => {
 
       // Apply Advanced Filters
       if (activeFilters.propertyFor) {
-        data = data.filter(item => item.type?.toLowerCase() === activeFilters.propertyFor.toLowerCase().replace(' ', ''));
+        const forMap = { 'For Sale': 'forsale', 'For Rent': 'forrent' };
+        const target = forMap[activeFilters.propertyFor];
+        if (target) data = data.filter(item => item.type === target);
       }
       if (activeFilters.propertyType) {
         data = data.filter(item => item.details?.propertyType?.toLowerCase() === activeFilters.propertyType.toLowerCase());
       }
       if (activeFilters.bedrooms) {
-        const beds = parseInt(activeFilters.bedrooms);
-        data = data.filter(item => item.details?.bedrooms === beds);
+        // DataEngine normalizes bhk to "1BHK" string in item.details.bedrooms
+        data = data.filter(item => item.details?.bedrooms === activeFilters.bedrooms);
+      }
+      if (activeFilters.priceRange) {
+        const priceMap = {
+          '₹0 - ₹25L': [0, 2500000], '₹25L - ₹50L': [2500000, 5000000],
+          '₹50L - ₹75L': [5000000, 7500000], '₹75L - ₹1Cr': [7500000, 10000000],
+          '₹1Cr - ₹2Cr': [10000000, 20000000], '₹2Cr - ₹5Cr': [20000000, 50000000],
+          '₹5Cr+': [50000000, Infinity],
+        };
+        const [min, max] = priceMap[activeFilters.priceRange] || [0, Infinity];
+        data = data.filter(item => { const v = item.price?.value || 0; return v >= min && v <= max; });
+      }
+      if (activeFilters.areaRange) {
+        const areaMap = {
+          '0 - 500 sq ft': [0, 500], '500 - 1000 sq ft': [500, 1000],
+          '1000 - 1500 sq ft': [1000, 1500], '1500 - 2000 sq ft': [1500, 2000],
+          '2000 - 3000 sq ft': [2000, 3000], '3000 - 5000 sq ft': [3000, 5000],
+          '5000+ sq ft': [5000, Infinity],
+        };
+        const [minA, maxA] = areaMap[activeFilters.areaRange] || [0, Infinity];
+        data = data.filter(item => { const a = parseFloat(item.area || item.details?.area || 0); return a >= minA && a <= maxA; });
+      }
+      if (activeFilters.furnishing) {
+        const furnishMap = { 'Furnished': 'fully-furnished', 'Unfurnished': 'unfurnished', 'Semi Furnished': 'semi-furnished' };
+        const target = furnishMap[activeFilters.furnishing];
+        if (target) data = data.filter(item => (item.details?.furnishing || '').toLowerCase() === target);
+      }
+      if (activeFilters.propertyStatus) {
+        const statusMap = { 'Under Construction': 'under-construction', 'Ready to Move': 'ready' };
+        const target = statusMap[activeFilters.propertyStatus];
+        if (target) data = data.filter(item => (item.details?.possession || 'ready') === target);
+      }
+      if (activeFilters.facingDirection) {
+        data = data.filter(item => (item.details?.facing || '').toLowerCase() === activeFilters.facingDirection.toLowerCase());
+      }
+      if (activeFilters.carParking) {
+        data = data.filter(item => item.details?.parking && item.details.parking !== 'none');
       }
       if (activeFilters.featuredOnly) {
-        data = data.filter(item => item.featured === true || item.is_featured === true);
+        data = data.filter(item => item.is_featured === true || item.featured === true);
       }
       if (activeFilters.minExperience !== 'Any') {
         const expReq = parseInt(activeFilters.minExperience);
@@ -257,7 +295,6 @@ const BrowseCategory = () => {
            return !isNaN(yrs) && yrs >= expReq;
         });
       }
-      
       if (activeFilters.emiAvailable) {
         data = data.filter(item => item.emiAvailable === true);
       }
@@ -327,7 +364,7 @@ const BrowseCategory = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(`/browse/${category}?search=true`)} className="w-9 h-9 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355] active:scale-90 transition-all">
+          <button onClick={() => navigate(`/search?type=${category}`)} className="w-9 h-9 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355] active:scale-90 transition-all">
             <Search size={18} strokeWidth={2.5} />
           </button>
           <button onClick={() => navigate('/cart')} className="relative w-9 h-9 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355] active:scale-90 transition-all border border-slate-100">
@@ -337,9 +374,6 @@ const BrowseCategory = () => {
                 {Object.values(cart).reduce((sum, item) => sum + item.qty, 0)}
               </span>
             )}
-          </button>
-          <button className="w-9 h-9 flex items-center justify-center text-slate-400">
-            <MoreVertical size={20} />
           </button>
         </div>
       </div>
@@ -699,6 +733,12 @@ const BrowseCategory = () => {
                         <div className="bg-white/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[9px] font-bold uppercase text-[#1f2355] w-fit">
                           {item.type || 'Property'}
                         </div>
+                        {(item.is_featured || item.featured) && (
+                          <div className="bg-orange-500/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[9px] font-bold uppercase text-white w-fit flex items-center gap-1">
+                            <Star size={10} fill="white" />
+                            Featured
+                          </div>
+                        )}
                         {item.emiAvailable && (
                           <div className="bg-green-500/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[9px] font-bold uppercase text-white w-fit flex items-center gap-1">
                              <CheckCircle2 size={10} />

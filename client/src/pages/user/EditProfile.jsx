@@ -95,8 +95,8 @@ const EditProfile = () => {
     setVerifyingPhone(true);
     setPhoneStatus(null);
     try {
-      // Verify OTP  
-      await api.post('/auth/verify-otp', { phone: newPhone, otp, role: user.role || 'user', flow: 'login' });
+      // Verify OTP (verify_only — just validates the code, no login/signup side-effects)
+      await api.post('/auth/verify-otp', { phone: newPhone, otp, role: user.role || 'user', flow: 'verify_only' });
       // Save new phone to backend
       await api.put('/auth/profile', { phone: newPhone });
       // Update local context
@@ -115,8 +115,8 @@ const EditProfile = () => {
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (passwords.next !== passwords.confirm) return;
-    if (passwords.next.length < 6) {
-      setPassStatus({ type: 'error', message: 'Password must be at least 6 characters.' });
+    if (passwords.next.length < 8) {
+      setPassStatus({ type: 'error', message: 'Password must be at least 8 characters.' });
       return;
     }
     setIsSavingPass(true);
@@ -341,7 +341,7 @@ const EditProfile = () => {
                   type={showPass.next ? 'text' : 'password'}
                   value={passwords.next}
                   onChange={(e) => setPasswords({ ...passwords, next: e.target.value })}
-                  className={inputClass} placeholder="Min. 6 characters" required
+                  className={inputClass} placeholder="Min. 8 characters" required
                 />
                 <button type="button" onClick={() => setShowPass({ ...showPass, next: !showPass.next })} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">
                   {showPass.next ? <EyeOff size={20} /> : <Eye size={20} />}

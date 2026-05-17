@@ -33,6 +33,9 @@ const Notifications = lazy(() => import('./pages/user/Notifications'));
 const AgentDetails = lazy(() => import('./pages/user/AgentDetails'));
 const MyOrdersPage = lazy(() => import('./pages/user/MyOrdersPage'));
 const MyEnquiriesPage = lazy(() => import('./pages/user/MyEnquiriesPage'));
+const HelpSupport = lazy(() => import('./pages/user/HelpSupport'));
+const FAQs = lazy(() => import('./pages/user/FAQs'));
+const AboutUs = lazy(() => import('./pages/user/AboutUs'));
 
 // --- Lazy-loaded Auth pages ---
 const Login = lazy(() => import('./pages/auth/Login'));
@@ -315,6 +318,9 @@ function App() {
                     <Route path="/profile/edit" element={<ProtectedRoute><UserLayout><EditProfile /></UserLayout></ProtectedRoute>} />
                     <Route path="/profile/my-orders" element={<ProtectedRoute><UserLayout><MyOrdersPage /></UserLayout></ProtectedRoute>} />
                     <Route path="/profile/my-enquiries" element={<ProtectedRoute><UserLayout><MyEnquiriesPage /></UserLayout></ProtectedRoute>} />
+                    <Route path="/help" element={<UserLayout><HelpSupport /></UserLayout>} />
+                    <Route path="/faqs" element={<UserLayout><FAQs /></UserLayout>} />
+                    <Route path="/about" element={<UserLayout><AboutUs /></UserLayout>} />
                     <Route path="/category/property" element={<UserLayout><PropertyCategories /></UserLayout>} />
                     <Route path="/category/service" element={<UserLayout><ServiceCategories /></UserLayout>} />
                     <Route path="/category/supplier" element={<UserLayout><SupplierCategories /></UserLayout>} />

@@ -42,9 +42,9 @@ const UserProfile = () => {
   const navButtons = [
     { label: 'My Orders', icon: ShoppingBag, color: 'bg-indigo-50 text-indigo-600', path: '/profile/my-orders', subtitle: 'Track your marketplace bookings' },
     { label: 'My Enquiries', icon: MessageSquare, color: 'bg-orange-50 text-orange-600', path: '/profile/my-enquiries', subtitle: 'Properties, services & materials' },
-    { label: 'Help & Support', icon: Phone, color: 'bg-emerald-50 text-emerald-600', path: '#', subtitle: 'Contact our customer care' },
-    { label: 'FAQs', icon: HelpCircle, color: 'bg-purple-50 text-purple-600', path: '#', subtitle: 'Commonly asked questions' },
-    { label: 'About Us', icon: Building2, color: 'bg-blue-50 text-blue-600', path: '#', subtitle: 'Learn more about Basera Bazar' },
+    { label: 'Help & Support', icon: Phone, color: 'bg-emerald-50 text-emerald-600', path: '/help', subtitle: 'Contact our customer care' },
+    { label: 'FAQs', icon: HelpCircle, color: 'bg-purple-50 text-purple-600', path: '/faqs', subtitle: 'Commonly asked questions' },
+    { label: 'About Us', icon: Building2, color: 'bg-blue-50 text-blue-600', path: '/about', subtitle: 'Learn more about Basera Bazar' },
   ];
 
   return (
@@ -133,7 +133,7 @@ const UserProfile = () => {
                     show: { opacity: 1, x: 0 }
                   }}
                   key={idx} 
-                  onClick={() => btn.path !== '#' && navigate(btn.path)}
+                  onClick={() => navigate(btn.path)}
                   className={cn(
                     "flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 transition-all active:scale-[0.98] group",
                     idx !== navButtons.length - 1 && "border-b border-slate-50"

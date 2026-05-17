@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2, Phone, User, CheckCircle2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2, Phone, User, CheckCircle2, X, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { registerFCMToken } from '../../services/pushNotificationService';
@@ -31,16 +31,81 @@ export default function Login() {
   const [showInactiveModal, setShowInactiveModal] = useState(false);
   const [timer, setTimer] = useState(0);
 
+  // Forgot Password
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [fpStep, setFpStep] = useState(1); // 1=phone, 2=otp, 3=new password
+  const [fpPhone, setFpPhone] = useState('');
+  const [fpOtp, setFpOtp] = useState('');
+  const [fpNewPass, setFpNewPass] = useState('');
+  const [fpConfirm, setFpConfirm] = useState('');
+  const [fpShowPass, setFpShowPass] = useState(false);
+  const [fpLoading, setFpLoading] = useState(false);
+  const [fpError, setFpError] = useState('');
+  const [fpTimer, setFpTimer] = useState(0);
+
+  // Legal modals
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+
   // Timer Countdown Logic
   React.useEffect(() => {
     let interval;
     if (timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
+      interval = setInterval(() => setTimer(p => p - 1), 1000);
     }
     return () => clearInterval(interval);
   }, [timer]);
+
+  React.useEffect(() => {
+    let interval;
+    if (fpTimer > 0) {
+      interval = setInterval(() => setFpTimer(p => p - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [fpTimer]);
+
+  const openForgotModal = () => {
+    setFpStep(1); setFpPhone(''); setFpOtp(''); setFpNewPass(''); setFpConfirm('');
+    setFpError(''); setFpLoading(false); setFpTimer(0);
+    setShowForgotModal(true);
+  };
+
+  const handleFpSendOtp = async () => {
+    if (fpPhone.length !== 10) return;
+    setFpLoading(true); setFpError('');
+    try {
+      await api.post('/auth/send-otp', { phone: fpPhone, checkExists: true });
+      setFpStep(2); setFpTimer(60);
+    } catch (err) {
+      setFpError(err.response?.data?.message || 'No account found with this phone number.');
+    } finally { setFpLoading(false); }
+  };
+
+  const handleFpVerifyOtp = async () => {
+    if (fpOtp.length !== 6) return;
+    setFpLoading(true); setFpError('');
+    try {
+      await api.post('/auth/verify-otp', { phone: fpPhone, otp: fpOtp, role: 'user', flow: 'verify_only' });
+      setFpStep(3);
+    } catch (err) {
+      setFpError(err.response?.data?.message || 'Incorrect OTP. Please try again.');
+    } finally { setFpLoading(false); }
+  };
+
+  const handleFpReset = async () => {
+    if (fpNewPass.length < 8) { setFpError('Password must be at least 8 characters.'); return; }
+    if (fpNewPass !== fpConfirm) { setFpError('Passwords do not match.'); return; }
+    setFpLoading(true); setFpError('');
+    try {
+      await api.post('/auth/reset-password', { phone: fpPhone, otp: fpOtp, newPassword: fpNewPass });
+      setShowForgotModal(false);
+      setLoginMethod('password');
+      setIdentifier(fpPhone);
+      alert('Password reset successfully! Please log in with your new password.');
+    } catch (err) {
+      setFpError(err.response?.data?.message || 'Failed to reset password. Please try again.');
+    } finally { setFpLoading(false); }
+  };
 
   const handleSendOtp = async () => {
     if (identifier.length !== 10) return;
@@ -384,7 +449,7 @@ export default function Login() {
           {/* Forgot Password */}
           {loginMethod === 'password' && (
             <motion.div variants={fadeInUp} style={{ textAlign: 'right', marginBottom: '28px', marginTop: '8px' }}>
-              <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: '600', color: '#1b2c7a' }}>
+              <button type="button" onClick={openForgotModal} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: '600', color: '#1b2c7a' }}>
                 Forgot Password?
               </button>
             </motion.div>
@@ -572,6 +637,120 @@ export default function Login() {
           </motion.div>
         </div>
       )}
+      {/* ── FORGOT PASSWORD MODAL ── */}
+      {showForgotModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(27,44,122,0.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            style={{ backgroundColor: '#fff', borderRadius: '24px', padding: '32px', width: '100%', maxWidth: '360px', boxShadow: '0 20px 40px rgba(0,0,0,0.12)' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <div>
+                <div style={{ fontSize: '20px', fontWeight: '700', color: '#1b2c7a' }}>
+                  {fpStep === 1 ? 'Forgot Password' : fpStep === 2 ? 'Verify OTP' : 'Set New Password'}
+                </div>
+                <div style={{ fontSize: '13px', color: '#8898cc', marginTop: '4px' }}>
+                  {fpStep === 1 ? 'Enter your registered phone number' : fpStep === 2 ? `OTP sent to +91 ${fpPhone}` : 'Choose a strong new password'}
+                </div>
+              </div>
+              <button onClick={() => setShowForgotModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8898cc', display: 'flex' }}>
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Step indicator */}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '24px' }}>
+              {[1,2,3].map(s => (
+                <div key={s} style={{ flex: 1, height: '3px', borderRadius: '9px', backgroundColor: fpStep >= s ? '#2334b2' : '#e2e5f5', transition: 'background-color 0.3s' }} />
+              ))}
+            </div>
+
+            {fpError && (
+              <div style={{ backgroundColor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '12px', padding: '12px 14px', fontSize: '13px', color: '#e11d48', marginBottom: '16px', fontWeight: '500' }}>
+                {fpError}
+              </div>
+            )}
+
+            {fpStep === 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#4a567a', display: 'flex' }}>
+                    <Phone size={20} strokeWidth={1.8} />
+                  </span>
+                  <input type="tel" placeholder="10-digit phone number" maxLength={10}
+                    value={fpPhone} onChange={e => setFpPhone(e.target.value.replace(/\D/g, ''))}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '16px 16px 16px 48px', border: '1.5px solid #dde1f0', borderRadius: '12px', fontSize: '16px', fontWeight: '500', color: '#1b2c7a', outline: 'none', backgroundColor: '#f8f9ff' }}
+                  />
+                </div>
+                <button onClick={handleFpSendOtp} disabled={fpPhone.length !== 10 || fpLoading}
+                  style={{ padding: '16px', backgroundColor: fpPhone.length === 10 ? '#2334b2' : '#a0a8e0', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: fpPhone.length === 10 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  {fpLoading ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : 'Send OTP'}
+                </button>
+              </div>
+            )}
+
+            {fpStep === 2 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#4a567a', display: 'flex' }}>
+                    <ShieldCheck size={20} strokeWidth={1.8} />
+                  </span>
+                  <input type="text" placeholder="6-digit OTP" maxLength={6}
+                    value={fpOtp} onChange={e => setFpOtp(e.target.value.replace(/\D/g, ''))}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '16px 16px 16px 48px', border: '1.5px solid #dde1f0', borderRadius: '12px', fontSize: '16px', fontWeight: '500', color: '#1b2c7a', outline: 'none', backgroundColor: '#f8f9ff', letterSpacing: '0.1em' }}
+                  />
+                </div>
+                <div style={{ textAlign: 'right', fontSize: '13px' }}>
+                  {fpTimer > 0 ? (
+                    <span style={{ color: '#8898cc' }}>Resend in <strong style={{ color: '#1b2c7a' }}>00:{fpTimer < 10 ? `0${fpTimer}` : fpTimer}</strong></span>
+                  ) : (
+                    <button type="button" onClick={handleFpSendOtp} style={{ background: 'none', border: 'none', color: '#2334b2', fontWeight: '600', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline' }}>
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
+                <button onClick={handleFpVerifyOtp} disabled={fpOtp.length !== 6 || fpLoading}
+                  style={{ padding: '16px', backgroundColor: fpOtp.length === 6 ? '#2334b2' : '#a0a8e0', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: fpOtp.length === 6 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  {fpLoading ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : 'Verify OTP'}
+                </button>
+              </div>
+            )}
+
+            {fpStep === 3 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#4a567a', display: 'flex' }}>
+                    <Lock size={20} strokeWidth={1.8} />
+                  </span>
+                  <input type={fpShowPass ? 'text' : 'password'} placeholder="New password (min 8 chars)"
+                    value={fpNewPass} onChange={e => setFpNewPass(e.target.value)}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '16px 48px 16px 48px', border: '1.5px solid #dde1f0', borderRadius: '12px', fontSize: '16px', fontWeight: '500', color: '#1b2c7a', outline: 'none', backgroundColor: '#f8f9ff' }}
+                  />
+                  <button type="button" onClick={() => setFpShowPass(v => !v)} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#8898cc', display: 'flex' }}>
+                    {fpShowPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#4a567a', display: 'flex' }}>
+                    <Lock size={20} strokeWidth={1.8} />
+                  </span>
+                  <input type={fpShowPass ? 'text' : 'password'} placeholder="Confirm new password"
+                    value={fpConfirm} onChange={e => setFpConfirm(e.target.value)}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '16px 16px 16px 48px', border: fpConfirm && fpNewPass !== fpConfirm ? '1.5px solid #f87171' : '1.5px solid #dde1f0', borderRadius: '12px', fontSize: '16px', fontWeight: '500', color: '#1b2c7a', outline: 'none', backgroundColor: fpConfirm && fpNewPass !== fpConfirm ? '#fff8f8' : '#f8f9ff' }}
+                  />
+                </div>
+                {fpConfirm && fpNewPass !== fpConfirm && (
+                  <p style={{ fontSize: '12px', color: '#e11d48', fontWeight: '600', marginTop: '-8px' }}>Passwords do not match</p>
+                )}
+                <button onClick={handleFpReset} disabled={!fpNewPass || !fpConfirm || fpLoading}
+                  style={{ padding: '16px', backgroundColor: fpNewPass && fpConfirm ? '#2334b2' : '#a0a8e0', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: fpNewPass && fpConfirm ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: fpNewPass && fpConfirm ? '0 4px 0 #182489' : 'none' }}>
+                  {fpLoading ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : 'Reset Password'}
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
+
       {/* ── ACCOUNT INACTIVE MODAL ── */}
       {showInactiveModal && (
         <div style={{
@@ -601,6 +780,77 @@ export default function Login() {
               style={{ padding: '16px', backgroundColor: '#e11d48', color: '#ffffff', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 0 #be123c', width: '100%' }}
             >
               Okay
+            </button>
+          </motion.div>
+        </div>
+      )}
+      {/* ── TERMS OF SERVICE MODAL ── */}
+      {showTerms && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(27,44,122,0.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }}>
+          <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+            style={{ backgroundColor: '#fff', borderRadius: '24px 24px 0 0', padding: '28px 24px', width: '100%', maxWidth: '430px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexShrink: 0 }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1b2c7a' }}>Terms of Service</h2>
+              <button onClick={() => setShowTerms(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8898cc' }}><X size={22} /></button>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1, fontSize: '14px', color: '#4a567a', lineHeight: 1.7 }}>
+              <p style={{ marginBottom: '16px', color: '#1b2c7a', fontWeight: '600' }}>Last updated: January 2025</p>
+              <p style={{ marginBottom: '16px' }}>Welcome to Basera Bazar. By using our platform, you agree to the following terms:</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>1. Use of Platform</p>
+              <p style={{ marginBottom: '16px' }}>Basera Bazar provides a marketplace connecting users with property agents, service providers, suppliers, and mandi sellers. The platform is intended for lawful purposes only.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>2. Account Responsibility</p>
+              <p style={{ marginBottom: '16px' }}>You are responsible for maintaining the confidentiality of your account credentials. Any activity under your account is your responsibility.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>3. Listings & Content</p>
+              <p style={{ marginBottom: '16px' }}>Partners are solely responsible for the accuracy of their listings. Basera Bazar does not guarantee the quality, safety, or legality of products and services listed.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>4. Prohibited Activities</p>
+              <p style={{ marginBottom: '16px' }}>You may not use the platform for fraudulent activities, posting false information, harassing other users, or violating any applicable law.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>5. Payments & Orders</p>
+              <p style={{ marginBottom: '16px' }}>All transactions are between buyers and sellers. Basera Bazar facilitates connections but is not a party to any transaction. Payment disputes must be resolved between the parties.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>6. Termination</p>
+              <p style={{ marginBottom: '16px' }}>We reserve the right to suspend or terminate accounts that violate these terms without prior notice.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>7. Changes to Terms</p>
+              <p style={{ marginBottom: '24px' }}>We may update these terms from time to time. Continued use of the platform constitutes acceptance of the updated terms.</p>
+              <p>For questions, contact us at <strong>support@baserabazar.com</strong></p>
+            </div>
+            <button onClick={() => setShowTerms(false)}
+              style={{ marginTop: '20px', padding: '16px', backgroundColor: '#2334b2', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', flexShrink: 0 }}>
+              I Understand
+            </button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── PRIVACY POLICY MODAL ── */}
+      {showPrivacy && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(27,44,122,0.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }}>
+          <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+            style={{ backgroundColor: '#fff', borderRadius: '24px 24px 0 0', padding: '28px 24px', width: '100%', maxWidth: '430px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexShrink: 0 }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1b2c7a' }}>Privacy Policy</h2>
+              <button onClick={() => setShowPrivacy(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8898cc' }}><X size={22} /></button>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1, fontSize: '14px', color: '#4a567a', lineHeight: 1.7 }}>
+              <p style={{ marginBottom: '16px', color: '#1b2c7a', fontWeight: '600' }}>Last updated: January 2025</p>
+              <p style={{ marginBottom: '16px' }}>Basera Bazar values your privacy. This policy explains what data we collect and how we use it.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>1. Information We Collect</p>
+              <p style={{ marginBottom: '16px' }}>We collect your name, phone number, email address, and location when you register or use our services. We also collect usage data to improve the platform.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>2. How We Use Your Data</p>
+              <p style={{ marginBottom: '16px' }}>Your data is used to provide and improve our services, send relevant notifications, and connect you with the right businesses in your area.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>3. Data Sharing</p>
+              <p style={{ marginBottom: '16px' }}>We do not sell your personal data. Your contact details are shared with partners only when you make an enquiry or place an order, and only to the extent necessary.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>4. Push Notifications</p>
+              <p style={{ marginBottom: '16px' }}>With your permission, we send push notifications for order updates, new listings, and promotions. You can opt out at any time from your device settings.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>5. Data Security</p>
+              <p style={{ marginBottom: '16px' }}>We use industry-standard encryption and security practices to protect your data. However, no system is 100% secure and we cannot guarantee absolute security.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>6. Your Rights</p>
+              <p style={{ marginBottom: '16px' }}>You can request access to, correction of, or deletion of your personal data by contacting us at support@baserabazar.com.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>7. Cookies</p>
+              <p style={{ marginBottom: '24px' }}>We use session cookies for authentication. No third-party tracking cookies are used.</p>
+              <p>For questions, contact us at <strong>support@baserabazar.com</strong></p>
+            </div>
+            <button onClick={() => setShowPrivacy(false)}
+              style={{ marginTop: '20px', padding: '16px', backgroundColor: '#2334b2', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', flexShrink: 0 }}>
+              I Understand
             </button>
           </motion.div>
         </div>

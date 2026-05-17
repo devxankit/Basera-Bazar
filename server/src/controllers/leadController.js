@@ -11,12 +11,25 @@ const { getPartnerLimits, getActiveSubscription } = require('../utils/subscripti
  */
 exports.createBroadcastLead = async (req, res) => {
   try {
-    const { 
-      name, phone, email, 
+    const {
+      name, phone, email,
       state, district, full_address,
       products, requirement_details, document_url,
-      target_category 
+      target_category
     } = req.body;
+
+    if (!name || !phone) {
+      return res.status(400).json({ success: false, message: 'Name and phone number are required.' });
+    }
+    if (!district || typeof district !== 'string') {
+      return res.status(400).json({ success: false, message: 'District is required to broadcast your requirement.' });
+    }
+    if (!['service', 'supplier'].includes(target_category)) {
+      return res.status(400).json({ success: false, message: 'Invalid category. Must be "service" or "supplier".' });
+    }
+    if (!products?.length || products.some(p => !p.item_name?.trim())) {
+      return res.status(400).json({ success: false, message: 'At least one product/service item is required.' });
+    }
 
     const lead = await BroadcastLead.create({
       user_id: req.user.id,

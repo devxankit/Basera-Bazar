@@ -77,6 +77,8 @@ export default function SignUp() {
 
   // Popup modal state: null | 'EMAIL_EXISTS' | 'PHONE_EXISTS' | 'USER_EXISTS'
   const [popup, setPopup] = useState(null);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   // Timer Countdown Logic
   React.useEffect(() => {
@@ -466,9 +468,9 @@ export default function SignUp() {
             {/* Terms */}
             <motion.p variants={fadeInUp} style={{ fontSize: '13px', color: '#8898cc', fontWeight: '500', lineHeight: 1.6, margin: '14px 2px 28px' }}>
               By signing up, you agree to our{' '}
-              <span style={{ color: '#1b2c7a', fontWeight: '600', textDecoration: 'underline', textUnderlineOffset: '2px' }}>Terms of Service</span>
+              <button type="button" onClick={() => setShowTerms(true)} style={{ background: 'none', border: 'none', padding: 0, color: '#1b2c7a', fontWeight: '600', textDecoration: 'underline', textUnderlineOffset: '2px', cursor: 'pointer', fontSize: 'inherit' }}>Terms of Service</button>
               {' '}and{' '}
-              <span style={{ color: '#1b2c7a', fontWeight: '600', textDecoration: 'underline', textUnderlineOffset: '2px' }}>Privacy Policy</span>.
+              <button type="button" onClick={() => setShowPrivacy(true)} style={{ background: 'none', border: 'none', padding: 0, color: '#1b2c7a', fontWeight: '600', textDecoration: 'underline', textUnderlineOffset: '2px', cursor: 'pointer', fontSize: 'inherit' }}>Privacy Policy</button>.
             </motion.p>
 
             {/* Info hint if phone not verified */}
@@ -557,6 +559,68 @@ export default function SignUp() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── TERMS OF SERVICE MODAL ── */}
+      {showTerms && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(27,44,122,0.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 2000 }}>
+          <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+            style={{ backgroundColor: '#fff', borderRadius: '24px 24px 0 0', padding: '28px 24px', width: '100%', maxWidth: '430px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexShrink: 0 }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1b2c7a' }}>Terms of Service</h2>
+              <button onClick={() => setShowTerms(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8898cc', display: 'flex' }}>✕</button>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1, fontSize: '14px', color: '#4a567a', lineHeight: 1.7 }}>
+              <p style={{ marginBottom: '16px', color: '#1b2c7a', fontWeight: '600' }}>Last updated: January 2025</p>
+              <p style={{ marginBottom: '16px' }}>Welcome to Basera Bazar. By using our platform, you agree to the following terms:</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>1. Use of Platform</p>
+              <p style={{ marginBottom: '16px' }}>Basera Bazar provides a marketplace connecting users with property agents, service providers, suppliers, and mandi sellers. The platform is intended for lawful purposes only.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>2. Account Responsibility</p>
+              <p style={{ marginBottom: '16px' }}>You are responsible for maintaining the confidentiality of your account credentials. Any activity under your account is your responsibility.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>3. Listings & Content</p>
+              <p style={{ marginBottom: '16px' }}>Partners are solely responsible for the accuracy of their listings. Basera Bazar does not guarantee the quality, safety, or legality of products and services listed.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>4. Prohibited Activities</p>
+              <p style={{ marginBottom: '16px' }}>You may not use the platform for fraudulent activities, posting false information, harassing other users, or violating any applicable law.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>5. Termination</p>
+              <p style={{ marginBottom: '24px' }}>We reserve the right to suspend or terminate accounts that violate these terms without prior notice.</p>
+              <p>For questions, contact us at <strong>support@baserabazar.com</strong></p>
+            </div>
+            <button onClick={() => setShowTerms(false)}
+              style={{ marginTop: '20px', padding: '16px', backgroundColor: '#2334b2', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', flexShrink: 0 }}>
+              I Understand
+            </button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── PRIVACY POLICY MODAL ── */}
+      {showPrivacy && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(27,44,122,0.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 2000 }}>
+          <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+            style={{ backgroundColor: '#fff', borderRadius: '24px 24px 0 0', padding: '28px 24px', width: '100%', maxWidth: '430px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexShrink: 0 }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1b2c7a' }}>Privacy Policy</h2>
+              <button onClick={() => setShowPrivacy(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8898cc', display: 'flex' }}>✕</button>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1, fontSize: '14px', color: '#4a567a', lineHeight: 1.7 }}>
+              <p style={{ marginBottom: '16px', color: '#1b2c7a', fontWeight: '600' }}>Last updated: January 2025</p>
+              <p style={{ marginBottom: '16px' }}>Basera Bazar values your privacy. This policy explains what data we collect and how we use it.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>1. Information We Collect</p>
+              <p style={{ marginBottom: '16px' }}>We collect your name, phone number, email address, and location when you register or use our services. We also collect usage data to improve the platform.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>2. How We Use Your Data</p>
+              <p style={{ marginBottom: '16px' }}>Your data is used to provide and improve our services, send relevant notifications, and connect you with the right businesses in your area.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>3. Data Sharing</p>
+              <p style={{ marginBottom: '16px' }}>We do not sell your personal data. Your contact details are shared with partners only when you make an enquiry or place an order.</p>
+              <p style={{ fontWeight: '600', color: '#1b2c7a', marginBottom: '8px' }}>4. Your Rights</p>
+              <p style={{ marginBottom: '24px' }}>You can request access to, correction of, or deletion of your personal data by contacting us at support@baserabazar.com.</p>
+              <p>For questions, contact us at <strong>support@baserabazar.com</strong></p>
+            </div>
+            <button onClick={() => setShowPrivacy(false)}
+              style={{ marginTop: '20px', padding: '16px', backgroundColor: '#2334b2', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', flexShrink: 0 }}>
+              I Understand
+            </button>
+          </motion.div>
+        </div>
+      )}
     </>
   );
 }

@@ -378,7 +378,7 @@ const updateProfile = async (req, res) => {
     const Model = isPartner ? Partner : User;
 
     // Whitelist allowed fields to prevent mass-assignment
-    const ALLOWED_USER_FIELDS = ['name', 'email', 'profileImage', 'default_location', 'city', 'state', 'district', 'pincode'];
+    const ALLOWED_USER_FIELDS = ['name', 'email', 'phone', 'profileImage', 'default_location', 'city', 'state', 'district', 'pincode'];
     const ALLOWED_PARTNER_FIELDS = ['name', 'email', 'profileImage', 'business_name', 'business_description', 'business_logo', 'address', 'city', 'state', 'district', 'pincode'];
 
     const allowedFields = isPartner ? ALLOWED_PARTNER_FIELDS : ALLOWED_USER_FIELDS;
@@ -695,6 +695,56 @@ const logoutUser = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Reset password via OTP verification (unauthenticated)
+ * @route   POST /api/auth/reset-password
+ * @access  Public
+ */
+const resetPassword = async (req, res) => {
+  try {
+    const { phone: rawPhone, otp, newPassword } = req.body;
+    const phone = rawPhone ? rawPhone.trim() : '';
+
+    if (!phone || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Phone, OTP and new password are required.' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
+    }
+
+    // Verify OTP
+    const otpRecord = await Otp.findOne({ phone }).sort({ createdAt: -1 });
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'OTP expired or not found. Please request a new one.' });
+    }
+    if (otpRecord.expires_at && otpRecord.expires_at < new Date()) {
+      await Otp.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({ success: false, message: 'OTP expired. Please request a new one.' });
+    }
+    const isMatch = await bcrypt.compare(otp.toString(), otpRecord.otp_hash);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Incorrect OTP. Please try again.' });
+    }
+
+    // Find account (user or partner)
+    let account = await User.findOne({ phone });
+    if (!account) account = await Partner.findOne({ phone });
+    if (!account) {
+      return res.status(404).json({ success: false, message: 'No account found with this phone number.' });
+    }
+
+    // Set new password and consume OTP
+    account.password = newPassword;
+    await account.save();
+    await Otp.deleteOne({ _id: otpRecord._id });
+
+    res.status(200).json({ success: true, message: 'Password reset successfully. You can now log in.' });
+  } catch (error) {
+    logger.error({ err: error }, 'Reset password error:');
+    res.status(500).json({ success: false, message: 'Server error resetting password.' });
+  }
+};
+
 module.exports = {
   checkExists,
   requestOtp,
@@ -702,6 +752,7 @@ module.exports = {
   getMe,
   updateProfile,
   changePassword,
+  resetPassword,
   loginWithPassword,
   checkSignupConflicts,
   testNotification,

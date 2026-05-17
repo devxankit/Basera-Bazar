@@ -51,7 +51,8 @@ const createNotification = async (recipientType, recipientId, title, body, data 
         // Prepare payload for FCM (FCM data values must be strings)
         const stringifiedData = {
           notification_id: notification._id.toString(),
-          click_action: data.enquiry_id ? `/partner/lead-details/${data.enquiry_id}` : 
+          click_action: data.enquiry_id ? `/partner/lead-details/${data.enquiry_id}` :
+                        data.type === 'broadcast_lead' ? '/partner/leads' :
                         data.type === 'mandi_order' ? '/partner/marketplace/orders' : '/partner/home'
         };
 

@@ -191,7 +191,7 @@ const SearchResults = () => {
   const initialQuery = searchParams.get('q') || '';
   const [inputValue, setInputValue] = useState(initialQuery);
   const [query, setQuery] = useState(initialQuery);
-  const [activeType, setActiveType] = useState('all');
+  const [activeType, setActiveType] = useState(searchParams.get('type') || 'all');
   const [sortBy, setSortBy] = useState('relevance');
   const [showSort, setShowSort] = useState(false);
   const [rawResults, setRawResults] = useState([]);
