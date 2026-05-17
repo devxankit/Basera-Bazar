@@ -5,6 +5,7 @@ const SalaryRecord = require('../../models/SalaryRecord');
 const StaffTarget = require('../../models/StaffTarget');
 const StaffPerformance = require('../../models/StaffPerformance');
 const DailyReport = require('../../models/DailyReport');
+const AuditLog = require('../../models/AuditLog');
 
 const getTLDashboard = async (req, res) => {
   try {
@@ -219,6 +220,241 @@ const getTLPendingCounts = async (req, res) => {
   }
 };
 
+// ─── Admin: Team Leader Management ──────────────────────────────────────────
+
+const getAllTeamLeaders = async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+    if (req.query.state) filter.state = new RegExp(req.query.state, 'i');
+    if (req.query.status) filter.onboarding_status = req.query.status;
+    if (req.query.search) {
+      const re = new RegExp(req.query.search, 'i');
+      filter.$or = [{ name: re }, { phone: re }, { email: re }];
+    }
+
+    const pipeline = [
+      { $match: filter },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: 'executives',
+          localField: '_id',
+          foreignField: 'team_leader_id',
+          pipeline: [{ $match: { is_active: true } }],
+          as: 'executives'
+        }
+      },
+      {
+        $lookup: {
+          from: 'officestaffs',
+          localField: '_id',
+          foreignField: 'team_leader_id',
+          pipeline: [{ $match: { is_active: true } }],
+          as: 'office_staff'
+        }
+      },
+      {
+        $addFields: {
+          fe_count: { $size: '$executives' },
+          os_count: { $size: '$office_staff' },
+          team_size: { $add: [{ $size: '$executives' }, { $size: '$office_staff' }] }
+        }
+      },
+      {
+        $project: { executives: 0, office_staff: 0 }
+      }
+    ];
+
+    const [total, teamLeaders] = await Promise.all([
+      TeamLeader.countDocuments(filter),
+      TeamLeader.aggregate(pipeline)
+    ]);
+
+    res.status(200).json({ success: true, data: teamLeaders, total, page, totalPages: Math.ceil(total / limit) });
+  } catch (err) {
+    logger.error({ err }, 'getAllTeamLeaders Error');
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+const getTeamLeaderById = async (req, res) => {
+  try {
+    const tl = await TeamLeader.findById(req.params.id).lean();
+    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
+
+    const [feCount, osCount, salaryHistory, executives, officeStaff, performance] = await Promise.all([
+      Executive.countDocuments({ team_leader_id: tl._id }),
+      OfficeStaff.countDocuments({ team_leader_id: tl._id }),
+      SalaryRecord.find({ staff_id: tl._id, staff_type: 'team_leader' }).sort({ month: -1 }).limit(12).lean(),
+      Executive.find({ team_leader_id: tl._id }).select('name phone is_active onboarding_status').lean(),
+      OfficeStaff.find({ team_leader_id: tl._id }).select('name phone is_active onboarding_status calling_specialization').lean(),
+      require('../../models/StaffPerformance').findOne({ staff_id: tl._id }).sort({ month: -1 }).lean(),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...tl,
+        fe_count: feCount,
+        os_count: osCount,
+        salary_history: salaryHistory,
+        executives,
+        office_staff: officeStaff,
+        performance
+      },
+    });
+  } catch (err) {
+    logger.error({ err }, 'getTeamLeaderById Error');
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+const createTeamLeader = async (req, res) => {
+  try {
+    const existing = await TeamLeader.findOne({
+      $or: [{ phone: req.body.phone }, { email: req.body.email.toLowerCase() }],
+    });
+    if (existing) {
+      return res.status(409).json({ success: false, message: 'Phone or email already in use.' });
+    }
+
+    const tl = await TeamLeader.create({
+      ...req.body,
+      onboarding_status: 'approved',
+    });
+
+    res.status(201).json({ success: true, data: tl.toJSON(), message: 'Team Leader created successfully.' });
+  } catch (err) {
+    logger.error({ err }, 'createTeamLeader Error');
+    if (err.code === 11000) return res.status(409).json({ success: false, message: 'Phone or email already in use.' });
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+const updateTeamLeader = async (req, res) => {
+  try {
+    // Prevent mass-assignment (B-2)
+    const {
+      name, phone, email, state, district, zone, address,
+      bank_details, profile_image
+    } = req.body;
+
+    const updateData = {
+      name, phone, email, state, district, zone, address,
+      bank_details, profile_image
+    };
+
+    const tl = await TeamLeader.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true, runValidators: true });
+    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
+    res.status(200).json({ success: true, data: tl.toJSON(), message: 'Team Leader updated.' });
+  } catch (err) {
+    logger.error({ err }, 'updateTeamLeader Error');
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+const toggleTeamLeaderActive = async (req, res) => {
+  try {
+    const tl = await TeamLeader.findById(req.params.id);
+    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
+    tl.is_active = !tl.is_active;
+    if (!tl.is_active) tl.deactivated_at = new Date();
+    await tl.save();
+    res.status(200).json({ success: true, data: { is_active: tl.is_active }, message: `Team Leader ${tl.is_active ? 'activated' : 'deactivated'}.` });
+  } catch (err) {
+    logger.error({ err }, 'toggleTeamLeaderActive Error');
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+const approveTeamLeader = async (req, res) => {
+  try {
+    const tl = await TeamLeader.findByIdAndUpdate(
+      req.params.id,
+      { $set: { onboarding_status: 'approved' } },
+      { new: true }
+    );
+    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
+
+    await AuditLog.create({
+      admin_id: req.user.id,
+      action: 'APPROVE_TL',
+      resource_id: tl._id,
+      resource_type: 'TeamLeader',
+      ip_address: req.ip,
+      user_agent: req.get('User-Agent')
+    });
+
+    res.status(200).json({ success: true, message: 'Team Leader approved.' });
+  } catch (err) {
+    logger.error({ err }, 'approveTeamLeader Error');
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+const rejectTeamLeader = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    if (!reason) return res.status(400).json({ success: false, message: 'Rejection reason is required.' });
+    const tl = await TeamLeader.findByIdAndUpdate(
+      req.params.id,
+      { onboarding_status: 'rejected', deactivation_reason: reason },
+      { new: true }
+    );
+    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
+
+    await AuditLog.create({
+      admin_id: req.user.id,
+      action: 'REJECT_TL',
+      resource_id: tl._id,
+      resource_type: 'TeamLeader',
+      details: { reason },
+      ip_address: req.ip,
+      user_agent: req.get('User-Agent')
+    });
+
+    res.status(200).json({ success: true, message: 'Team Leader rejected.' });
+  } catch (err) {
+    logger.error({ err }, 'rejectTeamLeader Error');
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+const updateTeamLeaderSalary = async (req, res) => {
+  try {
+    const { fixed_salary, commission_rate } = req.body;
+    const tl = await TeamLeader.findByIdAndUpdate(
+      req.params.id,
+      { fixed_salary, commission_rate },
+      { new: true, runValidators: true }
+    );
+    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
+    res.status(200).json({ success: true, message: 'Salary structure updated.' });
+  } catch (err) {
+    logger.error({ err }, 'updateTeamLeaderSalary Error');
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+const getTeamLeaderTeam = async (req, res) => {
+  try {
+    const [executives, officeStaff] = await Promise.all([
+      Executive.find({ team_leader_id: req.params.id }).select('name phone email onboarding_status is_active salary').lean(),
+      OfficeStaff.find({ team_leader_id: req.params.id }).select('name phone email onboarding_status is_active fixed_salary calling_specialization').lean(),
+    ]);
+    res.status(200).json({ success: true, data: { executives, office_staff: officeStaff } });
+  } catch (err) {
+    logger.error({ err }, 'getTeamLeaderTeam Error');
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
 module.exports = {
   getTLDashboard,
   getTLExecutives,
@@ -230,4 +466,14 @@ module.exports = {
   tlVerifyDailyReport,
   tlGetDailyReports,
   getTLPendingCounts,
+  // Admin management
+  getAllTeamLeaders,
+  getTeamLeaderById,
+  createTeamLeader,
+  updateTeamLeader,
+  toggleTeamLeaderActive,
+  approveTeamLeader,
+  rejectTeamLeader,
+  updateTeamLeaderSalary,
+  getTeamLeaderTeam,
 };

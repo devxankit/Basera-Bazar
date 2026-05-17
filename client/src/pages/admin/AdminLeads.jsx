@@ -11,6 +11,8 @@ import { toast } from '../../mockToast';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
+import Pagination from '../../components/admin/Pagination';
+import EmptyState from '../../components/common/EmptyState';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -412,11 +414,8 @@ const AdminLeads = () => {
                   </tr>
                 ) : leads.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-8 py-20 text-center">
-                      <div className="flex flex-col items-center gap-4 opacity-40">
-                         <MailSearch size={48} className="text-slate-200" />
-                         <span className="text-xs font-black text-slate-300 uppercase tracking-widest italic">No matching leads in your CRM</span>
-                      </div>
+                    <td colSpan="7">
+                      <EmptyState icon={MailSearch} title="No matching leads in your CRM" />
                     </td>
                   </tr>
                 ) : (
@@ -555,43 +554,14 @@ const AdminLeads = () => {
             </table>
           </div>
           
-          {/* Enhanced Pagination UI */}
-          {leads.length > itemsPerPage && (
-             <div className="px-8 py-5 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic tracking-tight">
-                  Showing {startIndex + 1} - {Math.min(startIndex + itemsPerPage, leads.length)} of {leads.length} Records
-                </p>
-                <div className="flex gap-2">
-                   <button 
-                     disabled={currentPage === 1}
-                     onClick={() => setCurrentPage(prev => prev - 1)}
-                     className="px-5 py-1.5 border border-slate-200 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                   >
-                     Prev
-                   </button>
-                   <div className="flex bg-white border border-slate-200 rounded-lg p-0.5 shadow-sm">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`w-8 h-7 text-[10px] font-black rounded-md transition-all ${
-                            currentPage === page ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                   </div>
-                   <button 
-                     disabled={currentPage === totalPages}
-                     onClick={() => setCurrentPage(prev => prev + 1)}
-                     className="px-5 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-800 uppercase tracking-widest shadow-sm hover:bg-slate-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                   >
-                     Next
-                   </button>
-                </div>
-             </div>
-          )}
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={leads.length}
+            pageSize={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
 
           {/* Fallback footer if pagination hidden */}
           {leads.length > 0 && leads.length <= itemsPerPage && (

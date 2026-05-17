@@ -30,16 +30,12 @@ export default function PartnerOnboarding() {
   // Sync with user data once loaded
   useEffect(() => {
     if (user) {
-      console.log("KYC Onboarding Sync - Full User Object:", user);
-      
       // Aggressively find mandi data in all possible locations
-      const mandiData = 
-        user.profile?.mandi_profile || 
-        user.mandi_profile || 
-        user.profile || 
+      const mandiData =
+        user.profile?.mandi_profile ||
+        user.mandi_profile ||
+        user.profile ||
         {};
-        
-      console.log("Extracted Mandi Data:", mandiData);
       
       setFormData(prev => ({
         ...prev,

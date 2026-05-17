@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { LocationProvider } from './context/LocationContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -299,6 +299,14 @@ const UserLayout = ({ children }) => {
   );
 };
 
+function SectionErrorLayout({ section }) {
+  return (
+    <ErrorBoundary section={section}>
+      <Outlet />
+    </ErrorBoundary>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -338,6 +346,7 @@ function App() {
                     <Route path="/leads" element={<UserLayout><div className="p-8 text-center text-slate-400 font-semibold uppercase tracking-widest pt-20">Lead Activity Coming Soon</div></UserLayout>} />
 
                     {/* Partner Routes */}
+                    <Route element={<SectionErrorLayout section="Partner" />}>
                     <Route path="/partner/login" element={<PartnerLogin />} />
                     <Route path="/partner/register" element={<PartnerRegistration />} />
                     <Route path="/partner/home" element={<PartnerLayout><PartnerHome /></PartnerLayout>} />
@@ -369,8 +378,10 @@ function App() {
                     <Route path="/partner/mandi/orders-history" element={<PartnerLayout><PartnerOrderHistory /></PartnerLayout>} />
                     <Route path="/partner/mandi/penalties" element={<PartnerLayout><MandiPenalties /></PartnerLayout>} />
                     <Route path="/partner/milestones" element={<PartnerLayout><PartnerMilestones /></PartnerLayout>} />
+                    </Route>{/* end Partner section ErrorBoundary */}
 
                     {/* Executive Routes */}
+                    <Route element={<SectionErrorLayout section="Executive" />}>
                     <Route path="/executive/login" element={<Navigate to="/staff/login?role=field_executive" replace />} />
                     <Route path="/executive/register" element={<ExecutiveSignUp />} />
                     <Route path="/executive/signup" element={<ExecutiveSignUp />} />
@@ -381,8 +392,10 @@ function App() {
                     <Route path="/executive/payout" element={<ExecutiveRoute><ExecutiveLayout><ExecutivePayout /></ExecutiveLayout></ExecutiveRoute>} />
                     <Route path="/executive/task-history" element={<ExecutiveRoute><ExecutiveLayout><ExecutiveTaskHistory /></ExecutiveLayout></ExecutiveRoute>} />
                     <Route path="/executive/salary" element={<ExecutiveRoute><ExecutiveLayout><ExecutiveSalary /></ExecutiveLayout></ExecutiveRoute>} />
+                    </Route>{/* end Executive section ErrorBoundary */}
 
                     {/* Admin Routes */}
+                    <Route element={<SectionErrorLayout section="Admin" />}>
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
                     <Route path="/admin/dashboard" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
@@ -442,8 +455,10 @@ function App() {
                     <Route path="/admin/executives/pending" element={<AdminRoute><AdminLayout><AdminExecutives filter="pending" /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/executives/withdrawals" element={<AdminRoute><AdminLayout><AdminWithdrawals /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/executives/economics" element={<AdminRoute><AdminLayout><AdminEconomics /></AdminLayout></AdminRoute>} />
+                    </Route>{/* end Admin section ErrorBoundary */}
 
-                    {/* --- Staff unified login --- */}
+                    {/* --- Staff section (Team Leader, Office Staff, Field Executive extensions, Admin staff mgmt) --- */}
+                    <Route element={<SectionErrorLayout section="Staff" />}>
                     <Route path="/staff/login" element={<StaffLogin />} />
                     <Route path="/staff/forgot-password" element={<StaffForgotPassword />} />
 
@@ -493,6 +508,7 @@ function App() {
                     <Route path="/admin/staff/performance" element={<AdminRoute><AdminLayout><AdminStaffPerformance /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/staff/leaderboard" element={<AdminRoute><AdminLayout><AdminStaffLeaderboard /></AdminLayout></AdminRoute>} />
                     <Route path="/admin/staff/reports" element={<AdminRoute><AdminLayout><AdminStaffReports /></AdminLayout></AdminRoute>} />
+                    </Route>{/* end Staff section ErrorBoundary */}
                   </Routes>
                 </Suspense>
               </Router>

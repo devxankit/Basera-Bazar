@@ -159,7 +159,6 @@ export default function AdminPartnerVerification() {
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              console.log("Viewing KYC for:", row._id || row.id);
               setSelectedPartner(row);
               setShowKYCView(true);
             }}
@@ -174,7 +173,6 @@ export default function AdminPartnerVerification() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                console.log("Opening Approve Modal for:", row._id || row.id);
                 setSelectedPartner(row);
                 setModalConfig({
                   title: 'Approve Partner',

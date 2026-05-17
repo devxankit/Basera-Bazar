@@ -42,8 +42,6 @@ const Home = () => {
         cacheService.invalidate('all_listings_');
         cacheService.invalidate('all_partners_');
 
-        console.log('[Home] Fetching with location params:', locationParams);
-
         const [props, servs, supps, mandi] = await Promise.all([
           db.getAll('listings', { category: 'property', is_featured: 'true', limit: 8, ...locationParams }),
           db.getAll('listings', { category: 'service', is_featured: 'true', limit: 8, ...locationParams }),

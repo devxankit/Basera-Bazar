@@ -57,7 +57,8 @@ const getExecutiveDetail = async (req, res) => {
       data: { ...executive, partners, attendance, onboardedCount: partners.length }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    logger.error({ err: error }, 'getExecutiveDetail Error:');
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
@@ -95,7 +96,8 @@ const updateExecutiveStatus = async (req, res) => {
 
     res.status(200).json({ success: true, message: `Executive ${status} successfully` });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    logger.error({ err: error }, 'updateExecutiveStatus Error:');
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
@@ -127,7 +129,8 @@ const toggleExecutiveActiveStatus = async (req, res) => {
       data: { is_active: newStatus }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    logger.error({ err: error }, 'toggleExecutiveActiveStatus Error:');
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
@@ -261,7 +264,8 @@ const resetExecutiveKyc = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Executive KYC reset successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    logger.error({ err: error }, 'resetExecutiveKyc Error:');
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 

@@ -13,7 +13,7 @@ const {
   changeStaffPassword,
   staffForgotPassword,
   staffResetPassword,
-} = require('../controllers/staff/adminStaffController');
+} = require('../controllers/staff/staffAuthController');
 
 // Public
 router.post('/login', validate(staffLoginSchema), staffLogin);

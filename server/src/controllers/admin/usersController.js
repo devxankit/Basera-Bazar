@@ -196,7 +196,7 @@ const createUser = async (req, res) => {
       return res.status(400).json({ success: false, message: messages.join(', ') });
     }
     
-    res.status(500).json({ success: false, message: 'Error creating user.', error: error.message });
+    res.status(500).json({ success: false, message: 'Error creating user.' });
   }
 };
 

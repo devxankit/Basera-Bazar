@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  ArrowLeft, History, CheckCircle2, 
-  Calendar, Clock, Star, 
+import {
+  ArrowLeft, History, CheckCircle2,
+  Calendar, Clock, Star,
   Package, Users, ChevronRight,
   TrendingUp, Activity, X, Info, Zap, Loader2,
   ShieldCheck, ZapOff, Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { loadScript } from '../../utils/loadScript';
@@ -15,8 +16,6 @@ import { loadScript } from '../../utils/loadScript';
 export default function PartnerSubscription() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -30,28 +29,21 @@ export default function PartnerSubscription() {
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/partner/login');
-    }
+    if (!user) navigate('/partner/login');
   }, [user, navigate]);
 
+  // Fetch plans with React Query (cached for 5 min, auto-deduped)
+  const { data: plansData, isLoading: loading } = useQuery({
+    queryKey: ['subscriptionPlans'],
+    queryFn: () => api.get('/partners/subscriptions/plans').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
+  });
+  const plans = plansData?.data || [];
+
+  // Refresh user (subscription status) once on mount
   useEffect(() => {
-    const init = async () => {
-      try {
-        const [plansRes] = await Promise.all([
-          api.get('/partners/subscriptions/plans'),
-          refreshUser(), // always fetch fresh subscription data on page open
-        ]);
-        if (plansRes.data.success) {
-          setPlans(plansRes.data.data);
-        }
-      } catch (err) {
-        console.error("Error fetching plans:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    init();
+    if (user) refreshUser();
   }, []);
 
   if (!user) return null;

@@ -60,7 +60,7 @@ const updateCategory = async (req, res) => {
   try {
     const categoryUpdate = pick(req.body, ['name', 'slug', 'type', 'parent_id', 'icon', 'mandi_icon', 'is_active', 'description']);
     if (categoryUpdate.name) categoryUpdate.name = sanitizeCategoryName(categoryUpdate.name);
-    const category = await Category.findByIdAndUpdate(req.params.id, categoryUpdate, { new: true });
+    const category = await Category.findByIdAndUpdate(req.params.id, { $set: categoryUpdate }, { new: true });
     await invalidate.publicCategories();
     res.status(200).json({ success: true, data: category });
   } catch (error) {
@@ -139,7 +139,7 @@ const createSupplierCategory = async (req, res) => {
 const updateSupplierCategory = async (req, res) => {
   try {
     const categoryUpdate = pick(req.body, ['name', 'slug', 'parent_id', 'icon', 'is_active', 'description']);
-    const category = await SupplierCategory.findByIdAndUpdate(req.params.id, categoryUpdate, { new: true });
+    const category = await SupplierCategory.findByIdAndUpdate(req.params.id, { $set: categoryUpdate }, { new: true });
     await invalidate.publicCategories();
     res.status(200).json({ success: true, data: category });
   } catch (error) {
@@ -202,7 +202,7 @@ const createBanner = async (req, res) => {
 
 const updateBanner = async (req, res) => {
   try {
-    const banner = await Banner.findByIdAndUpdate(req.params.id, pick(req.body, ['title', 'image_url', 'link', 'is_active', 'priority', 'type', 'target_role']), { new: true });
+    const banner = await Banner.findByIdAndUpdate(req.params.id, { $set: pick(req.body, ['title', 'image_url', 'link', 'is_active', 'priority', 'type', 'target_role']) }, { new: true });
     if (!banner) return res.status(404).json({ success: false, message: 'Banner not found' });
     await invalidate.publicBanners();
     res.status(200).json({ success: true, data: banner });

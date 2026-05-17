@@ -340,7 +340,6 @@ export default function PartnerRegistration() {
                 selectedRole={selectedRole}
                 onBack={prevStep}
                 onVerified={(userData, token) => {
-                  console.log("Partner verified successfully via Step 3", { userData, token });
                   // Set token on API instance immediately for subsequent steps
                   api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
                   setAuthState({ user: userData, token });

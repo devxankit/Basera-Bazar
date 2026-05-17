@@ -160,7 +160,7 @@ const upsertMilestoneConfig = async (req, res) => {
     let config;
     if (id) {
       config = await MilestoneConfig.findByIdAndUpdate(id, {
-        target_orders, prize_name, prize_description, banner_url, valid_until, is_active
+        $set: { target_orders, prize_name, prize_description, banner_url, valid_until, is_active }
       }, { new: true });
     } else {
       config = await MilestoneConfig.create({

@@ -29,6 +29,8 @@ const {
   rejectTeamLeader,
   updateTeamLeaderSalary,
   getTeamLeaderTeam,
+} = require('../controllers/staff/teamLeaderController');
+const {
   getAllOfficeStaff,
   getOfficeStaffById,
   createOfficeStaff,
@@ -38,7 +40,8 @@ const {
   rejectOfficeStaff,
   reassignOfficeStaff,
   assignExecutiveToTL,
-  transferExecutiveLeads,
+} = require('../controllers/staff/officeStaffController');
+const {
   getAllTargets,
   createTarget,
   updateTarget,
@@ -60,7 +63,8 @@ const {
   adminVerifyDailyReport,
   exportAttendanceToCSV,
   exportReportsToCSV,
-} = require('../controllers/staff/adminStaffController');
+  transferExecutiveLeads,
+} = require('../controllers/staff/hrController');
 const { generateSalarySlip } = require('../utils/pdfGenerator');
 const SalaryRecord = require('../models/SalaryRecord');
 const { TeamLeader, OfficeStaff } = require('../models/Staff');

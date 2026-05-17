@@ -270,6 +270,29 @@ const partnerSwitchRoleSchema = z.object({
 });
 
 // ---------------------------------------------------------
+// LEAD SCHEMAS
+// ---------------------------------------------------------
+
+const leadCreateSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  phone: z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number'),
+  email: z.string().email('Invalid email').optional().or(z.literal('')),
+  state: z.string().optional(),
+  district: z.string().min(1, 'District is required to broadcast your requirement'),
+  full_address: z.string().optional(),
+  target_category: z.enum(['service', 'supplier'], {
+    errorMap: () => ({ message: 'target_category must be "service" or "supplier"' }),
+  }),
+  products: z.array(z.object({
+    item_name: z.string().min(1, 'Item name is required'),
+    quantity: z.number().optional(),
+    unit: z.string().optional(),
+  })).min(1, 'At least one product/service item is required'),
+  requirement_details: z.string().optional(),
+  document_url: z.string().url().optional().or(z.literal('')),
+});
+
+// ---------------------------------------------------------
 // ADMIN MARKETPLACE SCHEMAS
 // ---------------------------------------------------------
 
@@ -300,6 +323,7 @@ const reportVerifySchema = z.object({
 });
 
 module.exports = {
+  leadCreateSchema,
   partnerRegistrationSchema,
   partnerAddRoleSchema,
   partnerDeleteRoleSchema,

@@ -10,609 +10,7 @@ const StaffAttendance = require('../../models/StaffAttendance');
 const LeaveRequest = require('../../models/LeaveRequest');
 const DailyReport = require('../../models/DailyReport');
 const AuditLog = require('../../models/AuditLog');
-const { checkLockout, recordFailedAttempt, resetFailedAttempts } = require('../../utils/loginLockout');
-const { signAccessToken, signRefreshToken, setAuthCookies } = require('../../utils/cookieAuth');
 const invalidate = require('../../utils/cacheInvalidator');
-
-// ─── Staff Unified Login ─────────────────────────────────────────────────────
-
-const staffLogin = async (req, res) => {
-  const { identifier, password, role } = req.body;
-  try {
-    let Model;
-    if (role === 'team_leader') Model = TeamLeader;
-    else if (role === 'office_staff') Model = OfficeStaff;
-    else if (role === 'executive') Model = Executive;
-    else return res.status(400).json({ success: false, message: 'Invalid role specified.' });
-
-    const query = /^[6-9]\d{9}$/.test(identifier)
-      ? { phone: identifier }
-      : { email: identifier.toLowerCase() };
-
-    const staff = await Model.findOne(query);
-    if (!staff) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials.' });
-    }
-
-    const lockout = checkLockout(staff);
-    if (lockout.locked) {
-      return res.status(429).json({
-        success: false,
-        message: `Account locked. Try again after ${lockout.retryAfter.toLocaleTimeString()}.`,
-      });
-    }
-
-    if (!['approved', 'verified'].includes(staff.onboarding_status)) {
-      return res.status(403).json({ success: false, message: 'Your account is not yet approved.' });
-    }
-
-    if (!staff.is_active) {
-      return res.status(403).json({ success: false, message: 'Your account has been deactivated.' });
-    }
-
-    const isMatch = await staff.matchPassword(password);
-    if (!isMatch) {
-      await recordFailedAttempt(Model, staff._id);
-      return res.status(401).json({ success: false, message: 'Invalid credentials.' });
-    }
-
-    await resetFailedAttempts(Model, staff._id);
-
-    const accessToken  = signAccessToken(staff._id, role, staff.email, staff.token_version);
-    const refreshTokenVal = signRefreshToken(staff._id, role, staff.token_version);
-    setAuthCookies(res, accessToken, refreshTokenVal);
-
-    const {
-      _id, name, phone, email, profile_image, onboarding_status,
-      is_active, state, calling_specialization, fixed_salary, commission_rate
-    } = staff.toJSON();
-
-    res.status(200).json({
-      success: true,
-      token: accessToken, // kept for localStorage fallback on older clients
-      user: {
-        _id, name, phone, email, profile_image, onboarding_status,
-        is_active, state, calling_specialization, fixed_salary, commission_rate, role
-      }
-    });
-  } catch (err) {
-    logger.error({ err }, 'staffLogin Error');
-    res.status(500).json({ success: false, message: 'Server error during login.' });
-  }
-};
-
-const staffLogout = async (req, res) => {
-  try {
-    const { role, id } = req.user;
-    let Model;
-    if (role === 'team_leader') Model = TeamLeader;
-    else if (role === 'office_staff') Model = OfficeStaff;
-    else Model = Executive;
-
-    await Model.findByIdAndUpdate(id, { $inc: { token_version: 1 } });
-    res.status(200).json({ success: true, message: 'Logged out successfully.' });
-  } catch (err) {
-    logger.error({ err }, 'staffLogout Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const getStaffMe = async (req, res) => {
-  res.status(200).json({ success: true, user: req.user });
-};
-
-const changeStaffPassword = async (req, res) => {
-  const { current_password, new_password } = req.body;
-  try {
-    const { role, id } = req.user;
-    let Model;
-    if (role === 'team_leader') Model = TeamLeader;
-    else if (role === 'office_staff') Model = OfficeStaff;
-    else Model = Executive;
-
-    const staff = await Model.findById(id).select('+password');
-    if (!staff) return res.status(404).json({ success: false, message: 'Not found.' });
-
-    const isMatch = await staff.matchPassword(current_password);
-    if (!isMatch) return res.status(400).json({ success: false, message: 'Current password is incorrect.' });
-
-    staff.password = new_password;
-    await staff.save();
-
-    res.status(200).json({ success: true, message: 'Password changed successfully.' });
-  } catch (err) {
-    logger.error({ err }, 'changeStaffPassword Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const staffForgotPassword = async (req, res) => {
-  try {
-    const { phone } = req.body;
-    if (!phone) return res.status(400).json({ success: false, message: 'Phone number required.' });
-
-    // Check in all staff models
-    const [tl, os, fe] = await Promise.all([
-      TeamLeader.findOne({ phone, onboarding_status: 'approved', is_active: true }),
-      OfficeStaff.findOne({ phone, onboarding_status: 'approved', is_active: true }),
-      Executive.findOne({ phone, onboarding_status: { $in: ['approved', 'verified'] }, is_active: true }),
-    ]);
-
-    const staff = tl || os || fe;
-    if (!staff) return res.status(404).json({ success: false, message: 'Active staff account not found with this phone.' });
-
-    const crypto = require('crypto');
-    const otpCode = crypto.randomInt(100000, 1000000).toString();
-    
-    const bcrypt = require('bcryptjs');
-    const salt = await bcrypt.genSalt(10);
-    const otpHash = await bcrypt.hash(otpCode, salt);
-    
-    const { Otp } = require('../../models/User');
-
-    await Otp.deleteMany({ phone });
-    await Otp.create({
-      phone,
-      otp_hash: otpHash,
-      expires_at: new Date(Date.now() + 5 * 60 * 1000), // 5 mins
-    });
-
-    await require('../../utils/sms').sendOTP(phone, otpCode);
-
-    res.status(200).json({ success: true, message: 'OTP sent successfully.' });
-  } catch (err) {
-    logger.error({ err }, 'staffForgotPassword Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const staffResetPassword = async (req, res) => {
-  try {
-    const { phone, otp, new_password } = req.body;
-    if (!phone || !otp || !new_password) return res.status(400).json({ success: false, message: 'Phone, OTP and new password required.' });
-
-    const { Otp } = require('../../models/User');
-    const otpRecord = await Otp.findOne({ phone }).sort({ createdAt: -1 });
-
-    if (!otpRecord || otpRecord.expires_at < new Date()) {
-      return res.status(400).json({ success: false, message: 'OTP expired or not found.' });
-    }
-
-    const bcrypt = require('bcryptjs');
-    const isMatch = await bcrypt.compare(otp, otpRecord.otp_hash);
-    if (!isMatch) return res.status(400).json({ success: false, message: 'Invalid OTP.' });
-
-    // Find staff again to update
-    const [tl, os, fe] = await Promise.all([
-      TeamLeader.findOne({ phone }),
-      OfficeStaff.findOne({ phone }),
-      Executive.findOne({ phone }),
-    ]);
-
-    const staff = tl || os || fe;
-    if (!staff) return res.status(404).json({ success: false, message: 'Staff account not found.' });
-
-    staff.password = new_password;
-    staff.token_version = (staff.token_version || 0) + 1; // Logout all sessions
-    await staff.save();
-
-    await Otp.deleteOne({ _id: otpRecord._id });
-
-    res.status(200).json({ success: true, message: 'Password reset successfully. Please login with new password.' });
-  } catch (err) {
-    logger.error({ err }, 'staffResetPassword Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-// ─── Admin: Team Leader Management ──────────────────────────────────────────
-
-const getAllTeamLeaders = async (req, res) => {
-  try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
-    const skip = (page - 1) * limit;
-
-    const filter = {};
-    if (req.query.state) filter.state = new RegExp(req.query.state, 'i');
-    if (req.query.status) filter.onboarding_status = req.query.status;
-    if (req.query.search) {
-      const re = new RegExp(req.query.search, 'i');
-      filter.$or = [{ name: re }, { phone: re }, { email: re }];
-    }
-
-    const pipeline = [
-      { $match: filter },
-      { $sort: { createdAt: -1 } },
-      { $skip: skip },
-      { $limit: limit },
-      {
-        $lookup: {
-          from: 'executives',
-          localField: '_id',
-          foreignField: 'team_leader_id',
-          pipeline: [{ $match: { is_active: true } }],
-          as: 'executives'
-        }
-      },
-      {
-        $lookup: {
-          from: 'officestaffs',
-          localField: '_id',
-          foreignField: 'team_leader_id',
-          pipeline: [{ $match: { is_active: true } }],
-          as: 'office_staff'
-        }
-      },
-      {
-        $addFields: {
-          fe_count: { $size: '$executives' },
-          os_count: { $size: '$office_staff' },
-          team_size: { $add: [{ $size: '$executives' }, { $size: '$office_staff' }] }
-        }
-      },
-      {
-        $project: { executives: 0, office_staff: 0 }
-      }
-    ];
-
-    const [total, teamLeaders] = await Promise.all([
-      TeamLeader.countDocuments(filter),
-      TeamLeader.aggregate(pipeline)
-    ]);
-
-    res.status(200).json({ success: true, data: teamLeaders, total, page, totalPages: Math.ceil(total / limit) });
-  } catch (err) {
-    logger.error({ err }, 'getAllTeamLeaders Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const getTeamLeaderById = async (req, res) => {
-  try {
-    const tl = await TeamLeader.findById(req.params.id).lean();
-    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
-
-    const [feCount, osCount, salaryHistory, executives, officeStaff, performance] = await Promise.all([
-      Executive.countDocuments({ team_leader_id: tl._id }),
-      OfficeStaff.countDocuments({ team_leader_id: tl._id }),
-      SalaryRecord.find({ staff_id: tl._id, staff_type: 'team_leader' }).sort({ month: -1 }).limit(12).lean(),
-      Executive.find({ team_leader_id: tl._id }).select('name phone is_active onboarding_status').lean(),
-      OfficeStaff.find({ team_leader_id: tl._id }).select('name phone is_active onboarding_status calling_specialization').lean(),
-      require('../../models/StaffPerformance').findOne({ staff_id: tl._id }).sort({ month: -1 }).lean(),
-    ]);
-
-    res.status(200).json({
-      success: true,
-      data: { 
-        ...tl, 
-        fe_count: feCount, 
-        os_count: osCount, 
-        salary_history: salaryHistory,
-        executives,
-        office_staff: officeStaff,
-        performance
-      },
-    });
-  } catch (err) {
-    logger.error({ err }, 'getTeamLeaderById Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const createTeamLeader = async (req, res) => {
-  try {
-    const existing = await TeamLeader.findOne({
-      $or: [{ phone: req.body.phone }, { email: req.body.email.toLowerCase() }],
-    });
-    if (existing) {
-      return res.status(409).json({ success: false, message: 'Phone or email already in use.' });
-    }
-
-    const tl = await TeamLeader.create({
-      ...req.body,
-      onboarding_status: 'approved',
-    });
-
-    res.status(201).json({ success: true, data: tl.toJSON(), message: 'Team Leader created successfully.' });
-  } catch (err) {
-    logger.error({ err }, 'createTeamLeader Error');
-    if (err.code === 11000) return res.status(409).json({ success: false, message: 'Phone or email already in use.' });
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const updateTeamLeader = async (req, res) => {
-  try {
-    // Prevent mass-assignment (B-2)
-    const { 
-      name, phone, email, state, district, zone, address, 
-      bank_details, profile_image 
-    } = req.body;
-
-    const updateData = { 
-      name, phone, email, state, district, zone, address, 
-      bank_details, profile_image 
-    };
-
-    const tl = await TeamLeader.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true, runValidators: true });
-    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
-    res.status(200).json({ success: true, data: tl.toJSON(), message: 'Team Leader updated.' });
-  } catch (err) {
-    logger.error({ err }, 'updateTeamLeader Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const toggleTeamLeaderActive = async (req, res) => {
-  try {
-    const tl = await TeamLeader.findById(req.params.id);
-    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
-    tl.is_active = !tl.is_active;
-    if (!tl.is_active) tl.deactivated_at = new Date();
-    await tl.save();
-    res.status(200).json({ success: true, data: { is_active: tl.is_active }, message: `Team Leader ${tl.is_active ? 'activated' : 'deactivated'}.` });
-  } catch (err) {
-    logger.error({ err }, 'toggleTeamLeaderActive Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const approveTeamLeader = async (req, res) => {
-  try {
-    const tl = await TeamLeader.findByIdAndUpdate(
-      req.params.id,
-      { $set: { onboarding_status: 'approved' } },
-      { new: true }
-    );
-    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
-    
-    await AuditLog.create({
-      admin_id: req.user.id,
-      action: 'APPROVE_TL',
-      resource_id: tl._id,
-      resource_type: 'TeamLeader',
-      ip_address: req.ip,
-      user_agent: req.get('User-Agent')
-    });
-
-    res.status(200).json({ success: true, message: 'Team Leader approved.' });
-  } catch (err) {
-    logger.error({ err }, 'approveTeamLeader Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const rejectTeamLeader = async (req, res) => {
-  try {
-    const { reason } = req.body;
-    if (!reason) return res.status(400).json({ success: false, message: 'Rejection reason is required.' });
-    const tl = await TeamLeader.findByIdAndUpdate(
-      req.params.id,
-      { onboarding_status: 'rejected', deactivation_reason: reason },
-      { new: true }
-    );
-    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
-    
-    await AuditLog.create({
-      admin_id: req.user.id,
-      action: 'REJECT_TL',
-      resource_id: tl._id,
-      resource_type: 'TeamLeader',
-      details: { reason },
-      ip_address: req.ip,
-      user_agent: req.get('User-Agent')
-    });
-
-    res.status(200).json({ success: true, message: 'Team Leader rejected.' });
-  } catch (err) {
-    logger.error({ err }, 'rejectTeamLeader Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const updateTeamLeaderSalary = async (req, res) => {
-  try {
-    const { fixed_salary, commission_rate } = req.body;
-    const tl = await TeamLeader.findByIdAndUpdate(
-      req.params.id,
-      { fixed_salary, commission_rate },
-      { new: true, runValidators: true }
-    );
-    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
-    res.status(200).json({ success: true, message: 'Salary structure updated.' });
-  } catch (err) {
-    logger.error({ err }, 'updateTeamLeaderSalary Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const getTeamLeaderTeam = async (req, res) => {
-  try {
-    const [executives, officeStaff] = await Promise.all([
-      Executive.find({ team_leader_id: req.params.id }).select('name phone email onboarding_status is_active salary').lean(),
-      OfficeStaff.find({ team_leader_id: req.params.id }).select('name phone email onboarding_status is_active fixed_salary calling_specialization').lean(),
-    ]);
-    res.status(200).json({ success: true, data: { executives, office_staff: officeStaff } });
-  } catch (err) {
-    logger.error({ err }, 'getTeamLeaderTeam Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-// ─── Admin: Office Staff Management ─────────────────────────────────────────
-
-const getAllOfficeStaff = async (req, res) => {
-  try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
-    const skip = (page - 1) * limit;
-
-    const filter = {};
-    if (req.query.team_leader_id) filter.team_leader_id = req.query.team_leader_id;
-    if (req.query.status) filter.onboarding_status = req.query.status;
-    if (req.query.specialization) filter.calling_specialization = req.query.specialization;
-    if (req.query.search) {
-      const re = new RegExp(req.query.search, 'i');
-      filter.$or = [{ name: re }, { phone: re }, { email: re }];
-    }
-
-    const [total, officeStaff] = await Promise.all([
-      OfficeStaff.countDocuments(filter),
-      OfficeStaff.find(filter)
-        .populate('team_leader_id', 'name phone state')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-    ]);
-
-    res.status(200).json({ success: true, data: officeStaff, total, page, totalPages: Math.ceil(total / limit) });
-  } catch (err) {
-    logger.error({ err }, 'getAllOfficeStaff Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const getOfficeStaffById = async (req, res) => {
-  try {
-    const os = await OfficeStaff.findById(req.params.id).populate('team_leader_id', 'name phone state').lean();
-    if (!os) return res.status(404).json({ success: false, message: 'Office Staff not found.' });
-
-    const salaryHistory = await SalaryRecord.find({ staff_id: os._id, staff_type: 'office_staff' }).sort({ month: -1 }).limit(12).lean();
-    res.status(200).json({ success: true, data: { ...os, salary_history: salaryHistory } });
-  } catch (err) {
-    logger.error({ err }, 'getOfficeStaffById Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const createOfficeStaff = async (req, res) => {
-  try {
-    const existing = await OfficeStaff.findOne({
-      $or: [{ phone: req.body.phone }, { email: req.body.email.toLowerCase() }],
-    });
-    if (existing) return res.status(409).json({ success: false, message: 'Phone or email already in use.' });
-
-    const os = await OfficeStaff.create({ ...req.body, onboarding_status: 'approved' });
-    res.status(201).json({ success: true, data: os.toJSON(), message: 'Office Staff created successfully.' });
-  } catch (err) {
-    logger.error({ err }, 'createOfficeStaff Error');
-    if (err.code === 11000) return res.status(409).json({ success: false, message: 'Phone or email already in use.' });
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const updateOfficeStaff = async (req, res) => {
-  try {
-    // Prevent mass-assignment (B-2)
-    const { 
-      name, phone, email, calling_specialization, address, 
-      bank_details, profile_image 
-    } = req.body;
-
-    const updateData = { 
-      name, phone, email, calling_specialization, address, 
-      bank_details, profile_image 
-    };
-
-    const os = await OfficeStaff.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
-    if (!os) return res.status(404).json({ success: false, message: 'Office Staff not found.' });
-    res.status(200).json({ success: true, data: os.toJSON(), message: 'Office Staff updated.' });
-  } catch (err) {
-    logger.error({ err }, 'updateOfficeStaff Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const toggleOfficeStaffActive = async (req, res) => {
-  try {
-    const os = await OfficeStaff.findById(req.params.id);
-    if (!os) return res.status(404).json({ success: false, message: 'Office Staff not found.' });
-    os.is_active = !os.is_active;
-    if (!os.is_active) os.deactivated_at = new Date();
-    await os.save();
-    res.status(200).json({ success: true, data: { is_active: os.is_active }, message: `Office Staff ${os.is_active ? 'activated' : 'deactivated'}.` });
-  } catch (err) {
-    logger.error({ err }, 'toggleOfficeStaffActive Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const approveOfficeStaff = async (req, res) => {
-  try {
-    const os = await OfficeStaff.findByIdAndUpdate(req.params.id, { $set: { onboarding_status: 'approved' } }, { new: true });
-    if (!os) return res.status(404).json({ success: false, message: 'Office Staff not found.' });
-    
-    await AuditLog.create({
-      admin_id: req.user.id,
-      action: 'APPROVE_OS',
-      resource_id: os._id,
-      resource_type: 'OfficeStaff',
-      ip_address: req.ip,
-      user_agent: req.get('User-Agent')
-    });
-
-    res.status(200).json({ success: true, message: 'Office Staff approved.' });
-  } catch (err) {
-    logger.error({ err }, 'approveOfficeStaff Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const rejectOfficeStaff = async (req, res) => {
-  try {
-    const { reason } = req.body;
-    if (!reason) return res.status(400).json({ success: false, message: 'Rejection reason is required.' });
-    const os = await OfficeStaff.findByIdAndUpdate(req.params.id, { $set: { onboarding_status: 'rejected', deactivation_reason: reason } }, { new: true });
-    if (!os) return res.status(404).json({ success: false, message: 'Office Staff not found.' });
-    
-    await AuditLog.create({
-      admin_id: req.user.id,
-      action: 'REJECT_OS',
-      resource_id: os._id,
-      resource_type: 'OfficeStaff',
-      details: { reason },
-      ip_address: req.ip,
-      user_agent: req.get('User-Agent')
-    });
-
-    res.status(200).json({ success: true, message: 'Office Staff rejected.' });
-  } catch (err) {
-    logger.error({ err }, 'rejectOfficeStaff Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const reassignOfficeStaff = async (req, res) => {
-  try {
-    const { new_team_leader_id } = req.body;
-    if (!new_team_leader_id) return res.status(400).json({ success: false, message: 'new_team_leader_id is required.' });
-    const tl = await TeamLeader.findById(new_team_leader_id);
-    if (!tl) return res.status(404).json({ success: false, message: 'Target Team Leader not found.' });
-    const os = await OfficeStaff.findByIdAndUpdate(req.params.id, { $set: { team_leader_id: new_team_leader_id } }, { new: true });
-    if (!os) return res.status(404).json({ success: false, message: 'Office Staff not found.' });
-    res.status(200).json({ success: true, message: `Office Staff reassigned to ${tl.name}.` });
-  } catch (err) {
-    logger.error({ err }, 'reassignOfficeStaff Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
-
-const assignExecutiveToTL = async (req, res) => {
-  try {
-    const { team_leader_id } = req.body;
-    if (!team_leader_id) return res.status(400).json({ success: false, message: 'team_leader_id is required.' });
-    const tl = await TeamLeader.findById(team_leader_id);
-    if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
-    const exec = await Executive.findByIdAndUpdate(req.params.id, { $set: { team_leader_id } }, { new: true });
-    if (!exec) return res.status(404).json({ success: false, message: 'Executive not found.' });
-    res.status(200).json({ success: true, message: `Executive assigned to ${tl.name}.` });
-  } catch (err) {
-    logger.error({ err }, 'assignExecutiveToTL Error');
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-};
 
 // ─── Admin: Target Management ────────────────────────────────────────────────
 
@@ -646,7 +44,7 @@ const getAllTargets = async (req, res) => {
 const createTarget = async (req, res) => {
   try {
     const target = await StaffTarget.create({ ...req.body, assigned_by: req.user.id });
-    
+
     await AuditLog.create({
       admin_id: req.user.id,
       action: 'CREATE_TARGET',
@@ -670,7 +68,7 @@ const updateTarget = async (req, res) => {
     const { target_type, target_period, target_value, start_date, end_date, description, incentive_type, incentive_rate, assign_to_type, assign_to_ids } = req.body;
     const target = await StaffTarget.findByIdAndUpdate(req.params.id, { target_type, target_period, target_value, start_date, end_date, description, incentive_type, incentive_rate, assign_to_type, assign_to_ids }, { new: true, runValidators: true });
     if (!target) return res.status(404).json({ success: false, message: 'Target not found.' });
-    
+
     await AuditLog.create({
       admin_id: req.user.id,
       action: 'UPDATE_TARGET',
@@ -693,10 +91,10 @@ const toggleTargetStatus = async (req, res) => {
   try {
     const target = await StaffTarget.findById(req.params.id);
     if (!target) return res.status(404).json({ success: false, message: 'Target not found.' });
-    
+
     target.is_active = !target.is_active;
     await target.save();
-    
+
     await AuditLog.create({
       admin_id: req.user.id,
       action: target.is_active ? 'ACTIVATE_TARGET' : 'DEACTIVATE_TARGET',
@@ -780,8 +178,8 @@ const getTargetProgress = async (req, res) => {
         else if (target.target_type === 'subscription') achieved += (r.subscriptions_sold || 0);
       });
 
-      const incentive = target.incentive_type === 'fixed' 
-        ? achieved * target.incentive_rate 
+      const incentive = target.incentive_type === 'fixed'
+        ? achieved * target.incentive_rate
         : 0; // percentage would need business value, not available yet
 
       return {
@@ -1133,7 +531,7 @@ const markSalaryPaid = async (req, res) => {
       { new: true }
     );
     if (!record) return res.status(404).json({ success: false, message: 'Salary record not found.' });
-    
+
     await AuditLog.create({
       admin_id: req.user.id,
       action: 'MARK_SALARY_PAID',
@@ -1208,7 +606,7 @@ const adminVerifyAttendance = async (req, res) => {
       { new: true }
     );
     if (!record) return res.status(404).json({ success: false, message: 'Attendance record not found.' });
-    
+
     await AuditLog.create({
       admin_id: req.user.id,
       action: 'VERIFY_ATTENDANCE',
@@ -1264,7 +662,7 @@ const adminVerifyDailyReport = async (req, res) => {
       { new: true }
     );
     if (!report) return res.status(404).json({ success: false, message: 'Report not found.' });
-    
+
     await AuditLog.create({
       admin_id: req.user.id,
       action: 'VERIFY_REPORT',
@@ -1352,7 +750,6 @@ const exportReportsToCSV = async (req, res) => {
   }
 };
 
-
 // ─── Admin: Executive Lead Transfer ─────────────────────────────────────────
 
 /**
@@ -1433,35 +830,6 @@ const transferExecutiveLeads = async (req, res) => {
 };
 
 module.exports = {
-  // Auth
-  staffLogin,
-  staffLogout,
-  getStaffMe,
-  changeStaffPassword,
-  staffForgotPassword,
-  staffResetPassword,
-  // Team Leaders
-  getAllTeamLeaders,
-  getTeamLeaderById,
-  createTeamLeader,
-  updateTeamLeader,
-  toggleTeamLeaderActive,
-  approveTeamLeader,
-  rejectTeamLeader,
-  updateTeamLeaderSalary,
-  getTeamLeaderTeam,
-  // Office Staff
-  getAllOfficeStaff,
-  getOfficeStaffById,
-  createOfficeStaff,
-  updateOfficeStaff,
-  toggleOfficeStaffActive,
-  approveOfficeStaff,
-  rejectOfficeStaff,
-  reassignOfficeStaff,
-  assignExecutiveToTL,
-  // Executive Lead Transfer
-  transferExecutiveLeads,
   // Targets
   getAllTargets,
   createTarget,
@@ -1489,4 +857,6 @@ module.exports = {
   adminVerifyDailyReport,
   exportAttendanceToCSV,
   exportReportsToCSV,
+  // Executive Lead Transfer
+  transferExecutiveLeads,
 };

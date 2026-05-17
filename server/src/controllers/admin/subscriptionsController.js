@@ -33,7 +33,7 @@ const createSubscriptionPlan = async (req, res) => {
 
 const updateSubscriptionPlan = async (req, res) => {
   try {
-    const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true, runValidators: true });
     if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
     await invalidate.publicPlans();
     await invalidate.adminDashboard();
@@ -78,7 +78,7 @@ const getSubscriptionById = async (req, res) => {
     const now = new Date();
     if (!subscription.is_virtual && subscription.status === 'active' && subscription.ends_at && new Date(subscription.ends_at) < now) {
       subscription.status = 'expired';
-      await mongoose.model('Subscription').findByIdAndUpdate(subscription._id, { status: 'expired' });
+      await mongoose.model('Subscription').findByIdAndUpdate(subscription._id, { $set: { status: 'expired' } });
     }
 
     const partnerId = subscription.partner_id?._id || subscription.partner_id;
@@ -120,7 +120,7 @@ const updateSubscriptionStatus = async (req, res) => {
     if (!['active', 'expired', 'cancelled', 'trial'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid status' });
     }
-    const subscription = await mongoose.model('Subscription').findByIdAndUpdate(id, { status }, { new: true });
+    const subscription = await mongoose.model('Subscription').findByIdAndUpdate(id, { $set: { status } }, { new: true });
     if (!subscription) return res.status(404).json({ success: false, message: 'Subscription not found' });
     await invalidate.adminDashboard();
     res.status(200).json({ success: true, data: subscription, message: `Subscription ${status} successfully` });

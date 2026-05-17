@@ -179,12 +179,7 @@ const getAllOrders = async (req, res) => {
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
     logger.error({ err: error }, "CRITICAL: Get All Orders Admin Error:")
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error fetching orders.',
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    res.status(500).json({ success: false, message: 'Error fetching orders.' });
   }
 };
 
@@ -201,7 +196,8 @@ const debugMarketplace = async (req, res) => {
       host: mongoose.connection.host
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    logger.error({ err }, 'debugMarketplace Error:');
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
