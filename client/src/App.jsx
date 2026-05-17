@@ -20,6 +20,7 @@ const BrowseCategory = lazy(() => import('./pages/user/BrowseCategory'));
 const PropertyCategories = lazy(() => import('./pages/user/PropertyCategories'));
 const ServiceCategories = lazy(() => import('./pages/user/ServiceCategories'));
 const SupplierCategories = lazy(() => import('./pages/user/SupplierCategories'));
+const SearchResults = lazy(() => import('./pages/user/SearchResults'));
 const MandiMarketplace = lazy(() => import('./pages/user/MandiMarketplace'));
 const MandiCategoryView = lazy(() => import('./pages/user/MandiCategoryView'));
 const MandiCheckout = lazy(() => import('./pages/user/MandiCheckout'));
@@ -320,6 +321,7 @@ function App() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<SignUp />} />
                     <Route path="/notifications" element={<UserLayout><Notifications /></UserLayout>} />
+                    <Route path="/search" element={<UserLayout><SearchResults /></UserLayout>} />
                     <Route path="/browse/:category" element={<UserLayout><BrowseCategory /></UserLayout>} />
                     <Route path="/broadcast-lead" element={<ProtectedRoute><LeadSubmission /></ProtectedRoute>} />
                     <Route path="/mandi-bazar" element={<UserLayout><MandiMarketplace /></UserLayout>} />

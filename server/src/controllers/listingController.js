@@ -523,21 +523,25 @@ const getAllListings = async (req, res) => {
     // Sort combined results by location priority
     const sorted = sortByLocationPriority(results, district, state);
 
-    // Apply relevance ranking when a search query is present
+    // Apply relevance ranking + filter zero-score items when a search query is present
+    let final = sorted;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      sorted.sort((a, b) => {
-        const score = (item) => {
-          const title = (item.title || item.name || item.material_name || '').toLowerCase();
-          const sd = (item.short_description || '').toLowerCase();
-          const desc = (item.description || item.full_description || '').toLowerCase();
-          return (title.includes(q) ? 10 : 0) + (sd.includes(q) ? 3 : 0) + (desc.includes(q) ? 1 : 0);
-        };
-        return score(b) - score(a);
-      });
+      const score = (item) => {
+        const title = (item.title || item.name || item.material_name || '').toLowerCase();
+        const sd = (item.short_description || '').toLowerCase();
+        const desc = (item.description || item.full_description || '').toLowerCase();
+        const catName = (item.category_id?.name || '').toLowerCase();
+        return (title.includes(q) ? 10 : 0) + (sd.includes(q) ? 4 : 0) + (desc.includes(q) ? 1 : 0) + (catName.includes(q) ? 2 : 0);
+      };
+      final = sorted
+        .map(item => ({ item, s: score(item) }))
+        .filter(({ s }) => s > 0)
+        .sort((a, b) => b.s - a.s)
+        .map(({ item }) => item);
     }
 
-    res.status(200).json({ success: true, count: sorted.length, data: sorted });
+    res.status(200).json({ success: true, count: final.length, data: final });
   } catch (error) {
     logger.error({ 
       err: error.message, 

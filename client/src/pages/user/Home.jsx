@@ -118,14 +118,14 @@ const Home = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && navigate(`/browse/all?q=${searchQuery}`)}
-              placeholder="Search products..."
+              onKeyDown={(e) => e.key === 'Enter' && searchQuery.trim() && navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`)}
+              placeholder="Search services, properties, products…"
               className="w-full bg-transparent outline-none pl-2 xs:pl-3 py-2.5 xs:py-3 font-medium text-slate-700 placeholder:text-slate-400"
               style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}
             />
           </div>
           <button
-            onClick={() => navigate(`/browse/all?q=${searchQuery}`)}
+            onClick={() => searchQuery.trim() && navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`)}
             className="bg-[#181d5f] text-white px-4 xs:px-7 py-2.5 xs:py-3 font-black rounded-xl active:scale-95 transition-all shadow-lg whitespace-nowrap"
             style={{ fontSize: 'clamp(11px, 3vw, 13px)' }}
           >
