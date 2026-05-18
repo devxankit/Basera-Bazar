@@ -104,6 +104,7 @@ export default function SignUp() {
     if (!form.fullName.trim()) { alert('Please enter your full name.'); return false; }
     if (!form.email.trim()) { alert('Please enter your email address.'); return false; }
     if (!form.password.trim()) { alert('Please enter a password.'); return false; }
+    if (form.password.length < 8) { alert('Password must be at least 8 characters.'); return false; }
     if (!form.city || !form.state || !form.district) { alert('Please select your location.'); return false; }
     if (form.phone.length !== 10) { alert('Please enter a valid 10-digit phone number.'); return false; }
     return true;
@@ -265,7 +266,7 @@ export default function SignUp() {
               <input
                 type="text" placeholder="Full Name" required
                 value={form.fullName}
-                onChange={e => setForm({ ...form, fullName: e.target.value })}
+                onChange={e => setForm({ ...form, fullName: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
                 style={inputStyle}
               />
             </motion.div>
@@ -285,7 +286,7 @@ export default function SignUp() {
             <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '18px' }}>
               <span style={iconStyle}><Lock size={22} strokeWidth={1.8} /></span>
               <input
-                type={showPassword ? 'text' : 'password'} placeholder="Password" required
+                type={showPassword ? 'text' : 'password'} placeholder="Password (min. 8 characters)" required minLength={8}
                 value={form.password}
                 onChange={e => setForm({ ...form, password: e.target.value })}
                 style={{ ...inputStyle, paddingRight: '54px' }}
@@ -489,9 +490,9 @@ export default function SignUp() {
               exit={{ translateY: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="relative w-full max-w-md bg-white rounded-t-3xl shadow-2xl overflow-hidden"
-              style={{ height: '70vh' }}
+              style={{ height: '70dvh' }}
             >
-              <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 opacity-50" />
+              <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-2 mb-1 opacity-50" />
               <LocationPicker
                 onClose={() => setIsLocationModalOpen(false)}
                 onSelect={(loc) => {

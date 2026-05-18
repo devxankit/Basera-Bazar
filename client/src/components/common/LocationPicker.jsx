@@ -137,8 +137,8 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
   return (
     <div className="flex flex-col h-full bg-white rounded-t-[32px] overflow-hidden">
       {/* Header */}
-      <div className="px-6 pt-8 pb-4 border-b border-slate-50">
-        <div className="flex justify-between items-center mb-6">
+      <div className="px-6 pt-4 pb-4 border-b border-slate-50">
+        <div className="flex justify-between items-center mb-4">
           <h2 className="text-[22px] font-bold text-[#001b4e]">Select Location</h2>
           <button onClick={onClose} className="p-2 bg-slate-50 rounded-full text-slate-400">
             <X size={20} />
