@@ -355,8 +355,14 @@ export default function SignUp() {
               <input
                 type="tel" placeholder="Phone Number" required
                 disabled={showOtpInput}
-                value={form.phone} maxLength={10}
-                onChange={e => setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })}
+                value={form.phone}
+                inputMode="numeric"
+                autoComplete="tel-national"
+                onChange={e => {
+                  let v = e.target.value.replace(/\s+/g, '').replace(/^\+91/, '');
+                  v = v.replace(/\D/g, '').slice(0, 10);
+                  setForm({ ...form, phone: v });
+                }}
                 style={{ ...inputStyle, opacity: showOtpInput ? 0.6 : 1 }}
               />
               {showOtpInput && (

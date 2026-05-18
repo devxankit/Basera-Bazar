@@ -29,6 +29,25 @@ export default function ExecutiveSignUp() {
 
   const [otp, setOtp] = useState('');
   const [ifscError, setIfscError] = useState('');
+  const [errors, setErrors] = useState({});
+
+  // Field-level validators — schema-like for clarity and reuse
+  const VALIDATORS = {
+    name: (v) => !v?.trim() ? 'Full name is required' : !/^[a-zA-Z\s]+$/.test(v.trim()) ? 'Name can only contain letters' : '',
+    email: (v) => !v?.trim() ? 'Email is required' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? 'Invalid email format' : '',
+    phone: (v) => !v ? 'Phone is required' : !/^[6-9]\d{9}$/.test(v) ? 'Enter a valid 10-digit Indian number' : '',
+    password: (v) => !v ? 'Password is required' : v.length < 8 ? 'Min 8 characters' : !/\d/.test(v) ? 'Must include a number' : '',
+    pincode: (v) => !v ? 'Pincode is required' : !/^\d{6}$/.test(v) ? 'Must be exactly 6 digits' : '',
+    account_number: (v) => !v ? 'Account number is required' : !/^\d{9,18}$/.test(v) ? 'Must be 9–18 digits' : '',
+    ifsc_code: (v) => !v ? 'IFSC is required' : !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(v) ? 'Invalid IFSC (e.g. BARB0STAKOT)' : '',
+    aadhar_number: (v) => v && !/^\d{12}$/.test(v) ? 'Must be exactly 12 digits' : '',
+    pan_number: (v) => v && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(v) ? 'Invalid PAN (e.g. ABCDE1234F)' : '',
+  };
+
+  const validateField = (name, value) => {
+    const fn = VALIDATORS[name];
+    return fn ? fn(value) : '';
+  };
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -85,6 +104,10 @@ export default function ExecutiveSignUp() {
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
+
+    // Live-clear error when the field becomes valid
+    const fieldError = validateField(name, value);
+    setErrors(prev => ({ ...prev, [name]: fieldError || undefined }));
   };
 
   const handleFileUpload = async (e, field) => {
@@ -147,8 +170,31 @@ export default function ExecutiveSignUp() {
     }
   };
 
+  const validateStep = (fields) => {
+    const stepErrors = {};
+    fields.forEach(f => {
+      const err = validateField(f, getFieldValue(f));
+      if (err) stepErrors[f] = err;
+    });
+    setErrors(prev => ({ ...prev, ...stepErrors }));
+    return Object.keys(stepErrors).length === 0;
+  };
+
+  // Resolve a possibly-nested field name to its value
+  const getFieldValue = (name) => {
+    if (formData[name] !== undefined) return formData[name];
+    if (formData.address[name] !== undefined) return formData.address[name];
+    if (formData.bank_details[name] !== undefined) return formData.bank_details[name];
+    if (formData.kyc[name] !== undefined) return formData.kyc[name];
+    return '';
+  };
+
   // Actions
   const sendOtp = async () => {
+    if (!validateStep(['name', 'email', 'phone', 'password'])) {
+      toast.error('Please fix the highlighted errors');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await api.post('/executive/register/step1', {
@@ -187,6 +233,10 @@ export default function ExecutiveSignUp() {
   };
 
   const submitDetails = async () => {
+    if (!validateStep(['pincode', 'account_number', 'ifsc_code'])) {
+      toast.error('Please fix the highlighted errors');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await api.put('/executive/register/step2', {
@@ -263,10 +313,10 @@ export default function ExecutiveSignUp() {
           {step === 1 && (
             <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6 sm:space-y-8">
               <div className="space-y-4 sm:space-y-6">
-                <InputField label="Full Name" name="name" icon={UserCircle} value={formData.name} onChange={handleInputChange} placeholder="As per documents" />
-                <InputField label="Email Address" name="email" icon={Mail} value={formData.email} onChange={handleInputChange} placeholder="For notifications" />
-                <InputField label="Phone Number" name="phone" icon={Phone} prefix="+91" value={formData.phone} onChange={handleInputChange} placeholder="10 digits" />
-                <InputField label="Security Password" name="password" icon={Lock} type="password" value={formData.password} onChange={handleInputChange} placeholder="••••••••" />
+                <InputField label="Full Name" name="name" icon={UserCircle} value={formData.name} onChange={handleInputChange} placeholder="As per documents" inputMode="text" autoComplete="name" maxLength={60} error={errors.name} />
+                <InputField label="Email Address" name="email" icon={Mail} type="email" value={formData.email} onChange={handleInputChange} placeholder="For notifications" autoComplete="email" maxLength={100} error={errors.email} />
+                <InputField label="Phone Number" name="phone" icon={Phone} type="tel" inputMode="numeric" maxLength={10} autoComplete="tel-national" prefix="+91" value={formData.phone} onChange={handleInputChange} placeholder="10 digits" error={errors.phone} />
+                <InputField label="Security Password" name="password" icon={Lock} type="password" autoComplete="new-password" value={formData.password} onChange={handleInputChange} placeholder="Min 8 chars, include a number" error={errors.password} />
               </div>
               <button 
                 onClick={sendOtp} 
@@ -314,10 +364,10 @@ export default function ExecutiveSignUp() {
                   <MapPin size={18} className="text-indigo-600" />
                   <h3 className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Residential Address</h3>
                 </div>
-                <InputField label="Street Address" name="address_line" value={formData.address.address_line} onChange={(e) => handleInputChange(e, 'address')} placeholder="Building, Street" />
+                <InputField label="Street Address" name="address_line" value={formData.address.address_line} onChange={(e) => handleInputChange(e, 'address')} placeholder="Building, Street" autoComplete="address-line1" />
                 <div className="grid grid-cols-2 gap-4">
-                  <InputField label="City" name="city" value={formData.address.city} onChange={(e) => handleInputChange(e, 'address')} placeholder="Delhi" />
-                  <InputField label="Pincode" name="pincode" value={formData.address.pincode} onChange={(e) => handleInputChange(e, 'address')} placeholder="110001" />
+                  <InputField label="City" name="city" value={formData.address.city} onChange={(e) => handleInputChange(e, 'address')} placeholder="Delhi" autoComplete="address-level2" />
+                  <InputField label="Pincode" name="pincode" inputMode="numeric" maxLength={6} autoComplete="postal-code" value={formData.address.pincode} onChange={(e) => handleInputChange(e, 'address')} placeholder="110001" error={errors.pincode} />
                 </div>
               </div>
 
@@ -327,9 +377,9 @@ export default function ExecutiveSignUp() {
                   <h3 className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Bank Payout Details</h3>
                 </div>
                 <InputField label="Bank Name" name="bank_name" icon={Building2} value={formData.bank_details.bank_name} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="HDFC, SBI, etc." />
-                <InputField label="Account Number" name="account_number" value={formData.bank_details.account_number} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="0000 0000 0000" />
+                <InputField label="Account Number" name="account_number" inputMode="numeric" maxLength={18} value={formData.bank_details.account_number} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="9–18 digits" error={errors.account_number} />
                 <div className="grid grid-cols-2 gap-4">
-                  <InputField label="IFSC Code" name="ifsc_code" value={formData.bank_details.ifsc_code} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="BARB0STAKOT" error={ifscError} />
+                  <InputField label="IFSC Code" name="ifsc_code" maxLength={11} value={formData.bank_details.ifsc_code} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="BARB0STAKOT" error={ifscError || errors.ifsc_code} />
                   <InputField label="Holder Name" name="account_holder_name" value={formData.bank_details.account_holder_name} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="John Doe" />
                 </div>
               </div>
@@ -393,11 +443,11 @@ export default function ExecutiveSignUp() {
               {/* Document Uploads */}
               <div className="space-y-8">
                 <div className="space-y-4">
-                  <InputField label="Aadhar Card Number" name="aadhar_number" value={formData.kyc.aadhar_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="12-digit UIDAI number" />
+                  <InputField label="Aadhar Card Number" name="aadhar_number" inputMode="numeric" maxLength={12} value={formData.kyc.aadhar_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="12-digit UIDAI number" error={errors.aadhar_number} />
                   <DocUpload label="Aadhar Front Side" value={formData.kyc.aadhar_image} onChange={(e) => handleFileUpload(e, 'aadhar_image')} />
                 </div>
                 <div className="space-y-4 pt-4 border-t border-slate-100">
-                  <InputField label="PAN Card Number" name="pan_number" value={formData.kyc.pan_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="ABCDE1234F" />
+                  <InputField label="PAN Card Number" name="pan_number" maxLength={10} value={formData.kyc.pan_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="ABCDE1234F" error={errors.pan_number} />
                   <DocUpload label="PAN Card Photo" value={formData.kyc.pan_image} onChange={(e) => handleFileUpload(e, 'pan_image')} />
                 </div>
               </div>

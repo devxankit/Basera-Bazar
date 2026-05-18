@@ -16,20 +16,64 @@ const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
 // SUPPLIER_CATEGORIES will be fetched dynamically from API
 
+// Common variations returned by Google Maps / Nominatim that don't match INDIA_DISTRICTS keys
+const STATE_ALIASES = {
+  'nct of delhi': 'Delhi',
+  'national capital territory of delhi': 'Delhi',
+  'delhi nct': 'Delhi',
+  'pondicherry': 'Puducherry',
+  'orissa': 'Odisha',
+  'uttaranchal': 'Uttarakhand',
+  'jammu & kashmir': 'Jammu and Kashmir',
+  'jk': 'Jammu and Kashmir',
+  'tamilnadu': 'Tamil Nadu',
+  'andhrapradesh': 'Andhra Pradesh',
+  'madhyapradesh': 'Madhya Pradesh',
+  'westbengal': 'West Bengal',
+  'arunachalpradesh': 'Arunachal Pradesh',
+  'himachalpradesh': 'Himachal Pradesh',
+  'uttarpradesh': 'Uttar Pradesh',
+  'andaman and nicobar': 'Andaman and Nicobar Islands',
+  'andaman & nicobar islands': 'Andaman and Nicobar Islands',
+  'dadra and nagar haveli': 'Dadra and Nagar Haveli and Daman and Diu',
+  'daman and diu': 'Dadra and Nagar Haveli and Daman and Diu',
+};
+
+// Normalize an externally-supplied state name to a key in INDIA_DISTRICTS
+const findMatchingState = (rawState) => {
+  if (!rawState) return '';
+  const trimmed = rawState.trim();
+  const lower = trimmed.toLowerCase();
+
+  if (STATE_ALIASES[lower]) return STATE_ALIASES[lower];
+
+  const keys = Object.keys(INDIA_DISTRICTS);
+
+  // Exact case-insensitive
+  const exact = keys.find(s => s.toLowerCase() === lower);
+  if (exact) return exact;
+
+  // Partial match (e.g. "Delhi" inside "Delhi NCT")
+  const partial = keys.find(s =>
+    s.toLowerCase().includes(lower) || lower.includes(s.toLowerCase())
+  );
+  return partial || trimmed;
+};
+
 // Helper to find best matching district from our list
 const findMatchingDistrict = (state, rawDistrict) => {
   if (!state || !rawDistrict) return '';
   const availableDistricts = INDIA_DISTRICTS[state] || [];
-  
+
   const clean = (s) => s.toLowerCase().replace(/\s(district|zila|tahsil|division)$/i, '').trim();
   const cleanedRaw = clean(rawDistrict);
 
   // 1. Exact or cleaned match
   const match = availableDistricts.find(d => clean(d) === cleanedRaw);
   if (match) return match;
-  
+
   // 2. Partial match
-  const partial = availableDistricts.find(d => 
+  const partial = availableDistricts.find(d =>
     clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))
   );
   return partial || '';
@@ -405,7 +449,9 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
               onChange={handleChange}
               placeholder="Enter your full name"
               inputMode="text"
-              pattern="[a-zA-Z\s]*"
+              autoComplete="name"
+              maxLength={60}
+              error={errors.fullName}
             />
             <InputField
               icon={<Mail size={18} />}
@@ -415,17 +461,23 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
               value={formData.email}
               onChange={handleChange}
               placeholder="Email for communications"
+              autoComplete="email"
+              maxLength={100}
               error={errors.email}
             />
               <div className="relative">
-                <InputField 
-                  icon={<Phone size={18} />} 
-                  label="Phone Number *" 
+                <InputField
+                  icon={<Phone size={18} />}
+                  label="Phone Number *"
                   name="phone"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  autoComplete="tel-national"
                   disabled={isVerified}
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="87706 XXXXX" 
+                  placeholder="10-digit mobile number"
                   prefix="+91"
                   error={errors.phone}
                   style={{ paddingRight: isVerified ? '120px' : '18px' }}
@@ -437,22 +489,24 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                 )}
               </div>
 
-            <InputField 
-              icon={<Lock size={18} />} 
-              label="Password *" 
+            <InputField
+              icon={<Lock size={18} />}
+              label="Password *"
               type={showPassword ? "text" : "password"}
               name="password"
+              autoComplete="new-password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Create a strong password"
+              placeholder="Min 8 chars, include a number"
               error={errors.password}
               toggle={<button type="button" onClick={handleTogglePassword}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>}
             />
-            <InputField 
-              icon={<Lock size={18} />} 
-              label="Confirm Password *" 
+            <InputField
+              icon={<Lock size={18} />}
+              label="Confirm Password *"
               type={showConfirmPassword ? "text" : "password"}
               name="confirmPassword"
+              autoComplete="new-password"
               value={formData.confirmPassword}
               onChange={handleChange}
               placeholder="Re-enter password"
@@ -466,37 +520,52 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
         <div className="pt-2">
           <h3 className="text-[14px] font-bold text-[#001b4e] uppercase tracking-wider mb-4 px-1">Location Information</h3>
           
-          <button 
+          <button
             type="button"
             onClick={() => setIsLocationModalOpen(true)}
-            className="w-full bg-gradient-to-br from-[#001b4e] to-[#2334b2] p-6 rounded-2xl flex flex-col items-center gap-3 text-white mb-6 shadow-xl shadow-indigo-900/20 active:scale-[0.98] transition-all"
+            className={`w-full p-6 rounded-2xl flex flex-col items-center gap-3 text-white mb-6 shadow-xl active:scale-[0.98] transition-all ${
+              formData.city
+                ? 'bg-gradient-to-br from-emerald-600 to-emerald-700 shadow-emerald-900/20'
+                : 'bg-gradient-to-br from-[#001b4e] to-[#2334b2] shadow-indigo-900/20'
+            } ${errors.location ? 'ring-2 ring-red-400' : ''}`}
           >
-            <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md">
-              <Navigation size={22} className="rotate-45" />
+            <div className="w-12 h-12 bg-white/15 rounded-full flex items-center justify-center backdrop-blur-md">
+              {formData.city
+                ? <CheckCircle2 size={24} />
+                : <Navigation size={22} className="rotate-45" />}
             </div>
             <div className="text-center">
               <div className="text-[16px] font-bold">
                 {formData.city ? `${formData.city}, ${formData.state}` : 'Set Service Location'}
               </div>
-              <div className="text-[11px] text-white/70">
-                {formData.district ? `${formData.district} District` : 'Using GPS or Manual Selection'}
+              <div className="text-[11px] text-white/80 mt-0.5">
+                {formData.city
+                  ? (formData.district ? `${formData.district} District` : 'Location confirmed')
+                  : 'Use GPS or pick a city manually'}
               </div>
             </div>
-            <div className={`bg-white text-[#001b4e] px-6 py-2 rounded-xl text-[13px] font-bold mt-2 shadow-inner ${errors.location ? 'border-2 border-red-500' : ''}`}>
+            <div className="bg-white text-[#001b4e] px-6 py-2 rounded-xl text-[12px] font-bold mt-1 shadow-inner uppercase tracking-wider">
               {formData.city ? 'Change Location' : 'Detect My Location'}
             </div>
-            {errors.location && <span className="text-[11px] text-red-200 font-bold mt-2 uppercase tracking-widest">{errors.location}</span>}
+            {errors.location && (
+              <span className="text-[11px] bg-red-500/20 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+                {errors.location}
+              </span>
+            )}
           </button>
 
           <div className="grid grid-cols-1 gap-6 mt-8 relative z-10 bg-transparent">
-            <InputField 
-              icon={<Box size={18} />} 
-              label="Serviceable Radius (in KM) *" 
+            <InputField
+              icon={<Box size={18} />}
+              label="Serviceable Radius (in KM) *"
               name="service_radius_km"
               type="number"
+              inputMode="numeric"
+              min={1}
+              max={500}
               value={formData.service_radius_km || 100}
               onChange={handleChange}
-              placeholder="e.g. 50" 
+              placeholder="e.g. 50"
               error={errors.service_radius_km}
             />
             <div className="text-[11px] text-slate-400 px-1 -mt-4 mb-2">
@@ -761,31 +830,32 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
               style={{ height: '70vh' }}
             >
               <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 opacity-50" />
-              <LocationPicker 
-                onClose={() => setIsLocationModalOpen(false)} 
+              <LocationPicker
+                onClose={() => setIsLocationModalOpen(false)}
                 onSelect={(loc) => {
                   setFormData(prev => {
-                    const detectedState = loc.state || prev.state;
-                    const detectedDistrict = findMatchingDistrict(detectedState, loc.district);
-                    
+                    // Normalize the state name FIRST so it matches INDIA_DISTRICTS keys
+                    const normalizedState = findMatchingState(loc.state) || prev.state;
+                    const detectedDistrict = findMatchingDistrict(normalizedState, loc.district);
+
                     if (loc.isGPS) {
-                      return { 
-                        ...prev, 
+                      return {
+                        ...prev,
                         coords: loc.coordinates,
                         city: loc.name || prev.city,
-                        state: detectedState,
-                        district: detectedDistrict || loc.district || prev.district
-                      };
-                    } else {
-                      return { 
-                        ...prev, 
-                        city: loc.name, 
-                        district: detectedDistrict || loc.district, 
-                        state: loc.state,
-                        coords: null
+                        state: normalizedState,
+                        district: detectedDistrict || loc.district || prev.district,
                       };
                     }
+                    return {
+                      ...prev,
+                      city: loc.name,
+                      district: detectedDistrict || loc.district,
+                      state: normalizedState,
+                      coords: null,
+                    };
                   });
+                  if (errors.location) setErrors(prev => ({ ...prev, location: null }));
                   setIsLocationModalOpen(false);
                 }}
               />
