@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, CheckCircle2, Search, Loader2, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export default function MapModal({ isOpen, onClose, onConfirm, initialCoordinates }) {
   const mapContainerRef = useRef(null);
@@ -117,6 +118,8 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialCoordinate
       }
     };
   }, [isOpen, initialCoordinates]);
+
+  useScrollLock(isOpen);
 
   if (!isOpen) return null;
 

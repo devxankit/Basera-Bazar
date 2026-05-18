@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
 import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star, ShoppingCart, Plus, Minus, Package, Loader2 } from 'lucide-react';
@@ -43,6 +44,8 @@ const ListingDetails = () => {
   const [verificationSuccess, setVerificationSuccess] = useState(false);
 
   const isSupplier = listing?.category === 'supplier' || listing?.isPartner;
+
+  useScrollLock(isModalOpen || isLightboxOpen || isVariationModalOpen);
 
   // Attribute-based variation system
   const [isVariationModalOpen, setIsVariationModalOpen] = useState(false);
@@ -950,7 +953,7 @@ const ListingDetails = () => {
       {/* Enquiry Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setIsModalOpen(false)} />
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" />
           <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 relative z-10 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-5 sm:hidden" />
             <div className="flex items-center justify-between mb-6">

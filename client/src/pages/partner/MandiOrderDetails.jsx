@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import {
   ArrowLeft, Phone, MessageSquare,
   Calendar, CheckCircle2, AlertTriangle,
@@ -21,6 +22,8 @@ export default function MandiOrderDetails() {
   const [deliveryOTP, setDeliveryOTP] = useState('');
   const [modal, setModal] = useState({ show: false, type: 'confirm', title: '', message: '', onConfirm: null });
   const [sendingOTP, setSendingOTP] = useState(false);
+
+  useScrollLock(modal.show);
 
   const { data: orderRaw, isLoading: loading } = useQuery({
     queryKey: ['mandiOrderDetails', id],
@@ -415,7 +418,7 @@ export default function MandiOrderDetails() {
       <AnimatePresence>
         {modal.show && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setModal({ ...modal, show: false })} className="absolute inset-0 bg-[#001b4e]/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#001b4e]/40 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }} className="relative w-full max-w-[320px] bg-white rounded-2xl p-8 shadow-2xl text-center">
                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm ${
                   modal.type === 'error' ? 'bg-rose-50 text-rose-500 border border-rose-100' : 

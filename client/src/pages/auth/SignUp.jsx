@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { registerFCMToken } from '../../services/pushNotificationService';
 import LocationPicker from '../../components/common/LocationPicker';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 // ─── Small reusable popup modal ───────────────────────────────────────────────
 function AlertModal({ icon: Icon, iconBg, iconColor, title, message, primaryText, primaryAction, secondaryText, secondaryAction }) {
@@ -68,9 +69,7 @@ export default function SignUp() {
   });
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
-  // OTP / verification states
-  const [isVerified, setIsVerified] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+  // OTP states
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
   const [timer, setTimer] = useState(0);
@@ -80,12 +79,12 @@ export default function SignUp() {
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
-  // Timer Countdown Logic
+  useScrollLock(isLocationModalOpen || showTerms || showPrivacy || !!popup);
+
+  // Timer countdown
   React.useEffect(() => {
-    let interval;
-    if (timer > 0) {
-      interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
-    }
+    if (timer <= 0) return;
+    const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
     return () => clearInterval(interval);
   }, [timer]);
 
@@ -100,108 +99,66 @@ export default function SignUp() {
     color: '#4a567a', display: 'flex', alignItems: 'center', pointerEvents: 'none',
   };
 
-  // ── STEP 1: Check uniqueness, then send OTP ────────────────────────────────
-  const handleSendOtp = async () => {
-    if (form.phone.length !== 10) return;
+  // ── Validate all fields before any API call ──────────────────────────────
+  const validate = () => {
+    if (!form.fullName.trim()) { alert('Please enter your full name.'); return false; }
+    if (!form.email.trim()) { alert('Please enter your email address.'); return false; }
+    if (!form.password.trim()) { alert('Please enter a password.'); return false; }
+    if (!form.city || !form.state || !form.district) { alert('Please select your location.'); return false; }
+    if (form.phone.length !== 10) { alert('Please enter a valid 10-digit phone number.'); return false; }
+    return true;
+  };
 
-    // If called as resend, skip the check
-    const isResend = showOtpInput;
+  // ── Resend OTP ───────────────────────────────────────────────────────────
+  const handleResendOtp = async () => {
+    try {
+      setLoading(true);
+      const res = await api.post('/auth/send-otp', { phone: form.phone });
+      if (res.data.success) setTimer(60);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to resend OTP. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    if (!isResend) {
-      if (!form.fullName.trim()) { alert('Please enter your full name.'); return; }
-      if (!form.email.trim()) { alert('Please enter your email address.'); return; }
-      if (!form.password.trim()) { alert('Please enter a password.'); return; }
+  // ── Main submit: Step 1 = send OTP, Step 2 = verify + create account ────
+  const handleSignUp = async (e) => {
+    if (e) e.preventDefault();
 
-      // ── Check if email/phone already exist in the database ──
+    if (!showOtpInput) {
+      // ── Step 1: validate → check-exists → send OTP ──
+      if (!validate()) return;
       try {
-        setVerifying(true);
+        setLoading(true);
         await api.post('/auth/check-exists', {
           phone: form.phone,
           email: form.email.trim().toLowerCase(),
         });
-        // No conflict — fall through to OTP
+        const otpRes = await api.post('/auth/send-otp', { phone: form.phone });
+        if (otpRes.data.success) {
+          setShowOtpInput(true);
+          setTimer(60);
+        }
       } catch (error) {
-        console.error('Signup Verification Error:', error);
         const code = error.response?.data?.code;
-        const serverMsg = error.response?.data?.message;
-
+        const msg = error.response?.data?.message;
         if (code === 'EMAIL_EXISTS' || code === 'PHONE_EXISTS' || code === 'USER_EXISTS') {
           setPopup(code);
         } else {
-          // Provide a much more specific error message based on the response
-          const detailedError = serverMsg 
-            ? `Verification Failed: ${serverMsg}` 
-            : 'Connection Error: Unable to reach the server. Please check your internet and try again.';
-          alert(detailedError);
+          alert(msg ? `Error: ${msg}` : 'Connection error. Please check your internet and try again.');
         }
-        setVerifying(false);
-        return;
       } finally {
-        setVerifying(false);
+        setLoading(false);
       }
-    }
-
-    // ── Send OTP ──
-    try {
-      setVerifying(true);
-      
-      // Basic validation for location fields before OTP
-      if (!form.city || !form.state || !form.district) {
-        alert('Please select your location first.');
-        setVerifying(false);
-        return;
-      }
-
-      const response = await api.post('/auth/send-otp', { phone: form.phone });
-      if (response.data.success) {
-        setShowOtpInput(true);
-        setTimer(60);
-      }
-    } catch (error) {
-      alert(error.response?.data?.message || 'Failed to send OTP. Please try again.');
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  // ── STEP 2: Verify OTP ─────────────────────────────────────────────────────
-  const handleVerifyOtp = async () => {
-    if (otp.length !== 6) return;
-    try {
-      setVerifying(true);
-      const response = await api.post('/auth/verify-otp', {
-        phone: form.phone,
-        otp,
-        role: 'user',
-        flow: 'verify_only'
-      });
-
-      if (response.data.success) {
-        setIsVerified(true);
-        setShowOtpInput(false);
-      }
-    } catch (error) {
-      const code = error.response?.data?.code;
-      if (code === 'EMAIL_EXISTS' || code === 'PHONE_EXISTS') {
-        setPopup(code);
-        setShowOtpInput(false);
-      } else {
-        alert(error.response?.data?.message || 'Invalid OTP. Please try again.');
-      }
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-
-  // ── STEP 3: Final Submit (normally bypassed since login is auto) ────────────
-  const handleSignUp = async (e) => {
-    if (e) e.preventDefault();
-    if (!isVerified) {
-      alert('Please verify your phone number with OTP first.');
       return;
     }
 
+    // ── Step 2: verify OTP + create account in one call ──
+    if (otp.length !== 6) {
+      alert('Please enter the 6-digit OTP sent to your phone.');
+      return;
+    }
     try {
       setLoading(true);
       const response = await api.post('/auth/verify-otp', {
@@ -219,22 +176,27 @@ export default function SignUp() {
         pincode: form.pincode,
         coords: form.coords
       });
-
       if (response.data.success) {
         const { token, user } = response.data;
         login(user, token);
-        // Explicitly trigger FCM registration after signup
         registerFCMToken(true);
         navigate('/');
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to create account. Please try again.');
+      const code = error.response?.data?.code;
+      const msg = error.response?.data?.message;
+      if (code === 'EMAIL_EXISTS' || code === 'PHONE_EXISTS' || code === 'USER_EXISTS') {
+        setPopup(code);
+        setShowOtpInput(false);
+      } else {
+        alert(msg || 'Invalid OTP. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Popup config map ────────────────────────────────────────────────────────
+  // ── Popup config ────────────────────────────────────────────────────────
   const popupConfig = {
     EMAIL_EXISTS: {
       icon: Mail, iconBg: '#fff1f1', iconColor: '#ef4444',
@@ -248,7 +210,7 @@ export default function SignUp() {
       title: 'Phone Number Already Registered',
       message: <>The number <strong>{form.phone}</strong> is already linked to an account. Please use a different number or login.</>,
       primaryText: 'Go to Login', primaryAction: () => navigate('/login'),
-      secondaryText: 'Use Different Number', secondaryAction: () => { setPopup(null); setForm(f => ({ ...f, phone: '' })); }
+      secondaryText: 'Use Different Number', secondaryAction: () => { setPopup(null); setForm(f => ({ ...f, phone: '' })); setShowOtpInput(false); setOtp(''); }
     },
     USER_EXISTS: {
       icon: AlertCircle, iconBg: '#f0f3ff', iconColor: '#2334b2',
@@ -304,7 +266,6 @@ export default function SignUp() {
                 type="text" placeholder="Full Name" required
                 value={form.fullName}
                 onChange={e => setForm({ ...form, fullName: e.target.value })}
-                disabled={isVerified}
                 style={inputStyle}
               />
             </motion.div>
@@ -316,71 +277,28 @@ export default function SignUp() {
                 type="email" placeholder="Email Address" required
                 value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })}
-                disabled={isVerified}
                 style={inputStyle}
               />
             </motion.div>
 
-            {/* Phone + Verify Button */}
-            <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: isVerified || showOtpInput ? '10px' : '18px' }}>
-              <span style={iconStyle}><Phone size={22} strokeWidth={1.8} /></span>
+            {/* Password */}
+            <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '18px' }}>
+              <span style={iconStyle}><Lock size={22} strokeWidth={1.8} /></span>
               <input
-                type="tel" placeholder="Phone Number" required
-                disabled={isVerified || showOtpInput}
-                value={form.phone} maxLength={10}
-                onChange={e => setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })}
-                style={{ ...inputStyle, paddingRight: isVerified ? '120px' : (form.phone.length === 10 ? '100px' : '18px') }}
+                type={showPassword ? 'text' : 'password'} placeholder="Password" required
+                value={form.password}
+                onChange={e => setForm({ ...form, password: e.target.value })}
+                style={{ ...inputStyle, paddingRight: '54px' }}
               />
-              {form.phone.length === 10 && !isVerified && !showOtpInput && (
-                <button
-                  type="button" onClick={handleSendOtp}
-                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', backgroundColor: '#2334b2', color: '#fff', border: 'none', borderRadius: '10px', padding: '8px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
-                >
-                  {verifying ? <Loader2 size={16} className="animate-spin" /> : 'Verify'}
-                </button>
-              )}
-              {isVerified && (
-                <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '14px', fontWeight: '600' }}>
-                  <CheckCircle2 size={18} /> Verified
-                </div>
-              )}
+              <button
+                type="button" onClick={() => setShowPassword(v => !v)}
+                style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#3b52d4', display: 'flex', alignItems: 'center' }}
+              >
+                {showPassword ? <EyeOff size={24} strokeWidth={2} /> : <Eye size={24} strokeWidth={2} />}
+              </button>
             </motion.div>
 
-            {/* OTP Input */}
-            {showOtpInput && !isVerified && (
-              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ position: 'relative', marginBottom: '18px' }}>
-                <input
-                  type="text" placeholder="Enter 6-digit OTP" maxLength={6}
-                  value={otp}
-                  onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                  style={{ ...inputStyle, paddingLeft: '18px', borderColor: '#2334b2', backgroundColor: '#f8f9ff' }}
-                />
-                <button
-                  type="button" onClick={handleVerifyOtp}
-                  disabled={otp.length !== 6 || verifying}
-                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', backgroundColor: otp.length === 6 ? '#2334b2' : '#a0a8e0', color: '#fff', border: 'none', borderRadius: '10px', padding: '8px 14px', fontSize: '13px', fontWeight: '600', cursor: otp.length === 6 ? 'pointer' : 'not-allowed' }}
-                >
-                  {verifying ? <Loader2 size={16} className="animate-spin" /> : 'Check'}
-                </button>
-              </motion.div>
-            )}
-
-            {/* Resend OTP Timer */}
-            {showOtpInput && !isVerified && (
-              <motion.div variants={fadeInUp} style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginBottom: '20px', marginTop: '-10px', paddingRight: '4px' }}>
-                {timer > 0 ? (
-                  <span style={{ fontSize: '14px', color: '#8898cc', fontWeight: '500' }}>
-                    Resend OTP in <span style={{ color: '#1b2c7a', fontWeight: '600' }}>00:{timer < 10 ? `0${timer}` : timer}</span>
-                  </span>
-                ) : (
-                  <button type="button" onClick={handleSendOtp} style={{ background: 'none', border: 'none', padding: 0, color: '#2334b2', fontSize: '14px', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
-                    Resend OTP
-                  </button>
-                )}
-              </motion.div>
-            )}
-
-            {/* Location Section */}
+            {/* Location */}
             <motion.div variants={fadeInUp} style={{ marginBottom: '18px' }}>
               <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#4a567a', marginBottom: '8px', paddingLeft: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Your Location (Mandatory)
@@ -407,6 +325,7 @@ export default function SignUp() {
               </button>
             </motion.div>
 
+            {/* Address + Pincode (shown once city is selected) */}
             {form.city && (
               <motion.div variants={fadeInUp} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} style={{ marginBottom: '18px' }}>
                 <div style={{ position: 'relative' }}>
@@ -419,51 +338,100 @@ export default function SignUp() {
                   />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
-                   <input
+                  <input
                     type="text" placeholder="Pincode" required maxLength={6}
                     value={form.pincode}
                     onChange={e => setForm({ ...form, pincode: e.target.value.replace(/\D/g, '') })}
                     style={{ ...inputStyle, paddingLeft: '18px' }}
-                   />
+                  />
                 </div>
               </motion.div>
             )}
 
-            {/* Password */}
-            <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '10px' }}>
-              <span style={iconStyle}><Lock size={22} strokeWidth={1.8} /></span>
+            {/* Phone Number */}
+            <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: showOtpInput ? '10px' : '18px' }}>
+              <span style={iconStyle}><Phone size={22} strokeWidth={1.8} /></span>
               <input
-                type={showPassword ? 'text' : 'password'} placeholder="Password" required
-                value={form.password}
-                onChange={e => setForm({ ...form, password: e.target.value })}
-                disabled={isVerified}
-                style={{ ...inputStyle, paddingRight: '54px' }}
+                type="tel" placeholder="Phone Number" required
+                disabled={showOtpInput}
+                value={form.phone} maxLength={10}
+                onChange={e => setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })}
+                style={{ ...inputStyle, opacity: showOtpInput ? 0.6 : 1 }}
               />
-              <button
-                type="button" onClick={() => setShowPassword(v => !v)}
-                style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#3b52d4', display: 'flex', alignItems: 'center' }}
-              >
-                {showPassword ? <EyeOff size={24} strokeWidth={2} /> : <Eye size={24} strokeWidth={2} />}
-              </button>
+              {showOtpInput && (
+                <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '13px', fontWeight: '600' }}>
+                  <CheckCircle2 size={16} /> OTP Sent
+                </div>
+              )}
             </motion.div>
 
-            {/* Sign Up Button */}
-            <motion.div variants={fadeInUp} style={{ marginTop: '10px' }}>
+            {/* OTP Input (appears after first "Create Account" click) */}
+            {showOtpInput && (
+              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '8px' }}>
+                <input
+                  type="text" placeholder="Enter 6-digit OTP"
+                  maxLength={6}
+                  value={otp}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                  style={{ ...inputStyle, paddingLeft: '18px', borderColor: '#2334b2', backgroundColor: '#f8f9ff', letterSpacing: '0.3em', textAlign: 'center', fontSize: '20px', fontWeight: '700' }}
+                />
+              </motion.div>
+            )}
+
+            {/* Resend OTP timer */}
+            {showOtpInput && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingRight: '4px', paddingLeft: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowOtpInput(false); setOtp(''); setTimer(0); }}
+                  style={{ background: 'none', border: 'none', padding: 0, color: '#8898cc', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
+                >
+                  Change number
+                </button>
+                {timer > 0 ? (
+                  <span style={{ fontSize: '13px', color: '#8898cc', fontWeight: '500' }}>
+                    Resend in <span style={{ color: '#1b2c7a', fontWeight: '600' }}>00:{timer < 10 ? `0${timer}` : timer}</span>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={loading}
+                    style={{ background: 'none', border: 'none', padding: 0, color: '#2334b2', fontSize: '13px', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                  >
+                    Resend OTP
+                  </button>
+                )}
+              </motion.div>
+            )}
+
+            {/* Create Account Button */}
+            <motion.div variants={fadeInUp} style={{ marginTop: showOtpInput ? '4px' : '10px' }}>
               <button
                 type="submit"
-                disabled={loading || !isVerified}
+                disabled={loading}
                 style={{
-                  width: '100%', padding: '18px', backgroundColor: isVerified ? '#2334b2' : '#a0a8e0',
+                  width: '100%', padding: '18px', backgroundColor: '#2334b2',
                   color: '#fff', border: 'none', borderRadius: '14px', fontSize: '18px',
-                  fontWeight: '700', cursor: isVerified ? 'pointer' : 'not-allowed',
-                  boxShadow: isVerified ? '0 6px 0 #182489' : 'none',
+                  fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 6px 0 #182489', opacity: loading ? 0.8 : 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                   transition: 'all 0.2s ease'
                 }}
               >
-                {loading ? <Loader2 size={24} className="animate-spin" /> : 'Create Account'}
+                {loading
+                  ? <Loader2 size={24} className="animate-spin" />
+                  : showOtpInput ? 'Create Account' : 'Create Account'
+                }
               </button>
             </motion.div>
+
+            {/* Hint */}
+            {showOtpInput && (
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ fontSize: '13px', color: '#8898cc', textAlign: 'center', marginTop: '12px', marginBottom: '0' }}>
+                Enter the OTP sent to <strong style={{ color: '#1b2c7a' }}>+91 {form.phone}</strong> and tap Create Account.
+              </motion.p>
+            )}
 
             {/* Terms */}
             <motion.p variants={fadeInUp} style={{ fontSize: '13px', color: '#8898cc', fontWeight: '500', lineHeight: 1.6, margin: '14px 2px 28px' }}>
@@ -472,13 +440,6 @@ export default function SignUp() {
               {' '}and{' '}
               <button type="button" onClick={() => setShowPrivacy(true)} style={{ background: 'none', border: 'none', padding: 0, color: '#1b2c7a', fontWeight: '600', textDecoration: 'underline', textUnderlineOffset: '2px', cursor: 'pointer', fontSize: 'inherit' }}>Privacy Policy</button>.
             </motion.p>
-
-            {/* Info hint if phone not verified */}
-            {!isVerified && !showOtpInput && form.phone.length === 10 && (
-              <motion.p variants={fadeInUp} style={{ fontSize: '13px', color: '#8898cc', textAlign: 'center', marginBottom: '16px' }}>
-                Click <strong style={{ color: '#2334b2' }}>Verify</strong> next to your phone number to create your account.
-              </motion.p>
-            )}
           </form>
 
           {/* Log In link */}
@@ -516,38 +477,37 @@ export default function SignUp() {
       <AnimatePresence>
         {isLocationModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-end justify-center">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setIsLocationModalOpen(false)}
             />
-            <motion.div 
+            <motion.div
               initial={{ translateY: "100%" }}
               animate={{ translateY: 0 }}
               exit={{ translateY: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="relative w-full max-w-md bg-white rounded-t-3xl shadow-2xl overflow-hidden" 
+              className="relative w-full max-w-md bg-white rounded-t-3xl shadow-2xl overflow-hidden"
               style={{ height: '70vh' }}
             >
               <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 opacity-50" />
-              <LocationPicker 
-                onClose={() => setIsLocationModalOpen(false)} 
+              <LocationPicker
+                onClose={() => setIsLocationModalOpen(false)}
                 onSelect={(loc) => {
                   if (loc.isGPS) {
-                    setForm(f => ({ 
-                      ...f, 
+                    setForm(f => ({
+                      ...f,
                       coords: loc.coordinates,
                       city: loc.name || f.city,
                       state: loc.state || f.state,
                       district: loc.district || f.district
                     }));
                   } else {
-                    setForm(f => ({ 
-                      ...f, 
-                      city: loc.name, 
-                      district: loc.district, 
+                    setForm(f => ({
+                      ...f,
+                      city: loc.name,
+                      district: loc.district,
                       state: loc.state,
                       coords: null
                     }));

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, Trash2, X, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export default function ConfirmationModal({ 
   isOpen, 
@@ -43,16 +44,17 @@ export default function ConfirmationModal({
   const theme = themes[type] || themes.danger;
   const Icon = theme.icon;
 
+  useScrollLock(isOpen);
+
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-9999 flex items-center justify-center p-4">
           {/* Backdrop */}
-          <Motion.div 
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
           />
 

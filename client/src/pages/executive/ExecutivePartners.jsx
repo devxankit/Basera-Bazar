@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import {
   Users, Search, Filter, Phone, Building2, Calendar,
   Zap, Globe, X, MapPin, Clock, AlertTriangle, CheckCircle2,
@@ -51,6 +52,7 @@ function ExpiryBadge({ endsAt, status }) {
 }
 
 function PartnerDetailModal({ partnerId, onClose }) {
+  useScrollLock(true);
   const { data: rawData, isLoading: loading } = useQuery({
     queryKey: ['executivePartnerDetail', partnerId],
     queryFn: () => api.get(`/executive/my-partners/${partnerId}`).then(r => r.data),
@@ -73,7 +75,7 @@ function PartnerDetailModal({ partnerId, onClose }) {
       className="fixed inset-0 z-50 flex items-end justify-center"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
     >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
       <motion.div
         className="relative w-full max-w-md bg-white rounded-t-[2.5rem] max-h-[90vh] overflow-y-auto pb-10"
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}

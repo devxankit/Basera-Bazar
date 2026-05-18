@@ -3,6 +3,7 @@ import { X, MapPin, Navigation, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -54,15 +55,10 @@ const LocationModal = ({ isOpen, onClose, onSelect }) => {
   const [isDetecting, setIsDetecting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  useScrollLock(isOpen);
+
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      // Reset expanded state when modal opens
-      setIsExpanded(false);
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    return () => { document.body.style.overflow = 'auto'; };
+    if (isOpen) setIsExpanded(false);
   }, [isOpen]);
 
   const handleAutoDetect = () => {
@@ -108,7 +104,6 @@ const LocationModal = ({ isOpen, onClose, onSelect }) => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
           />
 
           {/* Bottom Sheet */}

@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Camera, FileText, X, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import api from '../../services/api';
@@ -18,6 +19,8 @@ export default function KYCModal({ isOpen, onClose, user, onComplete }) {
   const aadharFrontRef = useRef(null);
   const aadharBackRef = useRef(null);
   const gstInputRef = useRef(null);
+
+  useScrollLock(isOpen);
 
   const handleFileChange = async (e, field) => {
     const file = e.target.files[0];
@@ -126,7 +129,6 @@ export default function KYCModal({ isOpen, onClose, user, onComplete }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 bg-[#001b4e]/60 backdrop-blur-sm"
-            onClick={onClose}
           />
           <motion.div
             initial={{ y: "100%", opacity: 0 }}

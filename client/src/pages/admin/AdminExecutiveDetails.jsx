@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   User, Mail, Phone, Shield, Calendar,
@@ -33,6 +34,8 @@ export default function AdminExecutiveDetails() {
   const [transferModal, setTransferModal] = useState({ isOpen: false, loading: false });
   const [executives, setExecutives] = useState([]);
   const [toExecutiveId, setToExecutiveId] = useState('');
+
+  useScrollLock(confirmModal.isOpen || transferModal.isOpen);
 
   const { data: rawData, isLoading: loading, error: queryError } = useQuery({
     queryKey: ['adminExecutiveDetails', id],
@@ -213,7 +216,7 @@ export default function AdminExecutiveDetails() {
       {/* Transfer Leads Modal */}
       {transferModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setTransferModal({ isOpen: false, loading: false })} />
+          <div className="absolute inset-0 bg-black/50" />
           <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 p-8 w-full max-w-md mx-4 z-10">
             <button onClick={() => setTransferModal({ isOpen: false, loading: false })} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"><X size={18} /></button>
             <div className="flex items-center gap-3 mb-6">

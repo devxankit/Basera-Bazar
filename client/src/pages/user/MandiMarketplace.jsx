@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import {
    ShoppingCart, Search, MapPin, ArrowRight, ChevronDown,
    Package, ShieldCheck, Truck, Plus, Minus, IndianRupee,
@@ -52,6 +53,8 @@ export default function MandiMarketplace() {
    const [searchQuery, setSearchQuery] = useState('');
    const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
    const [currentSlide, setCurrentSlide] = useState(0);
+
+   useScrollLock(isLocationModalOpen);
 
    const { data: mandiData, isLoading: loadingCategories } = useQuery({
       queryKey: ['mandiMarketplace', location?.district, location?.state],
@@ -486,7 +489,7 @@ export default function MandiMarketplace() {
 
          {/* ── LOCATION MODAL ── */}
          <div className={`fixed inset-0 z-[100] flex items-end justify-center transition-opacity duration-300 ${isLocationModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsLocationModalOpen(false)} />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <div className={`relative w-full max-w-md bg-white rounded-t-[40px] shadow-2xl transition-transform duration-500 transform ${isLocationModalOpen ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '75vh' }}>
                <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 opacity-50" />
                <LocationPicker

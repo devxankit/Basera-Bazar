@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, Share2, MapPin, Building2, Phone, Mail,
@@ -49,6 +50,8 @@ const AgentDetails = () => {
   const [isVerified, setIsVerified] = useState(!!user);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  useScrollLock(isModalOpen || showSuccessModal);
 
   const { data: agentData, isLoading: loading } = useQuery({
     queryKey: ['agentListings', id],
@@ -397,7 +400,7 @@ const AgentDetails = () => {
       {/* Inquiry Modal (Reused from ListingDetails) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsModalOpen(false)} />
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" />
           <div className="bg-white w-full max-w-md rounded-t-[32px] sm:rounded-[32px] p-6 relative z-10 animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300">
             <div className="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-6 sm:hidden" />
             <div className="flex items-center justify-between mb-8">
@@ -486,7 +489,7 @@ const AgentDetails = () => {
       {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowSuccessModal(false)} />
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" />
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}

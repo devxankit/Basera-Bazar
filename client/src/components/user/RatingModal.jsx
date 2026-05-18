@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, X, MessageSquare, ShieldCheck, ThumbsUp, Truck } from 'lucide-react';
 
@@ -17,6 +18,8 @@ export default function RatingModal({ isOpen, onClose, onSubmit, orderId, partne
     })
   );
   const [comment, setComment] = useState(initialData?.comment || '');
+
+  useScrollLock(isOpen);
   const [submitting, setSubmitting] = useState(false);
 
   const handleItemRatingChange = (index, field, value) => {
@@ -52,11 +55,10 @@ export default function RatingModal({ isOpen, onClose, onSubmit, orderId, partne
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
           />
           <motion.div 

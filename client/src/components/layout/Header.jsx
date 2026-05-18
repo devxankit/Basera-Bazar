@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLocationContext } from '../../context/LocationContext';
 import LocationPicker from '../common/LocationPicker';
 import api from '../../services/api';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -12,6 +13,8 @@ const Header = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const { location, setLocation } = useLocationContext();
+
+  useScrollLock(isModalOpen);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -117,7 +120,7 @@ const Header = () => {
 
       {/* Location Bottom Sheet */}
       <div className={`fixed inset-0 z-[100] flex items-end justify-center transition-opacity duration-300 ${isModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
         <div className={`relative w-full max-w-md bg-white rounded-t-[40px] shadow-2xl transition-transform duration-500 transform ${isModalOpen ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '75vh' }}>
           <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 opacity-50" />
           <LocationPicker 
