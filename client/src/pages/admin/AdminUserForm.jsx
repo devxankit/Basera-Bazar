@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   User, Mail, Phone, Shield, Briefcase, MapPin, 
   UserPlus, Activity, LayoutGrid, Zap, Package, 
@@ -27,9 +28,10 @@ const INDIAN_STATES = {
 };
 
 export default function AdminUserForm() {
-  const { id } = useParams(); 
+  const { id } = useParams();
   const isEdit = !!id;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     name: '', email: '', phone: '', password: '', role: 'Customer',
@@ -43,124 +45,113 @@ export default function AdminUserForm() {
   const [imageFiles, setImageFiles] = useState({ profile: null, logo: null });
   const [previews, setPreviews] = useState({ profile: '', logo: '' });
 
-  const [subscriptions, setSubscriptions] = useState([]);
-  const [serviceCategories, setServiceCategories] = useState([]);
-  const [supplierCategories, setSupplierCategories] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [initLoading, setInitLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  useEffect(() => {
-    const fetchInitData = async () => {
-      try {
-        const [subRes, catRes, supCatRes] = await Promise.all([
-          api.get('/admin/subscriptions/plans'),
-          api.get('/admin/system/categories?type=service'),
-          api.get('/admin/system/categories?type=supplier')
-        ]);
+  // Fetch reference data in parallel
+  const { data: subData } = useQuery({
+    queryKey: ['adminSubscriptionPlansRef'],
+    queryFn: () => api.get('/admin/subscriptions/plans').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const subscriptions = subData?.data || [];
 
-        if (subRes.data.success) setSubscriptions(subRes.data.data);
-        if (catRes.data.success) setServiceCategories(catRes.data.data);
-        if (supCatRes.data.success) setSupplierCategories(supCatRes.data.data);
+  const { data: catData } = useQuery({
+    queryKey: ['adminServiceCategoriesRef'],
+    queryFn: () => api.get('/admin/system/categories?type=service').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const serviceCategories = catData?.data || [];
 
-        if (isEdit) {
-          const response = await api.get(`/admin/users/${id}`);
-          if (response.data.success) {
-            const u = response.data.data;
-            const profile = u.partner_profile || {};
+  const { data: supCatData } = useQuery({
+    queryKey: ['adminSupplierCategoriesRef'],
+    queryFn: () => api.get('/admin/system/categories?type=supplier').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const supplierCategories = supCatData?.data || [];
 
-            // Derive role from partner_type if not explicitly set on the document
-            // (older partner records have partner_type but no role field)
-            const partnerTypeToRole = {
-              'supplier': 'Supplier',
-              'service_provider': 'Service Provider',
-              'property_agent': 'Agent',
-              'mandi_seller': 'Mandi Seller',
-            };
-            const derivedRole = u.role || (u.partner_type ? partnerTypeToRole[u.partner_type] : null) || 'Customer';
-
-            // active_subscription_id may be a populated object or a raw ObjectId string
-            const subId = u.active_subscription_id;
-            const resolvedSubId = subId
-              ? (typeof subId === 'object' ? (subId._id || '') : subId)
-              : '';
-
-            setFormData({
-              name: u.name || '',
-              email: u.email || '',
-              phone: u.phone || '',
-              password: '',
-              role: derivedRole,
-              roles: u.roles || (u.partner_type ? [u.partner_type] : []),
-              is_active: u.is_active ?? true,
-              partner_type: u.partner_type || 'property_agent',
-              active_subscription_id: resolvedSubId,
-              state: profile.state || u.state || '',
-              district: profile.district || u.district || '',
-              address: profile.address || u.address || '',
-              material_categories: profile.supplier_profile?.material_categories || [],
-              service_category_id:
-                profile.service_profile?.service_category_id ||
-                profile.service_profile?.category_id || '',
-              delivery_radius_km: profile.supplier_profile?.delivery_radius_km || 10,
-              business_name: profile.mandi_profile?.business_name || '',
-              business_description: profile.mandi_profile?.business_description || '',
-              image: u.image || u.profileImage || '',
-              business_logo: profile.mandi_profile?.business_logo || profile.business_logo || ''
-            });
-            setPreviews({
-              profile: u.image || u.profileImage || '',
-              logo: profile.mandi_profile?.business_logo || profile.business_logo || ''
-            });
-          }
-        }
-      } catch (err) {
-        console.error("Initialization error:", err);
-        setError("Failed to sync database references.");
-      } finally {
-        setInitLoading(false);
+  // Fetch existing user for edit mode
+  const { isLoading: initLoading } = useQuery({
+    queryKey: ['adminUserDetail', id],
+    queryFn: () => api.get(`/admin/users/${id}`).then(r => r.data),
+    enabled: isEdit,
+    staleTime: 5 * 60 * 1000,
+    onSuccess: (response) => {
+      if (response?.success) {
+        const u = response.data;
+        const profile = u.partner_profile || {};
+        const partnerTypeToRole = {
+          'supplier': 'Supplier',
+          'service_provider': 'Service Provider',
+          'property_agent': 'Agent',
+          'mandi_seller': 'Mandi Seller',
+        };
+        const derivedRole = u.role || (u.partner_type ? partnerTypeToRole[u.partner_type] : null) || 'Customer';
+        const subId = u.active_subscription_id;
+        const resolvedSubId = subId ? (typeof subId === 'object' ? (subId._id || '') : subId) : '';
+        setFormData({
+          name: u.name || '', email: u.email || '', phone: u.phone || '', password: '',
+          role: derivedRole,
+          roles: u.roles || (u.partner_type ? [u.partner_type] : []),
+          is_active: u.is_active ?? true,
+          partner_type: u.partner_type || 'property_agent',
+          active_subscription_id: resolvedSubId,
+          state: profile.state || u.state || '',
+          district: profile.district || u.district || '',
+          address: profile.address || u.address || '',
+          material_categories: profile.supplier_profile?.material_categories || [],
+          service_category_id: profile.service_profile?.service_category_id || profile.service_profile?.category_id || '',
+          delivery_radius_km: profile.supplier_profile?.delivery_radius_km || 10,
+          business_name: profile.mandi_profile?.business_name || '',
+          business_description: profile.mandi_profile?.business_description || '',
+          image: u.image || u.profileImage || '',
+          business_logo: profile.mandi_profile?.business_logo || profile.business_logo || ''
+        });
+        setPreviews({
+          profile: u.image || u.profileImage || '',
+          logo: profile.mandi_profile?.business_logo || profile.business_logo || ''
+        });
       }
-    };
-    fetchInitData();
-  }, [id, isEdit]);
+    },
+    onError: () => setError("Failed to sync database references."),
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: (payload) => isEdit
+      ? api.put(`/admin/users/${id}`, payload).then(r => r.data)
+      : api.post('/admin/users', payload).then(r => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminUserDetail', id] });
+      queryClient.invalidateQueries({ queryKey: ['adminSuppliers'] });
+    },
+  });
+
+  const loading = submitMutation.isPending;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
     setSuccess(null);
 
     try {
-      // Handle Image Uploads first
       const updatedData = { ...formData };
-      
+
       if (imageFiles.profile) {
         const res = await db.uploadFile(imageFiles.profile);
         updatedData.image = res.url;
         updatedData.profileImage = res.url;
       }
-      
+
       if (imageFiles.logo) {
         const res = await db.uploadFile(imageFiles.logo);
         updatedData.business_logo = res.url;
       }
 
-      let response;
-      if (isEdit) {
-        response = await api.put(`/admin/users/${id}`, updatedData);
-      } else {
-        response = await api.post('/admin/users', updatedData);
-      }
-
-      if (response.data.success) {
-        setSuccess(`User ${isEdit ? 'updated' : 'created'} successfully!`);
-        setTimeout(() => navigate(-1), 1500);
-      }
+      await submitMutation.mutateAsync(updatedData);
+      setSuccess(`User ${isEdit ? 'updated' : 'created'} successfully!`);
+      setTimeout(() => navigate(-1), 1500);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save user.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -248,7 +239,7 @@ export default function AdminUserForm() {
   const isMandiSeller = formData.role === 'Mandi Seller';
   const isPartner = formData.role !== 'Customer' && formData.role !== 'Admin';
 
-  if (initLoading) return (
+  if (initLoading && isEdit) return (
     <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
       <Loader2 className="animate-spin text-indigo-600" size={40} />
       <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Loading...</p>

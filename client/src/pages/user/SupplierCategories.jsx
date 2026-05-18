@@ -1,30 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, MapPin, ChevronRight, Store, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import { useLocationContext } from '../../context/LocationContext';
+import { useQuery } from '@tanstack/react-query';
 
 const SupplierCategories = () => {
   const navigate = useNavigate();
   const { location } = useLocationContext();
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchCats = async () => {
-      try {
-        const res = await api.get('/listings/categories?type=supplier');
-        if (res.data.success) {
-          setCategories(res.data.data);
-        }
-      } catch (err) {
-        console.error("Error fetching supplier categories:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCats();
-  }, []);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['supplierCategories'],
+    queryFn: () => api.get('/listings/categories?type=supplier').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const categories = rawData?.data || [];
 
   return (
     <div className="bg-slate-50 flex flex-col font-sans">

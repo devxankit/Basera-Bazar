@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
@@ -13,15 +14,15 @@ const STATUS_BADGE = {
 
 export default function ExecutiveReports() {
   const navigate = useNavigate();
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.get('/executive/reports/history')
-      .then(({ data }) => { if (data.success) setReports(data.data); })
-      .catch(() => toast.error('Failed to load reports.'))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['executiveReportsHistory'],
+    queryFn: () => api.get('/executive/reports/history').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load reports.'),
+  });
+
+  const reports = rawData?.success ? rawData.data : [];
 
   if (loading) return <div className="p-6 text-center text-slate-400">Loading...</div>;
 

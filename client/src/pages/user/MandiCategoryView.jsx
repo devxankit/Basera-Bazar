@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, 
-  Search, 
-  Filter, 
-  MapPin, 
-  Star, 
+import React from 'react';
+import {
+  ArrowLeft,
+  Search,
+  Filter,
+  MapPin,
+  Star,
   ChevronRight,
   ArrowRight,
   IndianRupee,
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { useLocationContext } from '../../context/LocationContext';
@@ -25,27 +26,22 @@ import { useLocationContext } from '../../context/LocationContext';
 export default function MandiCategoryView() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const { cart, addToCart, removeFromCart, cartTotal, cartCount } = useCart();
   const { location } = useLocationContext();
 
-  useEffect(() => {
-    const fetchCategoryListings = async () => {
-      try {
-        const district = location?.district || '';
-        const state = location?.state || '';
-        const params = `?district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}`;
-        const res = await api.get(`/mandi/marketplace/category/${id}${params}`);
-        setData(res.data.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCategoryListings();
-  }, [id, location?.district, location?.state]);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['mandiCategoryView', id, location?.district, location?.state],
+    queryFn: () => {
+      const district = location?.district || '';
+      const state = location?.state || '';
+      const params = `?district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}`;
+      return api.get(`/mandi/marketplace/category/${id}${params}`).then(r => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !!id,
+  });
+
+  const data = rawData?.data ?? null;
 
   const updateCart = (product, delta) => {
     // Cart logic is now handled by context

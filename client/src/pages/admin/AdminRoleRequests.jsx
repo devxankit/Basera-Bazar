@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  CheckCircle2, XCircle, Search, Filter, ArrowRight, 
-  User, Mail, Phone, Clock, FileText, Check, X, Eye, 
+import React, { useState } from 'react';
+import {
+  CheckCircle2, XCircle, Search, Filter, ArrowRight,
+  User, Mail, Phone, Clock, FileText, Check, X, Eye,
   Building2, Wrench, Package, Store, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
@@ -18,55 +19,43 @@ const roleMeta = {
 };
 
 export default function AdminRoleRequests() {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState('pending'); // pending, approved, rejected
+  const [filter, setFilter] = useState('pending');
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [processing, setProcessing] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectingReq, setRejectingReq] = useState(null);
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
-
-  const fetchRequests = async () => {
-    setLoading(true);
-    try {
+  const { data: requests = [], isLoading: loading } = useQuery({
+    queryKey: ['adminRoleRequests'],
+    queryFn: async () => {
       const { getRoleRequests } = await import('../../services/AdminService');
-      const data = await getRoleRequests();
-      setRequests(data);
-    } catch (err) {
-      console.error("Fetch requests error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return getRoleRequests();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const handleAction = async (partnerId, role, action, reason = '') => {
-    setProcessing(true);
-    try {
-      // Assuming endpoint: POST /api/admin/partners/role-request-action
-      await api.post('/admin/partners/role-request-action', {
-        partnerId,
-        role,
-        action, // 'approve' or 'reject'
-        rejectionReason: reason
-      });
-      fetchRequests();
+  const actionMutation = useMutation({
+    mutationFn: ({ partnerId, role, action, reason }) =>
+      api.post('/admin/partners/role-request-action', {
+        partnerId, role, action, rejectionReason: reason || ''
+      }).then(r => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminRoleRequests'] });
       window.dispatchEvent(new Event('refreshAdminBadges'));
       setSelectedRequest(null);
       setShowRejectModal(false);
       setRejectingReq(null);
       setRejectionReason('');
-    } catch (err) {
-      console.error("Role request action error:", err);
-      toast.error(err.response?.data?.message || "Failed to process request");
-    } finally {
-      setProcessing(false);
-    }
+    },
+    onError: (err) => toast.error(err.response?.data?.message || "Failed to process request"),
+  });
+
+  const processing = actionMutation.isPending;
+
+  const handleAction = (partnerId, role, action, reason = '') => {
+    actionMutation.mutate({ partnerId, role, action, reason });
   };
 
   const filteredRequests = requests.filter(req => {

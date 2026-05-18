@@ -11,6 +11,7 @@ import { useCart } from '../../context/CartContext';
 import { useLocationContext } from '../../context/LocationContext';
 import LocationPicker from '../../components/common/LocationPicker';
 import Skeleton from '../../components/common/Skeleton';
+import { useQuery } from '@tanstack/react-query';
 
 const cn = (...inputs) => inputs.filter(Boolean).join(' ');
 
@@ -48,56 +49,43 @@ export default function MandiMarketplace() {
    const { cart, cartCount, addToCart, removeFromCart } = useCart();
    const { location, setLocation } = useLocationContext();
 
-   const [categories, setCategories] = useState([]);
-   const [productCategories, setProductCategories] = useState([]);
-   const [loadingCategories, setLoadingCategories] = useState(true);
    const [searchQuery, setSearchQuery] = useState('');
    const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-
-   const [banners, setBanners] = useState([]);
    const [currentSlide, setCurrentSlide] = useState(0);
 
-   useEffect(() => {
-      const fetchData = async () => {
-         try {
-            setLoadingCategories(true);
-            const district = location?.district || '';
-            const state = location?.state || '';
-            const locationParams = `?district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}`;
+   const { data: mandiData, isLoading: loadingCategories } = useQuery({
+      queryKey: ['mandiMarketplace', location?.district, location?.state],
+      queryFn: async () => {
+         const district = location?.district || '';
+         const state = location?.state || '';
+         const locationParams = `?district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}`;
 
-            const [mandiRes, supplierRes, bannerRes] = await Promise.all([
-               api.get(`/mandi/marketplace/home${locationParams}`),
-               api.get(`/listings/categories?type=product&district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}`),
-               api.get('/listings/banners')
-            ]);
+         const [mandiRes, supplierRes, bannerRes] = await Promise.all([
+            api.get(`/mandi/marketplace/home${locationParams}`),
+            api.get(`/listings/categories?type=product&district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}`),
+            api.get('/listings/banners')
+         ]);
+         return { mandiRes: mandiRes.data, supplierRes: supplierRes.data, bannerRes: bannerRes.data };
+      },
+      staleTime: 5 * 60 * 1000,
+   });
 
-            if (mandiRes.data.success) {
-               setCategories(mandiRes.data.data.map(item => ({
-                  _id: item.category_id,
-                  name: item.category,
-                  slug: item.slug,
-                  icon: item.icon,
-                  mandi_icon: item.mandi_icon,
-                  deal: item.deal
-               })));
-            }
+   const categories = mandiData?.mandiRes?.success
+      ? mandiData.mandiRes.data.map(item => ({
+           _id: item.category_id,
+           name: item.category,
+           slug: item.slug,
+           icon: item.icon,
+           mandi_icon: item.mandi_icon,
+           deal: item.deal
+        }))
+      : [];
 
-            if (supplierRes.data.success) {
-               setProductCategories(supplierRes.data.data);
-            }
+   const productCategories = mandiData?.supplierRes?.success ? mandiData.supplierRes.data : [];
 
-            if (bannerRes.data.success) {
-               // Only show home_top banners in this carousel
-               setBanners(bannerRes.data.data.filter(b => b.position === 'home_top' || !b.position));
-            }
-         } catch (error) {
-            console.error("Error fetching Mandi marketplace data:", error);
-         } finally {
-            setLoadingCategories(false);
-         }
-      };
-      fetchData();
-   }, [location?.district, location?.state]);
+   const banners = mandiData?.bannerRes?.success
+      ? mandiData.bannerRes.data.filter(b => b.position === 'home_top' || !b.position)
+      : [];
 
    // Auto-slide effect
    useEffect(() => {

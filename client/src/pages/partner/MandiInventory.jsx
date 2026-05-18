@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Package, 
-  Plus, 
-  ArrowLeft, 
+import React, { useState } from 'react';
+import {
+  Package,
+  Plus,
+  ArrowLeft,
   Search,
   ChevronRight,
   Edit,
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { db } from '../../services/DataEngine';
@@ -32,59 +33,44 @@ import PartnerCategoryManager from '../../components/partner/PartnerCategoryMana
 export default function MandiInventory() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showTypeManager, setShowTypeManager] = useState(false);
-  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
 
-  useEffect(() => {
-    fetchMyProducts();
-    fetchSubscription();
-  }, []);
+  const { data: productsRaw, isLoading: loading } = useQuery({
+    queryKey: ['mandiMyListings'],
+    queryFn: () => api.get('/listings/my').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
+    select: (data) => data?.success
+      ? (data.data || []).map(item => db._normalize(item)).filter(item => item.type === 'mandi_product')
+      : [],
+  });
 
-  const fetchSubscription = async () => {
-    try {
-      const res = await api.get('/partners/profile');
-      if (res.data.success) {
-        const partner = res.data.data;
-        const sub = partner.active_subscription_id;
-        setSubscriptionInfo({
-          isPro: !!sub && sub.plan_snapshot?.price > 0,
-          planName: sub?.plan_snapshot?.name || 'Free Trail',
-          limit: sub?.plan_snapshot?.listings_limit || 1
-        });
-      }
-    } catch (err) {
-      console.error("Error fetching sub info:", err);
-    }
-  };
+  const { data: profileRaw } = useQuery({
+    queryKey: ['mandiPartnerProfile'],
+    queryFn: () => api.get('/partners/profile').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
+  });
 
-  const fetchMyProducts = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/listings/my');
-      if (res.data.success) {
-        // Filter only mandi products
-        const normalized = (res.data.data || [])
-          .map(item => db._normalize(item))
-          .filter(item => item.type === 'mandi_product');
-        setItems(normalized);
-      }
-    } catch (err) {
-      console.error("Error fetching mandi inventory:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const items = productsRaw || [];
+  const subscriptionInfo = profileRaw?.success ? (() => {
+    const sub = profileRaw.data.active_subscription_id;
+    return {
+      isPro: !!sub && sub.plan_snapshot?.price > 0,
+      planName: sub?.plan_snapshot?.name || 'Free Trail',
+      limit: sub?.plan_snapshot?.listings_limit || 1
+    };
+  })() : null;
 
   const handleDelete = async (e, id) => {
     e.stopPropagation();
     if (window.confirm("Delete this product from your inventory?")) {
       try {
         await api.delete(`/listings/${id}`);
-        setItems(prev => prev.filter(item => (item.id || item._id) !== id));
+        queryClient.invalidateQueries({ queryKey: ['mandiMyListings'] });
       } catch (err) {
         console.error("Delete error:", err);
         alert("Failed to delete product.");
@@ -97,9 +83,7 @@ export default function MandiInventory() {
       const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
       const res = await api.patch(`/mandi/products/${id}`, { status: newStatus });
       if (res.data.success) {
-        setItems(prev => prev.map(item => 
-          (item.id || item._id) === id ? { ...item, status: newStatus } : item
-        ));
+        queryClient.invalidateQueries({ queryKey: ['mandiMyListings'] });
       }
     } catch (err) {
       console.error("Toggle status error:", err);

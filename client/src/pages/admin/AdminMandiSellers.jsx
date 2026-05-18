@@ -1,52 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { 
+import React, { useState } from 'react';
+import {
   Eye, Edit2, Store, Package, ToggleLeft, ToggleRight,
   TrendingDown, Plus, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
-import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
-
+import { getAdminUsers } from '../../services/AdminService';
 import Skeleton from '../../components/common/Skeleton';
 
 export default function AdminMandiSellers() {
   const navigate = useNavigate();
-  const [sellers, setSellers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    const fetchSellers = async () => {
-      setLoading(true);
-      try {
-        const data = await getAdminUsers();
-        // Filter to only show approved mandi sellers
-        const allSellers = data.filter(u => 
-          ((u.partner_type || '').toLowerCase() === 'mandi_seller' ||
-           (u.roles && u.roles.includes('mandi_seller'))) &&
-          u.onboarding_status === 'approved'
-        );
-        setSellers(allSellers);
-      } catch (error) {
-        console.error("Failed to fetch mandi sellers:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSellers();
-  }, []);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['adminMandiSellers'],
+    queryFn: () => getAdminUsers(),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const toggleActive = async (seller) => {
-    try {
-      await api.put(`/admin/users/${seller._id}`, { is_active: !seller.is_active });
-      setSellers(prev =>
-        prev.map(s => s._id === seller._id ? { ...s, is_active: !s.is_active } : s)
-      );
-    } catch (err) {
-      toast.error('Failed to update seller status.');
-    }
+  const allUsers = Array.isArray(rawData) ? rawData : (rawData?.data || []);
+  const sellers = allUsers.filter(u =>
+    ((u.partner_type || '').toLowerCase() === 'mandi_seller' ||
+     (u.roles && u.roles.includes('mandi_seller'))) &&
+    u.onboarding_status === 'approved'
+  );
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ id, is_active }) => api.put(`/admin/users/${id}`, { is_active }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminMandiSellers'] }),
+    onError: () => toast.error('Failed to update seller status.'),
+  });
+
+  const toggleActive = (seller) => {
+    toggleActiveMutation.mutate({ id: seller._id, is_active: !seller.is_active });
   };
 
   const filteredData = sellers.filter(user => {
@@ -65,8 +55,8 @@ export default function AdminMandiSellers() {
   });
 
   const columns = [
-    { 
-      header: 'SELLER', 
+    {
+      header: 'SELLER',
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100 shadow-sm overflow-hidden">
@@ -79,8 +69,8 @@ export default function AdminMandiSellers() {
         </div>
       )
     },
-    { 
-      header: 'CONTACT INFO', 
+    {
+      header: 'CONTACT INFO',
       render: (row) => (
         <div className="space-y-0.5">
           <p className="text-slate-700 font-bold text-sm">{row.email || 'No Email'}</p>
@@ -88,20 +78,20 @@ export default function AdminMandiSellers() {
         </div>
       )
     },
-    { 
-      header: 'BUSINESS NAME', 
+    {
+      header: 'BUSINESS NAME',
       render: (row) => (
         <p className="text-slate-700 font-black text-sm uppercase tracking-tight">
           {row.profile?.mandi_profile?.business_name || 'N/A'}
         </p>
       )
     },
-    { 
-      header: 'VERIFICATION', 
+    {
+      header: 'VERIFICATION',
       render: (row) => (
         <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${
-          row.onboarding_status === 'approved' 
-            ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+          row.onboarding_status === 'approved'
+            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
             : row.onboarding_status === 'rejected'
             ? 'bg-rose-50 text-rose-600 border-rose-100'
             : 'bg-amber-50 text-amber-600 border-amber-100'
@@ -111,8 +101,8 @@ export default function AdminMandiSellers() {
         </div>
       )
     },
-    { 
-      header: 'PENALTY DUE', 
+    {
+      header: 'PENALTY DUE',
       render: (row) => {
         const penalty = row.profile?.mandi_profile?.penalty_due || 0;
         return (
@@ -122,8 +112,8 @@ export default function AdminMandiSellers() {
         );
       }
     },
-    { 
-      header: 'STATUS', 
+    {
+      header: 'STATUS',
       render: (row) => (
         <div className={`px-3 py-1.5 rounded-xl border inline-flex items-center gap-2 ${
           row.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'
@@ -137,17 +127,17 @@ export default function AdminMandiSellers() {
         </div>
       )
     },
-    { 
-      header: 'ACTIONS', 
+    {
+      header: 'ACTIONS',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={() => navigate(`/admin/users/view/${row._id}`)}
             className="w-10 h-10 flex items-center justify-center bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm group/tooltip relative"
           >
             <Eye size={18} />
           </button>
-          <button 
+          <button
             onClick={() => navigate(`/admin/users/edit/${row._id}`)}
             className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-indigo-600 hover:border-indigo-600 transition-all shadow-sm group/tooltip relative"
           >
@@ -183,7 +173,7 @@ export default function AdminMandiSellers() {
           </div>
         )}
         {!loading && (
-          <button 
+          <button
             onClick={() => navigate('/admin/users/add?role=Mandi%20Seller')}
             className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95 text-sm uppercase tracking-wider"
           >
@@ -222,10 +212,10 @@ export default function AdminMandiSellers() {
         ))}
       </div>
 
-      <AdminTable 
-        columns={columns} 
-        data={filteredData} 
-        loading={loading} 
+      <AdminTable
+        columns={columns}
+        data={filteredData}
+        loading={loading}
         onSearch={setSearchTerm}
         hideFilter={true}
         searchPlaceholder="Find seller by name, business or phone..."

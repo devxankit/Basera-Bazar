@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
@@ -10,15 +11,14 @@ const SPEC_LABELS = {
 };
 
 export default function TeamLeaderOfficeStaff() {
-  const [officeStaff, setOfficeStaff] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['teamLeaderOfficeStaff'],
+    queryFn: () => api.get('/team-leader/team/office-staff').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load office staff.'),
+  });
 
-  useEffect(() => {
-    api.get('/team-leader/team/office-staff')
-      .then(({ data }) => { if (data.success) setOfficeStaff(data.data); })
-      .catch(() => toast.error('Failed to load office staff.'))
-      .finally(() => setLoading(false));
-  }, []);
+  const officeStaff = rawData?.success ? rawData.data : [];
 
   if (loading) return <div className="p-6 text-center text-slate-400">Loading...</div>;
 

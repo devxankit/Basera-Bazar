@@ -1,36 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, Search, Phone, 
+import React, { useState } from 'react';
+import {
+  ArrowLeft, Search, Phone,
   ChevronRight, MapPin, Loader2, Box, Filter
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 
 export default function MandiOrders() {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); 
+  const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['sellerOrders'],
+    queryFn: () => api.get('/orders/seller-orders').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/orders/seller-orders');
-      if (res.data.success) {
-        setOrders(res.data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching orders:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const orders = rawData?.success ? rawData.data : [];
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order._id.toLowerCase().includes(searchQuery.toLowerCase()) || 

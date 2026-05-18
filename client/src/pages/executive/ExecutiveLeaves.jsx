@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
@@ -14,37 +15,39 @@ const STATUS_BADGE = {
 const EMPTY_FORM = { leave_type: 'casual', start_date: '', end_date: '', reason: '' };
 
 export default function ExecutiveLeaves() {
-  const [leaves, setLeaves] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [submitting, setSubmitting] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchLeaves = () => {
-    setLoading(true);
-    api.get('/executive/leaves')
-      .then(({ data }) => { if (data.success) setLeaves(data.data); })
-      .catch(() => toast.error('Failed to load leaves.'))
-      .finally(() => setLoading(false));
-  };
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['executiveLeaves'],
+    queryFn: () => api.get('/executive/leaves').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load leaves.'),
+  });
 
-  useEffect(() => { fetchLeaves(); }, []);
+  const leaves = rawData?.success ? rawData.data : [];
 
-  const handleSubmit = async (e) => {
+  const submitMutation = useMutation({
+    mutationFn: (payload) => api.post('/executive/leaves', payload).then(r => r.data),
+    onSuccess: () => {
+      toast.success('Leave request submitted.');
+      setShowForm(false);
+      setForm(EMPTY_FORM);
+      queryClient.invalidateQueries({ queryKey: ['executiveLeaves'] });
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to submit.'),
+  });
+
+  const submitting = submitMutation.isLoading;
+
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (new Date(form.end_date) < new Date(form.start_date)) {
       toast.error('End date must be on or after start date.');
       return;
     }
-    setSubmitting(true);
-    try {
-      await api.post('/executive/leaves', form);
-      toast.success('Leave request submitted.');
-      setShowForm(false);
-      setForm(EMPTY_FORM);
-      fetchLeaves();
-    } catch (err) { toast.error(err.response?.data?.message || 'Failed to submit.'); }
-    finally { setSubmitting(false); }
+    submitMutation.mutate(form);
   };
 
   const calculateDays = () => {

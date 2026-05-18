@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, Edit2, Box, Building2, ChevronRight, 
+import {
+  ArrowLeft, Edit2, Box, Building2, ChevronRight,
   User, Mail, Phone, CreditCard, HelpCircle, Info, LogOut, Trash2, Clock, Loader2,
   Trophy, AlertCircle, Shield, Settings, Bell, Star, Zap, Crown, Gift
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import logo from '../../assets/baseralogo.png';
@@ -15,7 +16,6 @@ export default function PartnerProfile() {
   const { user, logout, refreshUser } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showDeleteRoleModal, setShowDeleteRoleModal] = useState(null);
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -34,20 +34,23 @@ export default function PartnerProfile() {
     navigate('/partner/login');
   };
 
-  const handleDeleteRole = async (roleId) => {
-    setDeleting(true);
-    try {
-      const res = await api.delete('/partners/delete-role', { data: { role: roleId } });
-      if (res.data.success) {
-        await refreshUser();
-        setShowDeleteRoleModal(null);
-      }
-    } catch (err) {
-      console.error("Delete role error:", err);
-      alert(err.response?.data?.message || "Failed to delete role.");
-    } finally {
-      setDeleting(false);
+  const deleteRoleMutation = useMutation({
+    mutationFn: (roleId) =>
+      api.delete('/partners/delete-role', { data: { role: roleId } }).then(r => r.data),
+    onSuccess: async () => {
+      await refreshUser();
+      setShowDeleteRoleModal(null);
+    },
+    onError: (err) => {
+      console.error('Delete role error:', err);
+      alert(err.response?.data?.message || 'Failed to delete role.');
     }
+  });
+
+  const deleting = deleteRoleMutation.isPending;
+
+  const handleDeleteRole = (roleId) => {
+    deleteRoleMutation.mutate(roleId);
   };
 
   const getRoleLabel = (roleStr) => {

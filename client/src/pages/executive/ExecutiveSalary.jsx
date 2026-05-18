@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, IndianRupee, RefreshCw, CheckCircle2, AlertCircle,
   TrendingDown, Calendar, ShieldCheck, ArrowUpRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import ExecutiveBottomNav from '../../components/executive/ExecutiveBottomNav';
@@ -20,30 +21,17 @@ const itemVariants = {
 
 export default function ExecutiveSalary() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [salaryData, setSalaryData] = useState({ current: 0, base: 0, records: [] });
 
-  const fetchSalary = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/executive/salary');
-      if (res.data.success) {
-        setSalaryData({
-          current: res.data.current_salary,
-          base: res.data.base_salary,
-          records: res.data.data || []
-        });
-      }
-    } catch (err) {
-      toast.error('Failed to load salary details');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawData, isLoading: loading, refetch } = useQuery({
+    queryKey: ['executiveSalary'],
+    queryFn: () => api.get('/executive/salary').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load salary details'),
+  });
 
-  useEffect(() => { fetchSalary(); }, []);
-
-  const { current, base, records } = salaryData;
+  const current = rawData?.current_salary || 0;
+  const base = rawData?.base_salary || 0;
+  const records = rawData?.data || [];
   const deductionAmount = base - current;
   const hasDeduction = deductionAmount > 0;
 

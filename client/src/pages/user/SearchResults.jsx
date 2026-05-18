@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Search, SlidersHorizontal, X, MapPin, Star,
   Phone, ChevronDown, Check, Package, Building2, Wrench,
   Users, Loader2, TrendingUp, Tag, ShoppingBag, Zap
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { useLocationContext } from '../../context/LocationContext';
 
@@ -194,38 +195,31 @@ const SearchResults = () => {
   const [activeType, setActiveType] = useState(searchParams.get('type') || 'all');
   const [sortBy, setSortBy] = useState('relevance');
   const [showSort, setShowSort] = useState(false);
-  const [rawResults, setRawResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   // ── Fetch ──────────────────────────────────────────────────────────────
 
-  const fetchResults = useCallback(async (q) => {
-    if (!q?.trim()) { setRawResults([]); return; }
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams({ q: q.trim(), limit: 80 });
+  const { data: rawData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['searchResults', query, location.district, location.state],
+    queryFn: async () => {
+      const params = new URLSearchParams({ q: query.trim(), limit: 80 });
       if (location.district) params.set('district', location.district);
       if (location.state) params.set('state', location.state);
-      const res = await api.get(`/listings?${params}`);
-      if (res.data.success) {
-        const ql = q.trim().toLowerCase();
-        const scored = (res.data.data || []).map(item => ({
-          ...item,
-          _score: scoreItem(item, ql),
-          _type: resolveType(item),
-        })).filter(item => item._score > 0);
-        setRawResults(scored);
-      }
-    } catch {
-      setError('Could not load results. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [location.district, location.state]);
+      return api.get(`/listings?${params}`).then(r => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !!query.trim(),
+  });
 
-  useEffect(() => { fetchResults(query); }, [query, fetchResults]);
+  const error = queryError ? 'Could not load results. Please try again.' : null;
+
+  const rawResults = rawData?.success ? (() => {
+    const ql = query.trim().toLowerCase();
+    return (rawData.data || []).map(item => ({
+      ...item,
+      _score: scoreItem(item, ql),
+      _type: resolveType(item),
+    })).filter(item => item._score > 0);
+  })() : [];
 
   // ── Search submit ──────────────────────────────────────────────────────
 

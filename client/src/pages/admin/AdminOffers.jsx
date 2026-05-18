@@ -10,62 +10,67 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
+const DEFAULT_OFFERS = {
+  OFFER_1_PLUS_1: { is_active: false, expiry: null },
+  FREE_TRIAL_CONFIG: { duration_days: 30, listings_limit: 1, featured_listings_limit: 0 }
+};
+
 export default function AdminOffers() {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [offers, setOffers] = useState({
-    OFFER_1_PLUS_1: { is_active: false, expiry: null },
-    FREE_TRIAL_CONFIG: { duration_days: 30, listings_limit: 1, featured_listings_limit: 0 }
+  const queryClient = useQueryClient();
+  const [offers, setOffers] = useState(DEFAULT_OFFERS);
+
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['adminOffers'],
+    queryFn: () => api.get('/admin/system/offers').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
   });
 
   useEffect(() => {
-    fetchOffers();
-  }, []);
-
-  const fetchOffers = async () => {
-    try {
-      const response = await api.get('/admin/system/offers');
-      if (response.data.success) {
-        setOffers(response.data.data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch offers:", err);
-      toast.error('Error loading offers');
-    } finally {
-      setLoading(false);
+    if (rawData?.data) {
+      setOffers(rawData.data);
     }
-  };
+  }, [rawData]);
 
-  const handleToggleOffer = async (key) => {
-    const newValue = { ...offers[key], is_active: !offers[key].is_active };
-    try {
-      setOffers(prev => ({ ...prev, [key]: newValue }));
-      await api.put('/admin/system/offers', { key, value: newValue });
-      toast.success(`${key === 'OFFER_1_PLUS_1' ? '1+1 Offer' : key} ${newValue.is_active ? 'Activated' : 'Deactivated'}`);
-    } catch (err) {
-      setOffers(prev => ({ ...prev, [key]: offers[key] }));
+  const toggleMutation = useMutation({
+    mutationFn: ({ key, value }) => api.put('/admin/system/offers', { key, value }),
+    onSuccess: (_, { key, value }) => {
+      toast.success(`${key === 'OFFER_1_PLUS_1' ? '1+1 Offer' : key} ${value.is_active ? 'Activated' : 'Deactivated'}`);
+      queryClient.invalidateQueries({ queryKey: ['adminOffers'] });
+    },
+    onError: (_, { key }) => {
+      // revert optimistic
+      setOffers(prev => ({ ...prev, [key]: rawData?.data?.[key] || prev[key] }));
       toast.error('Failed to update offer');
-    }
-  };
+    },
+  });
 
-  const handleUpdateValue = async (key, field, value) => {
-    const newValue = { ...offers[key], [field]: value };
-    setOffers(prev => ({ ...prev, [key]: newValue }));
-  };
-
-  const saveConfig = async (key) => {
-    setSaving(true);
-    try {
-      await api.put('/admin/system/offers', { key, value: offers[key] });
+  const saveMutation = useMutation({
+    mutationFn: ({ key, value }) => api.put('/admin/system/offers', { key, value }),
+    onSuccess: () => {
       toast.success('Configuration saved successfully');
-    } catch (err) {
-      toast.error('Failed to save configuration');
-    } finally {
-      setSaving(false);
-    }
+      queryClient.invalidateQueries({ queryKey: ['adminOffers'] });
+    },
+    onError: () => toast.error('Failed to save configuration'),
+  });
+
+  const saving = saveMutation.isPending;
+
+  const handleToggleOffer = (key) => {
+    const newValue = { ...offers[key], is_active: !offers[key].is_active };
+    setOffers(prev => ({ ...prev, [key]: newValue }));
+    toggleMutation.mutate({ key, value: newValue });
+  };
+
+  const handleUpdateValue = (key, field, value) => {
+    setOffers(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
+  };
+
+  const saveConfig = (key) => {
+    saveMutation.mutate({ key, value: offers[key] });
   };
 
   if (loading) {
@@ -93,7 +98,7 @@ export default function AdminOffers() {
 
       <div className="grid lg:grid-cols-2 gap-8">
         {/* 1+1 Offer Card */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/20 overflow-hidden"
@@ -108,7 +113,7 @@ export default function AdminOffers() {
                 <p className="text-xs font-black text-rose-500 uppercase tracking-widest mt-0.5">Special Promotion</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => handleToggleOffer('OFFER_1_PLUS_1')}
               className={`transition-all duration-500 ${offers.OFFER_1_PLUS_1.is_active ? 'text-indigo-600' : 'text-slate-300'}`}
             >
@@ -131,7 +136,7 @@ export default function AdminOffers() {
                 <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Offer Expiry (Optional)</label>
                 <div className="relative">
                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
+                  <input
                     type="date"
                     value={offers.OFFER_1_PLUS_1.expiry ? offers.OFFER_1_PLUS_1.expiry.split('T')[0] : ''}
                     onChange={(e) => handleUpdateValue('OFFER_1_PLUS_1', 'expiry', e.target.value)}
@@ -142,7 +147,7 @@ export default function AdminOffers() {
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => saveConfig('OFFER_1_PLUS_1')}
               disabled={saving}
               className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50"
@@ -154,7 +159,7 @@ export default function AdminOffers() {
         </motion.div>
 
         {/* Free Trial Config Card */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -174,7 +179,7 @@ export default function AdminOffers() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Duration (Days)</label>
-                <input 
+                <input
                   type="number"
                   value={offers.FREE_TRIAL_CONFIG.duration_days}
                   onChange={(e) => handleUpdateValue('FREE_TRIAL_CONFIG', 'duration_days', parseInt(e.target.value))}
@@ -183,7 +188,7 @@ export default function AdminOffers() {
               </div>
               <div className="space-y-2">
                 <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Active Listings Limit</label>
-                <input 
+                <input
                   type="number"
                   value={offers.FREE_TRIAL_CONFIG.listings_limit}
                   onChange={(e) => handleUpdateValue('FREE_TRIAL_CONFIG', 'listings_limit', parseInt(e.target.value))}
@@ -194,7 +199,7 @@ export default function AdminOffers() {
 
             <div className="space-y-2">
               <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Featured Listings Limit</label>
-              <input 
+              <input
                 type="number"
                 value={offers.FREE_TRIAL_CONFIG.featured_listings_limit}
                 onChange={(e) => handleUpdateValue('FREE_TRIAL_CONFIG', 'featured_listings_limit', parseInt(e.target.value))}
@@ -208,7 +213,7 @@ export default function AdminOffers() {
               </p>
             </div>
 
-            <button 
+            <button
               onClick={() => saveConfig('FREE_TRIAL_CONFIG')}
               disabled={saving}
               className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50"

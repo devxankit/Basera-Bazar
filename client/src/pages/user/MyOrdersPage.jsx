@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { 
   ArrowLeft, ShoppingBag, Clock, CheckCircle2, 
@@ -21,13 +22,25 @@ function cn(...inputs) {
 const MyOrdersPage = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [activeFilter, setActiveFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [ratingModal, setRatingModal] = useState({ isOpen: false, order: null, initialData: null });
   const [orderReviews, setOrderReviews] = useState({});
+
+  useEffect(() => {
+    if (!isAuthenticated) navigate('/login');
+  }, [isAuthenticated, navigate]);
+
+  const { data: ordersRaw, isLoading: loading } = useQuery({
+    queryKey: ['myOrders'],
+    queryFn: () => api.get('/orders/my-orders').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!isAuthenticated,
+  });
+
+  const orders = ordersRaw?.data || [];
 
   useEffect(() => {
     if (selectedOrder && !orderReviews[selectedOrder]) {
@@ -48,38 +61,13 @@ const MyOrdersPage = () => {
     }
   }, [selectedOrder, user?._id, orderReviews]);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-
-    const fetchOrders = async () => {
-      try {
-        const res = await api.get('/orders/my-orders');
-        setOrders(res.data.data || []);
-      } catch (err) {
-        console.error("Fetch orders error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrders();
-  }, [isAuthenticated, navigate]);
-
   const handleReviewSubmit = async (reviewData) => {
     try {
       const res = await api.post('/orders/review', reviewData);
-      // Refresh orders to update review status
-      const ordersRes = await api.get('/orders/my-orders');
-      setOrders(ordersRes.data.data || []);
-      
-      // Update local review state
+      queryClient.invalidateQueries({ queryKey: ['myOrders'] });
       if (res.data.success) {
         setOrderReviews(prev => ({ ...prev, [reviewData.order_id]: res.data.data }));
       }
-      
       setRatingModal({ isOpen: false, order: null, initialData: null });
     } catch (err) {
       console.error("Review error:", err);

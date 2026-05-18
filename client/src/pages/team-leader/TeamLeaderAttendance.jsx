@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
@@ -13,27 +14,24 @@ const STATUS_BADGE = {
 export default function TeamLeaderAttendance() {
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(null);
+  const queryClient = useQueryClient();
 
-  const fetchAttendance = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await api.get(`/team-leader/attendance?date=${date}`);
-      if (data.success) setRecords(data.data);
-    } catch { toast.error('Failed to load attendance.'); }
-    finally { setLoading(false); }
-  }, [date]);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['teamLeaderAttendance', date],
+    queryFn: () => api.get(`/team-leader/attendance?date=${date}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load attendance.'),
+  });
 
-  useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
+  const records = rawData?.success ? rawData.data : [];
 
   const handleVerify = async (id) => {
     setVerifying(id);
     try {
       await api.put(`/team-leader/attendance/${id}/verify`);
       toast.success('Attendance verified.');
-      fetchAttendance();
+      queryClient.invalidateQueries({ queryKey: ['teamLeaderAttendance', date] });
     } catch { toast.error('Failed to verify.'); }
     finally { setVerifying(null); }
   };
@@ -44,7 +42,7 @@ export default function TeamLeaderAttendance() {
       await api.put(`/team-leader/attendance/${r._id}/verify`);
     }
     toast.success('All verified.');
-    fetchAttendance();
+    queryClient.invalidateQueries({ queryKey: ['teamLeaderAttendance', date] });
   };
 
   const formatTime = (dt) => dt ? new Date(dt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—';

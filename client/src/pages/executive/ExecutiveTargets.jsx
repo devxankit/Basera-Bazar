@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Target } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
@@ -13,15 +14,14 @@ const TYPE_LABELS = {
 };
 
 export default function ExecutiveTargets() {
-  const [targets, setTargets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['executiveTargets'],
+    queryFn: () => api.get('/executive/targets').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load targets.'),
+  });
 
-  useEffect(() => {
-    api.get('/executive/targets')
-      .then(({ data }) => { if (data.success) setTargets(data.data); })
-      .catch(() => toast.error('Failed to load targets.'))
-      .finally(() => setLoading(false));
-  }, []);
+  const targets = rawData?.success ? rawData.data : [];
 
   if (loading) return <div className="p-6 text-center text-slate-400">Loading...</div>;
 

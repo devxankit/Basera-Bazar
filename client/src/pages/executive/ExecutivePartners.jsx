@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { 
+import React, { useState } from 'react';
+import {
   Users, Search, Filter, Phone, Building2, Calendar,
   Zap, Globe, X, MapPin, Clock, AlertTriangle, CheckCircle2,
   ChevronRight, ArrowRight, Tag, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
@@ -50,15 +51,15 @@ function ExpiryBadge({ endsAt, status }) {
 }
 
 function PartnerDetailModal({ partnerId, onClose }) {
-  const [partner, setPartner] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['executivePartnerDetail', partnerId],
+    queryFn: () => api.get(`/executive/my-partners/${partnerId}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!partnerId,
+    onError: () => toast.error('Failed to load partner details'),
+  });
 
-  useEffect(() => {
-    api.get(`/executive/my-partners/${partnerId}`)
-      .then(res => { if (res.data.success) setPartner(res.data.data); })
-      .catch(() => toast.error('Failed to load partner details'))
-      .finally(() => setLoading(false));
-  }, [partnerId]);
+  const partner = rawData?.success ? rawData.data : null;
 
   const roleLabel = (role) => ({
     service_provider: 'Service Provider',
@@ -239,26 +240,19 @@ function PartnerDetailModal({ partnerId, onClose }) {
 }
 
 export default function ExecutivePartners() {
-  const [partners, setPartners] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedPartnerId, setSelectedPartnerId] = useState(null);
 
-  const fetchPartners = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/executive/my-partners');
-      if (res.data.success) setPartners(res.data.data);
-    } catch {
-      toast.error('Failed to load partners list');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawData, isLoading: loading, refetch: fetchPartners } = useQuery({
+    queryKey: ['executiveMyPartners'],
+    queryFn: () => api.get('/executive/my-partners').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load partners list'),
+  });
 
-  useEffect(() => { fetchPartners(); }, []);
+  const partners = rawData?.success ? rawData.data : [];
 
   const filteredPartners = partners.filter(p => {
     const matchesSearch = (p.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||

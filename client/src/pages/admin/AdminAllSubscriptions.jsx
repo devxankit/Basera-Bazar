@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Crown, Filter, Search, Eye, Plus, Ban, 
-  Loader2, AlertCircle, ChevronDown, Zap, RotateCcw
+import {
+  Crown, Filter, Search, Eye, Plus, Ban,
+  AlertCircle, ChevronDown, Zap, RotateCcw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
+import Pagination from '../../components/admin/Pagination';
 
 const AdminAllSubscriptions = () => {
   const navigate = useNavigate();
-  const [subscriptions, setSubscriptions] = useState([]);
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isFilterOpen, setIsFilterOpen] = useState(true);
   const [cancelModal, setCancelModal] = useState({ isOpen: false, id: null, cancelling: false });
   const [filters, setFilters] = useState({
@@ -22,68 +22,53 @@ const AdminAllSubscriptions = () => {
     role: 'all',
     search: ''
   });
-
-  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchData();
-  }, [filters]);
-
-  // Reset to page 1 on filter change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
+  const { data: subData, isLoading: subsLoading } = useQuery({
+    queryKey: ['adminSubscriptions', filters],
+    queryFn: () => {
       const queryParams = new URLSearchParams(filters).toString();
-      const [subRes, planRes] = await Promise.all([
-        api.get(`/admin/subscriptions?${queryParams}`),
-        api.get('/admin/subscriptions/plans')
-      ]);
+      return api.get(`/admin/subscriptions?${queryParams}`).then(r => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-      if (subRes.data.success) {
-        setSubscriptions(subRes.data.data);
-      }
-      if (planRes.data.success) {
-        setPlans(planRes.data.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch dashboard data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: planData } = useQuery({
+    queryKey: ['adminSubscriptionPlans'],
+    queryFn: () => api.get('/admin/subscriptions/plans').then(r => r.data),
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const loading = subsLoading;
+  const subscriptions = subData?.data || [];
+  const plans = planData?.data || [];
+
+  const cancelMutation = useMutation({
+    mutationFn: (id) => api.patch(`/admin/subscriptions/${id}/status`, { status: 'cancelled' }).then(r => r.data),
+    onSuccess: () => {
+      toast.success("Subscription cancelled successfully");
+      setCancelModal({ isOpen: false, id: null, cancelling: false });
+      queryClient.invalidateQueries({ queryKey: ['adminSubscriptions'] });
+    },
+    onError: (err) => {
+      toast.error("Failed to cancel subscription: " + (err.response?.data?.message || err.message));
+      setCancelModal(m => ({ ...m, cancelling: false }));
+    },
+  });
 
   const handleResetFilters = () => {
-    setFilters({
-      plan: 'all',
-      status: 'all',
-      role: 'all',
-      search: ''
-    });
+    setFilters({ plan: 'all', status: 'all', role: 'all', search: '' });
+    setCurrentPage(1);
   };
 
   const handleCancelSubscription = (id) => {
     setCancelModal({ isOpen: true, id, cancelling: false });
   };
 
-  const confirmCancel = async () => {
+  const confirmCancel = () => {
     setCancelModal(m => ({ ...m, cancelling: true }));
-    try {
-      const res = await api.patch(`/admin/subscriptions/${cancelModal.id}/status`, { status: 'cancelled' });
-      if (res.data.success) {
-        toast.success("Subscription cancelled successfully");
-        setCancelModal({ isOpen: false, id: null, cancelling: false });
-        fetchData();
-      }
-    } catch (err) {
-      toast.error("Failed to cancel subscription: " + (err.response?.data?.message || err.message));
-      setCancelModal(m => ({ ...m, cancelling: false }));
-    }
+    cancelMutation.mutate(cancelModal.id);
   };
 
   const totalPages = Math.ceil(subscriptions.length / itemsPerPage);
@@ -112,7 +97,7 @@ const AdminAllSubscriptions = () => {
         loading={cancelModal.cancelling}
       />
       <div className="max-w-400 mx-auto px-6 space-y-6">
-        
+
         {/* Header Section */}
         <div className="flex items-center justify-between mb-8">
            <div>
@@ -121,7 +106,7 @@ const AdminAllSubscriptions = () => {
                 Real-time registry of all active and expired user plans
               </p>
            </div>
-           <button 
+           <button
              onClick={() => navigate('/admin/subscriptions/plans')}
              className="px-6 py-2.5 bg-slate-900 text-white font-black text-[11px] rounded-xl shadow-xl shadow-slate-200 uppercase tracking-widest flex items-center gap-2 hover:bg-indigo-600 transition-all active:scale-95"
            >
@@ -131,7 +116,7 @@ const AdminAllSubscriptions = () => {
 
         {/* Unified Filter Card */}
         <div className="bg-white rounded-4xl border border-slate-100 shadow-sm overflow-hidden">
-           <div 
+           <div
              onClick={() => setIsFilterOpen(!isFilterOpen)}
              className="px-8 py-5 flex items-center justify-between cursor-pointer border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
            >
@@ -145,7 +130,7 @@ const AdminAllSubscriptions = () => {
                 <ChevronDown size={20} className="text-slate-400" />
               </motion.div>
            </div>
-           
+
            <AnimatePresence>
              {isFilterOpen && (
                <motion.div
@@ -158,9 +143,9 @@ const AdminAllSubscriptions = () => {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                        <div className="space-y-2">
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Plan Type</label>
-                          <select 
+                          <select
                             value={filters.plan}
-                            onChange={(e) => setFilters({...filters, plan: e.target.value})}
+                            onChange={(e) => { setFilters({...filters, plan: e.target.value}); setCurrentPage(1); }}
                             className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all"
                           >
                              <option value="all">All Plans</option>
@@ -169,9 +154,9 @@ const AdminAllSubscriptions = () => {
                        </div>
                        <div className="space-y-2">
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                          <select 
+                          <select
                             value={filters.status}
-                            onChange={(e) => setFilters({...filters, status: e.target.value})}
+                            onChange={(e) => { setFilters({...filters, status: e.target.value}); setCurrentPage(1); }}
                             className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all"
                           >
                              <option value="all">All Status</option>
@@ -182,9 +167,9 @@ const AdminAllSubscriptions = () => {
                        </div>
                        <div className="space-y-2">
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">User Role</label>
-                          <select 
+                          <select
                             value={filters.role}
-                            onChange={(e) => setFilters({...filters, role: e.target.value})}
+                            onChange={(e) => { setFilters({...filters, role: e.target.value}); setCurrentPage(1); }}
                             className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all"
                           >
                              <option value="all">All Roles</option>
@@ -197,18 +182,18 @@ const AdminAllSubscriptions = () => {
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Search Registry</label>
                           <div className="relative">
                              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                             <input 
+                             <input
                                type="text"
                                placeholder="Name, Email, ID..."
                                value={filters.search}
-                               onChange={(e) => setFilters({...filters, search: e.target.value})}
+                               onChange={(e) => { setFilters({...filters, search: e.target.value}); setCurrentPage(1); }}
                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 pl-10 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all"
                              />
                           </div>
                        </div>
                     </div>
                     <div className="flex justify-end pt-4 border-t border-slate-50">
-                       <button 
+                       <button
                          onClick={handleResetFilters}
                          className="flex items-center gap-2 px-6 py-2.5 bg-slate-100 text-slate-500 font-black text-[10px] rounded-xl hover:bg-slate-200 transition-all uppercase tracking-widest"
                        >
@@ -231,7 +216,6 @@ const AdminAllSubscriptions = () => {
                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Registrations List</h3>
               </div>
               <div className="flex items-center gap-3">
-                {loading && <Loader2 className="animate-spin text-indigo-500" size={16} />}
                 <span className="px-4 py-1.5 bg-slate-900 text-white rounded-full text-[9px] font-black uppercase tracking-widest border border-slate-800 shadow-sm shadow-slate-100">
                    {subscriptions.length} Entries Found
                 </span>
@@ -257,7 +241,7 @@ const AdminAllSubscriptions = () => {
                        <tr>
                           <td colSpan="8" className="px-8 py-20 text-center">
                              <div className="flex flex-col items-center gap-3">
-                                <Loader2 className="animate-spin text-indigo-500" size={32} />
+                                <AlertCircle className="text-indigo-500" size={32} />
                                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic animate-pulse">Fetching Registry...</p>
                              </div>
                           </td>
@@ -307,7 +291,7 @@ const AdminAllSubscriptions = () => {
                     <td className="px-8 py-5 text-center">
                        <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm ${
                           sub.status === 'active' ? 'bg-emerald-500 text-white border-emerald-400' :
-                          sub.status === 'expired' ? 'bg-rose-500 text-white border-rose-400' : 
+                          sub.status === 'expired' ? 'bg-rose-500 text-white border-rose-400' :
                           sub.status === 'no_plan' ? 'bg-slate-100 text-slate-400 border-slate-200' :
                           'bg-slate-400 text-white border-slate-300'
                        }`}>
@@ -322,21 +306,21 @@ const AdminAllSubscriptions = () => {
                              </td>
                              <td className="px-8 py-5 text-right">
                                 <div className="flex items-center justify-end gap-2.5">
-                                   <button 
+                                   <button
                                      onClick={() => navigate(`/admin/subscriptions/view/${sub._id}`)}
                                      className="w-8 h-8 rounded-full border border-orange-200 text-orange-500 flex items-center justify-center hover:bg-orange-50 transition-all shadow-sm group-hover:shadow-md"
                                      title="View Dossier"
                                    >
                                       <Eye size={14} />
                                    </button>
-                                   <button 
+                                   <button
                                      onClick={() => navigate(`/admin/subscriptions/add-manual/${sub.partner_id?._id || sub.partner_id}`)}
                                      className="w-8 h-8 rounded-full border border-orange-200 text-orange-500 flex items-center justify-center hover:bg-orange-50 transition-all shadow-sm"
                                      title="Add Manual Subscription"
                                    >
                                       <Plus size={14} />
                                    </button>
-                                   <button 
+                                   <button
                                      onClick={() => handleCancelSubscription(sub._id)}
                                      className="w-8 h-8 rounded-full border border-rose-100 text-rose-500 flex items-center justify-center hover:bg-rose-50 transition-all shadow-sm"
                                      title="Revoke/Cancel"
@@ -351,44 +335,14 @@ const AdminAllSubscriptions = () => {
                  </tbody>
               </table>
            </div>
-           
-           {/* Pagination Console */}
-           {subscriptions.length > itemsPerPage && (
-             <div className="px-8 py-5 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
-                   Showing {startIndex + 1} - {Math.min(startIndex + itemsPerPage, subscriptions.length)} of {subscriptions.length} Node Entries
-                </p>
-                <div className="flex gap-2">
-                   <button 
-                     disabled={currentPage === 1}
-                     onClick={() => setCurrentPage(prev => prev - 1)}
-                     className="px-5 py-1.5 border border-slate-200 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                   >
-                     Prev
-                   </button>
-                   <div className="flex bg-white border border-slate-200 rounded-lg p-0.5 shadow-sm">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`w-8 h-7 text-[10px] font-black rounded-md transition-all ${
-                            currentPage === page ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                   </div>
-                   <button 
-                     disabled={currentPage === totalPages}
-                     onClick={() => setCurrentPage(prev => prev + 1)}
-                     className="px-5 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-800 uppercase tracking-widest shadow-sm hover:bg-slate-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                   >
-                     Next
-                   </button>
-                </div>
-             </div>
-           )}
+
+           <Pagination
+             currentPage={currentPage}
+             totalPages={totalPages}
+             totalItems={subscriptions.length}
+             pageSize={itemsPerPage}
+             onPageChange={setCurrentPage}
+           />
 
            {/* Manual Footer */}
            {subscriptions.length <= itemsPerPage && (

@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Mail, Phone, Calendar, Clock, 
-  User, ShieldCheck, Trash2, CheckCircle2, 
+import {
+  ArrowLeft, Mail, Phone, Calendar, Clock,
+  User, ShieldCheck, Trash2, CheckCircle2,
   ExternalLink, Loader2, Info, MessageSquare,
   Activity, Heart, Star, Copy, Send, Eye, ChevronRight
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import { clsx } from 'clsx';
@@ -19,35 +20,37 @@ function cn(...inputs) {
 const AdminLeadDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [lead, setLead] = useState(null);
-  const [metrics, setMetrics] = useState({ totalInquiries: 1 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, deleting: false });
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const fetchLead = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get(`/admin/leads/${id}`, { signal: controller.signal });
-        if (res.data.success) {
-          setLead(res.data.data);
-          if (res.data.metrics) {
-            setMetrics(res.data.metrics);
-          }
-        }
-      } catch (err) {
-        if (err.name !== 'AbortError' && err.code !== 'ERR_CANCELED') {
-          setError('Lead not found or connection error');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLead();
-    return () => controller.abort();
-  }, [id]);
+  const { data: rawData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['adminLeadDetails', id],
+    queryFn: () => api.get(`/admin/leads/${id}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!id,
+  });
+
+  const lead = rawData?.data || null;
+  const metrics = rawData?.metrics || { totalInquiries: 1 };
+  const error = queryError ? 'Lead not found or connection error' : null;
+
+  const toggleContactMutation = useMutation({
+    mutationFn: (newStatus) => api.put(`/admin/leads/${id}/status`, { contact_status: newStatus }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminLeadDetails', id] }),
+    onError: () => toast.error('Error updating status'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/admin/leads/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminLeads'] });
+      navigate('/admin/leads');
+    },
+    onError: () => {
+      toast.error('Error deleting lead');
+      setDeleteModal(m => ({ ...m, deleting: false }));
+    },
+  });
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text)
@@ -55,29 +58,19 @@ const AdminLeadDetails = () => {
       .catch(() => toast.error('Could not copy to clipboard'));
   };
 
-  const toggleContactStatus = async () => {
-    try {
-      const newStatus = lead.contact_status === 'contacted' ? 'not_contacted' : 'contacted';
-      await api.put(`/admin/leads/${id}/status`, { contact_status: newStatus });
-      fetchLead();
-    } catch (err) {
-      toast.error('Error updating status');
-    }
+  const toggleContactStatus = () => {
+    if (!lead) return;
+    const newStatus = lead.contact_status === 'contacted' ? 'not_contacted' : 'contacted';
+    toggleContactMutation.mutate(newStatus);
   };
 
   const handleDelete = () => {
     setDeleteModal({ isOpen: true, deleting: false });
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     setDeleteModal(m => ({ ...m, deleting: true }));
-    try {
-      await api.delete(`/admin/leads/${id}`);
-      navigate('/admin/leads');
-    } catch (err) {
-      toast.error('Error deleting lead');
-      setDeleteModal(m => ({ ...m, deleting: false }));
-    }
+    deleteMutation.mutate();
   };
 
   const getListingUrl = () => {
@@ -116,15 +109,15 @@ const AdminLeadDetails = () => {
         loading={deleteModal.deleting}
       />
       <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
-        
+
         {/* Action Header Block */}
         <div className="relative bg-white rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
            {/* Immersive Background element */}
            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-linear-to-bl from-indigo-100/50 via-purple-50/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
-           
+
            <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between p-8 gap-6 z-10">
               <div className="flex items-start gap-6">
-                 <button 
+                 <button
                    onClick={() => navigate('/admin/leads')}
                    className="p-3 bg-slate-50 text-slate-500 rounded-2xl hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm active:scale-95 group shrink-0"
                  >
@@ -147,18 +140,18 @@ const AdminLeadDetails = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                 <button 
+                 <button
                     onClick={toggleContactStatus}
                     className={cn(
                        "px-6 py-3 font-semibold text-[12px] uppercase tracking-widest rounded-2xl transition-all flex items-center gap-2 shadow-sm active:scale-95",
-                       lead.contact_status === 'contacted' 
+                       lead.contact_status === 'contacted'
                          ? "bg-slate-100 text-slate-500 border border-slate-200"
                          : "bg-linear-to-r from-indigo-600 to-indigo-500 text-white hover:shadow-lg hover:shadow-indigo-200"
                     )}
                  >
                     <CheckCircle2 size={14} /> {lead.contact_status === 'contacted' ? 'Update Routine' : 'Acknowledge Lead'}
                  </button>
-                 <button 
+                 <button
                    onClick={handleDelete}
                    className="p-3 border border-rose-100 bg-rose-50 text-rose-600 rounded-2xl hover:bg-rose-500 hover:text-white transition-all shadow-sm group"
                  >
@@ -169,10 +162,10 @@ const AdminLeadDetails = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          
+
           {/* Main Dossier Column */}
           <div className="lg:col-span-2 space-y-8">
-            
+
             {/* Lead Information Card */}
             <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
                <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
@@ -208,14 +201,14 @@ const AdminLeadDetails = () => {
                            </div>
                         </div>
                      </div>
- 
+
                      <div className="space-y-4">
                         <div className="group relative">
                            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-2 ml-1">Communication Channel</p>
                            <div className="relative">
-                              <input 
-                                 readOnly 
-                                 value={lead.user_details?.email || lead.user_id?.email || 'No email provided'} 
+                              <input
+                                 readOnly
+                                 value={lead.user_details?.email || lead.user_id?.email || 'No email provided'}
                                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 pl-12 text-base font-semibold text-slate-700 outline-none hover:bg-white hover:border-indigo-100 transition-all"
                               />
                               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
@@ -227,9 +220,9 @@ const AdminLeadDetails = () => {
                         <div className="group relative">
                            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-2 ml-1">Secure Line</p>
                            <div className="relative">
-                              <input 
-                                 readOnly 
-                                 value={lead.user_details?.phone || lead.user_id?.phone || 'No phone provided'} 
+                              <input
+                                 readOnly
+                                 value={lead.user_details?.phone || lead.user_id?.phone || 'No phone provided'}
                                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 pl-12 text-base font-semibold text-slate-700 outline-none hover:bg-white hover:border-indigo-100 transition-all"
                               />
                               <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
@@ -241,7 +234,7 @@ const AdminLeadDetails = () => {
                      </div>
 
                      <div className="flex gap-4">
-                        <button 
+                        <button
                            onClick={() => {
                               const email = lead.user_details?.email || lead.user_id?.email;
                               if (email) window.open(`mailto:${email}`, '_self');
@@ -251,7 +244,7 @@ const AdminLeadDetails = () => {
                         >
                            <Send size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /> SMTP Route
                         </button>
-                        <button 
+                        <button
                            onClick={() => {
                               const phone = lead.user_details?.phone || lead.user_id?.phone;
                               if (phone) window.open(`tel:${phone}`, '_self');
@@ -267,7 +260,7 @@ const AdminLeadDetails = () => {
                   {/* Right: Lead Technicals */}
                   <div className="space-y-6">
                      <p className="text-[12px] font-semibold text-slate-400 uppercase tracking-widest ml-1 bg-slate-50 px-3 py-1.5 rounded inline-block">Engagement Metrix</p>
-                     
+
                      <div className="space-y-1">
                         <div className="flex items-center justify-between py-4 border-b border-slate-50">
                            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Registry ID</span>
@@ -314,16 +307,16 @@ const AdminLeadDetails = () => {
                   </div>
                   <div className="p-10">
                      <div className="relative">
-                        <div className="absolute -left-4 -top-4 text-4xl text-indigo-100 font-serif leading-none italic">“</div>
+                        <div className="absolute -left-4 -top-4 text-4xl text-indigo-100 font-serif leading-none italic">"</div>
                         <p className="text-xl font-semibold text-slate-700 leading-relaxed italic relative z-10 px-2 tracking-tight">
                            {lead.message || lead.content || 'Interested in your service. Please provide more details.'}
                         </p>
-                        <div className="absolute -right-4 -bottom-4 text-4xl text-indigo-100 font-serif leading-none italic rotate-180">“</div>
+                        <div className="absolute -right-4 -bottom-4 text-4xl text-indigo-100 font-serif leading-none italic rotate-180">"</div>
                      </div>
                   </div>
                </div>
 
-               {/* Broadcast Requirements Table (NEW) */}
+               {/* Broadcast Requirements Table */}
                {lead.is_broadcast && lead.products && lead.products.length > 0 && (
                  <div className="mx-8 mb-8 bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
                    <div className="px-8 py-4 bg-purple-50/50 border-b border-purple-100 flex items-center justify-between">
@@ -355,12 +348,12 @@ const AdminLeadDetails = () => {
                  </div>
                )}
 
-               {/* Requirement Sheet / Document (NEW) */}
+               {/* Requirement Sheet / Document */}
                {lead.is_broadcast && lead.document_url && (
                  <div className="mx-8 mb-8">
-                    <a 
-                      href={lead.document_url} 
-                      target="_blank" 
+                    <a
+                      href={lead.document_url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="w-full p-6 bg-linear-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-3xl flex items-center justify-between group hover:shadow-lg hover:shadow-indigo-100 transition-all"
                     >
@@ -381,7 +374,7 @@ const AdminLeadDetails = () => {
 
             {/* Bottom Controls */}
             <div className="flex items-center justify-between pb-4">
-               <button 
+               <button
                   onClick={() => navigate('/admin/leads')}
                   className="px-8 py-4 bg-white border border-slate-200 text-slate-500 rounded-2xl font-semibold text-[12px] uppercase tracking-widest flex items-center gap-3 hover:bg-slate-50 transition-all shadow-sm active:scale-95"
                >
@@ -430,8 +423,8 @@ const AdminLeadDetails = () => {
                </div>
                <div className="p-8 space-y-6">
                   <div className="group relative rounded-2xl overflow-hidden h-64 bg-slate-100 border border-slate-100 shadow-inner">
-                     <img 
-                        src={lead.listing_snapshot?.thumbnail || lead.listing_snapshot?.image || lead.listing_snapshot?.images?.[0] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80'} 
+                     <img
+                        src={lead.listing_snapshot?.thumbnail || lead.listing_snapshot?.image || lead.listing_snapshot?.images?.[0] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80'}
                         className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-1000"
                         alt=""
                      />
@@ -444,7 +437,7 @@ const AdminLeadDetails = () => {
                            {lead.enquiry_type} Registry
                         </span>
                      </div>
-                     
+
                      <div className="space-y-1">
                         <div className="flex items-center justify-between py-4 border-b border-slate-50">
                            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Classification</span>
@@ -459,7 +452,7 @@ const AdminLeadDetails = () => {
                         </div>
                      </div>
 
-                     <button 
+                     <button
                         onClick={() => navigate(getListingUrl())}
                         className="w-full bg-slate-900 text-white py-4 rounded-2xl font-semibold text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl hover:bg-indigo-600 transition-all active:scale-95 group"
                      >
@@ -473,7 +466,7 @@ const AdminLeadDetails = () => {
             <div className="bg-linear-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] rounded-3xl border border-white/5 shadow-2xl p-8 space-y-8 relative overflow-hidden group">
                <div className="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500/10 blur-[80px] rounded-full group-hover:bg-indigo-500/20 transition-all duration-700" />
                <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-orange-500/10 blur-[80px] rounded-full group-hover:bg-orange-500/20 transition-all duration-700" />
-               
+
                <div className="relative flex flex-col items-center text-center space-y-6">
                   <div className="relative">
                     <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full scale-150 animate-pulse" />
@@ -496,8 +489,8 @@ const AdminLeadDetails = () => {
                      </p>
                   </div>
 
-                  <button 
-                    onClick={() => navigate('/admin/dashboard')} 
+                  <button
+                    onClick={() => navigate('/admin/dashboard')}
                     className="w-full bg-linear-to-r from-orange-500 to-rose-500 text-white py-4 rounded-2xl font-semibold text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-2xl shadow-orange-500/40 hover:shadow-orange-600/50 hover:-translate-y-0.5 transition-all active:scale-95"
                   >
                      <Activity size={16} /> Console Home

@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
@@ -14,23 +15,22 @@ export default function TeamLeaderReports() {
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
   const [staffType, setStaffType] = useState('');
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [remarkInput, setRemarkInput] = useState('');
+  const queryClient = useQueryClient();
 
-  const fetchReports = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['teamLeaderReports', date, staffType],
+    queryFn: () => {
       const params = new URLSearchParams({ date });
       if (staffType) params.set('staff_type', staffType);
-      const { data } = await api.get(`/team-leader/reports/daily?${params}`);
-      if (data.success) setReports(data.data);
-    } catch { toast.error('Failed to load reports.'); }
-    finally { setLoading(false); }
-  }, [date, staffType]);
+      return api.get(`/team-leader/reports/daily?${params}`).then(r => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load reports.'),
+  });
 
-  useEffect(() => { fetchReports(); }, [fetchReports]);
+  const reports = rawData?.success ? rawData.data : [];
 
   const handleVerify = async (id, action) => {
     if (action === 'reject' && !remarkInput.trim()) {
@@ -42,7 +42,7 @@ export default function TeamLeaderReports() {
       toast.success(action === 'approve' ? 'Report verified.' : 'Report rejected.');
       setExpandedId(null);
       setRemarkInput('');
-      fetchReports();
+      queryClient.invalidateQueries({ queryKey: ['teamLeaderReports', date, staffType] });
     } catch { toast.error('Action failed.'); }
   };
 

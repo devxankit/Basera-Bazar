@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Gavel, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
-  Search, 
-  IndianRupee, 
-  FileText, 
-  User, 
-  Eye, 
-  Loader2, 
+import {
+  Gavel,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Search,
+  IndianRupee,
+  FileText,
+  User,
+  Eye,
+  Loader2,
   AlertCircle,
   TrendingUp,
   Settings,
@@ -29,12 +29,12 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminTable from '../../components/common/AdminTable';
 import MediaDropZone from '../../components/common/MediaDropZone';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
-
 import Skeleton from '../../components/common/Skeleton';
 
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
@@ -43,17 +43,14 @@ const labelClass = "text-[10px] font-black text-slate-400 uppercase tracking-wid
 export default function AdminMandiBazar() {
   const { tab } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(tab || 'orders'); // withdrawals, orders, milestones
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState([]);
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState(tab || 'orders');
   const [commission, setCommission] = useState(10);
   const [tokenAmount, setTokenAmount] = useState(500);
   const [globalCommission, setGlobalCommission] = useState(0);
   const [categories, setCategories] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Milestone Config State
   const [milestoneConfigs, setMilestoneConfigs] = useState([]);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false });
   const [newMilestone, setNewMilestone] = useState({
@@ -70,54 +67,145 @@ export default function AdminMandiBazar() {
 
   useEffect(() => {
     if (tab) {
-      // Map economics/commission consistently
       const mappedTab = tab === 'economics' ? 'commission' : tab;
       setActiveTab(mappedTab);
     }
   }, [tab]);
 
-  useEffect(() => {
-    fetchData();
-  }, [activeTab]);
+  // KYC tab query
+  const { data: kycRaw, isLoading: kycLoading } = useQuery({
+    queryKey: ['adminMandiKyc'],
+    queryFn: () => api.get('/admin/users?role=partner').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: activeTab === 'kyc',
+  });
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      if (activeTab === 'kyc') {
-        const res = await api.get('/admin/users?role=partner');
-        // Filter only mandi_sellers
-        const mandiSellers = res.data.data.filter(p => p.partner_type === 'mandi_seller' || (p.roles && p.roles.includes('mandi_seller')));
-        setData(mandiSellers);
-      } else if (activeTab === 'withdrawals') {
-        const res = await api.get('/admin/marketplace/withdrawals'); // Need to ensure this route exists or use a generic one
-        setData(res.data.data || []);
-      } else if (activeTab === 'commission') {
-        const res = await api.get('/admin/mandi/settings');
-        if (res.data.success) {
-          setTokenAmount(res.data.data.token_amount);
-          setGlobalCommission(res.data.data.commission_rate || 0);
-          setCategories(res.data.data.categories || []);
-        }
-      } else if (activeTab === 'orders') {
-        const res = await api.get('/admin/marketplace/orders'); // Corrected path
-        setData(res.data.data || []);
-      } else if (activeTab === 'milestones') {
-        const [configRes, rewardRes] = await Promise.all([
-          api.get('/milestones/admin/configs'),
-          api.get('/milestones/admin/rewards')
-        ]);
-        setMilestoneConfigs(configRes.data.data || []);
-        setRewardRequests(rewardRes.data.data || []);
-      } else if (activeTab === 'products') {
-        const res = await api.get('/listings?category=mandi');
-        setData(res.data.data || []);
-      }
-    } catch (err) {
-      console.error("Error fetching milestones:", err);
-    } finally {
-      setLoading(false);
+  // Withdrawals tab query
+  const { data: withdrawalsRaw, isLoading: withdrawalsLoading } = useQuery({
+    queryKey: ['adminMandiWithdrawals'],
+    queryFn: () => api.get('/admin/marketplace/withdrawals').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: activeTab === 'withdrawals',
+  });
+
+  // Orders tab query
+  const { data: ordersRaw, isLoading: ordersLoading } = useQuery({
+    queryKey: ['adminMandiOrders'],
+    queryFn: () => api.get('/admin/marketplace/orders').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: activeTab === 'orders',
+  });
+
+  // Products tab query
+  const { data: productsRaw, isLoading: productsLoading } = useQuery({
+    queryKey: ['adminMandiProducts'],
+    queryFn: () => api.get('/listings?category=mandi').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: activeTab === 'products',
+  });
+
+  // Commission settings query
+  const { data: settingsRaw, isLoading: settingsLoading } = useQuery({
+    queryKey: ['adminMandiSettings'],
+    queryFn: () => api.get('/admin/mandi/settings').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: activeTab === 'commission',
+  });
+
+  useEffect(() => {
+    if (settingsRaw?.data) {
+      setTokenAmount(settingsRaw.data.token_amount);
+      setGlobalCommission(settingsRaw.data.commission_rate || 0);
+      setCategories(settingsRaw.data.categories || []);
     }
-  };
+  }, [settingsRaw]);
+
+  // Milestones tab query
+  const { data: milestonesRaw, isLoading: milestonesLoading, refetch: refetchMilestones } = useQuery({
+    queryKey: ['adminMandiMilestones'],
+    queryFn: async () => {
+      const [configRes, rewardRes] = await Promise.all([
+        api.get('/milestones/admin/configs'),
+        api.get('/milestones/admin/rewards')
+      ]);
+      return { configs: configRes.data.data || [], rewards: rewardRes.data.data || [] };
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: activeTab === 'milestones',
+  });
+
+  useEffect(() => {
+    if (milestonesRaw) {
+      setMilestoneConfigs(milestonesRaw.configs || []);
+      setRewardRequests(milestonesRaw.rewards || []);
+    }
+  }, [milestonesRaw]);
+
+  const kycData = (kycRaw?.data || []).filter(p => p.partner_type === 'mandi_seller' || (p.roles && p.roles.includes('mandi_seller')));
+  const withdrawalsData = withdrawalsRaw?.data || [];
+  const ordersData = ordersRaw?.data || [];
+  const productsData = productsRaw?.data || [];
+
+  const loading = kycLoading || withdrawalsLoading || ordersLoading || productsLoading || settingsLoading || milestonesLoading;
+
+  // Mutations
+  const updateKycMutation = useMutation({
+    mutationFn: ({ id, status }) => api.patch(`/admin/marketplace/kyc/${id}`, { status, note: "Processed by Admin" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminMandiKyc'] });
+      setIsModalOpen(false);
+    },
+    onError: () => toast.error("Failed to update status"),
+  });
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: (payload) => api.put('/admin/mandi/settings', payload),
+    onSuccess: () => {
+      toast.success("Mandi economics updated successfully!");
+      queryClient.invalidateQueries({ queryKey: ['adminMandiSettings'] });
+    },
+    onError: (err) => toast.error("Update failed: " + (err.response?.data?.message || err.message)),
+  });
+
+  const toggleProductMutation = useMutation({
+    mutationFn: ({ id, status }) => api.put(`/listings/${id}`, { status }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminMandiProducts'] }),
+    onError: (err) => toast.error("Failed: " + (err.response?.data?.message || err.message)),
+  });
+
+  const deleteProductMutation = useMutation({
+    mutationFn: (id) => api.delete(`/listings/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminMandiProducts'] }),
+    onError: () => toast.error("Failed to delete listing"),
+  });
+
+  const saveMilestoneMutation = useMutation({
+    mutationFn: (payload) => api.post('/milestones/admin/config', payload),
+    onSuccess: () => {
+      toast.success("Milestone configuration saved!");
+      queryClient.invalidateQueries({ queryKey: ['adminMandiMilestones'] });
+      setNewMilestone({ target_orders: '', prize_name: '', prize_description: '', banner_url: '', valid_until: '', is_active: true });
+    },
+    onError: () => toast.error("Failed to save config"),
+  });
+
+  const deleteMilestoneMutation = useMutation({
+    mutationFn: (id) => api.delete(`/milestones/admin/config/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminMandiMilestones'] }),
+    onError: (err) => toast.error(err.response?.data?.message || "Failed to delete milestone"),
+  });
+
+  const toggleMilestoneStatusMutation = useMutation({
+    mutationFn: ({ milestone, is_active }) => api.post('/milestones/admin/config', { ...milestone, id: milestone._id, is_active }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminMandiMilestones'] }),
+    onError: () => toast.error("Failed to update status"),
+  });
+
+  const updateRewardMutation = useMutation({
+    mutationFn: ({ id, status, tracking_id }) => api.patch(`/milestones/admin/rewards/${id}`, { status, tracking_id }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminMandiMilestones'] }),
+    onError: () => toast.error("Failed to update status"),
+  });
 
   const openConfirm = (title, message, action) => {
     setConfirmModal({ isOpen: true, title, message, action, loading: false });
@@ -136,116 +224,54 @@ export default function AdminMandiBazar() {
     openConfirm(
       'Delete Milestone',
       'Are you sure you want to delete this milestone? This action cannot be undone.',
-      async () => {
-        setLoading(true);
-        try {
-          await api.delete(`/milestones/admin/config/${id}`);
-          fetchData();
-        } catch (err) {
-          toast.error(err.response?.data?.message || "Failed to delete milestone");
-        } finally {
-          setLoading(false);
-        }
-      }
+      async () => { deleteMilestoneMutation.mutate(id); }
     );
   };
 
-  const handleToggleMilestoneStatus = async (milestone) => {
-    try {
-      setLoading(true);
-      await api.post('/milestones/admin/config', {
-        ...milestone,
-        id: milestone._id,
-        is_active: !milestone.is_active
-      });
-      fetchData();
-      if (viewingMilestone?._id === milestone._id) {
-        setViewingMilestone({ ...viewingMilestone, is_active: !milestone.is_active });
-      }
-    } catch (err) {
-      toast.error("Failed to update status");
-    } finally {
-      setLoading(false);
+  const handleToggleMilestoneStatus = (milestone) => {
+    toggleMilestoneStatusMutation.mutate({ milestone, is_active: !milestone.is_active });
+    if (viewingMilestone?._id === milestone._id) {
+      setViewingMilestone({ ...viewingMilestone, is_active: !milestone.is_active });
     }
   };
 
-  const handleUpdateKYC = async (id, status) => {
-    try {
-      setLoading(true);
-      await api.patch(`/admin/marketplace/kyc/${id}`, { status, note: "Processed by Admin" });
-      setIsModalOpen(false);
-      fetchData();
-    } catch (err) {
-      toast.error("Failed to update status");
-    } finally {
-      setLoading(false);
-    }
+  const handleUpdateKYC = (id, status) => {
+    updateKycMutation.mutate({ id, status });
   };
 
-  const handleUpdateSettings = async () => {
-    try {
-      setLoading(true);
-      await api.put('/admin/mandi/settings', { 
-        token_amount: Number(tokenAmount),
-        commission_rate: Number(globalCommission),
-        category_commissions: categories.map(cat => ({
-          id: cat.id,
-          percentage: Number(cat.percentage)
-        }))
-      });
-      toast.success("Mandi economics updated successfully!");
-      fetchData();
-    } catch (err) {
-      toast.error("Update failed: " + (err.response?.data?.message || err.message));
-    } finally {
-      setLoading(false);
-    }
+  const handleUpdateSettings = () => {
+    updateSettingsMutation.mutate({
+      token_amount: Number(tokenAmount),
+      commission_rate: Number(globalCommission),
+      category_commissions: categories.map(cat => ({
+        id: cat.id,
+        percentage: Number(cat.percentage)
+      }))
+    });
   };
 
   const handleCategoryPercentageChange = (id, value) => {
-    setCategories(prev => prev.map(cat => 
+    setCategories(prev => prev.map(cat =>
       cat.id === id ? { ...cat, percentage: value } : cat
     ));
   };
 
-  const handleSaveMilestoneConfig = async () => {
-    try {
-      setLoading(true);
-      await api.post('/milestones/admin/config', newMilestone);
-      toast.success("Milestone configuration saved!");
-      fetchData();
-      setNewMilestone({
-        target_orders: '',
-        prize_name: '',
-        prize_description: '',
-        banner_url: '',
-        valid_until: '',
-        is_active: true
-      });
-    } catch (err) {
-      toast.error("Failed to save config");
-    } finally {
-      setLoading(false);
-    }
+  const handleSaveMilestoneConfig = () => {
+    saveMilestoneMutation.mutate(newMilestone);
   };
 
-  const handleUpdateRewardStatus = async (id, status, tracking_id = '') => {
-    try {
-      setLoading(true);
-      await api.patch(`/milestones/admin/rewards/${id}`, { status, tracking_id });
-      fetchData();
-    } catch (err) {
-      toast.error("Failed to update status");
-    } finally {
-      setLoading(false);
-    }
+  const handleUpdateRewardStatus = (id, status, tracking_id = '') => {
+    updateRewardMutation.mutate({ id, status, tracking_id });
   };
 
-
+  const handleToggleProductStatus = (product) => {
+    const nextStatus = product.status === 'active' ? 'inactive' : 'active';
+    toggleProductMutation.mutate({ id: product._id, status: nextStatus });
+  };
 
   const kycColumns = [
-    { 
-      header: 'SELLER INFO', 
+    {
+      header: 'SELLER INFO',
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 overflow-hidden">
@@ -258,14 +284,14 @@ export default function AdminMandiBazar() {
         </div>
       )
     },
-    { 
-      header: 'BUSINESS NAME', 
+    {
+      header: 'BUSINESS NAME',
       render: (row) => (
         <span className="font-bold text-slate-700">{row.mandi_profile?.business_name || 'N/A'}</span>
       )
     },
-    { 
-      header: 'KYC DOCUMENTS', 
+    {
+      header: 'KYC DOCUMENTS',
       render: (row) => (
         <div className="flex gap-2">
            <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${row.kyc?.pan_image ? 'bg-green-50 text-green-600' : 'bg-red-50 text-slate-400'}`}>PAN</span>
@@ -274,12 +300,12 @@ export default function AdminMandiBazar() {
         </div>
       )
     },
-    { 
-      header: 'VERIFICATION', 
+    {
+      header: 'VERIFICATION',
       render: (row) => (
         <div className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${
-          row.onboarding_status === 'approved' 
-            ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+          row.onboarding_status === 'approved'
+            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
             : row.onboarding_status === 'rejected'
             ? 'bg-rose-50 text-rose-600 border-rose-100'
             : 'bg-amber-50 text-amber-600 border-amber-100'
@@ -288,10 +314,10 @@ export default function AdminMandiBazar() {
         </div>
       )
     },
-    { 
-      header: 'VIEW & ACT', 
+    {
+      header: 'VIEW & ACT',
       render: (row) => row.onboarding_status === 'pending' ? (
-        <button 
+        <button
           onClick={() => { setSelectedItem(row); setIsModalOpen(true); }}
           className="bg-indigo-600 hover:bg-slate-900 text-white font-black text-[11px] uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-100 active:scale-95 flex items-center gap-2"
         >
@@ -304,8 +330,8 @@ export default function AdminMandiBazar() {
   ];
 
   const withdrawalColumns = [
-    { 
-      header: 'SELLER', 
+    {
+      header: 'SELLER',
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
@@ -315,14 +341,14 @@ export default function AdminMandiBazar() {
         </div>
       )
     },
-    { 
-      header: 'AMOUNT', 
+    {
+      header: 'AMOUNT',
       render: (row) => (
         <span className="font-black text-slate-900 tabular-nums">₹{row.amount}</span>
       )
     },
-    { 
-      header: 'REQUEST DATE', 
+    {
+      header: 'REQUEST DATE',
       render: (row) => (
         <div className="flex items-center gap-2 text-slate-400 font-bold text-xs">
           <Clock size={14} />
@@ -330,8 +356,8 @@ export default function AdminMandiBazar() {
         </div>
       )
     },
-    { 
-      header: 'STATUS', 
+    {
+      header: 'STATUS',
       render: (row) => (
         <div className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2 ${
            row.status === 'pending' ? 'bg-orange-50 text-orange-600' : 'bg-emerald-50 text-emerald-600'
@@ -344,8 +370,8 @@ export default function AdminMandiBazar() {
   ];
 
   const orderColumns = [
-    { 
-      header: 'ORDER ENTITY', 
+    {
+      header: 'ORDER ENTITY',
       render: (row) => (
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-[#001b4e] flex items-center justify-center text-white border-4 border-slate-50 shadow-lg shadow-blue-900/10 uppercase font-black text-[12px] shrink-0">
@@ -363,8 +389,8 @@ export default function AdminMandiBazar() {
         </div>
       )
     },
-    { 
-      header: 'MATERIAL MANIFEST', 
+    {
+      header: 'MATERIAL MANIFEST',
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="flex -space-x-3">
@@ -394,8 +420,8 @@ export default function AdminMandiBazar() {
         </div>
       )
     },
-    { 
-      header: 'TRANSACTION VALUE', 
+    {
+      header: 'TRANSACTION VALUE',
       render: (row) => (
         <div className="space-y-1">
           <div className="flex items-center gap-1 font-black text-slate-900 text-sm">
@@ -411,8 +437,8 @@ export default function AdminMandiBazar() {
         </div>
       )
     },
-    { 
-      header: 'LIFECYCLE STATUS', 
+    {
+      header: 'LIFECYCLE STATUS',
       render: (row) => {
         const delivered = row.items?.length > 0 && row.items.every(i => i.status === 'delivered');
         const cancelled = row.items?.length > 0 && row.items.every(i => i.status === 'cancelled');
@@ -421,8 +447,8 @@ export default function AdminMandiBazar() {
         return (
           <div className="flex flex-col gap-1.5">
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border w-fit ${
-              delivered ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
-              cancelled ? 'bg-rose-50 text-rose-600 border-rose-100' : 
+              delivered ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+              cancelled ? 'bg-rose-50 text-rose-600 border-rose-100' :
               'bg-indigo-50 text-indigo-600 border-indigo-100 animate-pulse-subtle'
             }`}>
               {delivered ? <CheckCircle2 size={10} /> : cancelled ? <XCircle size={10} /> : <RefreshCcw size={10} />}
@@ -440,7 +466,7 @@ export default function AdminMandiBazar() {
     {
       header: 'AUDIT',
       render: (row) => (
-        <button 
+        <button
           onClick={() => setViewingOrder(row)}
           className="group w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-[#001b4e] text-slate-400 hover:text-white rounded-2xl transition-all duration-300 shadow-sm"
         >
@@ -449,20 +475,6 @@ export default function AdminMandiBazar() {
       )
     }
   ];
-
-  const handleToggleProductStatus = async (product) => {
-    try {
-      setLoading(true);
-      const nextStatus = product.status === 'active' ? 'inactive' : 'active';
-      await api.put(`/listings/${product._id}`, { status: nextStatus });
-      fetchData();
-    } catch (err) {
-      console.error("Status update error:", err);
-      toast.error("Failed: " + (err.response?.data?.message || err.message));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const productColumns = [
     {
@@ -531,8 +543,8 @@ export default function AdminMandiBazar() {
       header: 'STATUS',
       render: (row) => (
         <div className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border flex items-center gap-1.5 w-fit ${
-          row.status === 'active' 
-            ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+          row.status === 'active'
+            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
             : 'bg-amber-50 text-amber-600 border-amber-100'
         }`}>
           {row.status === 'active' ? 'Live' : 'Hidden'}
@@ -543,7 +555,7 @@ export default function AdminMandiBazar() {
       header: 'ACTIONS',
       render: (row) => (
         <div className="flex items-center gap-2">
-           <button 
+           <button
              onClick={() => handleToggleProductStatus(row)}
              className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 border ${
                row.status === 'active'
@@ -553,8 +565,8 @@ export default function AdminMandiBazar() {
            >
              {row.status === 'active' ? 'Hide from Shop' : 'Make Live'}
            </button>
-           <button 
-             onClick={() => openConfirm('Delete Listing', 'Permanently delete this listing? This cannot be undone.', async () => { await api.delete(`/listings/${row._id}`); fetchData(); })}
+           <button
+             onClick={() => openConfirm('Delete Listing', 'Permanently delete this listing? This cannot be undone.', async () => { deleteProductMutation.mutate(row._id); })}
              className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
            >
              <Trash2 size={16} />
@@ -567,16 +579,16 @@ export default function AdminMandiBazar() {
   const configColumns = [
     { header: 'TARGET', accessor: 'target_orders', render: (row) => <span className="font-bold text-[#001b4e]">{row.target_orders} Orders</span> },
     { header: 'PRIZE NAME', accessor: 'prize_name', render: (row) => <span className="font-bold text-slate-700 uppercase tracking-tight">{row.prize_name}</span> },
-    { 
-      header: 'EXPIRY', 
+    {
+      header: 'EXPIRY',
       render: (row) => (
         <span className="text-[11px] font-bold text-slate-400">
            {row.valid_until ? new Date(row.valid_until).toLocaleDateString() : 'No Expiry'}
         </span>
-      ) 
+      )
     },
-    { 
-      header: 'STATUS', 
+    {
+      header: 'STATUS',
       render: (row) => (
         <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${row.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
           {row.is_active ? 'Active' : 'Inactive'}
@@ -587,14 +599,14 @@ export default function AdminMandiBazar() {
       header: 'ACTIONS',
       render: (row) => (
         <div className="flex items-center gap-1">
-          <button 
+          <button
             onClick={() => setViewingMilestone(row)}
             className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-all"
             title="View Details"
           >
             <Eye size={16} />
           </button>
-          <button 
+          <button
             onClick={() => {
               setNewMilestone({
                 id: row._id,
@@ -612,7 +624,7 @@ export default function AdminMandiBazar() {
           >
             <Settings size={16} />
           </button>
-          <button 
+          <button
             onClick={() => handleDeleteMilestoneConfig(row._id)}
             className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-rose-600 transition-all"
             title="Delete"
@@ -625,8 +637,8 @@ export default function AdminMandiBazar() {
   ];
 
   const rewardColumns = [
-    { 
-      header: 'PARTNER INFO', 
+    {
+      header: 'PARTNER INFO',
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 uppercase font-black text-[10px]">
@@ -639,8 +651,8 @@ export default function AdminMandiBazar() {
         </div>
       )
     },
-    { 
-      header: 'PRIZE', 
+    {
+      header: 'PRIZE',
       render: (row) => (
         <div className="flex items-center gap-2">
           <Trophy size={14} className="text-amber-500" />
@@ -648,22 +660,22 @@ export default function AdminMandiBazar() {
         </div>
       )
     },
-    { 
-      header: 'SHIPPING ADDRESS', 
+    {
+      header: 'SHIPPING ADDRESS',
       render: (row) => (
         <div className="max-w-xs overflow-hidden">
           <p className="text-[11px] font-medium text-slate-500 line-clamp-2">{row.shipping_address?.full_address}, {row.shipping_address?.city}, {row.shipping_address?.pincode}</p>
         </div>
       )
     },
-    { 
-      header: 'STATUS', 
+    {
+      header: 'STATUS',
       render: (row) => (
-        <select 
+        <select
           value={row.status}
           onChange={(e) => handleUpdateRewardStatus(row._id, e.target.value)}
           className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider outline-none border-none ${
-            row.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : 
+            row.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' :
             row.status === 'shipped' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
           }`}
         >
@@ -708,11 +720,11 @@ export default function AdminMandiBazar() {
       <AnimatePresence mode="wait">
         {activeTab === 'kyc' && (
           <motion.div key="kyc" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-             <AdminTable 
+             <AdminTable
                title="Seller Verification Pipeline"
                columns={kycColumns}
-               data={data}
-               loading={loading}
+               data={kycData}
+               loading={kycLoading}
                searchPlaceholder="Find seller by name or phone..."
              />
           </motion.div>
@@ -720,11 +732,11 @@ export default function AdminMandiBazar() {
 
         {activeTab === 'withdrawals' && (
           <motion.div key="withdrawals" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-             <AdminTable 
+             <AdminTable
                title="Pending Settlement Requests"
                columns={withdrawalColumns}
-               data={data}
-               loading={loading}
+               data={withdrawalsData}
+               loading={withdrawalsLoading}
                searchPlaceholder="Find request by seller name..."
              />
           </motion.div>
@@ -732,11 +744,11 @@ export default function AdminMandiBazar() {
 
         {activeTab === 'orders' && (
           <motion.div key="orders" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-             <AdminTable 
+             <AdminTable
                title="Recent Marketplace Transactions"
                columns={orderColumns}
-               data={data}
-               loading={loading}
+               data={ordersData}
+               loading={ordersLoading}
                searchPlaceholder="Find orders by ID or customer..."
              />
           </motion.div>
@@ -744,11 +756,11 @@ export default function AdminMandiBazar() {
 
         {activeTab === 'products' && (
           <motion.div key="products" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-             <AdminTable 
+             <AdminTable
                title="Mandi Inventory Repository"
                columns={productColumns}
-               data={data}
-               loading={loading}
+               data={productsData}
+               loading={productsLoading}
                searchPlaceholder="Search materials, sellers, or IDs..."
              />
           </motion.div>
@@ -760,7 +772,7 @@ export default function AdminMandiBazar() {
              <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm overflow-hidden relative">
                 <div className="absolute top-0 right-0 p-6">
                    {newMilestone.id && (
-                     <button 
+                     <button
                        onClick={() => setNewMilestone({ target_orders: '', prize_name: '', prize_description: '', banner_url: '', valid_until: '', is_active: true })}
                        className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:underline"
                      >
@@ -769,7 +781,7 @@ export default function AdminMandiBazar() {
                    )}
                 </div>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-full -mr-16 -mt-16 blur-2xl" />
-                
+
                 <div className="flex items-center gap-4 mb-8">
                    <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
                       <Trophy size={24} />
@@ -783,38 +795,38 @@ export default function AdminMandiBazar() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                    <div className="space-y-1.5">
                       <label className={labelClass}>Target Orders</label>
-                      <input 
-                        type="number" 
-                        placeholder="e.g. 50" 
+                      <input
+                        type="number"
+                        placeholder="e.g. 50"
                         value={newMilestone.target_orders}
                         onChange={e => setNewMilestone({...newMilestone, target_orders: e.target.value})}
-                        className={inputClass} 
+                        className={inputClass}
                       />
                    </div>
                    <div className="space-y-1.5">
                       <label className={labelClass}>Prize Name</label>
-                      <input 
-                        type="text" 
-                        placeholder="e.g. Smart Watch" 
+                      <input
+                        type="text"
+                        placeholder="e.g. Smart Watch"
                         value={newMilestone.prize_name}
                         onChange={e => setNewMilestone({...newMilestone, prize_name: e.target.value})}
-                        className={inputClass} 
+                        className={inputClass}
                       />
                    </div>
                    <div className="space-y-1.5">
                       <label className={labelClass}>Valid Until (Timeline)</label>
-                      <input 
-                        type="date" 
+                      <input
+                        type="date"
                         value={newMilestone.valid_until}
                         onChange={e => setNewMilestone({...newMilestone, valid_until: e.target.value})}
-                        className={inputClass} 
+                        className={inputClass}
                       />
                    </div>
                    <div className="flex items-end pb-1.5">
                       <label className="flex items-center gap-3 cursor-pointer group">
                         <div className="relative">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             className="sr-only"
                             checked={newMilestone.is_active}
                             onChange={e => setNewMilestone({...newMilestone, is_active: e.target.checked})}
@@ -830,7 +842,7 @@ export default function AdminMandiBazar() {
                 </div>
 
                 <div className="mb-8">
-                   <MediaDropZone 
+                   <MediaDropZone
                       label="Milestone Banner Image"
                       description="Click or drag high-quality banner image here (Cloudinary)"
                       value={newMilestone.banner_url ? [newMilestone.banner_url] : []}
@@ -843,7 +855,7 @@ export default function AdminMandiBazar() {
 
                 <div className="mb-8">
                    <label className={labelClass}>Prize Description</label>
-                   <textarea 
+                   <textarea
                      rows={3}
                      placeholder="Tell partners what they win and why it's great..."
                      value={newMilestone.prize_description}
@@ -852,31 +864,31 @@ export default function AdminMandiBazar() {
                    />
                 </div>
 
-                <button 
+                <button
                   onClick={handleSaveMilestoneConfig}
-                  disabled={loading}
+                  disabled={saveMilestoneMutation.isPending}
                   className="w-full bg-[#fa641e] text-white py-4 rounded-2xl font-bold text-[14px] shadow-lg shadow-orange-100 flex items-center justify-center gap-2 hover:bg-[#e45b1b] transition-all uppercase tracking-widest"
                  >
-                   {loading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                   {saveMilestoneMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
                    {newMilestone.id ? 'Update Milestone Configuration' : 'Create Milestone Reward'}
                  </button>
              </div>
 
              {/* Configs Table */}
-             <AdminTable 
+             <AdminTable
                title="Active Milestone Targets"
                columns={configColumns}
                data={milestoneConfigs}
-               loading={loading}
+               loading={milestonesLoading}
                searchPlaceholder="Search milestones..."
              />
 
              {/* Fulfillment Table */}
-             <AdminTable 
+             <AdminTable
                title="Physical Reward Fulfillment Queue"
                columns={rewardColumns}
                data={rewardRequests}
-               loading={loading}
+               loading={milestonesLoading}
                searchPlaceholder="Find request by partner name..."
              />
           </motion.div>
@@ -900,8 +912,8 @@ export default function AdminMandiBazar() {
                    <div className="space-y-3">
                       <label className={labelClass}>Global Fallback Token (₹)</label>
                       <div className="relative">
-                         <input 
-                           type="number" 
+                         <input
+                           type="number"
                            value={tokenAmount}
                            onChange={e => setTokenAmount(e.target.value)}
                            className="w-full h-16 px-6 bg-slate-50 border-none rounded-2xl text-2xl font-black text-[#001b4e] outline-none ring-2 ring-transparent focus:ring-indigo-500/10 transition-all font-mono"
@@ -914,8 +926,8 @@ export default function AdminMandiBazar() {
                    <div className="space-y-3">
                       <label className={labelClass}>Global Default Commission (%)</label>
                       <div className="relative">
-                         <input 
-                           type="number" 
+                         <input
+                           type="number"
                            value={globalCommission}
                            onChange={e => setGlobalCommission(e.target.value)}
                            className="w-full h-16 px-6 bg-slate-50 border-none rounded-2xl text-2xl font-black text-[#001b4e] outline-none ring-2 ring-transparent focus:ring-indigo-500/10 transition-all font-mono"
@@ -947,8 +959,8 @@ export default function AdminMandiBazar() {
                             <span className="text-sm font-bold text-[#001b4e]">{cat.name}</span>
                          </div>
                          <div className="w-32 relative">
-                            <input 
-                              type="number" 
+                            <input
+                              type="number"
                               step="0.1"
                               value={cat.percentage}
                               onChange={e => handleCategoryPercentageChange(cat.id, e.target.value)}
@@ -960,12 +972,12 @@ export default function AdminMandiBazar() {
                    ))}
                 </div>
 
-                <button 
+                <button
                   onClick={handleUpdateSettings}
-                  disabled={loading}
+                  disabled={updateSettingsMutation.isPending}
                   className="w-full h-16 bg-[#001b4e] hover:bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 transition-all flex items-center justify-center gap-3 active:scale-95"
                 >
-                   {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+                   {updateSettingsMutation.isPending ? <Loader2 className="animate-spin" /> : <Save size={20} />}
                    Update Economics Configuration
                 </button>
              </div>
@@ -977,12 +989,12 @@ export default function AdminMandiBazar() {
       <AnimatePresence>
         {isModalOpen && selectedItem && (
           <div className="fixed inset-0 z-100 flex items-center justify-center px-6">
-             <motion.div 
+             <motion.div
                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                onClick={() => setIsModalOpen(false)}
                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
              />
-             <motion.div 
+             <motion.div
                initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }}
                className="bg-white w-full max-w-4xl rounded-[40px] shadow-2xl relative z-10 overflow-hidden flex flex-col h-[85vh]"
              >
@@ -1051,13 +1063,13 @@ export default function AdminMandiBazar() {
                 </div>
 
                 <div className="p-8 bg-slate-50 border-t border-slate-100 flex gap-4">
-                   <button 
+                   <button
                      onClick={() => handleUpdateKYC(selectedItem._id, 'rejected')}
                      className="flex-1 h-14 bg-white border border-rose-100 text-rose-500 font-black rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm"
                    >
                      <XCircle size={18} /> Reject KYC
                    </button>
-                   <button 
+                   <button
                      onClick={() => handleUpdateKYC(selectedItem._id, 'approved')}
                      className="flex-[2] h-14 bg-indigo-600 text-white font-black rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-indigo-100 active:scale-95 transition-all"
                    >
@@ -1073,12 +1085,12 @@ export default function AdminMandiBazar() {
       <AnimatePresence>
         {viewingMilestone && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setViewingMilestone(null)}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -1092,7 +1104,7 @@ export default function AdminMandiBazar() {
                     <ImageIcon size={48} />
                   </div>
                 )}
-                <button 
+                <button
                   onClick={() => setViewingMilestone(null)}
                   className="absolute top-6 right-6 w-10 h-10 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all"
                 >
@@ -1136,7 +1148,7 @@ export default function AdminMandiBazar() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                   <button 
+                   <button
                      onClick={() => {
                         setNewMilestone({
                           id: viewingMilestone._id,
@@ -1154,13 +1166,13 @@ export default function AdminMandiBazar() {
                    >
                      <Settings size={16} /> Edit
                    </button>
-                   <button 
+                   <button
                      onClick={() => handleToggleMilestoneStatus(viewingMilestone)}
                      className={`flex-1 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 ${viewingMilestone.is_active ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}
                    >
                      <RefreshCcw size={16} /> {viewingMilestone.is_active ? 'Deactivate' : 'Activate'}
                    </button>
-                   <button 
+                   <button
                      onClick={() => {
                         handleDeleteMilestoneConfig(viewingMilestone._id);
                         setViewingMilestone(null);
@@ -1180,12 +1192,12 @@ export default function AdminMandiBazar() {
       <AnimatePresence>
         {viewingOrder && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setViewingOrder(null)}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -1297,4 +1309,3 @@ export default function AdminMandiBazar() {
     </div>
   );
 }
-

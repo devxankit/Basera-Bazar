@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Building2, 
-  Briefcase, 
-  Package, 
-  Users, 
-  TrendingUp, 
-  Plus, 
-  ChevronRight, 
-  Bell, 
+import {
+  Building2,
+  Briefcase,
+  Package,
+  Users,
+  TrendingUp,
+  Plus,
+  ChevronRight,
+  Bell,
   LayoutGrid,
   Activity,
   ArrowUpRight,
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import logo from '../../assets/baseralogo.png';
@@ -29,61 +30,59 @@ import logo from '../../assets/baseralogo.png';
 export default function PartnerHome() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
-  const [stats, setStats] = useState({
-    total_listings: 0,
-    total_leads: 0,
-    active_orders: 0,
-    earnings: 0
+
+  const { data: statsRaw, isLoading: statsLoading } = useQuery({
+    queryKey: ['partnerStats'],
+    queryFn: () => api.get('/partners/stats').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
   });
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [subscriptionLimits, setSubscriptionLimits] = useState(null);
+
+  const { data: activitiesRaw, isLoading: activitiesLoading } = useQuery({
+    queryKey: ['partnerActivities'],
+    queryFn: () => api.get('/partners/activities').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
+    onError: () => {
+      // Fallback handled via localActivities below
+    },
+  });
+
+  const { data: limitsRaw, isLoading: limitsLoading } = useQuery({
+    queryKey: ['partnerSubscriptionLimits'],
+    queryFn: () => api.get('/partners/subscription/limits').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
+  });
+
+  const loading = statsLoading || activitiesLoading || limitsLoading;
+
+  const stats = statsRaw?.success ? statsRaw.data : { total_listings: 0, total_leads: 0, active_orders: 0, earnings: 0 };
+  const localLogs = !activitiesRaw?.success
+    ? (JSON.parse(localStorage.getItem(`baserabazar_activity_${user?._id || user?.id}`)) || [])
+    : [];
+  const activities = activitiesRaw?.success ? (activitiesRaw.data || []).slice(0, 5) : localLogs.slice(0, 5);
+  const subscriptionLimits = limitsRaw?.success ? limitsRaw.data : null;
 
   useEffect(() => {
     if (!user) {
       navigate('/partner/login');
-      return;
     }
+  }, [user, navigate]);
 
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        // Sync user profile to get latest onboarding_status
-        await refreshUser();
-        
-        const [statsRes, activityRes, limitsRes] = await Promise.all([
-          api.get('/partners/stats'),
-          api.get('/partners/activities'),
-          api.get('/partners/subscription/limits')
-        ]);
-        
-        if (statsRes.data.success) setStats(statsRes.data.data);
-        if (activityRes.data.success) setActivities(activityRes.data.data.slice(0, 5));
-        if (limitsRes.data.success) setSubscriptionLimits(limitsRes.data.data);
-      } catch (err) {
-        console.error("Dashboard data fetch error:", err);
-        // Fallback to local activities if API fails
-        const localLogs = JSON.parse(localStorage.getItem(`baserabazar_activity_${user?._id || user?.id}`)) || [];
-        setActivities(localLogs.slice(0, 5));
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Call refreshUser on mount to sync onboarding_status
+  useEffect(() => {
+    if (user) refreshUser();
+  }, []);
 
-    fetchDashboardData();
-
-    // Polling for status updates if not approved
-    let interval;
-    if (user.onboarding_status !== 'approved') {
-      interval = setInterval(() => {
-        refreshUser();
-      }, 30000); // 30 seconds
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [user.id, user.onboarding_status, navigate]);
+  // Polling for status updates if not approved
+  useEffect(() => {
+    if (!user || user.onboarding_status === 'approved') return;
+    const interval = setInterval(() => {
+      refreshUser();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user?.onboarding_status]);
 
   if (!user) return null;
 

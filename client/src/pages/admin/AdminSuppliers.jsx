@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { 
+import React, { useState } from 'react';
+import {
   Eye, Edit2, Truck, Package, Tag, ToggleLeft, ToggleRight,
   Star, ShoppingBag, List
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
-import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
+import { refreshAdminCache } from '../../services/AdminService';
 import Skeleton from '../../components/common/Skeleton';
 import AdminDynamicCategoryManager from '../../components/common/AdminDynamicCategoryManager';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,54 +16,34 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function AdminSuppliers() {
   const { tab } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const activeTab = tab || 'list';
-  
-  const [suppliers, setSuppliers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    const fetchSuppliers = async () => {
-      setLoading(true);
-      try {
-        const data = await getAdminUsers();
-        // Filter to only show suppliers
-        const allSuppliers = data.filter(u => 
-          (u.role || '').toLowerCase() === 'supplier' || 
-          (u.displayRole || '').toLowerCase() === 'supplier'
-        );
-        setSuppliers(allSuppliers);
-      } catch (error) {
-        console.error("Failed to fetch suppliers:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSuppliers();
-  }, []);
+  const { data: rawUsers = [], isLoading: loading } = useQuery({
+    queryKey: ['adminSuppliers'],
+    queryFn: () => api.get('/admin/users').then(r => r.data?.data || []),
+    staleTime: 5 * 60 * 1000,
+  });
+  const suppliers = rawUsers.filter(u =>
+    (u.role || '').toLowerCase() === 'supplier' ||
+    (u.displayRole || '').toLowerCase() === 'supplier'
+  );
 
-  const toggleFeatured = async (supplier) => {
-    try {
-      await api.put(`/admin/users/${supplier._id}`, { is_featured: !supplier.is_featured });
-      refreshAdminCache();
-      setSuppliers(prev =>
-        prev.map(s => s._id === supplier._id ? { ...s, is_featured: !s.is_featured } : s)
-      );
-    } catch (err) {
-      toast.error('Failed to update featured status.');
-    }
-  };
+  const featureMutation = useMutation({
+    mutationFn: (supplier) => api.put(`/admin/users/${supplier._id}`, { is_featured: !supplier.is_featured }).then(r => r.data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['adminSuppliers'] }); refreshAdminCache(); },
+    onError: () => toast.error('Failed to update featured status.'),
+  });
 
-  const toggleActive = async (supplier) => {
-    try {
-      await api.put(`/admin/users/${supplier._id}`, { is_active: !supplier.is_active });
-      setSuppliers(prev =>
-        prev.map(s => s._id === supplier._id ? { ...s, is_active: !s.is_active } : s)
-      );
-    } catch (err) {
-      toast.error('Failed to update supplier status.');
-    }
-  };
+  const activeMutation = useMutation({
+    mutationFn: (supplier) => api.put(`/admin/users/${supplier._id}`, { is_active: !supplier.is_active }).then(r => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminSuppliers'] }),
+    onError: () => toast.error('Failed to update supplier status.'),
+  });
+
+  const toggleFeatured = (supplier) => featureMutation.mutate(supplier);
+  const toggleActive = (supplier) => activeMutation.mutate(supplier);
 
   const filteredData = suppliers.filter(user => {
     if (searchTerm) {

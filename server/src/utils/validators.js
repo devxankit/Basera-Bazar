@@ -303,6 +303,144 @@ const commissionUpdateSchema = z.object({
 });
 
 // ---------------------------------------------------------
+// ORDER SCHEMAS
+// ---------------------------------------------------------
+
+const addressSchema = z.object({
+  full_name: z.string().min(2, 'Recipient name is required'),
+  phone: indianPhone,
+  address_line: z.string().min(5, 'Address is required'),
+  city: z.string().min(2, 'City is required'),
+  state: z.string().min(2, 'State is required'),
+  pincode: z.string().regex(/^\d{6}$/, 'Pincode must be 6 digits'),
+});
+
+const orderCheckoutSchema = z.object({
+  items: z.array(z.object({
+    listing_id: mongoId,
+    quantity: z.number({ invalid_type_error: 'Quantity must be a number' }).int().positive('Quantity must be at least 1'),
+  })).min(1, 'Order must contain at least one item'),
+  shipping_address: addressSchema,
+  billing_address: addressSchema.optional(),
+});
+
+const orderPaymentVerifySchema = z.object({
+  razorpay_order_id: z.string().min(1, 'Razorpay order ID is required'),
+  razorpay_payment_id: z.string().min(1, 'Payment ID is required'),
+  razorpay_signature: z.string().min(1, 'Signature is required'),
+});
+
+const orderStatusSchema = z.object({
+  status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'accepted', 'rejected'], {
+    errorMap: () => ({ message: 'Invalid order status' }),
+  }),
+  note: z.string().max(500).optional(),
+  tracking_id: z.string().max(100).optional(),
+});
+
+const orderReviewSchema = z.object({
+  order_id: mongoId,
+  partner_id: mongoId,
+  behavior_rating: z.number({ invalid_type_error: 'Rating must be a number' }).int().min(1).max(5),
+  item_ratings: z.array(z.object({
+    item_id: z.string(),
+    rating: z.number().int().min(1).max(5),
+  })).optional(),
+  comment: z.string().max(1000).optional(),
+});
+
+// ---------------------------------------------------------
+// FINANCE SCHEMAS
+// ---------------------------------------------------------
+
+const financeInitiateSchema = z.object({
+  plan_id: mongoId,
+  referral_code: z.string().max(20).optional(),
+});
+
+const financeVerifySchema = z.object({
+  razorpay_order_id: z.string().min(1, 'Razorpay order ID is required'),
+  razorpay_payment_id: z.string().min(1, 'Payment ID is required'),
+  razorpay_signature: z.string().min(1, 'Signature is required'),
+  plan_id: mongoId,
+});
+
+// ---------------------------------------------------------
+// MILESTONE SCHEMAS
+// ---------------------------------------------------------
+
+const milestoneClaimSchema = z.object({
+  milestoneId: mongoId,
+  shipping_address: z.object({
+    full_name: z.string().min(2),
+    phone: indianPhone,
+    address_line: z.string().min(5),
+    city: z.string().min(2),
+    state: z.string().min(2),
+    pincode: z.string().regex(/^\d{6}$/, 'Pincode must be 6 digits'),
+  }).optional(),
+});
+
+const milestoneRewardStatusSchema = z.object({
+  status: z.enum(['approved', 'rejected', 'dispatched', 'delivered'], {
+    errorMap: () => ({ message: 'Invalid reward status' }),
+  }),
+  tracking_id: z.string().max(100).optional(),
+  note: z.string().max(500).optional(),
+});
+
+const milestoneConfigSchema = z.object({
+  id: mongoId.optional(),
+  target_orders: z.number({ invalid_type_error: 'target_orders must be a number' }).int().positive('Target orders must be a positive integer'),
+  prize_name: z.string().min(2, 'Prize name is required').max(100),
+  prize_description: z.string().max(500).optional(),
+  banner_url: z.string().url('Invalid banner URL').optional().or(z.literal('')),
+  valid_until: z.string().optional(),
+  is_active: z.boolean().optional(),
+});
+
+// ---------------------------------------------------------
+// ENQUIRY SCHEMA
+// ---------------------------------------------------------
+
+const enquirySchema = z.object({
+  listing_id: mongoId.optional(),
+  enquiry_type: z.enum(['service', 'property', 'supplier', 'general']).optional(),
+  inquiry_type: z.string().optional(),
+  content: z.string().min(5, 'Message must be at least 5 characters').max(2000, 'Message too long'),
+}).passthrough();
+
+// ---------------------------------------------------------
+// PUSH TOKEN SCHEMA
+// ---------------------------------------------------------
+
+const pushTokenSchema = z.object({
+  token: z.string().min(1, 'FCM token is required'),
+  platform: z.enum(['web', 'mobile']).optional(),
+});
+
+// ---------------------------------------------------------
+// MANDI INVENTORY SCHEMA
+// ---------------------------------------------------------
+
+const mandiInventorySchema = z.object({
+  price: z.number().min(0).optional(),
+  stock: z.number().int().min(0).optional(),
+  availability: z.enum(['in_stock', 'out_of_stock', 'limited']).optional(),
+  status: z.enum(['active', 'inactive']).optional(),
+});
+
+// ---------------------------------------------------------
+// LISTING CATEGORY SCHEMA
+// ---------------------------------------------------------
+
+const listingCategorySchema = z.object({
+  name: z.string().min(2, 'Category name is required').max(100),
+  description: z.string().max(500).optional(),
+  image_url: z.string().url('Invalid image URL').optional().or(z.literal('')),
+});
+
+// ---------------------------------------------------------
 // TARGET / ATTENDANCE / REPORT SCHEMAS
 // ---------------------------------------------------------
 
@@ -353,4 +491,21 @@ module.exports = {
   staffPasswordResetSchema,
   attendanceVerifySchema,
   reportVerifySchema,
+  // Order schemas
+  orderCheckoutSchema,
+  orderPaymentVerifySchema,
+  orderStatusSchema,
+  orderReviewSchema,
+  // Finance schemas
+  financeInitiateSchema,
+  financeVerifySchema,
+  // Milestone schemas
+  milestoneClaimSchema,
+  milestoneRewardStatusSchema,
+  milestoneConfigSchema,
+  // Other route schemas
+  enquirySchema,
+  pushTokenSchema,
+  mandiInventorySchema,
+  listingCategorySchema,
 };

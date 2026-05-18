@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ArrowLeft, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import { useLocationContext } from '../../context/LocationContext';
+import { useQuery } from '@tanstack/react-query';
 
 import houseImg from '../../assets/properties categories/house.jpg';
 import hostelImg from '../../assets/properties categories/hostel.jpg';
@@ -21,27 +22,18 @@ const localImages = {
 const PropertyCategories = () => {
   const navigate = useNavigate();
   const { location } = useLocationContext();
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchCats = async () => {
-      try {
-        const params = new URLSearchParams({ type: 'property' });
-        if (location.district) params.set('district', location.district);
-        if (location.state) params.set('state', location.state);
-        const res = await api.get(`/listings/categories?${params}`);
-        if (res.data.success) {
-          setCategories(res.data.data);
-        }
-      } catch (err) {
-        console.error("Error fetching properties categories:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCats();
-  }, [location]);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['propertyCategories', location?.district, location?.state],
+    queryFn: () => {
+      const params = new URLSearchParams({ type: 'property' });
+      if (location?.district) params.set('district', location.district);
+      if (location?.state) params.set('state', location.state);
+      return api.get(`/listings/categories?${params}`).then(r => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const categories = rawData?.data || [];
 
   return (
     <div className="bg-slate-50 flex flex-col font-sans">

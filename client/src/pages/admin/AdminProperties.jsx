@@ -1,149 +1,115 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Building2, Plus, ArrowRight, Eye, Trash2, Edit, 
-  MapPin, IndianRupee, Home, Calendar, Filter, 
+import React, { useState } from 'react';
+import {
+  Building2, Plus, ArrowRight, Eye, Trash2, Edit,
+  MapPin, IndianRupee, Home, Calendar, Filter,
   X, CheckCircle2, ChevronDown, Search, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminTable from '../../components/common/AdminTable';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
-
 import Skeleton from '../../components/common/Skeleton';
+
+const DEFAULTS = {
+  category: '',
+  subcategory: '',
+  listing_intent: '',
+  status: '',
+  state: '',
+  district: '',
+  price_range: '',
+  search: ''
+};
+
+const INDIAN_STATES_FILTER = {
+  "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Bikaner", "Ajmer"],
+  "Delhi": ["New Delhi", "North Delhi", "South Delhi", "West Delhi"],
+  "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane"]
+};
 
 export default function AdminProperties() {
   const navigate = useNavigate();
-  const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showFilters, setShowFilters] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [filters, setFilters] = useState(DEFAULTS);
+  const [appliedFilters, setAppliedFilters] = useState(DEFAULTS);
 
-  // Filter States
-  const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
-  const [filters, setFilters] = useState({
-    category: '',
-    subcategory: '',
-    listing_intent: '',
-    status: '',
-    state: '',
-    district: '',
-    price_range: '',
-    search: ''
+  const { data: categoriesRaw } = useQuery({
+    queryKey: ['adminPropertyCategories'],
+    queryFn: () => api.get('/admin/system/categories?type=property').then(r => r.data),
+    staleTime: 10 * 60 * 1000,
   });
 
-  const fetchInitData = async () => {
-    try {
-      const catRes = await api.get('/admin/system/categories?type=property');
-      if (catRes.data.success) setCategories(catRes.data.data);
-    } catch (err) {
-      console.error("Failed to fetch filter references");
-    }
-  };
+  const { data: subcategoriesRaw } = useQuery({
+    queryKey: ['adminPropertySubcategories', filters.category],
+    queryFn: () => api.get(`/admin/system/categories?parent_id=${filters.category}`).then(r => r.data),
+    enabled: !!filters.category,
+    staleTime: 10 * 60 * 1000,
+  });
 
-  const fetchSubcategories = async (catId) => {
-    if (!catId) {
-      setSubcategories([]);
-      return;
-    }
-    try {
-      const res = await api.get(`/admin/system/categories?parent_id=${catId}`);
-      if (res.data.success) setSubcategories(res.data.data);
-    } catch (err) {
-      console.error("Failed to fetch subcategories");
-    }
-  };
-
-  const fetchProperties = async () => {
-    setLoading(true);
-    try {
-      // Build query string
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['adminProperties', appliedFilters],
+    queryFn: () => {
       const params = new URLSearchParams();
-      Object.keys(filters).forEach(key => {
-        if (filters[key]) params.append(key, filters[key]);
+      Object.keys(appliedFilters).forEach(key => {
+        if (appliedFilters[key]) params.append(key, appliedFilters[key]);
       });
-      
-      const response = await api.get(`/admin/listings/property?${params.toString()}`);
-      if (response.data.success) {
-        setProperties(response.data.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch properties:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return api.get(`/admin/listings/property?${params.toString()}`).then(r => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchInitData();
-    fetchProperties();
-  }, []);
+  const categories = categoriesRaw?.data || [];
+  const subcategories = subcategoriesRaw?.data || [];
+  const properties = rawData?.data || [];
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }) => api.patch(`/admin/listings/${id}/status`, { status }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminProperties'] }),
+    onError: () => toast.error('Failed to update status.'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/admin/listings/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminProperties'] });
+      setDeleteId(null);
+      setIsModalOpen(false);
+    },
+    onError: () => toast.error('Failed to remove listing.'),
+  });
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
-    
     if (name === 'category') {
-      fetchSubcategories(value);
       setFilters(prev => ({ ...prev, category: value, subcategory: '' }));
+    } else {
+      setFilters(prev => ({ ...prev, [name]: value }));
     }
   };
 
   const handleApplyFilters = () => {
-    fetchProperties();
+    setAppliedFilters({ ...filters });
   };
 
   const handleResetFilters = () => {
-    const defaultFilters = {
-      category: '',
-      subcategory: '',
-      listing_intent: '',
-      status: '',
-      state: '',
-      district: '',
-      price_range: '',
-      search: ''
-    };
-    setFilters(defaultFilters);
-    setSubcategories([]);
-    // Immediately fetch with defaults
-    setLoading(true);
-    api.get('/admin/listings/property').then(res => {
-      if (res.data.success) setProperties(res.data.data);
-      setLoading(false);
-    });
+    setFilters(DEFAULTS);
+    setAppliedFilters(DEFAULTS);
   };
 
-  const INDIAN_STATES_FILTER = {
-    "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Bikaner", "Ajmer"],
-    "Delhi": ["New Delhi", "North Delhi", "South Delhi", "West Delhi"],
-    "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane"]
-  };
-
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deleteId) return;
-    setIsDeleting(true);
-    try {
-      const res = await api.delete(`/admin/listings/${deleteId}`);
-      if (res.data.success) {
-        setProperties(prev => prev.filter(p => p._id !== deleteId));
-        setDeleteId(null);
-        setIsModalOpen(false);
-      }
-    } catch (err) {
-      toast.error("Failed to remove listing.");
-    } finally {
-      setIsDeleting(false);
-    }
+    deleteMutation.mutate(deleteId);
   };
 
   const columns = [
-    { 
-      header: 'PROPERTY', 
+    {
+      header: 'PROPERTY',
       render: (row) => (
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-indigo-50 overflow-hidden border border-indigo-100 shrink-0 relative group">
@@ -173,9 +139,8 @@ export default function AdminProperties() {
         </div>
       )
     },
-    // Details column removed to reduce width
-    { 
-      header: 'PRICE', 
+    {
+      header: 'PRICE',
       render: (row) => (
         <div className="space-y-0.5">
           <div className="flex items-center gap-1 text-slate-900 font-black">
@@ -186,8 +151,8 @@ export default function AdminProperties() {
         </div>
       )
     },
-    { 
-      header: 'LOCATION', 
+    {
+      header: 'LOCATION',
       render: (row) => (
         <div className="space-y-0.5 max-w-[150px]">
           <div className="flex items-center gap-2 text-slate-700 font-bold">
@@ -198,8 +163,8 @@ export default function AdminProperties() {
         </div>
       )
     },
-    { 
-      header: 'LISTED BY', 
+    {
+      header: 'LISTED BY',
       render: (row) => (
         <div className="space-y-0.5">
           <p className="font-bold text-slate-700">{row.partner_id?.name || 'In-House'}</p>
@@ -207,9 +172,8 @@ export default function AdminProperties() {
         </div>
       )
     },
-    // Listed On column removed to reduce width
-    { 
-      header: 'STATE', 
+    {
+      header: 'STATE',
       render: (row) => {
         const statusColors = {
           active: 'bg-emerald-50 text-emerald-600 border-emerald-100',
@@ -238,62 +202,46 @@ export default function AdminProperties() {
         );
       }
     },
-    { 
-      header: 'ACTIONS', 
+    {
+      header: 'ACTIONS',
       render: (row) => (
         <div className="flex items-center gap-2">
-          {/* View Icon */}
-          <button 
+          <button
             onClick={() => navigate(`/admin/properties/view/${row._id}`)}
             className="w-10 h-10 flex items-center justify-center bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95 group/btn relative"
           >
             <Eye size={18} />
           </button>
 
-          {/* Status Toggle (Approve/Deactivate) */}
           {row.status === 'pending_approval' ? (
-            <button 
-              onClick={async () => {
-                try {
-                  await api.patch(`/admin/listings/${row._id}/status`, { status: 'active' });
-                  fetchProperties();
-                } catch (err) { toast.error("Failed to approve."); }
-              }}
-              className="w-10 h-10 flex items-center justify-center bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all shadow-md active:scale-95 group/btn relative"
+            <button
+              onClick={() => statusMutation.mutate({ id: row._id, status: 'active' })}
+              disabled={statusMutation.isPending}
+              className="w-10 h-10 flex items-center justify-center bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all shadow-md active:scale-95 group/btn relative disabled:opacity-50"
             >
               <CheckCircle2 size={18} />
             </button>
           ) : (
-            <button 
-              onClick={async () => {
-                try {
-                  const nextStatus = row.status === 'active' ? 'inactive' : 'active';
-                  await api.patch(`/admin/listings/${row._id}/status`, { status: nextStatus });
-                  fetchProperties();
-                } catch (err) { toast.error("Failed to toggle status."); }
-              }}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all shadow-sm active:scale-95 group/btn relative border ${
+            <button
+              onClick={() => statusMutation.mutate({ id: row._id, status: row.status === 'active' ? 'inactive' : 'active' })}
+              disabled={statusMutation.isPending}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all shadow-sm active:scale-95 group/btn relative border disabled:opacity-50 ${
                 row.status === 'active' ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'
               }`}
             >
               {row.status === 'active' ? <X size={18} /> : <CheckCircle2 size={18} />}
             </button>
           )}
-          
-          {/* Edit Icon */}
-          <button 
+
+          <button
             onClick={() => navigate(`/admin/properties/edit/${row._id}`)}
             className="w-10 h-10 flex items-center justify-center bg-orange-50 border border-orange-100 text-orange-500 rounded-xl hover:bg-orange-500 hover:text-white transition-all shadow-sm active:scale-95 group/btn relative"
           >
             <Edit size={18} />
           </button>
 
-          {/* Delete Icon */}
-          <button 
-            onClick={() => {
-                setDeleteId(row._id);
-                setIsModalOpen(true);
-            }}
+          <button
+            onClick={() => { setDeleteId(row._id); setIsModalOpen(true); }}
             className="w-10 h-10 flex items-center justify-center bg-rose-50 border border-rose-100 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95 group/btn relative"
           >
             <Trash2 size={18} />
@@ -320,7 +268,7 @@ export default function AdminProperties() {
         )}
         {!loading && (
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setShowFilters(!showFilters)}
               className={`font-black px-6 py-3 rounded-2xl transition-all flex items-center gap-2.5 active:scale-95 ${
                 showFilters ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border border-slate-100 hover:bg-slate-50'
@@ -329,7 +277,7 @@ export default function AdminProperties() {
               <Filter size={20} />
               Filters
             </button>
-            <button 
+            <button
               onClick={() => navigate('/admin/properties/add')}
               className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-3 rounded-2xl shadow-xl shadow-slate-100 transition-all flex items-center gap-2.5 active:scale-95"
             >
@@ -417,10 +365,10 @@ export default function AdminProperties() {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Search Case</label>
                     <div className="relative">
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         name="search"
-                        placeholder="Name, Owner, ID..." 
+                        placeholder="Name, Owner, ID..."
                         value={filters.search}
                         onChange={handleFilterChange}
                         className="w-full p-4 pl-12 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-600 font-bold text-sm transition-all"
@@ -445,7 +393,7 @@ export default function AdminProperties() {
           { label: 'Pending Approval', value: properties.filter(p => p.status === 'pending_approval').length, color: 'text-amber-600 bg-amber-50' },
           { label: 'Rejected', value: properties.filter(p => p.status === 'rejected').length, color: 'text-rose-600 bg-rose-50' },
         ].map((stat, i) => (
-          <div key={i} className={`p-4 rounded-2xl border border-slate-100 bg-white shadow-sm flex items-center justify-between`}>
+          <div key={i} className="p-4 rounded-2xl border border-slate-100 bg-white shadow-sm flex items-center justify-between">
             {loading ? (
               <div className="flex justify-between items-center w-full">
                 <Skeleton className="h-4 w-20 rounded" />
@@ -461,22 +409,19 @@ export default function AdminProperties() {
         ))}
       </div>
 
-      <AdminTable 
-        columns={columns} 
-        data={properties} 
-        loading={loading} 
+      <AdminTable
+        columns={columns}
+        data={properties}
+        loading={loading}
         hideFilter={true}
         hideSearch={true}
       />
 
       <ConfirmationModal
         isOpen={isModalOpen}
-        onClose={() => {
-            setIsModalOpen(false);
-            setDeleteId(null);
-        }}
+        onClose={() => { setIsModalOpen(false); setDeleteId(null); }}
         onConfirm={handleDelete}
-        loading={isDeleting}
+        loading={deleteMutation.isPending}
         title="Remove Listing?"
         message="Are you sure you want to permanently delete this property listing? This action cannot be undone."
         type="danger"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Wallet, ArrowUpRight, History,
@@ -6,6 +6,7 @@ import {
   IndianRupee, RefreshCw
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { useExecutive } from '../../context/ExecutiveContext';
 import { toast } from '../../mockToast';
@@ -23,24 +24,17 @@ const itemVariants = {
 export default function ExecutiveWallet() {
   const navigate = useNavigate();
   const { data, loading: dashLoading, refetch } = useExecutive();
-  const [transactions, setTransactions] = useState([]);
-  const [txLoading, setTxLoading] = useState(true);
 
-  const fetchTransactions = useCallback(async () => {
-    setTxLoading(true);
-    try {
-      const res = await api.get('/executive/transactions');
-      if (res.data.success) setTransactions(res.data.data);
-    } catch {
-      toast.error('Failed to load transaction history');
-    } finally {
-      setTxLoading(false);
-    }
-  }, []);
+  const { data: txRaw, isLoading: txLoading, refetch: refetchTx } = useQuery({
+    queryKey: ['executiveTransactions'],
+    queryFn: () => api.get('/executive/transactions').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load transaction history'),
+  });
 
-  useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
+  const transactions = txRaw?.success ? txRaw.data : [];
 
-  const handleRefresh = () => { refetch(); fetchTransactions(); };
+  const handleRefresh = () => { refetch(); refetchTx(); };
 
   const loading = dashLoading || txLoading;
 

@@ -1,36 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Users, TrendingUp, UserPlus, ShieldCheck, Download, Filter } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 
 export default function AdminUserReport() {
-  const [data, setData] = useState([]);
-  const [summary, setSummary] = useState({
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['adminUserReport'],
+    queryFn: () => api.get('/admin/reports/users').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const data = (rawData?.data?.history || []).map(item => ({
+    month: item._id,
+    users: item.count,
+  }));
+  const summary = rawData?.data?.summary || {
     totalUsers: 0,
     verifiedPercentage: 0,
-    growthRate: 0
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchReport = async () => {
-      try {
-        const res = await api.get('/admin/reports/users');
-        if (res.data.success) {
-          setData(res.data.data.history.map(item => ({
-            month: item._id,
-            users: item.count
-          })));
-          setSummary(res.data.data.summary);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchReport();
-  }, []);
+    growthRate: 0,
+  };
 
   const COLORS = ['#4f46e5', '#818cf8', '#a5b4fc', '#c7d2fe', '#e0e7ff'];
 

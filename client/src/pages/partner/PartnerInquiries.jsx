@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ArrowLeft, Search, MessageSquare,
   ChevronRight, Phone, Loader2, Zap, Megaphone, Package, MapPin
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
@@ -12,35 +13,26 @@ export default function PartnerInquiries() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [tab, setTab] = useState('enquiries'); // 'enquiries' | 'broadcasts'
-  const [inquiries, setInquiries] = useState([]);
-  const [broadcasts, setBroadcasts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  const { data: enquiriesRaw, isLoading: enquiriesLoading } = useQuery({
+    queryKey: ['partnerEnquiries'],
+    queryFn: () => api.get('/partners/enquiries').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
+  });
 
-  const fetchAll = async () => {
-    setLoading(true);
-    try {
-      const [enqRes, bcRes] = await Promise.allSettled([
-        api.get('/partners/enquiries'),
-        api.get('/leads/partner'),
-      ]);
-      if (enqRes.status === 'fulfilled' && enqRes.value.data.success) {
-        setInquiries(enqRes.value.data.data);
-      }
-      if (bcRes.status === 'fulfilled' && bcRes.value.data.success) {
-        setBroadcasts(bcRes.value.data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching leads:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: broadcastsRaw, isLoading: broadcastsLoading } = useQuery({
+    queryKey: ['partnerBroadcasts'],
+    queryFn: () => api.get('/leads/partner').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
+  });
+
+  const loading = enquiriesLoading || broadcastsLoading;
+  const inquiries = enquiriesRaw?.success ? enquiriesRaw.data : [];
+  const broadcasts = broadcastsRaw?.success ? broadcastsRaw.data : [];
 
   const q = searchQuery.toLowerCase();
 

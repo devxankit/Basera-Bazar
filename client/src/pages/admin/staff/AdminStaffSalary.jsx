@@ -1,8 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { IndianRupee, Play, Download, CheckCircle, X } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 import AdminTable from '../../../components/common/AdminTable';
+import FilterBar, { FilterField } from '../../../components/admin/FilterBar';
 
 const STAFF_TYPES = [
   { value: '', label: 'All Staff' },
@@ -13,27 +15,51 @@ const STAFF_TYPES = [
 
 export default function AdminStaffSalary() {
   const currentMonth = new Date().toISOString().slice(0, 7);
+  const queryClient = useQueryClient();
   const [month, setMonth] = useState(currentMonth);
   const [staffType, setStaffType] = useState('');
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState(null);
   const [payNotes, setPayNotes] = useState('');
   const [pendingPayId, setPendingPayId] = useState(null);
-  const [processing, setProcessing] = useState(false);
 
-  const fetchSalary = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-staff-salary', month, staffType],
+    queryFn: () => {
       const params = new URLSearchParams({ month });
       if (staffType) params.set('staff_type', staffType);
-      const { data } = await api.get(`/admin/staff/salary?${params}`);
-      if (data.success) setRecords(data.data);
-    } catch { toast.error('Failed to load salary records.'); }
-    finally { setLoading(false); }
-  }, [month, staffType]);
+      return api.get(`/admin/staff/salary?${params}`).then((r) => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load salary records.'),
+  });
 
-  useEffect(() => { fetchSalary(); }, [fetchSalary]);
+  const records = rawData?.data || [];
+
+  const processMutation = useMutation({
+    mutationFn: () => api.post('/admin/staff/salary/process-monthly', { month }).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-staff-salary'] });
+      toast.success('Monthly salary processed successfully.');
+      setConfirmModal(null);
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Processing failed.');
+      setConfirmModal(null);
+    },
+  });
+
+  const markPaidMutation = useMutation({
+    mutationFn: ({ id, notes }) => api.put(`/admin/staff/salary/${id}/pay`, { notes }).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-staff-salary'] });
+      toast.success('Marked as paid.');
+      setConfirmModal(null);
+    },
+    onError: () => {
+      toast.error('Failed to mark as paid.');
+      setConfirmModal(null);
+    },
+  });
 
   const handleProcessMonthly = () => {
     setConfirmModal({
@@ -55,23 +81,12 @@ export default function AdminStaffSalary() {
     });
   };
 
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     if (confirmModal.action === 'process') {
-      setProcessing(true);
-      try {
-        await api.post('/admin/staff/salary/process-monthly', { month });
-        toast.success('Monthly salary processed successfully.');
-        fetchSalary();
-      } catch (err) { toast.error(err.response?.data?.message || 'Processing failed.'); }
-      finally { setProcessing(false); }
+      processMutation.mutate();
     } else if (confirmModal.action === 'pay') {
-      try {
-        await api.put(`/admin/staff/salary/${pendingPayId}/pay`, { notes: payNotes });
-        toast.success('Marked as paid.');
-        fetchSalary();
-      } catch { toast.error('Failed to mark as paid.'); }
+      markPaidMutation.mutate({ id: pendingPayId, notes: payNotes });
     }
-    setConfirmModal(null);
   };
 
   const handleDownloadSlip = async (id) => {
@@ -90,6 +105,9 @@ export default function AdminStaffSalary() {
   const totalIncentives = records.reduce((s, r) => s + (r.incentive_amount || 0), 0);
   const totalCommission = records.reduce((s, r) => s + (r.team_commission_amount || 0), 0);
   const totalPayout = records.reduce((s, r) => s + (r.effective_salary || 0), 0);
+
+  const processing = processMutation.isLoading || markPaidMutation.isLoading;
+  const activeFilterCount = staffType ? 1 : 0;
 
   const columns = [
     { header: 'Staff', render: (r) => (
@@ -139,25 +157,33 @@ export default function AdminStaffSalary() {
           disabled={processing}
           className="flex items-center gap-2 px-4 py-2 bg-[#001b4e] text-white rounded-lg text-sm font-semibold hover:bg-[#001337] transition-colors disabled:opacity-60"
         >
-          <Play size={15} /> {processing ? 'Processing...' : 'Process Monthly Salary'}
+          <Play size={15} /> {processMutation.isLoading ? 'Processing...' : 'Process Monthly Salary'}
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-5">
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
-        />
-        <select
-          value={staffType}
-          onChange={(e) => setStaffType(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
-        >
-          {STAFF_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-      </div>
+      <FilterBar
+        open
+        activeCount={activeFilterCount}
+        onReset={() => setStaffType('')}
+      >
+        <FilterField label="Month">
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+          />
+        </FilterField>
+        <FilterField label="Staff Type">
+          <select
+            value={staffType}
+            onChange={(e) => setStaffType(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
+          >
+            {STAFF_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         {[
@@ -176,7 +202,7 @@ export default function AdminStaffSalary() {
         ))}
       </div>
 
-      <AdminTable columns={columns} data={records} loading={loading} title="" />
+      <AdminTable columns={columns} data={records} loading={loading} title="" hideSearch hideFilter />
 
       {confirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -199,7 +225,7 @@ export default function AdminStaffSalary() {
               </div>
             )}
             <div className="flex gap-3">
-              <button onClick={handleConfirm} className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white bg-[#001b4e] hover:bg-[#001337]">
+              <button onClick={handleConfirm} disabled={processing} className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white bg-[#001b4e] hover:bg-[#001337] disabled:opacity-60">
                 Confirm
               </button>
               <button onClick={() => setConfirmModal(null)} className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-50">Cancel</button>

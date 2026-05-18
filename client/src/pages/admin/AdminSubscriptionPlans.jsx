@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { IndianRupee, Plus, Edit2, Trash2, Eye, ShieldCheck, Zap, ToggleLeft, Layers, Users, Calendar, Infinity as InfinityIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
@@ -9,58 +10,34 @@ import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 export default function AdminSubscriptionPlans() {
   const navigate = useNavigate();
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, deleting: false });
+  const queryClient = useQueryClient();
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
-  const fetchPlans = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/admin/subscriptions/plans');
-      if (res.data.success) {
-        setPlans(res.data.data);
-      }
-    } catch (err) {
-      console.error('Error fetching plans:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['adminSubscriptionPlans'],
+    queryFn: () => api.get('/admin/subscriptions/plans').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const plans = rawData?.data || [];
 
-  useEffect(() => {
-    fetchPlans();
-  }, []);
+  const toggleMutation = useMutation({
+    mutationFn: (plan) => api.put(`/admin/subscriptions/plans/${plan._id}`, { is_active: !plan.is_active }).then(r => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminSubscriptionPlans'] }),
+    onError: (err) => toast.error(err.response?.data?.message || 'Error updating status'),
+  });
 
-  const toggleStatus = async (plan) => {
-    try {
-      const res = await api.put(`/admin/subscriptions/plans/${plan._id}`, {
-        is_active: !plan.is_active
-      });
-      if (res.data.success) {
-        fetchPlans();
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error updating status');
-    }
-  };
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/admin/subscriptions/plans/${id}`).then(r => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminSubscriptionPlans'] });
+      setDeleteModal({ isOpen: false, id: null });
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Error deleting plan'),
+  });
 
-  const deletePlan = (id) => {
-    setDeleteModal({ isOpen: true, id, deleting: false });
-  };
-
-  const confirmDeletePlan = async () => {
-    setDeleteModal(m => ({ ...m, deleting: true }));
-    try {
-      const res = await api.delete(`/admin/subscriptions/plans/${deleteModal.id}`);
-      if (res.data.success) {
-        setDeleteModal({ isOpen: false, id: null, deleting: false });
-        fetchPlans();
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error deleting plan');
-      setDeleteModal(m => ({ ...m, deleting: false }));
-    }
-  };
+  const toggleStatus = (plan) => toggleMutation.mutate(plan);
+  const deletePlan = (id) => setDeleteModal({ isOpen: true, id });
+  const confirmDeletePlan = () => { if (deleteModal.id) deleteMutation.mutate(deleteModal.id); };
 
   const columns = [
     {
@@ -185,12 +162,12 @@ export default function AdminSubscriptionPlans() {
     <div className="space-y-8 pb-20 mt-4 animate-in fade-in duration-700">
       <ConfirmationModal
         isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, id: null, deleting: false })}
+        onClose={() => setDeleteModal({ isOpen: false, id: null })}
         onConfirm={confirmDeletePlan}
         title="Delete Plan"
         message="Are you sure you want to permanently delete this subscription plan? Any active subscribers will not be affected, but no new subscriptions can be created with this plan."
         confirmText="Delete Plan"
-        loading={deleteModal.deleting}
+        loading={deleteMutation.isPending}
       />
       {/* Upper Dashboard Metrics */}
       <div className="grid grid-cols-12 gap-6">

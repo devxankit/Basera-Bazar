@@ -1,54 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   ShoppingBag, ArrowLeft, Loader2, AlertCircle,
   Search, Eye, CheckCircle2, XCircle, Briefcase,
   Store, User, Tag, Calendar
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
 export default function AdminPendingOthers() {
   const navigate = useNavigate();
-  const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [actionLoading, setActionLoading] = useState({});
 
-  const fetchListings = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/admin/dashboard/pending/others');
-      if (response.data.success) {
-        setListings(response.data.data);
-      }
-    } catch (err) {
-      setError('Failed to load pending services/products queue.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['adminPendingOthers'],
+    queryFn: () => api.get('/admin/dashboard/pending/others').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchListings();
-  }, []);
+  const listings = rawData?.data || [];
+  const error = queryError ? 'Failed to load pending services/products queue.' : null;
 
-  const handleStatusUpdate = async (id, status) => {
-    setActionLoading(prev => ({ ...prev, [id]: status }));
-    try {
-      await api.patch(`/admin/listings/${id}/status`, { status });
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }) => api.patch(`/admin/listings/${id}/status`, { status }),
+    onSuccess: (_, { id, status }) => {
       toast.success(status === 'active' ? 'Listing approved.' : 'Listing rejected.');
-      setListings(prev => prev.filter(l => l._id !== id));
-    } catch {
-      toast.error('Failed to update listing status.');
-    } finally {
-      setActionLoading(prev => ({ ...prev, [id]: null }));
-    }
+      queryClient.setQueryData(['adminPendingOthers'], (old) => {
+        if (!old?.data) return old;
+        return { ...old, data: old.data.filter(l => l._id !== id) };
+      });
+    },
+    onError: () => toast.error('Failed to update listing status.'),
+  });
+
+  const handleStatusUpdate = (id, status) => {
+    statusMutation.mutate({ id, status });
   };
 
-  const filteredListings = listings.filter(l => 
+  const filteredListings = listings.filter(l =>
     l.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.partner_id?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -58,7 +50,7 @@ export default function AdminPendingOthers() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate('/admin/dashboard')}
             className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm"
           >
@@ -73,9 +65,9 @@ export default function AdminPendingOthers() {
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search listings or partners..." 
+            <input
+              type="text"
+              placeholder="Search listings or partners..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-11 pr-4 py-2.5 bg-white border border-slate-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none w-full md:w-64 transition-all shadow-sm"
@@ -98,11 +90,11 @@ export default function AdminPendingOthers() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredListings.length > 0 ? filteredListings.map((item, i) => (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.05 }}
-              key={item._id} 
+              key={item._id}
               className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col group hover:border-indigo-200 transition-all"
             >
               <div className="p-6 flex items-start justify-between bg-slate-50/50 border-b border-slate-50">
@@ -155,19 +147,19 @@ export default function AdminPendingOthers() {
                     </button>
                     <button
                       onClick={() => handleStatusUpdate(item._id, 'active')}
-                      disabled={!!actionLoading[item._id]}
+                      disabled={statusMutation.isPending}
                       className="p-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
                       title="Approve"
                     >
-                      {actionLoading[item._id] === 'active' ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
+                      <CheckCircle2 size={18} />
                     </button>
                     <button
                       onClick={() => handleStatusUpdate(item._id, 'rejected')}
-                      disabled={!!actionLoading[item._id]}
+                      disabled={statusMutation.isPending}
                       className="p-2.5 rounded-xl bg-white border border-rose-100 text-rose-500 hover:bg-rose-50 transition-all shadow-sm disabled:opacity-50"
                       title="Reject"
                     >
-                      {actionLoading[item._id] === 'rejected' ? <Loader2 size={18} className="animate-spin" /> : <XCircle size={18} />}
+                      <XCircle size={18} />
                     </button>
                   </div>
                 </div>

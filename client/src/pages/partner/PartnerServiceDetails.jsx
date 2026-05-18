@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, Edit3, Trash2, MapPin, 
+import {
+  ArrowLeft, Edit3, Trash2, MapPin,
   Briefcase, Calendar, Info, LayoutGrid,
   ChevronRight, AlertTriangle, Home, Building2, BedDouble, Bath, Square, Navigation, Car, Bike, Users, IndianRupee, Tag, Package, Camera, Star
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/DataEngine';
 import api from '../../services/api';
@@ -14,7 +15,6 @@ export default function PartnerServiceDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [service, setService] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
@@ -23,21 +23,14 @@ export default function PartnerServiceDetails() {
     }
   }, [user, navigate]);
 
-  useEffect(() => {
-    const fetchListing = async () => {
-      try {
-        const res = await api.get(`/listings/${id}`);
-        if (res.data.success) {
-          const normalized = db._normalize(res.data.data);
-          setService(normalized);
-        }
-      } catch (err) {
-        console.error("Error fetching listing details:", err);
-        alert("Failed to load details: " + (err.response?.data?.message || err.message));
-      }
-    };
-    fetchListing();
-  }, [id]);
+  const { data: rawData } = useQuery({
+    queryKey: ['listingDetails', id],
+    queryFn: () => api.get(`/listings/${id}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!id && !!user,
+  });
+
+  const service = rawData?.success ? db._normalize(rawData.data) : null;
 
   if (!user) return null;
 

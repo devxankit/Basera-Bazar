@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
-import { 
-  ArrowLeft, Star, MapPin, Phone, MessageSquare, 
+import {
+  ArrowLeft, Star, MapPin, Phone, MessageSquare,
   Navigation, Info, Image as ImageIcon, Contact,
   ChevronRight, Building2, Mail, Award, Clock, Send, X, User as UserIcon, ListFilter, CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -19,34 +20,32 @@ const ServiceProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const [service, setService] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('About');
   const [isModalOpen, setIsModalOpen] = useState(() => location.search.includes('enquire=true'));
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [enquiryData, setEnquiryData] = useState(() => ({ 
-    name: user?.name || '', 
-    phone: user?.phone || '', 
-    email: user?.email || '', 
+  const [enquiryData, setEnquiryData] = useState({
+    name: user?.name || '',
+    phone: user?.phone || '',
+    email: user?.email || '',
     message: '',
     inquiry_type: 'Request Quotation'
-  }));
+  });
 
+  const { data: service, isLoading: loading } = useQuery({
+    queryKey: ['service', id],
+    queryFn: () => db.getById('listings', id),
+    staleTime: 5 * 60 * 1000,
+  });
 
+  // Pre-fill message once service loads
   useEffect(() => {
-    const fetchService = async () => {
-      const data = await db.getById('listings', id);
-      setService(data);
-      if (data) {
-        setEnquiryData(prev => ({
-          ...prev,
-          message: `Hi I am interested in your service "${data.title}". Please provide more details and pricing.`
-        }));
-      }
-      setLoading(false);
-    };
-    fetchService();
-  }, [id]);
+    if (service) {
+      setEnquiryData(prev => ({
+        ...prev,
+        message: prev.message || `Hi I am interested in your service "${service.title}". Please provide more details and pricing.`
+      }));
+    }
+  }, [service?.id]);
 
   if (loading) {
     return (
@@ -66,6 +65,12 @@ const ServiceProfile = () => {
   }
 
   const tabs = ['About', 'Portfolio', 'Contact'];
+
+  const submitEnquiryMutation = useMutation({
+    mutationFn: (payload) => db.create('leads', payload),
+    onSuccess: () => { setIsModalOpen(false); setTimeout(() => setShowSuccessModal(true), 150); },
+    onError: () => alert("Failed to send enquiry. Please try again."),
+  });
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans pb-[200px]">
@@ -282,21 +287,19 @@ const ServiceProfile = () => {
               </div>
             </div>
 
-            <form 
-              className="space-y-5 overflow-y-auto px-1 -mx-1" 
-              onSubmit={async (e) => { 
-                e.preventDefault(); 
-                await db.create('leads', {
+            <form
+              className="space-y-5 overflow-y-auto px-1 -mx-1"
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitEnquiryMutation.mutate({
                   ...enquiryData,
-                  userId: user?.id || null, // Link to user if logged in
+                  userId: user?.id || null,
                   listingId: id,
                   listingTitle: service.title,
                   category: 'service',
                   type: 'enquiry',
                   date: new Date().toISOString()
                 });
-                setIsModalOpen(false); 
-                setTimeout(() => setShowSuccessModal(true), 150); 
               }}
             >
               <div className="space-y-2">

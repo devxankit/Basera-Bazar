@@ -9,6 +9,7 @@ import { twMerge } from 'tailwind-merge';
 import Skeleton from '../../components/common/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 import heroRealEstate from '../../assets/images/hero_real_estate.png';
 
@@ -21,8 +22,6 @@ const ListingDetails = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { cart, addToCart, removeFromCart } = useCart();
-  const [listing, setListing] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   const isMandi = listing?.category === 'mandi';
   const [activeTab, setActiveTab] = useState('details');
@@ -137,140 +136,111 @@ const ListingDetails = () => {
     setMatchedListing(candidates.length > 0 ? candidates[0] : null);
   }, [selectedType, selectedSubType, selectedBrand, allCategoryListings]);
 
-  const handleSendOtp = async () => {
+  const sendOtpMutation = useMutation({
+    mutationFn: (phone) => api.post('/auth/send-otp', { phone, checkExists: false }).then(r => r.data),
+    onSuccess: () => { setOtpSent(true); setOtpTimer(60); },
+    onError: (error) => alert(error.response?.data?.message || "Failed to send OTP. Please try again."),
+    onSettled: () => setIsSendingOtp(false),
+  });
+
+  const handleSendOtp = () => {
     if (enquiryData.phone.length < 10) {
       alert("Please enter a valid 10-digit phone number");
       return;
     }
-
-    try {
-      setIsSendingOtp(true);
-      const response = await api.post('/auth/send-otp', { 
-        phone: enquiryData.phone,
-        checkExists: false // We allow new users here
-      });
-      
-      if (response.data.success) {
-        setOtpSent(true);
-        setOtpTimer(60);
-      }
-    } catch (error) {
-      console.error("Error sending OTP:", error);
-      alert(error.response?.data?.message || "Failed to send OTP. Please try again.");
-    } finally {
-      setIsSendingOtp(false);
-    }
+    setIsSendingOtp(true);
+    sendOtpMutation.mutate(enquiryData.phone);
   };
 
-  const handleEnquirySubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
+  const submitEnquiryMutation = useMutation({
+    mutationFn: async (payload) => {
       let currentUserId = user?.id;
-
-      // 1. If guest, verify OTP and create account first
       if (!user) {
-        if (!otpSent || !otpCode) {
-          alert("Please verify your phone number via OTP first.");
-          setLoading(false);
-          return;
-        }
-
         setIsVerifying(true);
         try {
-          const authResponse = await api.post('/auth/verify-otp', {
-            phone: enquiryData.phone,
-            otp: otpCode,
-            name: enquiryData.name,
-            email: enquiryData.email,
+          const authData = await api.post('/auth/verify-otp', {
+            phone: payload.phone,
+            otp: payload.otp,
+            name: payload.name,
+            email: payload.email,
             role: 'user',
             flow: 'signup'
-          });
-
-          if (authResponse.data.success) {
-            const { token, user: newUser } = authResponse.data;
-            localStorage.setItem('baserabazar_token', token);
-            currentUserId = newUser.id;
+          }).then(r => r.data);
+          if (authData.success) {
+            localStorage.setItem('baserabazar_token', authData.token);
+            currentUserId = authData.user.id;
             setIsVerified(true);
             setVerificationSuccess(true);
-            
-            // Wait a tiny bit for localStorage/Auth context to stabilize
             await new Promise(resolve => setTimeout(resolve, 200));
           }
         } catch (authError) {
-          console.error("Verification failed:", authError);
-          alert(authError.response?.data?.message || "Verification failed. Incorrect OTP.");
           setIsVerifying(false);
-          setLoading(false);
-          return;
+          throw new Error(authError.response?.data?.message || "Verification failed. Incorrect OTP.");
         }
       }
-
-      // 2. Submit the Lead/Enquiry
       await db.create('leads', {
-        ...enquiryData,
+        name: payload.name,
+        phone: payload.phone,
+        email: payload.email,
+        message: payload.message,
         userId: currentUserId,
         listingId: listing.id,
-        category: listing.category || 'property', // Stronger fallback
+        category: listing.category || 'property',
       });
-
+      db.recordInteraction(id, 'enquiries');
+      return { wasGuest: !user };
+    },
+    onSuccess: ({ wasGuest }) => {
       setShowSuccessModal(true);
       setIsModalOpen(false);
-      
-      // Clean up states
-      if (!user) {
-        setTimeout(() => window.location.reload(), 2000); // Reload to reflect login state after modal
-      }
-      
-      // Record enquiry stat
-      db.recordInteraction(id, 'enquiries');
+      if (wasGuest) setTimeout(() => window.location.reload(), 2000);
+    },
+    onError: (error) => alert(error.message || "Failed to send enquiry. Please try again."),
+    onSettled: () => { setIsVerifying(false); },
+  });
 
-    } catch (error) {
-      console.error("Submission error:", error);
-      alert("Failed to send enquiry. Please try again.");
-    } finally {
-      setIsVerifying(false);
-      setLoading(false);
+  const handleEnquirySubmit = (e) => {
+    e.preventDefault();
+    if (!user && (!otpSent || !otpCode)) {
+      alert("Please verify your phone number via OTP first.");
+      return;
     }
+    submitEnquiryMutation.mutate({ ...enquiryData, otp: otpCode });
   };
 
   useEffect(() => {
     if (user) {
-      setEnquiryData(prev => ({ ...prev, name: user.name, phone: user.phone, email: user.email }));
-      setQuotationData(prev => ({ ...prev, name: user.name, phone: user.phone, email: user.email }));
+      setEnquiryData(prev => ({ ...prev, name: user.name, phone: user.phone || prev.phone, email: user.email || prev.email }));
+      setQuotationData(prev => ({ ...prev, name: user.name, phone: user.phone || prev.phone, email: user.email || prev.email }));
     }
-  }, [user]);
+  }, [user?.id]);
 
-  useEffect(() => {
-    const fetchListing = async () => {
-      // Try listings first
+  const { data: listing, isLoading: loading } = useQuery({
+    queryKey: ['listing', id],
+    queryFn: async () => {
       let data = await db.getById('listings', id);
-      
-      // If not found as listing, or if we know it's a partner ID, try partners
-      if (!data) {
-        data = await db.getById('partners', id);
+      if (!data) data = await db.getById('partners', id);
+      return data || null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Set default message when listing loads
+  useEffect(() => {
+    if (listing) {
+      if (listing.category === 'supplier' || listing.isPartner) {
+        setEnquiryData(prev => ({
+          ...prev,
+          message: `I would like to request a quotation for the following products:\n\n\n\nPlease provide detailed quotation with:\n- Best price and any bulk discounts\n- Availability and delivery timeline\n- Payment terms\n- Any additional specifications`
+        }));
+      } else {
+        setEnquiryData(prev => ({
+          ...prev,
+          message: `Hi, I am interested in the ${listing.category === 'service' ? 'service' : 'property'} "${listing.title}". Please provide more details.`
+        }));
       }
-      
-      setListing(data);
-      if (data) {
-        if (data.category === 'supplier' || data.isPartner) {
-          setEnquiryData(prev => ({
-            ...prev,
-            message: `I would like to request a quotation for the following products:\n\n\n\nPlease provide detailed quotation with:\n- Best price and any bulk discounts\n- Availability and delivery timeline\n- Payment terms\n- Any additional specifications`
-          }));
-        } else {
-          setEnquiryData(prev => ({
-            ...prev,
-            message: `Hi, I am interested in the ${data.category === 'service' ? 'service' : 'property'} "${data.title}". Please provide more details.`
-          }));
-        }
-      }
-      
-      setLoading(false);
-    };
-    fetchListing();
-  }, [id]);
+    }
+  }, [listing?.id]);
 
   // Auto-open variation modal if action=add in URL
   useEffect(() => {

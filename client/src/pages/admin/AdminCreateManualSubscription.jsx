@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { IndianRupee, Save, ArrowLeft, Plus, Trash2, Info, CheckCircle2, Infinity as InfinityIcon, Star, Zap, ShieldCheck, Calendar, X, Mail, Phone, Users } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
 export default function AdminCreateManualSubscription() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
-  const [plans, setPlans] = useState([]);
-  const [userDetails, setUserDetails] = useState(null);
 
   const [formData, setFormData] = useState({
     plan_id: '',
@@ -29,23 +28,21 @@ export default function AdminCreateManualSubscription() {
     leads: false
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [uRes, pRes] = await Promise.all([
-          api.get(`/admin/users/${userId}`),
-          api.get('/admin/subscriptions/plans')
-        ]);
-        if (uRes.data.success) setUserDetails(uRes.data.data);
-        if (pRes.data.success) setPlans(pRes.data.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [userId]);
+  const { data: userRaw, isLoading: userLoading } = useQuery({
+    queryKey: ['adminUser', userId],
+    queryFn: () => api.get(`/admin/users/${userId}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: plansRaw, isLoading: plansLoading } = useQuery({
+    queryKey: ['adminSubscriptionPlans'],
+    queryFn: () => api.get('/admin/subscriptions/plans').then(r => r.data),
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const loading = userLoading || plansLoading;
+  const userDetails = userRaw?.data || null;
+  const plans = plansRaw?.data || [];
 
   const selectedPlan = useMemo(() => {
     return plans.find(p => p._id === formData.plan_id);
@@ -80,25 +77,29 @@ export default function AdminCreateManualSubscription() {
     });
   }, [formData.starts_at, formData.duration_days]);
 
+  const createMutation = useMutation({
+    mutationFn: (payload) => api.post('/admin/subscriptions', payload).then(r => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminSubscriptions'] });
+      navigate('/admin/subscriptions');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Error processing subscription');
+      setSaving(false);
+    },
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    try {
-      const payload = {
-        partner_id: userId,
-        ...formData,
-        listings_limit: unlimited.listings ? -1 : parseInt(formData.listings_limit),
-        featured_listings_limit: unlimited.featured ? -1 : parseInt(formData.featured_listings_limit),
-        leads_limit: unlimited.leads ? -1 : parseInt(formData.leads_limit)
-      };
-
-      await api.post('/admin/subscriptions', payload);
-      navigate('/admin/subscriptions');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error processing subscription');
-    } finally {
-      setSaving(false);
-    }
+    const payload = {
+      partner_id: userId,
+      ...formData,
+      listings_limit: unlimited.listings ? -1 : parseInt(formData.listings_limit),
+      featured_listings_limit: unlimited.featured ? -1 : parseInt(formData.featured_listings_limit),
+      leads_limit: unlimited.leads ? -1 : parseInt(formData.leads_limit)
+    };
+    createMutation.mutate(payload);
   };
 
   if (loading) return <div className="p-20 text-center font-black text-slate-300 uppercase animate-pulse">Initializing Override Engine...</div>;
@@ -145,7 +146,7 @@ export default function AdminCreateManualSubscription() {
                  <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-2">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Subscription Plan <span className="text-rose-500 font-black">*</span></label>
-                       <select 
+                       <select
                         required
                         value={formData.plan_id}
                         onChange={(e) => setFormData({ ...formData, plan_id: e.target.value })}
@@ -160,8 +161,8 @@ export default function AdminCreateManualSubscription() {
                     </div>
                     <div className="space-y-2">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Start Date <span className="text-rose-500 font-black">*</span></label>
-                       <input 
-                        type="date" 
+                       <input
+                        type="date"
                         required
                         value={formData.starts_at}
                         onChange={(e) => setFormData({ ...formData, starts_at: e.target.value })}
@@ -175,8 +176,8 @@ export default function AdminCreateManualSubscription() {
                  <div className="grid grid-cols-3 gap-8">
                     <div className="space-y-2">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Duration (Days) <span className="text-rose-500 font-black">*</span></label>
-                       <input 
-                        type="number" 
+                       <input
+                        type="number"
                         required
                         value={formData.duration_days}
                         onChange={(e) => setFormData({ ...formData, duration_days: e.target.value })}
@@ -186,8 +187,8 @@ export default function AdminCreateManualSubscription() {
                     </div>
                     <div className="space-y-2">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Amount Paid (₹) <span className="text-rose-500 font-black">*</span></label>
-                       <input 
-                        type="number" 
+                       <input
+                        type="number"
                         required
                         value={formData.amount_paid}
                         onChange={(e) => setFormData({ ...formData, amount_paid: e.target.value })}
@@ -208,16 +209,16 @@ export default function AdminCreateManualSubscription() {
                  <div className="grid grid-cols-3 gap-8 pt-4">
                     <div className="space-y-3">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Leads Available</label>
-                       <input 
-                        type="number" 
+                       <input
+                        type="number"
                         disabled={unlimited.leads}
                         value={formData.leads_limit}
                         onChange={(e) => setFormData({ ...formData, leads_limit: e.target.value })}
                         className={`w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all ${unlimited.leads ? 'opacity-40' : ''}`}
                        />
                        <label className="flex items-center gap-2 cursor-pointer group">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={unlimited.leads}
                             onChange={(e) => setUnlimited({ ...unlimited, leads: e.target.checked })}
                             className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-0 transition-all"
@@ -232,16 +233,16 @@ export default function AdminCreateManualSubscription() {
 
                     <div className="space-y-3">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Listings Available</label>
-                       <input 
-                        type="number" 
+                       <input
+                        type="number"
                         disabled={unlimited.listings}
                         value={formData.listings_limit}
                         onChange={(e) => setFormData({ ...formData, listings_limit: e.target.value })}
                         className={`w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all ${unlimited.listings ? 'opacity-40' : ''}`}
                        />
                        <label className="flex items-center gap-2 cursor-pointer group">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={unlimited.listings}
                             onChange={(e) => setUnlimited({ ...unlimited, listings: e.target.checked })}
                             className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-0 transition-all"
@@ -256,16 +257,16 @@ export default function AdminCreateManualSubscription() {
 
                     <div className="space-y-3">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Featured Listings</label>
-                       <input 
-                        type="number" 
+                       <input
+                        type="number"
                         disabled={unlimited.featured}
                         value={formData.featured_listings_limit}
                         onChange={(e) => setFormData({ ...formData, featured_listings_limit: e.target.value })}
                         className={`w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all ${unlimited.featured ? 'opacity-40' : ''}`}
                        />
                        <label className="flex items-center gap-2 cursor-pointer group">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={unlimited.featured}
                             onChange={(e) => setUnlimited({ ...unlimited, featured: e.target.checked })}
                             className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-0 transition-all"
@@ -282,7 +283,7 @@ export default function AdminCreateManualSubscription() {
                  {/* Notes Area */}
                  <div className="space-y-2 pt-4">
                     <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Notes</label>
-                    <textarea 
+                    <textarea
                       rows="3"
                       placeholder="Any additional notes about this subscription"
                       value={formData.notes}
@@ -294,15 +295,15 @@ export default function AdminCreateManualSubscription() {
 
                  {/* Action Bar Footer */}
                  <div className="flex justify-end gap-3 pt-8 border-t border-slate-50">
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => navigate('/admin/subscriptions')}
                       className="px-8 py-2.5 bg-[#6c757d] text-white font-bold text-[13px] rounded-lg hover:bg-[#5a6268] transition-all flex items-center gap-2"
                     >
                       <X size={16} /> Cancel
                     </button>
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       disabled={saving}
                       className="px-10 py-2.5 bg-[#fa641e] text-white font-black text-[13px] rounded-lg hover:bg-[#e45b1b] transition-all shadow-lg shadow-orange-100 flex items-center gap-2"
                     >
@@ -319,7 +320,7 @@ export default function AdminCreateManualSubscription() {
               <h2 className="text-sm font-black text-slate-800 tracking-tight uppercase flex items-center gap-2">
                  <Info size={18} /> Subscription Information
               </h2>
-              
+
               <div className="p-5 bg-cyan-50 border border-cyan-100 rounded-xl space-y-4">
                  <h3 className="text-xs font-black text-cyan-900 flex items-center gap-2 italic uppercase tracking-tighter">
                    <Zap size={14} className="fill-cyan-500" /> Creating Manual Subscription
@@ -349,7 +350,7 @@ export default function AdminCreateManualSubscription() {
               <h2 className="text-sm font-black text-slate-800 tracking-tight uppercase flex items-center gap-2">
                  <ShieldCheck size={18} /> Selected Plan Details
               </h2>
-              
+
               {selectedPlan ? (
                 <div className="space-y-6 pt-2">
                    <div className="flex justify-between items-center text-[13px] font-black italic">
@@ -366,7 +367,7 @@ export default function AdminCreateManualSubscription() {
                    </div>
                    <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
                       <div className="flex items-center gap-3 text-[11px] font-bold text-slate-500 italic">
-                         <Layers size={14} /> Listings: {selectedPlan.listings_limit === -1 ? 'Unlimited' : selectedPlan.listings_limit}
+                         <Users size={14} /> Listings: {selectedPlan.listings_limit === -1 ? 'Unlimited' : selectedPlan.listings_limit}
                       </div>
                       <div className="flex items-center gap-3 text-[11px] font-bold text-slate-500 italic">
                          <Users size={14} /> Leads: {selectedPlan.leads_limit === -1 ? 'Unlimited' : selectedPlan.leads_limit}

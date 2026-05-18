@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { useQuery } from '@tanstack/react-query';
 import { ShoppingCart, ArrowLeft, Trash2, Plus, Minus, ChevronRight, PackageOpen } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,18 +11,14 @@ export default function CartPage() {
   const { cart, addToCart, removeFromCart, deleteFromCart, cartTotal, cartCount } = useCart();
 
   const cartItems = Object.values(cart);
-  
-  const [config, setConfig] = React.useState({ token_amount: 500 });
 
-  React.useEffect(() => {
-    const fetchConfig = async () => {
-       try {
-          const res = await api.get('/admin/mandi/settings'); 
-          if (res.data.success) setConfig(res.data.data);
-       } catch (err) { console.error("Error fetching config", err); }
-    };
-    fetchConfig();
-  }, []);
+  const { data: configRaw } = useQuery({
+    queryKey: ['mandiSettings'],
+    queryFn: () => api.get('/admin/mandi/settings').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const config = configRaw?.success ? configRaw.data : { token_amount: 500 };
 
   const getUniqueSellersCount = () => {
     const sellerIds = cartItems.map(c => c.item.owner?.id || c.item.partner_id || c.item.seller_id);

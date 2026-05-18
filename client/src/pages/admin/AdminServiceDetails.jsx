@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   MapPin, CheckCircle2, ArrowLeft, Edit2, Trash2, 
   User, Phone, Mail, Calendar, Info, AlertCircle,
@@ -20,54 +21,39 @@ function cn(...inputs) {
 export default function AdminServiceDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [listing, setListing] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('details');
-  const [isDeleting, setIsDeleting] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        const res = await api.get(`/admin/listings/detail/${id}`);
-        if (res.data.success) {
-          setListing(res.data.data);
-        }
-      } catch (err) {
-        setError("Failed to fetch service details.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDetail();
-  }, [id]);
+  const { data: rawData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['adminServiceDetail', id],
+    queryFn: () => api.get(`/admin/listings/detail/${id}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const listing = rawData?.data || null;
+  const error = queryError ? "Failed to fetch service details." : null;
 
-  const handleStatusUpdate = async (status) => {
-    try {
-      const res = await api.patch(`/admin/listings/${id}/status`, { status });
-      if (res.data.success) {
-        setListing(prev => ({ ...prev, status }));
-      }
-    } catch (err) {
-      toast.error('Failed to update listing status.');
-    }
-  };
+  const statusMutation = useMutation({
+    mutationFn: (status) => api.patch(`/admin/listings/${id}/status`, { status }).then(r => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminServiceDetail', id] }),
+    onError: () => toast.error('Failed to update listing status.'),
+  });
 
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      const res = await api.delete(`/admin/listings/${id}`);
-      if (res.data.success) {
-        setDeleteModalOpen(false);
-        navigate('/admin/services');
-      }
-    } catch (err) {
-      toast.error('Failed to delete listing. Please try again.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+  const featureMutation = useMutation({
+    mutationFn: (is_featured) => api.put(`/admin/listings/${id}`, { is_featured }).then(r => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminServiceDetail', id] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/admin/listings/${id}`).then(r => r.data),
+    onSuccess: () => { setDeleteModalOpen(false); navigate('/admin/services'); },
+    onError: () => toast.error('Failed to delete listing. Please try again.'),
+  });
+
+  const isDeleting = deleteMutation.isPending;
+
+  const handleStatusUpdate = (status) => statusMutation.mutate(status);
+  const handleDelete = () => deleteMutation.mutate();
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-40 gap-4">
@@ -370,8 +356,8 @@ export default function AdminServiceDetails() {
                         <label className="text-[12px] font-semibold text-slate-400 uppercase tracking-widest block ml-1">Promotion Visibility</label>
                         <div className="flex items-center justify-between p-5 border border-slate-100 rounded-2xl bg-slate-50/50 group hover:bg-white transition-all">
                            <span className="text-[12px] font-medium text-slate-500 uppercase tracking-wide">Featured Rank</span>
-                           <button 
-                             onClick={() => api.put(`/admin/listings/${id}`, { is_featured: !listing.is_featured }).then(res => res.data.success && setListing(prev => ({ ...prev, is_featured: !prev.is_featured })))}
+                           <button
+                             onClick={() => featureMutation.mutate(!listing.is_featured)}
                              className={cn(
                                 "px-5 py-2.5 rounded-xl text-[11px] font-semibold uppercase tracking-widest border-2 transition-all active:scale-90",
                                 listing.is_featured ? "bg-orange-600 border-orange-600 text-white shadow-lg shadow-orange-100" : "bg-white border-slate-200 text-slate-400 hover:border-orange-500 hover:text-orange-500"

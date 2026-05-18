@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pencil, Power, CheckCircle } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 import AdminTable from '../../../components/common/AdminTable';
@@ -14,38 +15,50 @@ const SPEC_LABELS = { lead_generation: 'Lead Generation', follow_up: 'Follow-up'
 export default function AdminOfficeStaffDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [os, setOs] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState('Overview');
   const [confirmModal, setConfirmModal] = useState(null);
 
-  const fetch = async () => {
-    setLoading(true);
-    try {
-      const { data } = await api.get(`/admin/staff/office-staff/${id}`);
-      if (data.success) setOs(data.data);
-    } catch { toast.error('Failed to load.'); }
-    finally { setLoading(false); }
-  };
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-office-staff-detail', id],
+    queryFn: () => api.get(`/admin/staff/office-staff/${id}`).then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load.'),
+  });
 
-  useEffect(() => { fetch(); }, [id]);
+  const os = rawData?.data || null;
 
-  const handleApprove = async () => {
+  const approveMutation = useMutation({
+    mutationFn: () => api.put(`/admin/staff/office-staff/${id}/approve`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-office-staff-detail', id] });
+      toast.success('Approved.');
+    },
+    onError: () => toast.error('Approval failed.'),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: () => api.put(`/admin/staff/office-staff/${id}/toggle`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-office-staff-detail', id] });
+      toast.success('Status updated.');
+    },
+    onError: () => toast.error('Toggle failed.'),
+  });
+
+  const handleApprove = () => {
     setConfirmModal({
       title: 'Approve Office Staff?',
       message: 'This will grant them portal access.',
       type: 'success',
       onConfirm: async () => {
-        await api.put(`/admin/staff/office-staff/${id}/approve`);
-        toast.success('Approved.'); fetch(); setConfirmModal(null);
+        await approveMutation.mutateAsync();
+        setConfirmModal(null);
       },
     });
   };
 
-  const handleToggle = async () => {
-    await api.put(`/admin/staff/office-staff/${id}/toggle`);
-    toast.success('Status updated.'); fetch();
-  };
+  const handleToggle = () => toggleMutation.mutate();
 
   if (loading) return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">

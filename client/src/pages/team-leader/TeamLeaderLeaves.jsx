@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle, XCircle, Plus } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
@@ -23,34 +24,41 @@ const EMPTY_FORM = { leave_type: 'casual', start_date: '', end_date: '', reason:
 
 export default function TeamLeaderLeaves() {
   const [tab, setTab] = useState('Team Leaves');
-  const [teamLeaves, setTeamLeaves] = useState([]);
-  const [myLeaves, setMyLeaves] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [submitting, setSubmitting] = useState(false);
   const [noteInputs, setNoteInputs] = useState({});
+  const queryClient = useQueryClient();
 
-  const fetchTeamLeaves = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await api.get('/team-leader/leaves/team');
-      if (data.success) setTeamLeaves(data.data);
-    } catch { toast.error('Failed to load team leaves.'); }
-    finally { setLoading(false); }
-  }, []);
+  const { data: teamRaw, isLoading: teamLoading } = useQuery({
+    queryKey: ['teamLeaderTeamLeaves'],
+    queryFn: () => api.get('/team-leader/leaves/team').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load team leaves.'),
+  });
 
-  const fetchMyLeaves = useCallback(async () => {
-    try {
-      const { data } = await api.get('/team-leader/leaves/my');
-      if (data.success) setMyLeaves(data.data);
-    } catch { toast.error('Failed to load your leaves.'); }
-  }, []);
+  const { data: myRaw, isLoading: myLoading } = useQuery({
+    queryKey: ['teamLeaderMyLeaves'],
+    queryFn: () => api.get('/team-leader/leaves/my').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load your leaves.'),
+  });
 
-  useEffect(() => {
-    fetchTeamLeaves();
-    fetchMyLeaves();
-  }, [fetchTeamLeaves, fetchMyLeaves]);
+  const teamLeaves = teamRaw?.success ? teamRaw.data : [];
+  const myLeaves = myRaw?.success ? myRaw.data : [];
+  const loading = teamLoading || myLoading;
+
+  const submitMutation = useMutation({
+    mutationFn: (payload) => api.post('/team-leader/leaves', payload).then(r => r.data),
+    onSuccess: () => {
+      toast.success('Leave request submitted.');
+      setShowForm(false);
+      setForm(EMPTY_FORM);
+      queryClient.invalidateQueries({ queryKey: ['teamLeaderMyLeaves'] });
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to submit.'),
+  });
+
+  const submitting = submitMutation.isLoading;
 
   const handleTeamAction = async (id, action) => {
     const note = noteInputs[id] || '';
@@ -61,25 +69,17 @@ export default function TeamLeaderLeaves() {
     try {
       await api.put(`/team-leader/leaves/${id}`, { action, note });
       toast.success(action === 'approve' ? 'Leave approved.' : 'Leave rejected.');
-      fetchTeamLeaves();
+      queryClient.invalidateQueries({ queryKey: ['teamLeaderTeamLeaves'] });
     } catch { toast.error('Action failed.'); }
   };
 
-  const handleSubmitLeave = async (e) => {
+  const handleSubmitLeave = (e) => {
     e.preventDefault();
     if (new Date(form.end_date) < new Date(form.start_date)) {
       toast.error('End date must be on or after start date.');
       return;
     }
-    setSubmitting(true);
-    try {
-      await api.post('/team-leader/leaves', form);
-      toast.success('Leave request submitted.');
-      setShowForm(false);
-      setForm(EMPTY_FORM);
-      fetchMyLeaves();
-    } catch (err) { toast.error(err.response?.data?.message || 'Failed to submit.'); }
-    finally { setSubmitting(false); }
+    submitMutation.mutate(form);
   };
 
   const calculateDays = () => {

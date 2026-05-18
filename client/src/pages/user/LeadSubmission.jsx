@@ -9,6 +9,7 @@ import { useLocationContext } from '../../context/LocationContext';
 import { useAuth } from '../../context/AuthContext';
 import { INDIAN_STATES_DISTRICTS, INDIAN_STATES } from '../../constants/indiaGeoData';
 import clsx from 'clsx';
+import { useMutation } from '@tanstack/react-query';
 
 // Map any browse category type to valid backend enum values
 const toValidCategory = (type) => {
@@ -24,7 +25,6 @@ const LeadSubmission = () => {
   const rawType = searchParams.get('type') || 'supplier';
   const targetCategory = toValidCategory(rawType);
 
-  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
   
@@ -78,7 +78,26 @@ const LeadSubmission = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const broadcastMutation = useMutation({
+    mutationFn: (payload) => db.broadcastLead(payload),
+    onSuccess: (res) => {
+      if (res.success) {
+        setSuccess(true);
+        setTimeout(() => navigate(-1), 3000);
+      } else {
+        alert(res.message || "Failed to broadcast lead.");
+      }
+    },
+    onError: (err) => {
+      console.error("Submission error:", err);
+      const msg = err.response?.data?.message || err.message || "Unknown error";
+      alert(`Broadcast failed: ${msg}. Please check your connection and try again.`);
+    },
+  });
+
+  const loading = broadcastMutation.isPending;
+
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!isAuthenticated) {
       navigate('/login', { state: { from: window.location.pathname + window.location.search } });
@@ -93,30 +112,7 @@ const LeadSubmission = () => {
       alert("Please fill the item name for all rows.");
       return;
     }
-
-    setLoading(true);
-    try {
-      const payload = {
-        ...formData,
-        products,
-        target_category: targetCategory
-      };
-      
-      const res = await db.broadcastLead(payload);
-      
-      if (res.success) {
-        setSuccess(true);
-        setTimeout(() => navigate(-1), 3000);
-      } else {
-        alert(res.message || "Failed to broadcast lead.");
-      }
-    } catch (err) {
-      console.error("Submission error:", err);
-      const msg = err.response?.data?.message || err.message || "Unknown error";
-      alert(`Broadcast failed: ${msg}. Please check your connection and try again.`);
-    } finally {
-      setLoading(false);
-    }
+    broadcastMutation.mutate({ ...formData, products, target_category: targetCategory });
   };
 
   // Pre-fill name/phone from auth user if available

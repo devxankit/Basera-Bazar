@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Building2, 
-  Briefcase, 
-  Package, 
-  Plus, 
-  ArrowLeft, 
+import {
+  Building2,
+  Briefcase,
+  Package,
+  Plus,
+  ArrowLeft,
   Menu,
   ChevronRight,
   Edit,
   Trash2,
-  MapPin, 
-  BedDouble, 
-  Square, 
+  MapPin,
+  BedDouble,
+  Square,
   AlertCircle,
   Star
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { db } from '../../services/DataEngine';
@@ -24,57 +25,36 @@ import { db } from '../../services/DataEngine';
 export default function PartnerInventory() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState('All');
-  const [subscriptionLimits, setSubscriptionLimits] = useState({
-    canFeature: true,
-    message: '',
-    featuredUsed: 0,
-    featuredLimit: 0
-  });
 
   useEffect(() => {
-    if (!user) {
-      navigate('/partner/login');
-      return;
-    }
-
-    const fetchMyListings = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get('/listings/my');
-        if (response.data.success) {
-          const normalizedData = (response.data.data || []).map(item => db._normalize(item));
-          setItems(normalizedData);
-        }
-      } catch (err) {
-        console.error("Error fetching partner inventory:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMyListings();
-    fetchSubscriptionLimits();
+    if (!user) navigate('/partner/login');
   }, [user, navigate]);
 
-  const fetchSubscriptionLimits = async () => {
-    try {
-      const res = await api.get('/partners/subscription/limits');
-      if (res.data.success) {
-        const { usage, messages } = res.data.data;
-        setSubscriptionLimits({
-          canFeature: !usage.is_featured_limit_reached,
-          message: messages.featured,
-          featuredUsed: usage.featured_listings_used,
-          featuredLimit: usage.featured_listings_limit
-        });
-      }
-    } catch (err) {
-      console.error("Error fetching limits:", err);
-    }
-  };
+  const { data: listingsRaw, isLoading: listingsLoading } = useQuery({
+    queryKey: ['myListings'],
+    queryFn: () => api.get('/listings/my').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
+    select: (data) => data?.success ? (data.data || []).map(item => db._normalize(item)) : [],
+  });
+
+  const { data: limitsRaw } = useQuery({
+    queryKey: ['inventorySubscriptionLimits'],
+    queryFn: () => api.get('/partners/subscription/limits').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
+  });
+
+  const loading = listingsLoading;
+  const items = listingsRaw || [];
+  const subscriptionLimits = limitsRaw?.success ? {
+    canFeature: !limitsRaw.data.usage.is_featured_limit_reached,
+    message: limitsRaw.data.messages.featured,
+    featuredUsed: limitsRaw.data.usage.featured_listings_used,
+    featuredLimit: limitsRaw.data.usage.featured_listings_limit,
+  } : { canFeature: true, message: '', featuredUsed: 0, featuredLimit: 0 };
 
   if (!user) return null;
   const partner = user;
@@ -127,11 +107,13 @@ export default function PartnerInventory() {
     if (window.confirm("Are you sure you want to delete this listing?")) {
       try {
         await api.delete(`/listings/${id}`);
-        // Update local state by checking both id and _id
-        setItems(prevItems => prevItems.filter(item => {
-          const itemId = item.id || item._id;
-          return itemId && itemId.toString() !== id.toString();
-        }));
+        queryClient.setQueryData(['myListings'], (old) => {
+          if (!old?.data) return old;
+          return { ...old, data: old.data.filter(item => {
+            const itemId = item._id || item.id;
+            return itemId && itemId.toString() !== id.toString();
+          })};
+        });
 
         // Log Activity
         const uid = partner?._id || partner?.id;
@@ -157,7 +139,7 @@ export default function PartnerInventory() {
   const handleToggleFeatured = async (e, item) => {
     e.stopPropagation();
     const isCurrentlyFeatured = item.isFeatured === true || item.is_featured === true;
-    
+
     // If trying to feature and limit reached
     if (!isCurrentlyFeatured && !subscriptionLimits.canFeature) {
       alert(subscriptionLimits.message || "Featured limit reached! Un-feature another item to feature this one.");
@@ -167,15 +149,8 @@ export default function PartnerInventory() {
     try {
       const res = await api.patch(`/listings/${item.id || item._id}/toggle-featured`);
       if (res.data.success) {
-        // Update local state
-        setItems(prev => prev.map(i => {
-          if ((i.id || i._id) === (item.id || item._id)) {
-            return { ...i, isFeatured: res.data.data.is_featured };
-          }
-          return i;
-        }));
-        // Refresh limits
-        fetchSubscriptionLimits();
+        queryClient.invalidateQueries({ queryKey: ['myListings'] });
+        queryClient.invalidateQueries({ queryKey: ['inventorySubscriptionLimits'] });
       }
     } catch (err) {
       console.error("Toggle featured error:", err);

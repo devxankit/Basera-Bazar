@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  User, Mail, Phone, Shield, Calendar, 
+import {
+  User, Mail, Phone, Shield, Calendar,
   MapPin, Clock, ArrowLeft, MoreVertical,
   IndianRupee, Activity, CheckCircle2, AlertCircle,
   Briefcase, TrendingUp, ChevronRight, Zap, FileText, ExternalLink,
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import Skeleton from '../../components/common/Skeleton';
 import { toast } from '../../mockToast';
@@ -23,11 +24,8 @@ function cn(...inputs) {
 export default function AdminExecutiveDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [executive, setExecutive] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [showOptions, setShowOptions] = useState(false);
-  const [isActionLoading, setIsActionLoading] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [tab, setTab] = useState('Overview');
@@ -36,43 +34,76 @@ export default function AdminExecutiveDetails() {
   const [executives, setExecutives] = useState([]);
   const [toExecutiveId, setToExecutiveId] = useState('');
 
-  useEffect(() => {
-    const fetchExecutiveDetail = async () => {
-      setLoading(true);
-      try {
-        const response = await api.get(`/admin/executives/${id}`);
-        if (response.data.success) {
-          setExecutive(response.data.data);
-        }
-      } catch (err) {
-        setError("Executive profile not found in database.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchExecutiveDetail();
-  }, [id]);
+  const { data: rawData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['adminExecutiveDetails', id],
+    queryFn: () => api.get(`/admin/executives/${id}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!id,
+  });
 
-  const handleStatusUpdate = async (status, reason = '') => {
+  const executive = rawData?.data || null;
+  const error = queryError ? "Executive profile not found in database." : null;
+
+  const statusMutation = useMutation({
+    mutationFn: ({ status, rejection_reason }) => api.patch(`/admin/executives/${id}/status`, { status, rejection_reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminExecutiveDetails', id] });
+      setShowRejectInput(false);
+      setRejectionReason('');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Update failed'),
+  });
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: () => api.patch(`/admin/executives/${id}/toggle-active`),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['adminExecutiveDetails', id] });
+      toast.success(res.data.message || 'Executive status updated');
+      setShowOptions(false);
+    },
+    onError: () => toast.error('Failed to toggle status'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/admin/executives/${id}`),
+    onSuccess: () => {
+      toast.success('Executive deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['adminExecutives'] });
+      navigate('/admin/executives');
+    },
+    onError: () => toast.error('Delete failed'),
+  });
+
+  const resetKycMutation = useMutation({
+    mutationFn: () => api.post(`/admin/executives/${id}/reset-kyc`),
+    onSuccess: () => {
+      toast.success('Executive KYC has been reset');
+      queryClient.invalidateQueries({ queryKey: ['adminExecutiveDetails', id] });
+      setShowOptions(false);
+    },
+    onError: () => toast.error('KYC Reset failed'),
+  });
+
+  const transferLeadsMutation = useMutation({
+    mutationFn: (to_executive_id) => api.post(`/admin/staff/executives/${id}/transfer-leads`, { to_executive_id }),
+    onSuccess: (res) => {
+      toast.success(res.data.message || 'Leads transferred successfully');
+      setTransferModal({ isOpen: false, loading: false });
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Transfer failed');
+      setTransferModal(m => ({ ...m, loading: false }));
+    },
+  });
+
+  const isActionLoading = statusMutation.isPending || toggleActiveMutation.isPending || resetKycMutation.isPending;
+
+  const handleStatusUpdate = (status, reason = '') => {
     if (status === 'rejected' && !reason) {
       toast.error("Please provide a reason for rejection");
       return;
     }
-
-    setIsActionLoading(true);
-    try {
-      await api.patch(`/admin/executives/${id}/status`, { status, rejection_reason: reason });
-      toast.success(`Executive ${status} successfully!`);
-      // Re-fetch to sync
-      const response = await api.get(`/admin/executives/${id}`);
-      setExecutive(response.data.data);
-      setShowRejectInput(false);
-      setRejectionReason('');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Update failed');
-    } finally {
-      setIsActionLoading(false);
-    }
+    statusMutation.mutate({ status, rejection_reason: reason });
   };
 
   const openConfirm = (title, message, action, type = 'danger') => {
@@ -94,14 +125,7 @@ export default function AdminExecutiveDetails() {
     openConfirm(
       `${currentStatus ? 'Deactivate' : 'Activate'} Executive`,
       `Are you sure you want to ${action} this executive?`,
-      async () => {
-        const res = await api.patch(`/admin/executives/${id}/toggle-active`);
-        if (res.data.success) {
-          setExecutive({ ...executive, is_active: !currentStatus });
-          toast.success(res.data.message || `Executive ${action}d successfully`);
-          setShowOptions(false);
-        }
-      },
+      async () => { toggleActiveMutation.mutate(); },
       currentStatus ? 'warning' : 'info'
     );
   };
@@ -110,11 +134,7 @@ export default function AdminExecutiveDetails() {
     openConfirm(
       'Delete Executive',
       'Are you sure you want to permanently delete this executive? This action cannot be undone.',
-      async () => {
-        await api.delete(`/admin/executives/${id}`);
-        toast.success('Executive deleted successfully');
-        navigate('/admin/executives');
-      }
+      async () => { deleteMutation.mutate(); }
     );
   };
 
@@ -131,37 +151,17 @@ export default function AdminExecutiveDetails() {
     }
   };
 
-  const handleTransferLeads = async () => {
+  const handleTransferLeads = () => {
     if (!toExecutiveId) { toast.error('Please select a target executive'); return; }
     setTransferModal(m => ({ ...m, loading: true }));
-    try {
-      const res = await api.post(`/admin/staff/executives/${id}/transfer-leads`, { to_executive_id: toExecutiveId });
-      toast.success(res.data.message || 'Leads transferred successfully');
-      setTransferModal({ isOpen: false, loading: false });
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Transfer failed');
-      setTransferModal(m => ({ ...m, loading: false }));
-    }
+    transferLeadsMutation.mutate(toExecutiveId);
   };
 
   const handleResetKyc = () => {
     openConfirm(
       'Reset KYC',
       "Are you sure you want to reset this user's KYC? They will need to re-upload all documents.",
-      async () => {
-        setIsActionLoading(true);
-        try {
-          await api.post(`/admin/executives/${id}/reset-kyc`);
-          toast.success('Executive KYC has been reset');
-          const res = await api.get(`/admin/executives/${id}`);
-          setExecutive(res.data.data);
-          setShowOptions(false);
-        } catch (err) {
-          toast.error('KYC Reset failed');
-        } finally {
-          setIsActionLoading(false);
-        }
-      },
+      async () => { resetKycMutation.mutate(); },
       'warning'
     );
   };
@@ -254,7 +254,7 @@ export default function AdminExecutiveDetails() {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="flex items-start gap-6">
-                 <button 
+                 <button
                    onClick={() => navigate('/admin/executives')}
                    className="p-3 bg-slate-50 text-slate-500 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-slate-100 group shrink-0"
                  >
@@ -262,10 +262,10 @@ export default function AdminExecutiveDetails() {
                  </button>
                  <div className="flex items-center gap-6">
                     <div className="relative w-24 h-24 rounded-2xl bg-slate-100 border border-slate-200 p-1 overflow-hidden">
-                       <img 
-                         src={executive.kyc?.live_photo || `https://ui-avatars.com/api/?name=${executive.name}&background=6366f1&color=fff&bold=true`} 
-                         className="w-full h-full object-cover rounded-xl" 
-                         alt="" 
+                       <img
+                         src={executive.kyc?.live_photo || `https://ui-avatars.com/api/?name=${executive.name}&background=6366f1&color=fff&bold=true`}
+                         className="w-full h-full object-cover rounded-xl"
+                         alt=""
                        />
                        {executive.is_active && (
                          <div className="absolute top-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" />
@@ -288,14 +288,14 @@ export default function AdminExecutiveDetails() {
                <div className="flex flex-wrap items-center gap-3">
                   {executive.onboarding_status !== 'verified' && executive.onboarding_status !== 'approved' && (
                      <div className="flex items-center gap-2">
-                        <button 
+                        <button
                           onClick={() => handleStatusUpdate('approved')}
                           disabled={isActionLoading}
                           className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-sm hover:shadow-emerald-100 disabled:opacity-50"
                         >
                            <CheckCircle2 size={14} /> Approve KYC
                         </button>
-                        <button 
+                        <button
                           onClick={() => setShowRejectInput(!showRejectInput)}
                           disabled={isActionLoading}
                           className="flex items-center gap-2 px-6 py-2.5 bg-rose-50 text-rose-600 text-[11px] font-bold uppercase tracking-widest rounded-xl hover:bg-rose-100 transition-all border border-rose-100 disabled:opacity-50"
@@ -306,22 +306,22 @@ export default function AdminExecutiveDetails() {
                   )}
 
                   <div className="relative">
-                     <button 
+                     <button
                         onClick={() => setShowOptions(!showOptions)}
                         className="p-3 bg-slate-50 text-slate-500 rounded-xl hover:bg-slate-100 transition-all border border-slate-100"
                      >
                         <MoreVertical size={20} />
                      </button>
-                     
+
                      {showOptions && (
                         <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                           <button 
+                           <button
                               onClick={handleResetKyc}
                               className="w-full px-4 py-2.5 text-left text-[11px] font-bold text-amber-600 hover:bg-amber-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
                            >
                               <Shield size={14} /> Reset KYC
                            </button>
-                           <button 
+                           <button
                               onClick={() => handleToggleStatus(executive._id, executive.is_active)}
                               className="w-full px-4 py-2.5 text-left text-[11px] font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
                            >
@@ -335,7 +335,7 @@ export default function AdminExecutiveDetails() {
                               <ArrowRightLeft size={14} /> Transfer Leads
                            </button>
                            <div className="h-px bg-slate-50 my-1 mx-2" />
-                           <button 
+                           <button
                               onClick={handleDelete}
                               className="w-full px-4 py-2.5 text-left text-[11px] font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
                            >
@@ -352,13 +352,13 @@ export default function AdminExecutiveDetails() {
                   <div className="max-w-2xl">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 block">Reason for Rejection</label>
                      <div className="flex gap-3">
-                        <textarea 
+                        <textarea
                            value={rejectionReason}
                            onChange={(e) => setRejectionReason(e.target.value)}
                            placeholder="Explain why the documents are being rejected..."
                            className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-rose-500/10 focus:border-rose-500 outline-none transition-all resize-none h-24"
                         />
-                        <button 
+                        <button
                            onClick={() => handleStatusUpdate('rejected', rejectionReason)}
                            disabled={isActionLoading}
                            className="self-end px-6 py-4 bg-rose-600 text-white text-[11px] font-bold uppercase tracking-widest rounded-2xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 disabled:opacity-50"
@@ -491,22 +491,22 @@ export default function AdminExecutiveDetails() {
                  <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Verification Documents</h3>
                  <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-600 px-2 py-1 rounded border border-emerald-100 uppercase tracking-widest">Verified Assets</span>
                </div>
-               
+
                <div className="p-8">
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                   <DocumentCard 
-                     title="Aadhar Card" 
-                     number={executive.kyc?.aadhar_number} 
-                     image={executive.kyc?.aadhar_image} 
+                   <DocumentCard
+                     title="Aadhar Card"
+                     number={executive.kyc?.aadhar_number}
+                     image={executive.kyc?.aadhar_image}
                    />
-                   <DocumentCard 
-                     title="PAN Card" 
-                     number={executive.kyc?.pan_number} 
-                     image={executive.kyc?.pan_image} 
+                   <DocumentCard
+                     title="PAN Card"
+                     number={executive.kyc?.pan_number}
+                     image={executive.kyc?.pan_image}
                    />
-                   <DocumentCard 
-                     title="Live Photo" 
-                     image={executive.kyc?.live_photo} 
+                   <DocumentCard
+                     title="Live Photo"
+                     image={executive.kyc?.live_photo}
                    />
                  </div>
                </div>
@@ -517,7 +517,7 @@ export default function AdminExecutiveDetails() {
 
       {tab === 'Attendance' && (
         <div className="animate-in fade-in slide-in-from-bottom-4">
-          <AdminTable 
+          <AdminTable
             title="Attendance History"
             columns={[
               { header: 'Date', render: (r) => <span className="font-bold text-slate-700">{r.date}</span> },
@@ -548,7 +548,7 @@ export default function AdminExecutiveDetails() {
 
       {tab === 'Partners' && (
         <div className="animate-in fade-in slide-in-from-bottom-4">
-          <AdminTable 
+          <AdminTable
             title="Onboarded Partners"
             columns={[
               { header: 'Partner Name', render: (r) => <span className="font-bold text-slate-800">{r.name}</span> },

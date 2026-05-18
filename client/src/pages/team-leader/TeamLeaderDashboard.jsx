@@ -1,20 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Users, ClipboardCheck, Calendar, FileText, IndianRupee, Target } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
 export default function TeamLeaderDashboard() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.get('/team-leader/dashboard')
-      .then(({ data }) => { if (data.success) setStats(data.data); })
-      .catch(() => toast.error('Failed to load dashboard.'))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['teamLeaderDashboard'],
+    queryFn: () => api.get('/team-leader/dashboard').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load dashboard.'),
+  });
+
+  const stats = rawData?.success ? rawData.data : null;
 
   if (loading) return <div className="p-6 text-center text-slate-400">Loading...</div>;
 

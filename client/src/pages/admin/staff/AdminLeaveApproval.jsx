@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle, XCircle, X } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 import AdminTable from '../../../components/common/AdminTable';
@@ -21,23 +22,33 @@ const STATUS_BADGE = {
 };
 
 export default function AdminLeaveApproval() {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState('Pending');
-  const [leaves, setLeaves] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState(null);
   const [actionNote, setActionNote] = useState('');
 
-  const fetchLeaves = useCallback(async () => {
-    setLoading(true);
-    try {
-      const statusMap = { Pending: 'pending,tl_approved', Approved: 'admin_approved', Rejected: 'admin_rejected,tl_rejected' };
-      const { data } = await api.get(`/admin/staff/leaves?status=${statusMap[tab]}`);
-      if (data.success) setLeaves(data.data);
-    } catch { toast.error('Failed to load leaves.'); }
-    finally { setLoading(false); }
-  }, [tab]);
+  const statusMap = { Pending: 'pending,tl_approved', Approved: 'admin_approved', Rejected: 'admin_rejected,tl_rejected' };
 
-  useEffect(() => { fetchLeaves(); }, [fetchLeaves]);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-leave-approval', tab],
+    queryFn: () =>
+      api.get(`/admin/staff/leaves?status=${statusMap[tab]}`).then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load leaves.'),
+  });
+
+  const leaves = rawData?.data || [];
+
+  const actionMutation = useMutation({
+    mutationFn: ({ id, action, note }) =>
+      api.put(`/admin/staff/leaves/${id}`, { action, note }).then((r) => r.data),
+    onSuccess: (_, { action }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-leave-approval'] });
+      toast.success(action === 'approve' ? 'Leave approved.' : 'Leave rejected.');
+      setConfirmModal(null);
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Action failed.'),
+  });
 
   const openApprove = (leave) => {
     setActionNote('');
@@ -61,21 +72,14 @@ export default function AdminLeaveApproval() {
     });
   };
 
-  const handleAction = async () => {
+  const handleAction = () => {
     if (!confirmModal) return;
     const { leave, action } = confirmModal;
     if (action === 'reject' && !actionNote.trim()) {
       toast.error('Please provide a rejection reason.');
       return;
     }
-    try {
-      await api.put(`/admin/staff/leaves/${leave._id}`, { action, note: actionNote });
-      toast.success(action === 'approve' ? 'Leave approved.' : 'Leave rejected.');
-      fetchLeaves();
-      setConfirmModal(null);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Action failed.');
-    }
+    actionMutation.mutate({ id: leave._id, action, note: actionNote });
   };
 
   const columns = [
@@ -140,7 +144,7 @@ export default function AdminLeaveApproval() {
         ))}
       </div>
 
-      <AdminTable columns={columns} data={leaves} loading={loading} title="" />
+      <AdminTable columns={columns} data={leaves} loading={loading} title="" hideSearch hideFilter />
 
       {confirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -169,7 +173,11 @@ export default function AdminLeaveApproval() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={handleAction} className={`flex-1 py-2.5 rounded-lg text-sm font-bold text-white ${confirmModal.action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
+              <button
+                onClick={handleAction}
+                disabled={actionMutation.isLoading}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-bold text-white disabled:opacity-60 ${confirmModal.action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+              >
                 {confirmModal.action === 'approve' ? 'Approve' : 'Reject'}
               </button>
               <button onClick={() => setConfirmModal(null)} className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-50">Cancel</button>

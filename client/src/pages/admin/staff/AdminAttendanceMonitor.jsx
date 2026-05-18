@@ -1,8 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle, Download } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 import AdminTable from '../../../components/common/AdminTable';
+import FilterBar, { FilterField } from '../../../components/admin/FilterBar';
 
 const STAFF_TYPES = [
   { value: '', label: 'All Staff' },
@@ -20,40 +22,33 @@ const STATUS_BADGE = {
 
 export default function AdminAttendanceMonitor() {
   const today = new Date().toISOString().slice(0, 10);
+  const queryClient = useQueryClient();
   const [date, setDate] = useState(today);
   const [staffType, setStaffType] = useState('');
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchAttendance = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-attendance-monitor', date, staffType],
+    queryFn: () => {
       const params = new URLSearchParams({ date });
       if (staffType) params.set('staff_type', staffType);
-      const { data } = await api.get(`/admin/staff/attendance?${params}`);
-      if (data.success) setRecords(data.data);
-    } catch { toast.error('Failed to load attendance.'); }
-    finally { setLoading(false); }
-  }, [date, staffType]);
+      return api.get(`/admin/staff/attendance?${params}`).then((r) => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load attendance.'),
+  });
 
-  useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
+  const records = rawData?.data || [];
 
-  const handleVerify = async (id) => {
-    // Optimistic Update
-    const oldRecords = [...records];
-    setRecords(prev => prev.map(r => r._id === id ? { ...r, verified_by_admin: true } : r));
-
-    try {
-      await api.put(`/admin/staff/attendance/${id}/verify`);
+  const verifyMutation = useMutation({
+    mutationFn: (id) => api.put(`/admin/staff/attendance/${id}/verify`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-attendance-monitor'] });
       toast.success('Attendance verified.');
-      // No need to fetchAttendance() if we updated state correctly, 
-      // but doing it to ensure sync with any other side effects (like updated_at)
-      fetchAttendance();
-    } catch { 
-      toast.error('Failed to verify.');
-      setRecords(oldRecords); // Rollback
-    }
-  };
+    },
+    onError: () => toast.error('Failed to verify.'),
+  });
+
+  const handleVerify = (id) => verifyMutation.mutate(id);
 
   const handleExport = async () => {
     try {
@@ -70,6 +65,8 @@ export default function AdminAttendanceMonitor() {
   };
 
   const formatTime = (dt) => dt ? new Date(dt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—';
+
+  const activeFilterCount = staffType ? 1 : 0;
 
   const columns = [
     { header: 'Staff', render: (r) => (
@@ -111,7 +108,11 @@ export default function AdminAttendanceMonitor() {
           : <span className="text-xs text-slate-400">Pending</span>
     )},
     { header: 'Actions', render: (r) => !r.verified_by_admin && r.check_in_time ? (
-      <button onClick={() => handleVerify(r._id)} className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-bold hover:bg-green-100">
+      <button
+        onClick={() => handleVerify(r._id)}
+        disabled={verifyMutation.isLoading}
+        className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-bold hover:bg-green-100 disabled:opacity-60"
+      >
         <CheckCircle size={12} /> Verify
       </button>
     ) : null },
@@ -133,21 +134,29 @@ export default function AdminAttendanceMonitor() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-5">
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
-        />
-        <select
-          value={staffType}
-          onChange={(e) => setStaffType(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
-        >
-          {STAFF_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-      </div>
+      <FilterBar
+        open
+        activeCount={activeFilterCount}
+        onReset={() => setStaffType('')}
+      >
+        <FilterField label="Date">
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+          />
+        </FilterField>
+        <FilterField label="Staff Type">
+          <select
+            value={staffType}
+            onChange={(e) => setStaffType(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
+          >
+            {STAFF_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
 
       <div className="grid grid-cols-3 gap-4 mb-5">
         {[
@@ -162,7 +171,7 @@ export default function AdminAttendanceMonitor() {
         ))}
       </div>
 
-      <AdminTable columns={columns} data={records} loading={loading} title={`Attendance — ${date}`} />
+      <AdminTable columns={columns} data={records} loading={loading} title={`Attendance — ${date}`} hideSearch hideFilter />
     </div>
   );
 }

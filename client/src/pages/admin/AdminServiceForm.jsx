@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Building2, MapPin, Camera, 
   CheckCircle2, Save, X, Loader2, ArrowLeft,
@@ -19,14 +20,9 @@ export default function AdminServiceForm() {
   const { id } = useParams();
   const isEdit = !!id;
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [initLoading, setInitLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-
-  const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
-  const [partners, setPartners] = useState([]);
 
   const [formData, setFormData] = useState({
     partner_id: '', category_id: '', subcategory_id: '', title: '',
@@ -38,75 +34,72 @@ export default function AdminServiceForm() {
     status: 'pending_approval', is_featured: false
   });
 
-  useEffect(() => {
-    const fetchInitData = async () => {
-      try {
-        const [catRes, partnerRes] = await Promise.all([
-          api.get('/admin/system/categories?type=service'),
-          api.get('/admin/users')
-        ]);
+  // Fetch categories
+  const { data: catData } = useQuery({
+    queryKey: ['adminServiceCategories'],
+    queryFn: () => api.get('/admin/system/categories?type=service').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const categories = catData?.data || [];
 
-        if (catRes.data.success) setCategories(catRes.data.data);
-        if (partnerRes.data.success) {
-            setPartners(partnerRes.data.data.filter(u => 
-              u.role === 'Service Provider' || 
-              u.partner_type === 'service_provider' || 
-              (u.roles && u.roles.includes('service_provider'))
-            ));
-        }
+  // Fetch partners (service providers)
+  const { data: partnerData } = useQuery({
+    queryKey: ['adminUsersForService'],
+    queryFn: () => api.get('/admin/users').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const partners = (partnerData?.data || []).filter(u =>
+    u.role === 'Service Provider' ||
+    u.partner_type === 'service_provider' ||
+    (u.roles && u.roles.includes('service_provider'))
+  );
 
-        if (isEdit) {
-          const res = await api.get(`/admin/listings/detail/${id}`);
-          if (res.data.success) {
-            const d = res.data.data;
-            setFormData({
-              partner_id: d.partner_id?._id || d.partner_id || '',
-              category_id: d.category_id?._id || d.category_id || '',
-              subcategory_id: d.subcategory_id?._id || d.subcategory_id || '',
-              title: d.title || '',
-              short_description: d.short_description || '',
-              full_description: d.full_description || '',
-              service_type: d.service_type || '',
-              years_of_experience: d.years_of_experience || '',
-              video_link: d.video_link || '',
-              location: {
-                type: 'Point',
-                coordinates: d.location?.coordinates || [77.1025, 28.7041]
-              },
-              address: {
-                full_address: d.address?.full_address || '',
-                state: d.address?.state || '',
-                district: d.address?.district || '',
-                pincode: d.address?.pincode || ''
-              },
-              portfolio_images: d.portfolio_images || [],
-              thumbnail: d.thumbnail || '',
-              service_radius_km: d.service_radius_km || 10,
-              status: d.status || 'pending_approval',
-              is_featured: d.is_featured || false
-            });
-            if (d.category_id?._id || d.category_id) {
-              fetchSubcategories(d.category_id?._id || d.category_id);
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Init error:", err);
-      } finally {
-        setInitLoading(false);
+  // Fetch subcategories when category_id changes
+  const { data: subcatData } = useQuery({
+    queryKey: ['adminServiceSubcategories', formData.category_id],
+    queryFn: () => api.get(`/admin/system/categories?parent_id=${formData.category_id}`).then(r => r.data),
+    enabled: !!formData.category_id,
+    staleTime: 5 * 60 * 1000,
+  });
+  const subcategories = subcatData?.data || [];
+
+  // Fetch existing listing for edit mode
+  const { isLoading: initLoading } = useQuery({
+    queryKey: ['adminServiceDetail', id],
+    queryFn: () => api.get(`/admin/listings/detail/${id}`).then(r => r.data),
+    enabled: isEdit,
+    staleTime: 5 * 60 * 1000,
+    onSuccess: (data) => {
+      if (data?.success) {
+        const d = data.data;
+        setFormData({
+          partner_id: d.partner_id?._id || d.partner_id || '',
+          category_id: d.category_id?._id || d.category_id || '',
+          subcategory_id: d.subcategory_id?._id || d.subcategory_id || '',
+          title: d.title || '',
+          short_description: d.short_description || '',
+          full_description: d.full_description || '',
+          service_type: d.service_type || '',
+          years_of_experience: d.years_of_experience || '',
+          video_link: d.video_link || '',
+          location: { type: 'Point', coordinates: d.location?.coordinates || [77.1025, 28.7041] },
+          address: { full_address: d.address?.full_address || '', state: d.address?.state || '', district: d.address?.district || '', pincode: d.address?.pincode || '' },
+          portfolio_images: d.portfolio_images || [],
+          thumbnail: d.thumbnail || '',
+          service_radius_km: d.service_radius_km || 10,
+          status: d.status || 'pending_approval',
+          is_featured: d.is_featured || false
+        });
       }
-    };
-    fetchInitData();
-  }, [id, isEdit]);
+    },
+  });
 
-  const fetchSubcategories = async (catId) => {
-    try {
-      const res = await api.get(`/admin/system/categories?parent_id=${catId}`);
-      if (res.data.success) setSubcategories(res.data.data);
-    } catch (err) {
-      console.error("Subcat error:", err);
-    }
-  };
+  const submitMutation = useMutation({
+    mutationFn: (payload) => isEdit
+      ? api.put(`/admin/listings/${id}`, payload).then(r => r.data)
+      : api.post('/admin/listings/service', payload).then(r => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminServiceDetail', id] }),
+  });
 
   const handleInputChange = (e, fieldPath) => {
     const { name, value, type, checked } = e.target;
@@ -125,7 +118,6 @@ export default function AdminServiceForm() {
         updated[name] = val;
       }
 
-      if (name === 'category_id') fetchSubcategories(value);
       return updated;
     });
   };
@@ -138,28 +130,22 @@ export default function AdminServiceForm() {
     }));
   };
 
+  const loading = submitMutation.isPending;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
     setSuccess(null);
     try {
-      const res = isEdit 
-        ? await api.put(`/admin/listings/${id}`, formData)
-        : await api.post('/admin/listings/service', formData);
-
-      if (res.data.success) {
-        setSuccess(`Service ${isEdit ? 'updated' : 'registered'} successfully!`);
-        setTimeout(() => navigate('/admin/services'), 2000);
-      }
+      await submitMutation.mutateAsync(formData);
+      setSuccess(`Service ${isEdit ? 'updated' : 'registered'} successfully!`);
+      setTimeout(() => navigate('/admin/services'), 2000);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save service registry.");
-    } finally {
-      setLoading(false);
     }
   };
 
-  if (initLoading) return (
+  if (initLoading && isEdit) return (
     <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
       <Loader2 className="animate-spin text-indigo-600" size={40} />
       <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Loading...</p>

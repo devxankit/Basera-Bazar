@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, ChevronLeft, Circle, Package, Truck, BadgePercent, Info, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 
 const ICON_MAP = {
@@ -27,33 +28,24 @@ function relativeTime(dateStr) {
 
 const Notifications = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState([]);
+  const queryClient = useQueryClient();
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const res = await api.get('/notifications');
-      if (res.data.success) {
-        setNotifications(res.data.data);
-      }
-    } catch (err) {
-      console.error('Error fetching notifications:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['userNotifications'],
+    queryFn: () => api.get('/notifications').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+  const notifications = rawData?.success ? rawData.data : [];
 
   const handleClick = async (note) => {
     if (!note.is_read) {
       try {
         await api.patch(`/notifications/${note._id}/read`);
-        setNotifications(prev =>
-          prev.map(n => n._id === note._id ? { ...n, is_read: true } : n)
-        );
+        queryClient.setQueryData(['userNotifications'], (old) => {
+          if (!old?.data) return old;
+          return { ...old, data: old.data.map(n => n._id === note._id ? { ...n, is_read: true } : n) };
+        });
       } catch (err) {
         console.error('Error marking notification as read:', err);
       }
@@ -65,7 +57,10 @@ const Notifications = () => {
   const handleMarkAllRead = async () => {
     try {
       await api.patch('/notifications/read-all');
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      queryClient.setQueryData(['userNotifications'], (old) => {
+        if (!old?.data) return old;
+        return { ...old, data: old.data.map(n => ({ ...n, is_read: true })) };
+      });
     } catch (err) {
       console.error('Error marking all as read:', err);
     }

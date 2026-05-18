@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Building2, MapPin, IndianRupee, Home, Camera, 
   CheckCircle2, Save, X, Loader2, ArrowLeft,
@@ -33,15 +34,10 @@ export default function AdminPropertyForm() {
   const { id } = useParams();
   const isEdit = !!id;
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [initLoading, setInitLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [showMapModal, setShowMapModal] = useState(false);
-
-  const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
-  const [partners, setPartners] = useState([]);
 
   const [formData, setFormData] = useState({
     partner_id: '', category_id: '', subcategory_id: '', title: '', description: '',
@@ -58,105 +54,78 @@ export default function AdminPropertyForm() {
     emi_available: false, emi_details: ''
   });
 
-  useEffect(() => {
-    const fetchInitData = async () => {
-      try {
-        const [catRes, partnerRes] = await Promise.all([
-          api.get('/admin/system/categories?type=property&parent_id=null'),
-          api.get('/admin/users')
-        ]);
+  // Fetch categories and partners
+  const { data: catData } = useQuery({
+    queryKey: ['adminPropertyCategories'],
+    queryFn: () => api.get('/admin/system/categories?type=property&parent_id=null').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const categories = catData?.data || [];
 
-        if (catRes.data.success) setCategories(catRes.data.data);
-        if (partnerRes.data.success) {
-          setPartners(partnerRes.data.data.filter(u => 
-            u.role === 'Agent' || 
-            u.partner_type === 'property_agent' || 
-            (u.roles && u.roles.includes('property_agent'))
-          ));
-        }
+  const { data: partnerData } = useQuery({
+    queryKey: ['adminUsersForProperty'],
+    queryFn: () => api.get('/admin/users').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const partners = (partnerData?.data || []).filter(u =>
+    u.role === 'Agent' ||
+    u.partner_type === 'property_agent' ||
+    (u.roles && u.roles.includes('property_agent'))
+  );
 
-        if (isEdit) {
-          const res = await api.get(`/admin/listings/detail/${id}`);
-          if (res.data.success) {
-            const d = res.data.data;
-            setFormData({
-              partner_id: d.partner_id?._id || d.partner_id || '',
-              category_id: d.category_id?._id || d.category_id || '',
-              subcategory_id: d.subcategory_id?._id || d.subcategory_id || '',
-              title: d.title || '',
-              description: d.description || '',
-              property_type: d.property_type || 'apartment',
-              listing_intent: d.listing_intent || 'sell',
-              location: {
-                type: 'Point',
-                coordinates: d.location?.coordinates || [77.1025, 28.7041]
-              },
-              address: {
-                full_address: d.address?.full_address || '',
-                state: d.address?.state || '',
-                district: d.address?.district || '',
-                pincode: d.address?.pincode || ''
-              },
-              pricing: {
-                amount: d.pricing?.amount || '',
-                currency: d.pricing?.currency || 'INR',
-                negotiable: d.pricing?.negotiable || false,
-                deposit: d.pricing?.deposit || '',
-                maintenance: d.pricing?.maintenance || ''
-              },
-              details: {
-                area: {
-                  value: d.details?.area?.value || '',
-                  unit: d.details?.area?.unit || 'sqft',
-                  super_built_up_area: d.details?.area?.super_built_up_area || '',
-                  carpet_area: d.details?.area?.carpet_area || ''
-                },
-                bhk: d.details?.bhk || '',
-                bathrooms: d.details?.bathrooms || '',
-                washrooms: d.details?.washrooms || '',
-                furnishing: d.details?.furnishing || 'unfurnished',
-                floor_number: d.details?.floor_number || '',
-                total_floors: d.details?.total_floors || '',
-                parking: d.details?.parking || 'none',
-                facing: d.details?.facing || 'no-preference',
-                possession: d.details?.possession || 'ready'
-              },
-              images: d.images || [],
-              thumbnail: d.thumbnail || '',
-              status: d.status || 'pending_approval',
-              is_featured: d.is_featured || false,
-              emi_available: d.emi_available || false,
-              emi_details: d.emi_details || ''
-            });
-          }
-        }
-      } catch (err) {
-        console.error("Init error:", err);
-        setError("Failed to sync database references.");
-      } finally {
-        setInitLoading(false);
+  // Fetch subcategories when category changes
+  const { data: subcatData } = useQuery({
+    queryKey: ['adminPropertySubcategories', formData.category_id],
+    queryFn: () => api.get(`/admin/system/categories?type=property&parent_id=${formData.category_id}`).then(r => r.data),
+    enabled: !!formData.category_id,
+    staleTime: 5 * 60 * 1000,
+  });
+  const subcategories = subcatData?.data || [];
+
+  // Fetch existing listing for edit mode
+  const { isLoading: initLoading } = useQuery({
+    queryKey: ['adminPropertyDetail', id],
+    queryFn: () => api.get(`/admin/listings/detail/${id}`).then(r => r.data),
+    enabled: isEdit,
+    staleTime: 5 * 60 * 1000,
+    onSuccess: (data) => {
+      if (data?.success) {
+        const d = data.data;
+        setFormData({
+          partner_id: d.partner_id?._id || d.partner_id || '',
+          category_id: d.category_id?._id || d.category_id || '',
+          subcategory_id: d.subcategory_id?._id || d.subcategory_id || '',
+          title: d.title || '',
+          description: d.description || '',
+          property_type: d.property_type || 'apartment',
+          listing_intent: d.listing_intent || 'sell',
+          location: { type: 'Point', coordinates: d.location?.coordinates || [77.1025, 28.7041] },
+          address: { full_address: d.address?.full_address || '', state: d.address?.state || '', district: d.address?.district || '', pincode: d.address?.pincode || '' },
+          pricing: { amount: d.pricing?.amount || '', currency: d.pricing?.currency || 'INR', negotiable: d.pricing?.negotiable || false, deposit: d.pricing?.deposit || '', maintenance: d.pricing?.maintenance || '' },
+          details: {
+            area: { value: d.details?.area?.value || '', unit: d.details?.area?.unit || 'sqft', super_built_up_area: d.details?.area?.super_built_up_area || '', carpet_area: d.details?.area?.carpet_area || '' },
+            bhk: d.details?.bhk || '', bathrooms: d.details?.bathrooms || '', washrooms: d.details?.washrooms || '',
+            furnishing: d.details?.furnishing || 'unfurnished', floor_number: d.details?.floor_number || '',
+            total_floors: d.details?.total_floors || '', parking: d.details?.parking || 'none',
+            facing: d.details?.facing || 'no-preference', possession: d.details?.possession || 'ready'
+          },
+          images: d.images || [], thumbnail: d.thumbnail || '',
+          status: d.status || 'pending_approval', is_featured: d.is_featured || false,
+          emi_available: d.emi_available || false, emi_details: d.emi_details || ''
+        });
       }
-    };
-    fetchInitData();
-  }, [id, isEdit]);
+    },
+    onError: () => setError("Failed to sync database references."),
+  });
 
-  useEffect(() => {
-    if (formData.category_id) {
-      const fetchSubcategories = async () => {
-        try {
-          const res = await api.get(`/admin/system/categories?type=property&parent_id=${formData.category_id}`);
-          if (res.data.success) {
-            setSubcategories(res.data.data);
-          }
-        } catch (err) {
-          console.error("Failed to fetch property subcategories", err);
-        }
-      };
-      fetchSubcategories();
-    } else {
-      setSubcategories([]);
-    }
-  }, [formData.category_id]);
+  const submitMutation = useMutation({
+    mutationFn: (payload) => isEdit
+      ? api.put(`/admin/listings/${id}`, payload).then(r => r.data)
+      : api.post('/admin/listings/property', payload).then(r => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminPropertyDetail', id] });
+    },
+  });
 
   const handleInputChange = (e, fieldPath) => {
     const { name, value, type, checked } = e.target;
@@ -205,28 +174,22 @@ export default function AdminPropertyForm() {
     );
   };
 
+  const loading = submitMutation.isPending;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
     setSuccess(null);
     try {
-      const res = isEdit 
-        ? await api.put(`/admin/listings/${id}`, formData)
-        : await api.post('/admin/listings/property', formData);
-
-      if (res.data.success) {
-        setSuccess(`Property ${isEdit ? 'updated' : 'registered'} successfully!`);
-        setTimeout(() => navigate('/admin/properties'), 2000);
-      }
+      await submitMutation.mutateAsync(formData);
+      setSuccess(`Property ${isEdit ? 'updated' : 'registered'} successfully!`);
+      setTimeout(() => navigate('/admin/properties'), 2000);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save property registry.");
-    } finally {
-      setLoading(false);
     }
   };
 
-  if (initLoading) return (
+  if (initLoading && isEdit) return (
     <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
       <Loader2 className="animate-spin text-indigo-600" size={40} />
       <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Loading...</p>

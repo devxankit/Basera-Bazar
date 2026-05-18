@@ -1,64 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  CheckCircle2, XCircle, Clock, Wallet, Search, Filter, 
+import React, { useState } from 'react';
+import {
+  CheckCircle2, XCircle, Clock, Wallet, Search, Filter,
   ArrowDownLeft, MoreHorizontal, Landmark, Send, Info,
   ExternalLink, UserCheck, ShieldCheck, IndianRupee, ArrowUpRight,
   Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
-import { getWithdrawals } from '../../services/AdminService';
 import { toast } from '../../mockToast';
 
 import Skeleton from '../../components/common/Skeleton';
 
 export default function AdminWithdrawals() {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [adminNote, setAdminNote] = useState('');
   const [transactionId, setTransactionId] = useState('');
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const data = await getWithdrawals();
-      setRequests(data);
-    } catch (error) {
-      toast.error("Failed to fetch payout requests");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: requests = [], isLoading: loading } = useQuery({
+    queryKey: ['adminWithdrawals'],
+    queryFn: () => api.get('/admin/withdrawals').then(r => r.data?.data || []),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const handleAction = async (status) => {
-    if (!selectedRequest) return;
-    setIsActionLoading(true);
-    try {
-      await api.patch(`/admin/withdrawals/${selectedRequest._id}/status`, { 
-        status, 
+  const actionMutation = useMutation({
+    mutationFn: ({ id, status }) =>
+      api.patch(`/admin/withdrawals/${id}/status`, {
+        status,
         admin_note: adminNote,
-        transaction_id: transactionId
-      });
+        transaction_id: transactionId,
+      }).then(r => r.data),
+    onSuccess: (_, { status }) => {
+      queryClient.invalidateQueries({ queryKey: ['adminWithdrawals'] });
       toast.success(`Payout marked as ${status}`);
-      await fetchData();
       setIsModalOpen(false);
       setSelectedRequest(null);
       setAdminNote('');
       setTransactionId('');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Operation failed');
-    } finally {
-      setIsActionLoading(false);
-    }
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Operation failed'),
+  });
+
+  const isActionLoading = actionMutation.isPending;
+
+  const handleAction = (status) => {
+    if (!selectedRequest) return;
+    actionMutation.mutate({ id: selectedRequest._id, status });
   };
 
   const columns = [

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, Camera, ChevronRight, FileText, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useMutation } from '@tanstack/react-query';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/DataEngine';
@@ -9,8 +10,6 @@ import { db } from '../../services/DataEngine';
 export default function PartnerOnboarding() {
   const navigate = useNavigate();
   const { user, login } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
   const isMandi = (user?.active_role || user?.partner_type || '').toLowerCase().includes('mandi');
 
   const [formData, setFormData] = useState({
@@ -65,21 +64,8 @@ export default function PartnerOnboarding() {
     reader.readAsDataURL(file);
   };
 
-  const handleComplete = async () => {
-    // Validation
-    if (!formData.pan || !formData.panImage || !formData.aadhar || !formData.aadharFront || !formData.aadharBack) {
-      alert("Please upload all required documents (PAN and Aadhar).");
-      return;
-    }
-
-    if (isMandi && !formData.businessName) {
-      alert("Please enter your Business Name.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // Upload images only if they are new (base64)
+  const submitOnboardingMutation = useMutation({
+    mutationFn: async (fd) => {
       const uploadIfNeeded = async (val) => {
         if (val && val.startsWith('data:')) {
           const res = await db.uploadFile(await fetch(val).then(r => r.blob()));
@@ -89,43 +75,57 @@ export default function PartnerOnboarding() {
       };
 
       const [panUrl, aadharFrontUrl, aadharBackUrl, gstUrl, logoUrl] = await Promise.all([
-        uploadIfNeeded(formData.panImage),
-        uploadIfNeeded(formData.aadharFront),
-        uploadIfNeeded(formData.aadharBack),
-        uploadIfNeeded(formData.gstImage),
-        uploadIfNeeded(formData.businessLogo)
+        uploadIfNeeded(fd.panImage),
+        uploadIfNeeded(fd.aadharFront),
+        uploadIfNeeded(fd.aadharBack),
+        uploadIfNeeded(fd.gstImage),
+        uploadIfNeeded(fd.businessLogo)
       ]);
 
       const updatePayload = {
-        'kyc.pan_number': formData.pan,
+        'kyc.pan_number': fd.pan,
         'kyc.pan_image': panUrl,
-        'kyc.aadhar_number': formData.aadhar,
+        'kyc.aadhar_number': fd.aadhar,
         'kyc.aadhar_front_image': aadharFrontUrl,
         'kyc.aadhar_back_image': aadharBackUrl,
-        'kyc.gst_number': formData.gst,
+        'kyc.gst_number': fd.gst,
         'kyc.gst_image': gstUrl,
         onboarding_status: 'pending_approval'
       };
 
       if (isMandi) {
-        updatePayload['profile.mandi_profile.business_name'] = formData.businessName;
+        updatePayload['profile.mandi_profile.business_name'] = fd.businessName;
         updatePayload['profile.mandi_profile.business_logo'] = logoUrl;
-        updatePayload['profile.mandi_profile.business_description'] = formData.businessDescription;
+        updatePayload['profile.mandi_profile.business_description'] = fd.businessDescription;
       }
 
-      const res = await api.put('/auth/profile', updatePayload);
-      if (res.data.success) {
-        // Sync the local state
-        login(res.data.data, localStorage.getItem('baserabazar_token'));
+      return api.put('/auth/profile', updatePayload).then(r => r.data);
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        login(data.data, localStorage.getItem('baserabazar_token'));
         alert("Verification details submitted successfully! Please wait for Admin approval.");
         navigate('/partner/home');
       }
-    } catch (error) {
-      console.error("Onboarding error:", error);
-      alert(error.response?.data?.message || "Submission failed. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+    },
+    onError: (error) => {
+      console.error('Onboarding error:', error);
+      alert(error.response?.data?.message || 'Submission failed. Please try again.');
     }
+  });
+
+  const isSubmitting = submitOnboardingMutation.isPending;
+
+  const handleComplete = () => {
+    if (!formData.pan || !formData.panImage || !formData.aadhar || !formData.aadharFront || !formData.aadharBack) {
+      alert("Please upload all required documents (PAN and Aadhar).");
+      return;
+    }
+    if (isMandi && !formData.businessName) {
+      alert("Please enter your Business Name.");
+      return;
+    }
+    submitOnboardingMutation.mutate(formData);
   };
 
   const isPending = user?.onboarding_status === 'pending_approval';

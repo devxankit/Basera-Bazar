@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  ArrowLeft, Info, LayoutGrid, Type, 
-  AlignLeft, FileText, Briefcase, 
-  MapPin, Image as ImageIcon, Plus, 
+import {
+  ArrowLeft, Info, LayoutGrid, Type,
+  AlignLeft, FileText, Briefcase,
+  MapPin, Image as ImageIcon, Plus,
   X, Navigation, ChevronDown, CheckCircle2,
   Trash2, UploadCloud, Building2, Star
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '../../services/DataEngine';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -29,8 +30,8 @@ export default function AddService() {
   const { user } = useAuth();
   const thumbnailRef = useRef(null);
   const portfolioRef = useRef(null);
+  const queryClient = useQueryClient();
 
-  const [topCategories, setTopCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -59,99 +60,79 @@ export default function AddService() {
 
   const [activeStep, setActiveStep] = useState(1);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [subscriptionLimits, setSubscriptionLimits] = useState({
-    canAddListing: true,
-    canFeature: true,
-    message: '',
-    planName: 'Loading...'
-  });
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
 
-  useEffect(() => {
-    const fetchTopCats = async () => {
-      try {
-        const cats = await db.getCategories('service');
-        setTopCategories(cats);
-      } catch (err) {
-        console.error("Failed to load categories:", err);
-      }
-    };
-    fetchTopCats();
-  }, []);
+  // --- React Query: top-level service categories ---
+  const { data: topCatsData } = useQuery({
+    queryKey: ['serviceTopCategories'],
+    queryFn: () => db.getCategories('service'),
+    staleTime: 5 * 60 * 1000,
+  });
+  const topCategories = topCatsData || [];
 
-  useEffect(() => {
-    fetchSubscriptionLimits();
-  }, []);
-
-  const fetchSubscriptionLimits = async () => {
-    try {
-      const res = await api.get('/partners/subscription/limits');
-      if (res.data.success) {
-        const { usage, plan_name, messages } = res.data.data;
-        setSubscriptionLimits({
-          canAddListing: !usage.is_listing_limit_reached,
-          canFeature: !usage.is_featured_limit_reached,
-          message: messages.listing,
-          planName: plan_name
-        });
+  // --- React Query: subscription limits ---
+  const { data: limitsData } = useQuery({
+    queryKey: ['subscriptionLimits'],
+    queryFn: () => api.get('/partners/subscription/limits').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const subscriptionLimits = limitsData?.success
+    ? {
+        canAddListing: !limitsData.data.usage.is_listing_limit_reached,
+        canFeature: !limitsData.data.usage.is_featured_limit_reached,
+        message: limitsData.data.messages.listing,
+        planName: limitsData.data.plan_name
       }
-    } catch (err) {
-      console.error("Error fetching limits:", err);
+    : { canAddListing: true, canFeature: true, message: '', planName: 'Loading...' };
+
+  // --- React Query: edit service data ---
+  const { data: editServiceData } = useQuery({
+    queryKey: ['editService', editId],
+    queryFn: () => db.getById('listings', editId),
+    enabled: !!editId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Populate form and sub-categories when edit data arrives
+  useEffect(() => {
+    if (editServiceData) {
+      const res = editServiceData;
+      setFormData(prev => ({
+        ...prev,
+        category_id: res.category_id?._id || res.category_id || '',
+        subcategory_id: res.subcategory_id?._id || res.subcategory_id || '',
+        category: res.category_id?.name || '',
+        serviceName: res.title || '',
+        serviceType: res.details?.serviceType || '',
+        shortDescription: res.short_description || '',
+        detailedDescription: res.full_description || res.details?.description || '',
+        experience: res.years_of_experience || res.details?.experience || '',
+        state: res.address?.state || '',
+        district: res.address?.district || '',
+        city: res.address?.district || '',
+        businessAddress: res.address?.full_address || res.details?.businessName || '',
+        businessName: res.details?.businessName || user?.businessName || '',
+        thumbnail: res.thumbnail || '',
+        portfolio: res.portfolio_images || [],
+        videoLink: res.video_link || '',
+        serviceRadiusKm: res.service_radius_km || 10,
+        latitude: res.location?.coordinates?.[1] || 28.7041,
+        longitude: res.location?.coordinates?.[0] || 77.1025,
+        is_featured: res.is_featured || false
+      }));
+      if (res.category_id) {
+        const catId = typeof res.category_id === 'object' ? res.category_id._id : res.category_id;
+        db.getCategories('service', catId).then(setSubCategories);
+      }
+    } else if (!editId && user?.businessName) {
+      setFormData(prev => ({ ...prev, businessName: user.businessName }));
     }
-  };
+  }, [editServiceData, editId, user]);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/partner/login');
-      return;
-    }
-
-    const fetchEditData = async () => {
-      if (editId) {
-        try {
-          const res = await db.getById('listings', editId);
-          if (res) {
-            setFormData(prev => ({
-              ...prev,
-              category_id: res.category_id?._id || res.category_id || '',
-              subcategory_id: res.subcategory_id?._id || res.subcategory_id || '',
-              category: res.category_id?.name || '',
-              serviceName: res.title || '',
-              serviceType: res.details?.serviceType || '',
-              shortDescription: res.short_description || '',
-              detailedDescription: res.full_description || res.details?.description || '',
-              experience: res.years_of_experience || res.details?.experience || '',
-              state: res.address?.state || '',
-              district: res.address?.district || '',
-              city: res.address?.district || '',
-              businessAddress: res.address?.full_address || res.details?.businessName || '',
-              businessName: res.details?.businessName || user.businessName || '',
-              thumbnail: res.thumbnail || '',
-              portfolio: res.portfolio_images || [],
-              videoLink: res.video_link || '',
-              serviceRadiusKm: res.service_radius_km || 10,
-              latitude: res.location?.coordinates?.[1] || 28.7041,
-              longitude: res.location?.coordinates?.[0] || 77.1025,
-              is_featured: res.is_featured || false
-            }));
-            
-            if (res.category_id) {
-              const catId = typeof res.category_id === 'object' ? res.category_id._id : res.category_id;
-              db.getCategories('service', catId).then(setSubCategories);
-            }
-          }
-        } catch (err) {
-          console.error("Failed to fetch service for edit:", err);
-        }
-      } else if (user.businessName) {
-        setFormData(prev => ({ ...prev, businessName: user.businessName }));
-      }
-    };
-    
-    fetchEditData();
-  }, [editId, user, navigate]);
+    if (!user) navigate('/partner/login');
+  }, [user, navigate]);
 
   const handleChange = async (e) => {
     const { name, value } = e.target;
@@ -256,19 +237,8 @@ export default function AddService() {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
-    if (isSubmitting) return;
-
-    if (!formData.category_id) {
-      alert("Please select a service category.");
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-
-      // Upload all images in parallel (thumbnail + portfolio in one shot)
+  const saveServiceMutation = useMutation({
+    mutationFn: async (fd) => {
       const uploadIfNeeded = async (img) => {
         if (!img) return null;
         if (img.startsWith('data:')) {
@@ -280,55 +250,63 @@ export default function AddService() {
       };
 
       const [thumbnailUrl, ...portfolioUrls] = await Promise.all([
-        uploadIfNeeded(formData.thumbnail),
-        ...formData.portfolio.map(uploadIfNeeded),
+        uploadIfNeeded(fd.thumbnail),
+        ...fd.portfolio.map(uploadIfNeeded),
       ]);
 
-      // 2. Prepare Payload natively matching the Mongoose schema
       const payload = {
         listing_type: 'service',
-        category_id: formData.category_id,
-        subcategory_id: formData.subcategory_id || null,
-        title: formData.serviceName,
-        service_type: formData.serviceType,
-        short_description: formData.shortDescription,
-        full_description: formData.detailedDescription,
-        years_of_experience: formData.experience,
-        video_link: formData.videoLink,
+        category_id: fd.category_id,
+        subcategory_id: fd.subcategory_id || null,
+        title: fd.serviceName,
+        service_type: fd.serviceType,
+        short_description: fd.shortDescription,
+        full_description: fd.detailedDescription,
+        years_of_experience: fd.experience,
+        video_link: fd.videoLink,
         thumbnail: thumbnailUrl,
         portfolio_images: portfolioUrls,
-        service_radius_km: formData.serviceRadiusKm,
-        is_featured: formData.is_featured,
+        service_radius_km: fd.serviceRadiusKm,
+        is_featured: fd.is_featured,
         address: {
-          state: formData.state,
-          district: formData.district,
-          full_address: formData.businessAddress,
-          city: formData.city
+          state: fd.state,
+          district: fd.district,
+          full_address: fd.businessAddress,
+          city: fd.city
         },
         location: {
           type: 'Point',
-          coordinates: [parseFloat(formData.longitude || 0), parseFloat(formData.latitude || 0)]
+          coordinates: [parseFloat(fd.longitude || 0), parseFloat(fd.latitude || 0)]
         },
-        // Legacy mapping support for fallback in DataEngine/create
-        details: {
-          businessName: formData.businessName
-        }
+        details: { businessName: fd.businessName }
       };
 
-      // 3. Submit to API
       if (editId) {
-        await db.update('listings', editId, payload);
+        return db.update('listings', editId, payload);
       } else {
-        await db.create('listings', payload);
+        return db.create('listings', payload);
       }
-      
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['editService', editId] });
       setShowSuccessModal(true);
-    } catch (error) {
-       console.error('Error saving service:', error);
-       alert(error.response?.data?.message || 'Failed to save service. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+    },
+    onError: (error) => {
+      console.error('Error saving service:', error);
+      alert(error.response?.data?.message || 'Failed to save service. Please try again.');
     }
+  });
+
+  const isSubmitting = saveServiceMutation.isPending;
+
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (isSubmitting) return;
+    if (!formData.category_id) {
+      alert("Please select a service category.");
+      return;
+    }
+    saveServiceMutation.mutate(formData);
   };
 
   const [detecting, setDetecting] = useState(false);

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { useMutation } from '@tanstack/react-query';
 import {
   ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff,
   Loader2, CheckCircle2, ShieldCheck, Key, Smartphone, AlertCircle
@@ -35,12 +36,10 @@ const EditProfile = () => {
 
   // ── Section 1: Basic Info ────────────────────────────────────────────────
   const [basicInfo, setBasicInfo] = useState({ name: user?.name || '', email: user?.email || '' });
-  const [isSavingBasic, setIsSavingBasic] = useState(false);
   const [basicStatus, setBasicStatus] = useState(null); // { type, message }
 
   // ── Section 2: Phone Update ──────────────────────────────────────────────
   const [newPhone, setNewPhone] = useState('');
-  const [verifyingPhone, setVerifyingPhone] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
@@ -49,91 +48,91 @@ const EditProfile = () => {
   // ── Section 3: Password ──────────────────────────────────────────────────
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
   const [showPass, setShowPass] = useState({ current: false, next: false, confirm: false });
-  const [isSavingPass, setIsSavingPass] = useState(false);
   const [passStatus, setPassStatus] = useState(null);
 
   if (!isAuthenticated) return null;
 
   // ── Save Basic Info (name + email) ─────────────────────────────────────
-  const handleUpdateBasic = async (e) => {
-    e.preventDefault();
-    setIsSavingBasic(true);
-    setBasicStatus(null);
-    try {
-      const response = await api.put('/auth/profile', {
-        name: basicInfo.name.trim(),
-        email: basicInfo.email.trim().toLowerCase(),
-      });
-      // Update the local auth context so the header/profile reflects changes instantly
+  const updateBasicMutation = useMutation({
+    mutationFn: (payload) => api.put('/auth/profile', payload).then(r => r.data),
+    onSuccess: (data) => {
       updateUser({ name: basicInfo.name.trim(), email: basicInfo.email.trim().toLowerCase() });
-      setBasicStatus({ type: 'success', message: response.data.message || 'Profile updated successfully!' });
-    } catch (error) {
+      setBasicStatus({ type: 'success', message: data.message || 'Profile updated successfully!' });
+    },
+    onError: (error) => {
       setBasicStatus({ type: 'error', message: error.response?.data?.message || 'Failed to update profile.' });
-    } finally {
-      setIsSavingBasic(false);
-    }
+    },
+  });
+
+  const handleUpdateBasic = (e) => {
+    e.preventDefault();
+    setBasicStatus(null);
+    updateBasicMutation.mutate({
+      name: basicInfo.name.trim(),
+      email: basicInfo.email.trim().toLowerCase(),
+    });
   };
 
+  const isSavingBasic = updateBasicMutation.isPending;
+
   // ── Send OTP for Phone Update ──────────────────────────────────────────
-  const handleSendOtp = async () => {
+  const sendOtpMutation = useMutation({
+    mutationFn: (phone) => api.post('/auth/send-otp', { phone }).then(r => r.data),
+    onSuccess: () => { setShowOtpInput(true); setPhoneStatus(null); },
+    onError: (error) => setPhoneStatus({ type: 'error', message: error.response?.data?.message || 'Failed to send OTP.' }),
+  });
+
+  const handleSendOtp = () => {
     if (newPhone.length !== 10) return;
-    setVerifyingPhone(true);
     setPhoneStatus(null);
-    try {
-      await api.post('/auth/send-otp', { phone: newPhone });
-      setShowOtpInput(true);
-    } catch (error) {
-      setPhoneStatus({ type: 'error', message: error.response?.data?.message || 'Failed to send OTP.' });
-    } finally {
-      setVerifyingPhone(false);
-    }
+    sendOtpMutation.mutate(newPhone);
   };
 
   // ── Verify OTP and Update Phone ────────────────────────────────────────
-  const handleVerifyOtp = async () => {
-    if (otp.length !== 6) return;
-    setVerifyingPhone(true);
-    setPhoneStatus(null);
-    try {
-      // Verify OTP (verify_only — just validates the code, no login/signup side-effects)
-      await api.post('/auth/verify-otp', { phone: newPhone, otp, role: user.role || 'user', flow: 'verify_only' });
-      // Save new phone to backend
-      await api.put('/auth/profile', { phone: newPhone });
-      // Update local context
+  const verifyOtpMutation = useMutation({
+    mutationFn: async (payload) => {
+      await api.post('/auth/verify-otp', { phone: payload.phone, otp: payload.otp, role: user.role || 'user', flow: 'verify_only' });
+      return api.put('/auth/profile', { phone: payload.phone }).then(r => r.data);
+    },
+    onSuccess: () => {
       updateUser({ phone: newPhone });
       setIsPhoneVerified(true);
       setShowOtpInput(false);
       setPhoneStatus({ type: 'success', message: 'Phone number updated successfully!' });
-    } catch (error) {
-      setPhoneStatus({ type: 'error', message: error.response?.data?.message || 'Invalid OTP. Please try again.' });
-    } finally {
-      setVerifyingPhone(false);
-    }
+    },
+    onError: (error) => setPhoneStatus({ type: 'error', message: error.response?.data?.message || 'Invalid OTP. Please try again.' }),
+  });
+
+  const handleVerifyOtp = () => {
+    if (otp.length !== 6) return;
+    setPhoneStatus(null);
+    verifyOtpMutation.mutate({ phone: newPhone, otp });
   };
 
+  const verifyingPhone = sendOtpMutation.isPending || verifyOtpMutation.isPending;
+
   // ── Change Password ────────────────────────────────────────────────────
-  const handleUpdatePassword = async (e) => {
+  const updatePasswordMutation = useMutation({
+    mutationFn: (payload) => api.put('/auth/change-password', payload).then(r => r.data),
+    onSuccess: (data) => {
+      setPassStatus({ type: 'success', message: data.message || 'Password updated successfully!' });
+      setPasswords({ current: '', next: '', confirm: '' });
+    },
+    onError: (error) => setPassStatus({ type: 'error', message: error.response?.data?.message || 'Failed to update password.' }),
+  });
+
+  const handleUpdatePassword = (e) => {
     e.preventDefault();
     if (passwords.next !== passwords.confirm) return;
     if (passwords.next.length < 8) {
       setPassStatus({ type: 'error', message: 'Password must be at least 8 characters.' });
       return;
     }
-    setIsSavingPass(true);
     setPassStatus(null);
-    try {
-      const response = await api.put('/auth/change-password', {
-        currentPassword: passwords.current,
-        newPassword: passwords.next,
-      });
-      setPassStatus({ type: 'success', message: response.data.message || 'Password updated successfully!' });
-      setPasswords({ current: '', next: '', confirm: '' });
-    } catch (error) {
-      setPassStatus({ type: 'error', message: error.response?.data?.message || 'Failed to update password.' });
-    } finally {
-      setIsSavingPass(false);
-    }
+    updatePasswordMutation.mutate({ currentPassword: passwords.current, newPassword: passwords.next });
   };
+
+  const isSavingPass = updatePasswordMutation.isPending;
 
   const inputClass = 'w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#1f2355] focus:bg-white transition-all font-semibold text-[#1f2355] placeholder:text-slate-400 text-[15px]';
   const labelClass = 'text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block';

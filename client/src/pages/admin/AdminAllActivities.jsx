@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   Activity, Search, Filter, ChevronLeft, ChevronRight,
   Users, Building2, ShoppingBag, Briefcase, Tag, Star,
-  ArrowLeft, Loader2, RefreshCw, Calendar, CheckCircle2
+  ArrowLeft, RefreshCw, Calendar, CheckCircle2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
+import Pagination from '../../components/admin/Pagination';
 
 // Maps entity_type to icon and color
 const ENTITY_ICONS = {
@@ -49,41 +51,35 @@ const SkeletonRow = () => (
 
 export default function AdminAllActivities() {
   const navigate = useNavigate();
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
-  const [pages, setPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
-  const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
-  const fetchActivities = useCallback(async (page = 1, q = search, t = typeFilter) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ page, limit: 20 });
-      if (q) params.set('search', q);
-      if (t) params.set('type', t);
-      const res = await api.get(`/admin/dashboard/activities?${params}`);
-      if (res.data.success) {
-        setActivities(res.data.data || []);
-        setTotal(res.data.total || 0);
-        setPages(res.data.pages || 1);
-        setCurrentPage(res.data.currentPage || page);
-      }
-    } catch (err) {
-      console.error('Failed to load activities:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [search, typeFilter]);
+  const { data: rawData, isLoading: loading, refetch } = useQuery({
+    queryKey: ['adminActivities', currentPage, search, typeFilter],
+    queryFn: () => {
+      const params = new URLSearchParams({ page: currentPage, limit: 20 });
+      if (search) params.set('search', search);
+      if (typeFilter) params.set('type', typeFilter);
+      return api.get(`/admin/dashboard/activities?${params}`).then(r => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => { fetchActivities(1); }, [typeFilter]);
+  const activities = rawData?.data || [];
+  const total = rawData?.total || 0;
+  const pages = rawData?.pages || 1;
 
   const handleSearch = (e) => {
     e.preventDefault();
     setSearch(searchInput);
-    fetchActivities(1, searchInput, typeFilter);
+    setCurrentPage(1);
+  };
+
+  const handleTypeChange = (e) => {
+    setTypeFilter(e.target.value);
+    setCurrentPage(1);
   };
 
   return (
@@ -101,7 +97,7 @@ export default function AdminAllActivities() {
             </p>
           </div>
         </div>
-        <button onClick={() => fetchActivities(currentPage)} className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-100 rounded-2xl text-slate-500 font-bold hover:bg-slate-50 transition-all">
+        <button onClick={() => refetch()} className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-100 rounded-2xl text-slate-500 font-bold hover:bg-slate-50 transition-all">
           <RefreshCw size={16} /> Refresh
         </button>
       </div>
@@ -127,7 +123,7 @@ export default function AdminAllActivities() {
           <Filter size={16} className="text-slate-400 shrink-0" />
           <select
             value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
+            onChange={handleTypeChange}
             className="pl-3 pr-8 py-3 bg-slate-50 border-2 border-slate-50 rounded-xl outline-none focus:border-indigo-500 font-bold text-sm transition-all appearance-none cursor-pointer"
           >
             <option value="">All Types</option>
@@ -218,27 +214,13 @@ export default function AdminAllActivities() {
           </table>
         </div>
 
-        {/* Pagination */}
-        {pages > 1 && (
-          <div className="px-8 py-5 border-t border-slate-50 flex items-center justify-between bg-slate-50/40">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-              Page {currentPage} of {pages} · {total} total
-            </p>
-            <div className="flex items-center gap-2">
-              <button disabled={currentPage <= 1} onClick={() => fetchActivities(currentPage - 1, search, typeFilter)} className="p-2 rounded-xl bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 disabled:opacity-40 transition-all">
-                <ChevronLeft size={16} />
-              </button>
-              {Array.from({ length: Math.min(pages, 7) }, (_, i) => i + 1).map(p => (
-                <button key={p} onClick={() => fetchActivities(p, search, typeFilter)} className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${currentPage === p ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white border border-slate-100 text-slate-500 hover:bg-slate-50'}`}>
-                  {p}
-                </button>
-              ))}
-              <button disabled={currentPage >= pages} onClick={() => fetchActivities(currentPage + 1, search, typeFilter)} className="p-2 rounded-xl bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 disabled:opacity-40 transition-all">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={pages}
+          totalItems={total}
+          pageSize={20}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </div>
   );

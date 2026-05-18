@@ -6,6 +6,7 @@ import {
   Wallet, Clock
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useMutation } from '@tanstack/react-query';
 import api from '../../services/api';
 import { useExecutive } from '../../context/ExecutiveContext';
 import { toast } from '../../mockToast';
@@ -31,31 +32,33 @@ export default function ExecutivePayout() {
   const navigate = useNavigate();
   const { data, loading, refetch } = useExecutive();
   const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleWithdraw = async () => {
+  const withdrawMutation = useMutation({
+    mutationFn: (amount) =>
+      api.post('/executive/withdraw', { amount }).then(r => r.data),
+    onSuccess: () => {
+      toast.success("Payout request submitted successfully!");
+      refetch();
+      setTimeout(() => navigate('/executive/wallet'), 1500);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Payout request failed");
+    }
+  });
+
+  const isSubmitting = withdrawMutation.isPending;
+
+  const handleWithdraw = () => {
     if (!withdrawAmount || Number(withdrawAmount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
-    
     const balance = data?.profile?.wallet_balance || 0;
     if (Number(withdrawAmount) > balance) {
       toast.error("Insufficient wallet balance");
       return;
     }
-
-    setIsSubmitting(true);
-    try {
-      await api.post('/executive/withdraw', { amount: Number(withdrawAmount) });
-      toast.success("Payout request submitted successfully!");
-      refetch();
-      setTimeout(() => navigate('/executive/wallet'), 1500);
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Payout request failed");
-    } finally {
-      setIsSubmitting(false);
-    }
+    withdrawMutation.mutate(Number(withdrawAmount));
   };
 
   if (loading) {

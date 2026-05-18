@@ -1,41 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { BadgePercent, TrendingUp, TrendingDown, Users, Download, Filter, IndianRupee } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 
 import Skeleton from '../../components/common/Skeleton';
 
 export default function AdminSubscriptionReport() {
-  const [data, setData] = useState([]);
-  const [summary, setSummary] = useState({
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['adminSubscriptionReport'],
+    queryFn: () => api.get('/admin/reports/subscriptions').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const data = (rawData?.data?.history || []).map(item => ({
+    month: item._id,
+    revenue: item.revenue,
+    count: item.count,
+  }));
+  const summary = rawData?.data?.summary || {
     totalRevenue: 0,
     activeSubscriptions: 0,
     conversionRate: 0,
-    growthRate: 0
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchReport = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get('/admin/reports/subscriptions');
-        if (res.data.success) {
-          setData(res.data.data.history.map(item => ({
-            month: item._id,
-            revenue: item.revenue,
-            count: item.count
-          })));
-          setSummary(res.data.data.summary);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchReport();
-  }, []);
+    growthRate: 0,
+  };
 
   const exportCSV = () => {
     const rows = [

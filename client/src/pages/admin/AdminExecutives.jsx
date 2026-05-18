@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  UserCheck, UserX, Eye, Search, Filter, Clock, AlertCircle, 
+import React, { useState } from 'react';
+import {
+  UserCheck, UserX, Eye, Search, Filter, Clock, AlertCircle,
   CheckCircle2, Users, Trash2, ShieldCheck, Landmark, Phone, Mail,
   MapPin, IndianRupee, Building2, UserCircle, ExternalLink, XCircle,
   CreditCard, User, MapPinned, FileText
@@ -8,6 +8,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminTable from '../../components/common/AdminTable';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { getExecutives, refreshAdminCache } from '../../services/AdminService';
 import { toast } from '../../mockToast';
@@ -21,8 +22,7 @@ import AdminTaskHistoryTab from '../../components/executive/AdminTaskHistoryTab'
 
 export default function AdminExecutives({ filter = 'All' }) {
   const navigate = useNavigate();
-  const [executives, setExecutives] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedExec, setSelectedExec] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -32,26 +32,18 @@ export default function AdminExecutives({ filter = 'All' }) {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
   const [activeTab, setActiveTab] = useState('executives'); // 'executives' | 'tasks' | 'salary' | 'history'
 
+  const { data: rawExecutives, isLoading: loading } = useQuery({
+    queryKey: ['adminExecutives'],
+    queryFn: () => getExecutives(),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error("Failed to fetch executives"),
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const data = await getExecutives();
-      setExecutives(data);
-    } catch (error) {
-      toast.error("Failed to fetch executives");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const executives = rawExecutives || [];
 
   const filteredData = executives.filter(item => {
     if (filter === 'pending' && !(item.onboarding_status === 'pending_approval' || item.onboarding_status === 'pending' || item.onboarding_status === 'incomplete')) return false;
-    
+
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       return (
@@ -70,7 +62,7 @@ export default function AdminExecutives({ filter = 'All' }) {
       await api.patch(`/admin/executives/${id}/status`, { status, rejection_reason: reason });
       toast.success(`Executive ${status} successfully!`);
       refreshAdminCache();
-      await fetchData();
+      queryClient.invalidateQueries({ queryKey: ['adminExecutives'] });
       setShowDetailModal(false);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Update failed');
@@ -99,19 +91,15 @@ export default function AdminExecutives({ filter = 'All' }) {
       `${newStatus ? 'Activate' : 'Deactivate'} Executive`,
       `Are you sure you want to ${action} this executive?`,
       async () => {
-        setExecutives(prev => prev.map(e => e._id === id ? { ...e, is_active: newStatus } : e));
-        setSelectedExec(prev => prev && prev._id === id ? { ...prev, is_active: newStatus } : prev);
         try {
           const res = await api.patch(`/admin/executives/${id}/toggle-active`);
           if (res.data.success) {
             toast.success(res.data.message || 'Status updated!');
             refreshAdminCache();
-            await fetchData();
+            queryClient.invalidateQueries({ queryKey: ['adminExecutives'] });
           } else throw new Error(res.data.message || 'Failed to toggle');
         } catch (err) {
           toast.error(err.response?.data?.message || err.message || 'Failed to toggle status');
-          setExecutives(prev => prev.map(e => e._id === id ? { ...e, is_active: currentStatus } : e));
-          setSelectedExec(prev => prev && prev._id === id ? { ...prev, is_active: currentStatus } : prev);
         }
       },
       newStatus ? 'info' : 'warning'
@@ -123,16 +111,13 @@ export default function AdminExecutives({ filter = 'All' }) {
       'Delete Executive',
       'CRITICAL: Are you sure you want to PERMANENTLY DELETE this executive? This action cannot be undone.',
       async () => {
-        const snapshot = [...executives];
-        setExecutives(prev => prev.filter(e => e._id !== id));
         try {
           await api.delete(`/admin/executives/${id}`);
           toast.success('Executive deleted from database');
           refreshAdminCache();
-          fetchData();
+          queryClient.invalidateQueries({ queryKey: ['adminExecutives'] });
           setShowDetailModal(false);
         } catch (err) {
-          setExecutives(snapshot);
           toast.error(err.response?.data?.message || 'Failed to delete executive');
         }
       }
@@ -149,7 +134,7 @@ export default function AdminExecutives({ filter = 'All' }) {
           await api.post(`/admin/executives/${id}/reset-kyc`);
           toast.success('Executive KYC has been deleted from database');
           refreshAdminCache();
-          fetchData();
+          queryClient.invalidateQueries({ queryKey: ['adminExecutives'] });
           setShowDetailModal(false);
         } catch (err) {
           toast.error('KYC Reset failed');
@@ -162,8 +147,8 @@ export default function AdminExecutives({ filter = 'All' }) {
   };
 
   const columns = [
-    { 
-      header: 'EXECUTIVE', 
+    {
+      header: 'EXECUTIVE',
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden border border-slate-200">
@@ -198,8 +183,8 @@ export default function AdminExecutives({ filter = 'All' }) {
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Commission</span>
       </div>
     )},
-    { 
-      header: 'STATUS', 
+    {
+      header: 'STATUS',
       render: (row) => {
         const status = row.onboarding_status;
         const config = {
@@ -211,7 +196,7 @@ export default function AdminExecutives({ filter = 'All' }) {
           rejected: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100', icon: UserX },
         };
         const { bg, text, border, icon: Icon } = config[status] || { bg: 'bg-slate-50', text: 'text-slate-400', border: 'border-slate-100', icon: AlertCircle };
-        
+
         return (
           <div className="flex flex-col gap-1">
             <div className={`flex items-center gap-2 px-2.5 py-1 rounded-lg border ${bg} ${text} ${border} w-fit`}>
@@ -227,11 +212,11 @@ export default function AdminExecutives({ filter = 'All' }) {
         );
       }
     },
-    { 
-      header: 'ACTIONS', 
+    {
+      header: 'ACTIONS',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={async () => {
               if (filter === 'pending') {
                 try {
@@ -252,14 +237,14 @@ export default function AdminExecutives({ filter = 'All' }) {
           >
             <Eye size={18} className="group-hover:scale-110 transition-transform" />
           </button>
-          <button 
+          <button
             onClick={() => handleToggleStatus(row._id, row.is_active)}
             className={`p-2 rounded-xl transition-all ${row.is_active ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
             title={row.is_active ? 'Deactivate' : 'Activate'}
           >
             {row.is_active ? <UserX size={18} /> : <UserCheck size={18} />}
           </button>
-          <button 
+          <button
             onClick={() => handleDelete(row._id)}
             className="p-2 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-100 transition-all"
             title="Delete Permanently"
@@ -318,10 +303,10 @@ export default function AdminExecutives({ filter = 'All' }) {
       )}
 
       {activeTab === 'executives' && (
-        <AdminTable 
-          columns={columns} 
-          data={filteredData} 
-          loading={loading} 
+        <AdminTable
+          columns={columns}
+          data={filteredData}
+          loading={loading}
           onSearch={setSearchTerm}
           searchPlaceholder="Search by name, code or phone..."
         />
@@ -336,15 +321,15 @@ export default function AdminExecutives({ filter = 'All' }) {
       <AnimatePresence>
         {showDetailModal && selectedExec && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
-              onClick={() => setShowDetailModal(false)} 
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              onClick={() => setShowDetailModal(false)}
             />
-            
-            <motion.div 
+
+            <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -437,7 +422,7 @@ export default function AdminExecutives({ filter = 'All' }) {
                     {!showRejectInput ? (
                       <div className="pt-8 border-t border-slate-100 flex items-center justify-between">
                         <div className="flex gap-4">
-                          <button 
+                          <button
                             onClick={() => handleResetKyc(selectedExec._id)}
                             disabled={isActionLoading}
                             className="px-8 py-4 bg-amber-50 text-amber-600 font-black rounded-2xl hover:bg-amber-100 transition-all flex items-center gap-2"
@@ -450,14 +435,14 @@ export default function AdminExecutives({ filter = 'All' }) {
                         <div className="flex gap-4">
                           {selectedExec.onboarding_status !== 'approved' && (
                             <>
-                              <button 
+                              <button
                                 onClick={() => setShowRejectInput(true)}
                                 disabled={isActionLoading}
                                 className="px-10 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 transition-all"
                               >
                                 REJECT KYC
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleStatusUpdate(selectedExec._id, 'approved')}
                                 disabled={isActionLoading}
                                 className="px-12 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
@@ -472,7 +457,7 @@ export default function AdminExecutives({ filter = 'All' }) {
                             </>
                           )}
                           {selectedExec.onboarding_status === 'approved' && (
-                            <button 
+                            <button
                               onClick={() => handleToggleStatus(selectedExec._id, selectedExec.is_active)}
                               className={`px-10 py-4 font-black rounded-2xl transition-all ${selectedExec.is_active ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}
                             >
@@ -490,20 +475,20 @@ export default function AdminExecutives({ filter = 'All' }) {
                               <XCircle size={20} />
                             </button>
                           </div>
-                          <textarea 
+                          <textarea
                             placeholder="Type specifically why these documents are being rejected..."
                             value={rejectionReason}
                             onChange={(e) => setRejectionReason(e.target.value)}
                             className="w-full bg-white border-2 border-slate-100 rounded-3xl p-6 text-sm font-medium focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 transition-all min-h-[120px]"
                           />
                           <div className="flex justify-end gap-4">
-                            <button 
+                            <button
                               onClick={() => { setShowRejectInput(false); setRejectionReason(''); }}
                               className="px-8 py-4 text-slate-500 font-black uppercase tracking-widest text-xs"
                             >
                               Cancel
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleStatusUpdate(selectedExec._id, 'rejected', rejectionReason)}
                               disabled={!rejectionReason || isActionLoading}
                               className="px-10 py-4 bg-rose-600 text-white font-black rounded-2xl shadow-xl shadow-rose-100 hover:bg-rose-700 transition-all disabled:opacity-50"

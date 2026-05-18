@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Briefcase, Plus, Eye, Edit2, Trash2, MapPin, Search, Filter, Layers, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
@@ -10,10 +11,7 @@ import Skeleton from '../../components/common/Skeleton';
 
 export default function AdminServices() {
   const navigate = useNavigate();
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState([]);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
   const [deleteId, setDeleteId] = useState(null);
 
   // Filter States
@@ -21,42 +19,37 @@ export default function AdminServices() {
   const [category, setCategory] = useState('all');
   const [status, setStatus] = useState('all');
 
-  useEffect(() => {
-    fetchData();
-  }, [category, status]);
+  const { data: serviceData, isLoading: loading } = useQuery({
+    queryKey: ['adminServices', category, status],
+    queryFn: () => api.get(`/admin/listings/service?status=${status === 'all' ? '' : status}&category_id=${category === 'all' ? '' : category}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const services = serviceData?.data || [];
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [serviceRes, catRes] = await Promise.all([
-        api.get(`/admin/listings/service?status=${status === 'all' ? '' : status}&category_id=${category === 'all' ? '' : category}`),
-        api.get('/admin/system/categories?type=service')
-      ]);
+  const { data: catData } = useQuery({
+    queryKey: ['adminServiceCategoriesFilter'],
+    queryFn: () => api.get('/admin/system/categories?type=service').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const categories = catData?.data || [];
 
-      if (serviceRes.data.success) setServices(serviceRes.data.data);
-      if (catRes.data.success) setCategories(catRes.data.data);
-    } catch (error) {
-      console.error("Failed to fetch services:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/admin/listings/${id}`).then(r => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminServices'] });
+      setDeleteId(null);
+    },
+    onError: () => toast.error("Failed to delete service."),
+  });
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    setIsDeleting(true);
-    try {
-      const res = await api.delete(`/admin/listings/${deleteId}`);
-      if (res.data.success) {
-        setServices(prev => prev.filter(s => s._id !== deleteId));
-        setDeleteId(null);
-      }
-    } catch (err) {
-      toast.error("Failed to delete service.");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }) => api.patch(`/admin/listings/${id}/status`, { status }).then(r => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminServices'] }),
+    onError: () => toast.error("Failed to update status."),
+  });
+
+  const isDeleting = deleteMutation.isPending;
+  const handleDelete = () => { if (deleteId) deleteMutation.mutate(deleteId); };
 
   const columns = [
     { 
@@ -131,26 +124,15 @@ export default function AdminServices() {
 
           {/* Status Toggle */}
           {row.status === 'pending_approval' ? (
-            <button 
-              onClick={async () => {
-                try {
-                  await api.patch(`/admin/listings/${row._id}/status`, { status: 'active' });
-                  fetchData();
-                } catch (err) { toast.error("Failed to approve."); }
-              }}
+            <button
+              onClick={() => statusMutation.mutate({ id: row._id, status: 'active' })}
               className="p-2.5 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all group/tooltip relative"
             >
               <CheckCircle2 size={18} className="transition-transform group-hover/tooltip:scale-110" />
             </button>
           ) : (
-            <button 
-              onClick={async () => {
-                try {
-                  const nextStatus = row.status === 'active' ? 'inactive' : 'active';
-                  await api.patch(`/admin/listings/${row._id}/status`, { status: nextStatus });
-                  fetchData();
-                } catch (err) { toast.error("Failed to toggle status."); }
-              }}
+            <button
+              onClick={() => statusMutation.mutate({ id: row._id, status: row.status === 'active' ? 'inactive' : 'active' })}
               className={`p-2.5 rounded-xl transition-all group/tooltip relative ${row.status === 'active' ? 'text-amber-500 hover:bg-amber-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
             >
               {row.status === 'active' ? <XCircle size={18} className="transition-transform group-hover/tooltip:scale-110" /> : <CheckCircle2 size={18} className="transition-transform group-hover/tooltip:scale-110" />}

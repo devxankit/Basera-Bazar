@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { 
   IndianRupee, ArrowLeft, User, RefreshCcw, XCircle, 
   CheckCircle2, Clock, Calendar, Shield, CreditCard,
@@ -23,26 +24,14 @@ function cn(...inputs) {
 export default function AdminSubscriptionDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [subscription, setSubscription] = useState(null);
-  const [transaction, setTransaction] = useState(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDetails = async () => {
-      try {
-        const res = await api.get(`/admin/subscriptions/${id}`);
-        if (res.data.success) {
-          setSubscription(res.data.data);
-          setTransaction(res.data.transaction);
-        }
-      } catch (err) {
-        console.error('Error fetching subscription details:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDetails();
-  }, [id]);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['adminSubscriptionDetail', id],
+    queryFn: () => api.get(`/admin/subscriptions/${id}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const subscription = rawData?.data || null;
+  const transaction = rawData?.transaction || null;
 
   if (loading) {
     return (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ShoppingBag,
   MapPin,
@@ -19,36 +19,24 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 
 export default function PartnerOrderHistory() {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all'); 
+  const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('newest'); 
-
-  const [timeFilter, setTimeFilter] = useState('all'); 
+  const [sortBy, setSortBy] = useState('newest');
+  const [timeFilter, setTimeFilter] = useState('all');
   const [showFilter, setShowFilter] = useState(false);
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['sellerOrderHistory'],
+    queryFn: () => api.get('/orders/seller-orders').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/orders/seller-orders');
-      if (res.data.success) {
-        setOrders(res.data.data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const orders = rawData?.success ? rawData.data : [];
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 

@@ -1,9 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Eye, Pencil, Power } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import AdminTable from '../../../components/common/AdminTable';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
+import FilterBar, { FilterField } from '../../../components/admin/FilterBar';
+import Pagination from '../../../components/admin/Pagination';
 import { toast } from '../../../mockToast';
 
 const SPEC_LABELS = {
@@ -23,27 +26,32 @@ const STATUS_BADGE = {
 
 export default function AdminOfficeStaff() {
   const navigate = useNavigate();
-  const [officeStaff, setOfficeStaff] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [confirmModal, setConfirmModal] = useState(null);
 
-  const fetchOfficeStaff = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-office-staff', page, search, statusFilter],
+    queryFn: () => {
       const params = new URLSearchParams({ page, limit: 20 });
       if (search) params.set('search', search);
       if (statusFilter) params.set('status', statusFilter);
-      const { data } = await api.get(`/admin/staff/office-staff?${params}`);
-      if (data.success) { setOfficeStaff(data.data); setTotalPages(data.totalPages || 1); }
-    } catch { toast.error('Failed to load Office Staff'); }
-    finally { setLoading(false); }
-  }, [page, search, statusFilter]);
+      return api.get(`/admin/staff/office-staff?${params}`).then((r) => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load Office Staff'),
+  });
 
-  useEffect(() => { fetchOfficeStaff(); }, [fetchOfficeStaff]);
+  const officeStaff = rawData?.data || [];
+  const totalPages = rawData?.totalPages || 1;
+  const totalItems = rawData?.total || officeStaff.length;
+
+  const toggleMutation = useMutation({
+    mutationFn: (id) => api.put(`/admin/staff/office-staff/${id}/toggle`).then((r) => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-office-staff'] }),
+  });
 
   const handleToggle = (id, currentActive) => {
     setConfirmModal({
@@ -51,13 +59,19 @@ export default function AdminOfficeStaff() {
       message: currentActive ? 'They will lose portal access.' : 'This will restore their access.',
       type: currentActive ? 'warning' : 'success',
       onConfirm: async () => {
-        await api.put(`/admin/staff/office-staff/${id}/toggle`);
-        toast.success(currentActive ? 'Deactivated.' : 'Activated.');
-        fetchOfficeStaff();
-        setConfirmModal(null);
+        try {
+          await toggleMutation.mutateAsync(id);
+          toast.success(currentActive ? 'Deactivated.' : 'Activated.');
+        } catch {
+          toast.error('Action failed.');
+        } finally {
+          setConfirmModal(null);
+        }
       },
     });
   };
+
+  const activeFilterCount = (search ? 1 : 0) + (statusFilter ? 1 : 0);
 
   const columns = [
     { header: 'Name', render: (row) => (
@@ -115,27 +129,51 @@ export default function AdminOfficeStaff() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-4">
-        <input
-          type="text"
-          placeholder="Search name, phone, email..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-300 bg-white w-64"
-        />
-        <select
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
-        >
-          <option value="">All Statuses</option>
-          <option value="approved">Approved</option>
-          <option value="pending_approval">Pending</option>
-          <option value="rejected">Rejected</option>
-        </select>
-      </div>
+      <FilterBar
+        open
+        activeCount={activeFilterCount}
+        onReset={() => { setSearch(''); setStatusFilter(''); setPage(1); }}
+      >
+        <FilterField label="Search">
+          <input
+            type="text"
+            placeholder="Search name, phone, email..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-300 bg-white w-64"
+          />
+        </FilterField>
+        <FilterField label="Status">
+          <select
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
+          >
+            <option value="">All Statuses</option>
+            <option value="approved">Approved</option>
+            <option value="pending_approval">Pending</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </FilterField>
+      </FilterBar>
 
-      <AdminTable columns={columns} data={officeStaff} loading={loading} title="" pagination={totalPages > 1} currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+      <AdminTable
+        columns={columns}
+        data={officeStaff}
+        loading={loading}
+        title=""
+        pagination={false}
+        hideSearch
+        hideFilter
+      />
+
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={20}
+        onPageChange={setPage}
+      />
 
       {confirmModal && (
         <ConfirmationModal isOpen title={confirmModal.title} message={confirmModal.message} type={confirmModal.type} onConfirm={confirmModal.onConfirm} onClose={() => setConfirmModal(null)} />

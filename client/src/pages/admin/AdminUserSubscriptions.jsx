@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { 
   CreditCard, Plus, Eye, Ban, Calendar, Clock, 
   ChevronRight, ArrowLeft, Layers, Star, Users, Briefcase, Mail, Phone,
@@ -10,32 +11,25 @@ import api from '../../services/api';
 export default function AdminUserSubscriptions() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [subscriptions, setSubscriptions] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [uRes, sRes] = await Promise.all([
-          api.get(`/admin/users/${id}`),
-          api.get(`/admin/users/${id}/subscriptions`)
-        ]);
-        
-        if (uRes.data.success) setUser(uRes.data.data);
-        if (sRes.data.success) {
-           // If no real sub history, use the one from user object if it exists
-           const subs = sRes.data.data.length > 0 ? sRes.data.data : (uRes.data.data.active_subscription ? [uRes.data.data.active_subscription] : []);
-           setSubscriptions(subs);
-        }
-      } catch (err) {
-        console.error("Fetch sub history fail:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [id]);
+  const { data: userData, isLoading: userLoading } = useQuery({
+    queryKey: ['adminUserDetail', id],
+    queryFn: () => api.get(`/admin/users/${id}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: subData, isLoading: subLoading } = useQuery({
+    queryKey: ['adminUserSubscriptions', id],
+    queryFn: () => api.get(`/admin/users/${id}/subscriptions`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const loading = userLoading || subLoading;
+  const user = userData?.data || null;
+  const rawSubs = subData?.data || [];
+  const subscriptions = rawSubs.length > 0
+    ? rawSubs
+    : (user?.active_subscription ? [user.active_subscription] : []);
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">

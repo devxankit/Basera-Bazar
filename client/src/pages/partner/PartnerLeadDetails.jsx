@@ -1,48 +1,41 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, Phone, Mail, MessageSquare, 
+import React, { useState } from 'react';
+import {
+  ArrowLeft, Phone, Mail, MessageSquare,
   Calendar, Trash2, CheckCircle2, AlertTriangle,
   Package, User, ExternalLink, Tag, Loader2,
   ShieldCheck, Zap
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../../services/DataEngine';
 import api from '../../services/api';
 
 export default function PartnerLeadDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [lead, setLead] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [updating, setUpdating] = useState(false);
 
-  useEffect(() => {
-    fetchLeadDetails();
-  }, [id]);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['partnerLeadDetails', id],
+    queryFn: () => api.get(`/partners/enquiries/${id}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!id,
+  });
 
-  const fetchLeadDetails = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get(`/partners/enquiries/${id}`);
-      if (res.data.success) {
-        setLead(res.data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching lead details:", err);
-      navigate(-1);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const lead = rawData?.success ? rawData.data : null;
 
   const updateStatus = async (newStatus) => {
     try {
       setUpdating(true);
       const res = await api.patch(`/partners/enquiries/${id}/status`, { status: newStatus });
       if (res.data.success) {
-        setLead(res.data.data);
+        queryClient.setQueryData(['partnerLeadDetails', id], (old) => {
+          if (!old) return old;
+          return { ...old, data: res.data.data };
+        });
       }
     } catch (err) {
       console.error("Error updating status:", err);

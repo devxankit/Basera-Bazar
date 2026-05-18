@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, Phone, MessageSquare, 
+import React, { useState } from 'react';
+import {
+  ArrowLeft, Phone, MessageSquare,
   Calendar, CheckCircle2, AlertTriangle,
-  Package, ExternalLink, MapPin, 
+  Package, ExternalLink, MapPin,
   Truck, ShieldCheck, Loader2, Star,
   UserCheck, MessageCircle
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -15,32 +16,32 @@ export default function MandiOrderDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [order, setOrder] = useState(null);
-  const [review, setReview] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [updating, setUpdating] = useState(false);
   const [deliveryOTP, setDeliveryOTP] = useState('');
   const [modal, setModal] = useState({ show: false, type: 'confirm', title: '', message: '', onConfirm: null });
   const [sendingOTP, setSendingOTP] = useState(false);
 
-  useEffect(() => {
-    fetchOrderDetails();
-    fetchReview();
-  }, [id]);
+  const { data: orderRaw, isLoading: loading } = useQuery({
+    queryKey: ['mandiOrderDetails', id],
+    queryFn: () => api.get(`/orders/${id}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!id,
+  });
 
-  const fetchReview = async () => {
-    try {
-      const res = await api.get(`/orders/${id}/review`);
-      if (res.data.success && res.data.data.length > 0) {
-        // Find the review for this specific seller
-        const currentUserId = user?._id || user?.id;
-        const myReview = res.data.data.find(r => r.partner_id?.toString() === currentUserId?.toString());
-        setReview(myReview);
-      }
-    } catch (err) {
-      console.error("Error fetching review:", err);
-    }
-  };
+  const { data: reviewRaw } = useQuery({
+    queryKey: ['mandiOrderReview', id],
+    queryFn: () => api.get(`/orders/${id}/review`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!id,
+  });
+
+  const order = orderRaw?.success ? orderRaw.data : null;
+  const review = (() => {
+    if (!reviewRaw?.success || !reviewRaw.data?.length) return null;
+    const currentUserId = user?._id || user?.id;
+    return reviewRaw.data.find(r => r.partner_id?.toString() === currentUserId?.toString()) || null;
+  })();
 
   const sendOTP = async (itemId) => {
     try {
@@ -66,32 +67,17 @@ export default function MandiOrderDetails() {
     }
   };
 
-  const fetchOrderDetails = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get(`/orders/${id}`);
-      if (res.data.success) {
-        setOrder(res.data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching order details:", err);
-      navigate(-1);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleUpdate = async (itemId, status, method, otp) => {
     try {
       setUpdating(true);
-      const res = await api.patch(`/orders/lead/${id}/${itemId}/status`, { 
-        status, 
-        method, 
-        delivery_otp: otp 
+      const res = await api.patch(`/orders/lead/${id}/${itemId}/status`, {
+        status,
+        method,
+        delivery_otp: otp
       });
       if (res.data.success) {
         setModal({ show: false });
-        fetchOrderDetails();
+        queryClient.invalidateQueries({ queryKey: ['mandiOrderDetails', id] });
       }
     } catch (err) {
       setModal({

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 
@@ -15,30 +16,36 @@ const SPECIALIZATIONS = [
   { value: 'data_update', label: 'Data Update' },
 ];
 
+const EMPTY_FORM = {
+  name: '', phone: '', email: '', team_leader_id: '',
+  fixed_salary: 8000, calling_specialization: 'lead_generation',
+  password: '', confirm_password: '',
+  profile_image: '',
+  address: { address_line: '', city: '', state: '', pincode: '' },
+};
+
 export default function AdminOfficeStaffForm() {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const [form, setForm] = useState({
-    name: '', phone: '', email: '', team_leader_id: '',
-    fixed_salary: 8000, calling_specialization: 'lead_generation',
-    password: '', confirm_password: '',
-    profile_image: '',
-    address: { address_line: '', city: '', state: '', pincode: '' },
-  });
-  const [teamLeaders, setTeamLeaders] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
   const [uploading, setUploading] = useState(false);
-  const [fetching, setFetching] = useState(isEdit);
 
-  useEffect(() => {
-    api.get('/admin/staff/team-leaders?status=approved&limit=100').then(({ data }) => {
-      if (data.success) setTeamLeaders(data.data);
-    });
+  const { data: teamLeadersData } = useQuery({
+    queryKey: ['admin-team-leaders-dropdown'],
+    queryFn: () => api.get('/admin/staff/team-leaders?status=approved&limit=100').then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const teamLeaders = teamLeadersData?.data || [];
 
-    if (!isEdit) return;
-    api.get(`/admin/staff/office-staff/${id}`).then(({ data }) => {
+  const { isLoading: fetching } = useQuery({
+    queryKey: ['admin-office-staff-form', id],
+    queryFn: () => api.get(`/admin/staff/office-staff/${id}`).then((r) => r.data),
+    enabled: isEdit,
+    staleTime: 5 * 60 * 1000,
+    onSuccess: (data) => {
       if (data.success) {
         const os = data.data;
         setForm((prev) => ({
@@ -53,8 +60,23 @@ export default function AdminOfficeStaffForm() {
           address: os.address || { address_line: '', city: '', state: '', pincode: '' },
         }));
       }
-    }).finally(() => setFetching(false));
-  }, [id, isEdit]);
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: (payload) => isEdit
+      ? api.put(`/admin/staff/office-staff/${id}`, payload).then((r) => r.data)
+      : api.post('/admin/staff/office-staff', payload).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-office-staff'] });
+      if (isEdit) queryClient.invalidateQueries({ queryKey: ['admin-office-staff-detail', id] });
+      toast.success(isEdit ? 'Office Staff updated.' : 'Office Staff created.');
+      navigate('/admin/staff/office-staff');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to save.'),
+  });
+
+  const loading = saveMutation.isLoading;
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -86,7 +108,7 @@ export default function AdminOfficeStaffForm() {
     if (/[A-Z]/.test(pwd)) score++;
     if (/[0-9]/.test(pwd)) score++;
     if (/[^A-Za-z0-9]/.test(pwd)) score++;
-    
+
     switch (score) {
       case 0: case 1: return { score, label: 'Very Weak', color: 'bg-red-500' };
       case 2: return { score, label: 'Weak', color: 'bg-amber-500' };
@@ -96,7 +118,7 @@ export default function AdminOfficeStaffForm() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!isEdit && form.password !== form.confirm_password) {
       toast.error('Passwords do not match.');
@@ -106,28 +128,13 @@ export default function AdminOfficeStaffForm() {
       toast.error('Please use a stronger password.');
       return;
     }
-    setLoading(true);
-    try {
-      const payload = { ...form };
-      delete payload.confirm_password;
-      if (isEdit) delete payload.password;
-
-      if (isEdit) {
-        await api.put(`/admin/staff/office-staff/${id}`, payload);
-        toast.success('Office Staff updated.');
-      } else {
-        await api.post('/admin/staff/office-staff', payload);
-        toast.success('Office Staff created.');
-      }
-      navigate('/admin/staff/office-staff');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to save.');
-    } finally {
-      setLoading(false);
-    }
+    const payload = { ...form };
+    delete payload.confirm_password;
+    if (isEdit) delete payload.password;
+    saveMutation.mutate(payload);
   };
 
-  if (fetching) return <div className="p-8 text-center text-slate-400">Loading...</div>;
+  if (isEdit && fetching) return <div className="p-8 text-center text-slate-400">Loading...</div>;
 
   const strength = getPasswordStrength(form.password);
 

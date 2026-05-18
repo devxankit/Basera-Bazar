@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Plus, Target, X, Eye, Trash2, Power } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 import AdminTable from '../../../components/common/AdminTable';
@@ -49,67 +50,87 @@ const EMPTY_FORM = {
 };
 
 export default function AdminTargetManagement() {
-  const [targets, setTargets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
   const [progressTarget, setProgressTarget] = useState(null);
-  const [progressData, setProgressData] = useState([]);
-  const [progressLoading, setProgressLoading] = useState(false);
 
-  const fetchTargets = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await api.get('/admin/staff/targets');
-      if (data.success) setTargets(data.data);
-    } catch { toast.error('Failed to load targets'); }
-    finally { setLoading(false); }
-  }, []);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-targets'],
+    queryFn: () => api.get('/admin/staff/targets').then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load targets'),
+  });
 
-  useEffect(() => { fetchTargets(); }, [fetchTargets]);
+  const targets = rawData?.data || [];
+
+  const { data: progressRaw, isLoading: progressLoading } = useQuery({
+    queryKey: ['admin-target-progress', progressTarget?._id],
+    queryFn: () =>
+      api.get(`/admin/staff/targets/${progressTarget._id}/progress`).then((r) => r.data),
+    enabled: Boolean(progressTarget),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load progress.'),
+  });
+
+  const progressData = progressRaw?.data || [];
+
+  const createMutation = useMutation({
+    mutationFn: (payload) => api.post('/admin/staff/targets', payload).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-targets'] });
+      toast.success('Target assigned successfully.');
+      setShowForm(false);
+      setForm(EMPTY_FORM);
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to assign target.'),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: (id) => api.put(`/admin/staff/targets/${id}/toggle`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-targets'] });
+      setConfirmModal(null);
+    },
+    onError: () => { toast.error('Operation failed.'); setConfirmModal(null); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/admin/staff/targets/${id}`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-targets'] });
+      toast.success('Target deleted.');
+      setConfirmModal(null);
+    },
+    onError: () => { toast.error('Delete failed.'); setConfirmModal(null); },
+  });
 
   const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (new Date(form.end_date) < new Date(form.start_date)) {
       toast.error('End date must be on or after start date.');
       return;
     }
-    setSaving(true);
-    try {
-      await api.post('/admin/staff/targets', {
-        ...form,
-        target_value: Number(form.target_value),
-        incentive_rate: Number(form.incentive_rate),
-      });
-      toast.success('Target assigned successfully.');
-      setShowForm(false);
-      setForm(EMPTY_FORM);
-      fetchTargets();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to assign target.');
-    } finally { setSaving(false); }
+    createMutation.mutate({
+      ...form,
+      target_value: Number(form.target_value),
+      incentive_rate: Number(form.incentive_rate),
+    });
   };
 
   const handleToggleStatus = (target) => {
     setConfirmModal({
       title: target.is_active ? 'Deactivate Target?' : 'Activate Target?',
-      message: target.is_active 
+      message: target.is_active
         ? 'This will stop tracking achievement against this target.'
         : 'This will resume tracking achievement against this target.',
       type: target.is_active ? 'warning' : 'info',
-      onConfirm: async () => {
-        try {
-          await api.put(`/admin/staff/targets/${target._id}/toggle`);
-          toast.success(`Target ${target.is_active ? 'deactivated' : 'activated'}.`);
-          fetchTargets();
-          setConfirmModal(null);
-        } catch (err) {
-          toast.error('Operation failed.');
-        }
+      onConfirm: () => {
+        toast.success(`Target ${target.is_active ? 'deactivated' : 'activated'}.`);
+        toggleMutation.mutate(target._id);
       },
     });
   };
@@ -119,28 +140,11 @@ export default function AdminTargetManagement() {
       title: 'Delete Target?',
       message: 'This action is permanent and cannot be undone.',
       type: 'danger',
-      onConfirm: async () => {
-        try {
-          await api.delete(`/admin/staff/targets/${id}`);
-          toast.success('Target deleted.');
-          fetchTargets();
-          setConfirmModal(null);
-        } catch (err) {
-          toast.error('Delete failed.');
-        }
-      },
+      onConfirm: () => deleteMutation.mutate(id),
     });
   };
 
-  const viewProgress = async (target) => {
-    setProgressTarget(target);
-    setProgressLoading(true);
-    try {
-      const { data } = await api.get(`/admin/staff/targets/${target._id}/progress`);
-      if (data.success) setProgressData(data.data);
-    } catch { toast.error('Failed to load progress.'); }
-    finally { setProgressLoading(false); }
-  };
+  const saving = createMutation.isLoading;
 
   const columns = [
     { header: 'Type', render: (r) => (
@@ -166,19 +170,19 @@ export default function AdminTargetManagement() {
     )},
     { header: 'Actions', render: (r) => (
       <div className="flex items-center gap-1">
-        <button onClick={() => viewProgress(r)} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded" title="View Progress">
+        <button onClick={() => setProgressTarget(r)} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded" title="View Progress">
           <Eye size={15} />
         </button>
-        <button 
-          onClick={() => handleToggleStatus(r)} 
+        <button
+          onClick={() => handleToggleStatus(r)}
           className={`p-1.5 rounded transition-colors ${r.is_active ? 'text-green-600 hover:bg-green-50' : 'text-slate-400 hover:bg-slate-50'}`}
           title={r.is_active ? 'Deactivate' : 'Activate'}
         >
           <Power size={15} />
         </button>
-        <button 
-          onClick={() => handleDelete(r._id)} 
-          className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded" 
+        <button
+          onClick={() => handleDelete(r._id)}
+          className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
           title="Delete"
         >
           <Trash2 size={15} />
@@ -198,7 +202,7 @@ export default function AdminTargetManagement() {
       </span>
     )},
     { header: 'Achieved', render: (r) => <span className="font-bold text-slate-800">{r.achieved_value ?? 0}</span> },
-    { header: 'Target', render: (r) => <span className="text-slate-600">{progressTarget?.target_value}</span> },
+    { header: 'Target', render: () => <span className="text-slate-600">{progressTarget?.target_value}</span> },
     { header: 'Rate', render: (r) => {
       const rate = progressTarget?.target_value ? Math.round(((r.achieved_value ?? 0) / progressTarget.target_value) * 100) : 0;
       return (
@@ -314,18 +318,18 @@ export default function AdminTargetManagement() {
                 <h2 className="text-base font-black text-slate-900">Target Progress</h2>
                 <p className="text-sm text-slate-500">{TYPE_LABELS[progressTarget.target_type]} · {PERIOD_LABELS[progressTarget.target_period]} · Value: {progressTarget.target_value}</p>
               </div>
-              <button onClick={() => { setProgressTarget(null); setProgressData([]); }} className="p-1.5 hover:bg-slate-100 rounded-lg">
+              <button onClick={() => setProgressTarget(null)} className="p-1.5 hover:bg-slate-100 rounded-lg">
                 <X size={16} className="text-slate-500" />
               </button>
             </div>
             <div className="p-5">
-              <AdminTable columns={progressCols} data={progressData} loading={progressLoading} title="" />
+              <AdminTable columns={progressCols} data={progressData} loading={progressLoading} title="" hideSearch hideFilter />
             </div>
           </div>
         </div>
       )}
 
-      <AdminTable columns={columns} data={targets} loading={loading} title="" />
+      <AdminTable columns={columns} data={targets} loading={loading} title="" hideSearch hideFilter />
 
       {confirmModal && (
         <ConfirmationModal isOpen onClose={() => setConfirmModal(null)} title={confirmModal.title} message={confirmModal.message} type={confirmModal.type} onConfirm={confirmModal.onConfirm} />

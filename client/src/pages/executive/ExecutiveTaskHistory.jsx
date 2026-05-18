@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Target, CheckCircle2, AlertCircle, RefreshCw,
   Calendar, ChevronLeft, ChevronRight, TrendingUp, Award
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import ExecutiveBottomNav from '../../components/executive/ExecutiveBottomNav';
@@ -20,34 +21,19 @@ const itemVariants = {
 
 export default function ExecutiveTaskHistory() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ summary: null, history: [], total: 0, totalPages: 1, page: 1 });
   const [page, setPage] = useState(1);
 
-  const fetchHistory = async (p = 1) => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/executive/task-history?page=${p}&limit=15`);
-      if (res.data.success) {
-        setData({
-          summary: res.data.summary,
-          history: res.data.data,
-          total: res.data.total,
-          totalPages: res.data.totalPages,
-          page: res.data.page
-        });
-        setPage(res.data.page);
-      }
-    } catch (err) {
-      toast.error('Failed to load task history');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawData, isLoading: loading, refetch } = useQuery({
+    queryKey: ['executiveTaskHistory', page],
+    queryFn: () => api.get(`/executive/task-history?page=${page}&limit=15`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    keepPreviousData: true,
+    onError: () => toast.error('Failed to load task history'),
+  });
 
-  useEffect(() => { fetchHistory(1); }, []);
-
-  const { summary, history, totalPages } = data;
+  const summary = rawData?.success ? rawData.summary : null;
+  const history = rawData?.success ? rawData.data : [];
+  const totalPages = rawData?.success ? (rawData.totalPages ?? 1) : 1;
 
   // Compute bar color
   const barColor = (pct) => {
@@ -71,14 +57,14 @@ export default function ExecutiveTaskHistory() {
           <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Daily Onboarding Record</p>
         </div>
         <button
-          onClick={() => fetchHistory(page)}
+          onClick={() => refetch()}
           className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
         >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 
-      {loading && !summary ? (
+      {loading ? (
         <div className="px-6 pt-6 space-y-4">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-24 bg-slate-50 rounded-3xl animate-pulse" />
@@ -212,7 +198,7 @@ export default function ExecutiveTaskHistory() {
           {totalPages > 1 && (
             <motion.div variants={itemVariants} className="flex items-center justify-between py-2">
               <button
-                onClick={() => { const p = Math.max(1, page - 1); setPage(p); fetchHistory(p); }}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-slate-600 disabled:opacity-40 transition-all"
               >
@@ -222,7 +208,7 @@ export default function ExecutiveTaskHistory() {
                 Page <span className="text-slate-900">{page}</span> of <span className="text-slate-900">{totalPages}</span>
               </span>
               <button
-                onClick={() => { const p = Math.min(totalPages, page + 1); setPage(p); fetchHistory(p); }}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-slate-600 disabled:opacity-40 transition-all"
               >

@@ -1,77 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Building2, ArrowLeft, Loader2, AlertCircle, 
+import {
+  Building2, ArrowLeft, Loader2, AlertCircle,
   Search, Eye, CheckCircle2, XCircle, Home,
   MapPin, User, Calendar
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
 export default function AdminPendingProperties() {
   const navigate = useNavigate();
-  const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Rejection Modal State
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchProperties = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/admin/dashboard/pending/properties');
-      if (response.data.success) {
-        setProperties(response.data.data);
-      }
-    } catch (err) {
-      setError('Failed to load pending property queue.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['adminPendingProperties'],
+    queryFn: () => api.get('/admin/dashboard/pending/properties').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const handleApprove = async (id) => {
-    try {
-      const res = await api.patch(`/admin/listings/${id}/status`, { status: 'active' });
-      if (res.data.success) {
-        setProperties(prev => prev.filter(p => p._id !== id));
-      }
-    } catch (err) {
-      toast.error("Failed to approve property.");
-    }
-  };
+  const properties = rawData?.data || [];
+  const error = queryError ? 'Failed to load pending property queue.' : null;
 
-  const handleReject = async () => {
-    if (!rejectReason.trim()) return toast.error("Please provide a reason for rejection.");
-    
-    setIsSubmitting(true);
-    try {
-      const res = await api.patch(`/admin/listings/${rejectingId}/status`, { 
-        status: 'rejected',
-        status_reason: rejectReason 
+  const approveMutation = useMutation({
+    mutationFn: (id) => api.patch(`/admin/listings/${id}/status`, { status: 'active' }),
+    onSuccess: (_, id) => {
+      queryClient.setQueryData(['adminPendingProperties'], (old) => {
+        if (!old?.data) return old;
+        return { ...old, data: old.data.filter(p => p._id !== id) };
       });
-      if (res.data.success) {
-        setProperties(prev => prev.filter(p => p._id !== rejectingId));
-        setRejectingId(null);
-        setRejectReason('');
-      }
-    } catch (err) {
-      toast.error("Failed to reject property.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    },
+    onError: () => toast.error('Failed to approve property.'),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, reason }) => api.patch(`/admin/listings/${id}/status`, { status: 'rejected', status_reason: reason }),
+    onSuccess: (_, { id }) => {
+      queryClient.setQueryData(['adminPendingProperties'], (old) => {
+        if (!old?.data) return old;
+        return { ...old, data: old.data.filter(p => p._id !== id) };
+      });
+      setRejectingId(null);
+      setRejectReason('');
+    },
+    onError: () => toast.error('Failed to reject property.'),
+  });
+
+  const handleApprove = (id) => {
+    approveMutation.mutate(id);
   };
 
-  useEffect(() => {
-    fetchProperties();
-  }, []);
+  const handleReject = () => {
+    if (!rejectReason.trim()) { toast.error("Please provide a reason for rejection."); return; }
+    rejectMutation.mutate({ id: rejectingId, reason: rejectReason });
+  };
 
-  const filteredProperties = properties.filter(p => 
+  const isSubmitting = rejectMutation.isPending;
+
+  const filteredProperties = properties.filter(p =>
     p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.partner_id?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -81,7 +71,7 @@ export default function AdminPendingProperties() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate('/admin/dashboard')}
             className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm"
           >
@@ -96,9 +86,9 @@ export default function AdminPendingProperties() {
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search properties or agents..." 
+            <input
+              type="text"
+              placeholder="Search properties or agents..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-11 pr-4 py-2.5 bg-white border border-slate-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none w-full md:w-64 transition-all shadow-sm"
@@ -121,16 +111,16 @@ export default function AdminPendingProperties() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProperties.length > 0 ? filteredProperties.map((prop, i) => (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              key={prop._id} 
+              key={prop._id}
               className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col group hover:border-orange-200 transition-all"
             >
               <div className="relative h-48 overflow-hidden">
-                <img 
-                  src={prop.images?.[0] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1000&auto=format&fit=crop'} 
+                <img
+                  src={prop.images?.[0] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1000&auto=format&fit=crop'}
                   alt={prop.title}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
@@ -177,21 +167,22 @@ export default function AdminPendingProperties() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 pt-2">
-                  <button 
+                  <button
                     onClick={() => navigate(`/admin/properties/view/${prop._id}`)}
                     className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-all border border-transparent active:scale-95"
                   >
                     <Eye size={18} />
                     <span className="text-[9px] font-black uppercase tracking-widest">View</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleApprove(prop._id)}
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-emerald-50 text-emerald-500 hover:bg-emerald-100 transition-all border border-emerald-100/50 active:scale-95"
+                    disabled={approveMutation.isPending}
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-emerald-50 text-emerald-500 hover:bg-emerald-100 transition-all border border-emerald-100/50 active:scale-95 disabled:opacity-50"
                   >
                     <CheckCircle2 size={18} />
                     <span className="text-[9px] font-black uppercase tracking-widest">Approve</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => setRejectingId(prop._id)}
                     className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 transition-all border border-rose-100/50 active:scale-95"
                   >
@@ -216,7 +207,7 @@ export default function AdminPendingProperties() {
       {/* Rejection Modal */}
       {rejectingId && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white rounded-4xl w-full max-w-md overflow-hidden shadow-2xl"
@@ -224,7 +215,7 @@ export default function AdminPendingProperties() {
             <div className="p-8 pb-4">
               <h2 className="text-2xl font-black text-slate-900 tracking-tight">Audit Rejection</h2>
               <p className="text-slate-500 font-bold text-sm mt-2 leading-relaxed">Please provide a detailed qualitative reason for rejecting this asset profile. The partner will receive this feedback via primary protocol.</p>
-              
+
               <div className="mt-6">
                 <textarea
                   value={rejectReason}
@@ -234,18 +225,18 @@ export default function AdminPendingProperties() {
                 />
               </div>
             </div>
-            
+
             <div className="p-8 pt-4 flex gap-3">
-              <button 
+              <button
                 onClick={() => { setRejectingId(null); setRejectReason(''); }}
                 className="flex-1 py-4 bg-slate-50 text-slate-400 font-black rounded-2xl hover:bg-slate-100 transition-all uppercase tracking-widest text-[11px]"
                 disabled={isSubmitting}
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleReject}
-                className="flex-[2] py-4 bg-rose-500 text-white font-black rounded-2xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-100 flex items-center justify-center gap-2 uppercase tracking-widest text-[11px]"
+                className="flex-2 py-4 bg-rose-500 text-white font-black rounded-2xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-100 flex items-center justify-center gap-2 uppercase tracking-widest text-[11px]"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : 'Execute Rejection'}

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Trophy, 
-  ChevronRight, 
-  ArrowLeft, 
-  MapPin, 
-  CheckCircle2, 
-  Package, 
+import React, { useState } from 'react';
+import {
+  Trophy,
+  ChevronRight,
+  ArrowLeft,
+  MapPin,
+  CheckCircle2,
+  Package,
   Gift,
   Loader2,
   Info,
@@ -13,16 +13,15 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 
 export default function PartnerMilestones() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [milestoneData, setMilestoneData] = useState(null);
   const [showRewardForm, setShowRewardForm] = useState(false);
   const [claimed, setClaimed] = useState(false);
-  
+
   const [address, setAddress] = useState({
     full_name: '',
     phone: '',
@@ -32,21 +31,13 @@ export default function PartnerMilestones() {
     pincode: ''
   });
 
-  useEffect(() => {
-    fetchMilestone();
-  }, []);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['partnerMilestone'],
+    queryFn: () => api.get('/milestones/current').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const fetchMilestone = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/milestones/current');
-      setMilestoneData(res.data.data);
-    } catch (err) {
-      console.error("Error fetching milestones:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const milestoneData = rawData?.data || null;
 
   const handleClaim = async (e) => {
     e.preventDefault();

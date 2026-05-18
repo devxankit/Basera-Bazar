@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { 
+import React, { useState } from 'react';
+import {
   AlertCircle,
-  Clock, 
-  CheckCircle2, 
+  Clock,
+  CheckCircle2,
   IndianRupee,
   History,
   TrendingDown,
@@ -13,30 +13,19 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 
 export default function MandiPenalties() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchPenaltyData();
-  }, []);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['mandiDashboard'],
+    queryFn: () => api.get('/mandi/dashboard').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const fetchPenaltyData = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/mandi/dashboard');
-      if (res.data.success) {
-        setStats(res.data.data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const stats = rawData?.success ? rawData.data : null;
 
   return (
     <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-[#f8fafc] font-sans pb-32">

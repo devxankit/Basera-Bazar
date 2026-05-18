@@ -1,8 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Download, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Download, CheckCircle, XCircle, FileText } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
-import AdminTable from '../../../components/common/AdminTable';
+import FilterBar, { FilterField } from '../../../components/admin/FilterBar';
+import EmptyState from '../../../components/common/EmptyState';
 
 const STAFF_TYPES = [
   { value: '', label: 'All Staff' },
@@ -19,47 +21,43 @@ const STATUS_BADGE = {
 
 export default function AdminStaffReports() {
   const today = new Date().toISOString().slice(0, 10);
+  const queryClient = useQueryClient();
   const [date, setDate] = useState(today);
   const [staffType, setStaffType] = useState('');
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [remarkInput, setRemarkInput] = useState('');
 
-  const fetchReports = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-staff-reports', date, staffType],
+    queryFn: () => {
       const params = new URLSearchParams({ date });
       if (staffType) params.set('staff_type', staffType);
-      const { data } = await api.get(`/admin/staff/reports/daily?${params}`);
-      if (data.success) setReports(data.data);
-    } catch { toast.error('Failed to load reports.'); }
-    finally { setLoading(false); }
-  }, [date, staffType]);
+      return api.get(`/admin/staff/reports/daily?${params}`).then((r) => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load reports.'),
+  });
 
-  useEffect(() => { fetchReports(); }, [fetchReports]);
+  const reports = rawData?.data || [];
 
-  const handleVerify = async (id, action) => {
+  const verifyMutation = useMutation({
+    mutationFn: ({ id, action, remarks }) =>
+      api.put(`/admin/staff/reports/daily/${id}/verify`, { action, remarks }).then((r) => r.data),
+    onSuccess: (_, { action }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-staff-reports'] });
+      toast.success(action === 'approve' ? 'Report verified.' : 'Report rejected.');
+      setExpandedId(null);
+      setRemarkInput('');
+    },
+    onError: () => toast.error('Action failed.'),
+  });
+
+  const handleVerify = (id, action) => {
     if (!remarkInput.trim() && action === 'reject') {
       toast.error('Please enter rejection remarks.');
       return;
     }
-
-    // Optimistic Update
-    const oldReports = [...reports];
-    const newStatus = action === 'approve' ? 'admin_verified' : 'rejected';
-    setReports(prev => prev.map(r => r._id === id ? { ...r, status: newStatus } : r));
-    setExpandedId(null);
-
-    try {
-      await api.put(`/admin/staff/reports/daily/${id}/verify`, { action, remarks: remarkInput });
-      toast.success(action === 'approve' ? 'Report verified.' : 'Report rejected.');
-      setRemarkInput('');
-      fetchReports();
-    } catch { 
-      toast.error('Action failed.');
-      setReports(oldReports); // Rollback
-    }
+    verifyMutation.mutate({ id, action, remarks: remarkInput });
   };
 
   const handleExport = async () => {
@@ -76,44 +74,7 @@ export default function AdminStaffReports() {
     } catch { toast.error('Export failed.'); }
   };
 
-  const columns = [
-    { header: 'Staff', render: (r) => (
-      <div>
-        <p className="font-bold text-slate-800 text-sm">{r.staff_id?.name || '—'}</p>
-        <p className="text-xs text-slate-500">{r.date}</p>
-      </div>
-    )},
-    { header: 'Type', render: (r) => (
-      <span className={`px-2 py-0.5 rounded text-xs font-bold ${r.staff_type === 'field_executive' ? 'bg-orange-100 text-orange-700' : 'bg-teal-100 text-teal-700'}`}>
-        {r.staff_type === 'field_executive' ? 'Field Exec' : 'Office Staff'}
-      </span>
-    )},
-    { header: 'Summary', render: (r) => r.staff_type === 'field_executive' ? (
-      <span className="text-xs text-slate-600">
-        Visited: {r.partners_visited ?? 0} · Reg: {r.partners_registered ?? 0} · Subs: {r.subscriptions_sold ?? 0}
-      </span>
-    ) : (
-      <span className="text-xs text-slate-600">
-        Calls: {r.calls_made ?? 0} · Leads: {r.leads_generated ?? 0} · Follow-ups: {r.follow_ups_done ?? 0}
-      </span>
-    )},
-    { header: 'TL Status', render: (r) => r.status === 'tl_verified' ? (
-      <span className="text-xs text-blue-600 font-bold">✓ TL Verified</span>
-    ) : <span className="text-xs text-slate-400">—</span> },
-    { header: 'Status', render: (r) => (
-      <span className={`px-2 py-0.5 rounded text-xs font-bold ${STATUS_BADGE[r.status] || 'bg-slate-100 text-slate-500'}`}>
-        {r.status?.replace('_', ' ').toUpperCase()}
-      </span>
-    )},
-    { header: 'Actions', render: (r) => r.status !== 'admin_verified' ? (
-      <button
-        onClick={() => { setExpandedId(expandedId === r._id ? null : r._id); setRemarkInput(''); }}
-        className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-bold hover:bg-indigo-100"
-      >
-        {expandedId === r._id ? 'Close' : 'Review'}
-      </button>
-    ) : <span className="text-xs text-green-600 font-bold">✓ Done</span> },
-  ];
+  const activeFilterCount = staffType ? 1 : 0;
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
@@ -127,29 +88,41 @@ export default function AdminStaffReports() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-5">
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
-        />
-        <select
-          value={staffType}
-          onChange={(e) => setStaffType(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
-        >
-          {STAFF_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-      </div>
+      <FilterBar
+        open
+        activeCount={activeFilterCount}
+        onReset={() => setStaffType('')}
+      >
+        <FilterField label="Date">
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+          />
+        </FilterField>
+        <FilterField label="Staff Type">
+          <select
+            value={staffType}
+            onChange={(e) => setStaffType(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
+          >
+            {STAFF_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
 
       <div className="space-y-2">
         {loading && <div className="text-center text-slate-400 py-8">Loading...</div>}
+
         {!loading && reports.length === 0 && (
-          <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-slate-400 text-sm">
-            No reports found for {date}.
-          </div>
+          <EmptyState
+            icon={FileText}
+            title="No reports found"
+            message={`No reports found for ${date}.`}
+          />
         )}
+
         {!loading && reports.map((r) => (
           <div key={r._id} className="bg-white border border-slate-200 rounded-lg overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3">
@@ -180,7 +153,7 @@ export default function AdminStaffReports() {
             {expandedId === r._id && (
               <div className="px-4 pb-4 border-t border-slate-100">
                 <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                  {r.staff_type === 'field_executive' ? [
+                  {(r.staff_type === 'field_executive' ? [
                     { label: 'Partners Visited', value: r.partners_visited ?? 0 },
                     { label: 'Partners Registered', value: r.partners_registered ?? 0 },
                     { label: 'Subscriptions Sold', value: r.subscriptions_sold ?? 0 },
@@ -190,7 +163,7 @@ export default function AdminStaffReports() {
                     { label: 'Follow-ups Done', value: r.follow_ups_done ?? 0 },
                     { label: 'Leads Generated', value: r.leads_generated ?? 0 },
                     { label: 'Data Entries', value: r.data_entries_updated ?? 0 },
-                  ].map(({ label, value }) => (
+                  ]).map(({ label, value }) => (
                     <div key={label} className="bg-slate-50 rounded-lg p-3 text-center">
                       <p className="text-lg font-black text-slate-800">{value}</p>
                       <p className="text-xs text-slate-500">{label}</p>
@@ -213,10 +186,18 @@ export default function AdminStaffReports() {
                       {remarkInput.length}/100
                     </span>
                   </div>
-                  <button onClick={() => handleVerify(r._id, 'approve')} className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700">
+                  <button
+                    onClick={() => handleVerify(r._id, 'approve')}
+                    disabled={verifyMutation.isLoading}
+                    className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 disabled:opacity-60"
+                  >
                     <CheckCircle size={13} /> Verify
                   </button>
-                  <button onClick={() => handleVerify(r._id, 'reject')} className="flex items-center gap-1 px-3 py-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700">
+                  <button
+                    onClick={() => handleVerify(r._id, 'reject')}
+                    disabled={verifyMutation.isLoading}
+                    className="flex items-center gap-1 px-3 py-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 disabled:opacity-60"
+                  >
                     <XCircle size={13} /> Reject
                   </button>
                 </div>

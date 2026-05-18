@@ -1,76 +1,83 @@
 import React, { useState, useEffect } from 'react';
 import { Save, ArrowLeft, Plus, Image as ImageIcon, Info, CheckCircle2, Calendar, X, Layout, ShieldCheck, Zap, Smartphone, Monitor, AlertCircle, Loader2 } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import MediaDropZone from '../../components/common/MediaDropZone';
 
+const DEFAULT_FORM = {
+  title: '',
+  description: '',
+  priority: 50,
+  position: 'home_top',
+  is_active: true,
+  image_url: '',
+  start_date: '',
+  end_date: ''
+};
+
 export default function AdminBannerForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    priority: 50,
-    position: 'home_top',
-    is_active: true,
-    image_url: '',
-    start_date: '',
-    end_date: ''
+  const [formData, setFormData] = useState(DEFAULT_FORM);
+
+  // Fetch existing banner when editing
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['adminBannerDetails', id],
+    queryFn: () => api.get(`/admin/system/banners/${id}`).then(r => r.data),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 
+  // Populate form when data arrives
   useEffect(() => {
-    if (id) {
-      const fetchBanner = async () => {
-        setLoading(true);
-        try {
-          const res = await api.get(`/admin/system/banners/${id}`);
-          if (res.data.success) {
-            const banner = res.data.data;
-               setFormData({
-                 title: banner.title || '',
-                 description: banner.description || '',
-                 priority: banner.priority || 50,
-                 position: banner.position || 'home_top',
-                 is_active: banner.is_active !== false,
-                 image_url: banner.image_url || '',
-                 start_date: banner.start_date ? banner.start_date.split('T')[0] : '',
-                 end_date: banner.end_date ? banner.end_date.split('T')[0] : ''
-               });
-          }
-        } catch (err) {
-          console.error(err);
-          setError('Failed to load banner details');
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchBanner();
+    if (rawData?.data) {
+      const banner = rawData.data;
+      setFormData({
+        title: banner.title || '',
+        description: banner.description || '',
+        priority: banner.priority || 50,
+        position: banner.position || 'home_top',
+        is_active: banner.is_active !== false,
+        image_url: banner.image_url || '',
+        start_date: banner.start_date ? banner.start_date.split('T')[0] : '',
+        end_date: banner.end_date ? banner.end_date.split('T')[0] : ''
+      });
     }
-  }, [id]);
+  }, [rawData]);
+
+  const saveMutation = useMutation({
+    mutationFn: (payload) => id
+      ? api.put(`/admin/system/banners/${id}`, payload)
+      : api.post('/admin/system/banners', payload),
+    onSuccess: (_, __, context) => {
+      queryClient.invalidateQueries({ queryKey: ['adminBanners'] });
+      if (id) queryClient.invalidateQueries({ queryKey: ['adminBannerDetails', id] });
+    },
+    onError: (err) => {
+      setError(err.response?.data?.message || 'Error saving banner');
+      setSaving(false);
+    },
+  });
 
   const handleSubmit = async (e, addAnother = false) => {
     if (e) e.preventDefault();
     setSaving(true);
     setError(null);
     try {
-      if (id) {
-        await api.put(`/admin/system/banners/${id}`, formData);
-      } else {
-        await api.post('/admin/system/banners', formData);
-      }
-      
+      await saveMutation.mutateAsync(formData);
       if (addAnother) {
-        setFormData({ title: '', description: '', priority: 50, is_active: true, image_url: '', start_date: '', end_date: '' });
+        setFormData(DEFAULT_FORM);
         toast.success('Banner created! You can add another one now.');
       } else {
         navigate('/admin/banners');
       }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Error saving banner');
+    } catch {
+      // error handled in onError
     } finally {
       setSaving(false);
     }
@@ -119,9 +126,9 @@ export default function AdminBannerForm() {
                  <div className="space-y-6">
                     <div className="space-y-2">
                        <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Banner Title</label>
-                       <input 
+                       <input
                         required
-                        type="text" 
+                        type="text"
                         placeholder="e.g., Welcome to Basera - Find Your Dream Home"
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -131,7 +138,7 @@ export default function AdminBannerForm() {
 
                     <div className="space-y-2">
                        <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Banner Description</label>
-                       <textarea 
+                       <textarea
                         rows="3"
                         placeholder="Brief description of the banner content"
                         value={formData.description}
@@ -143,16 +150,16 @@ export default function AdminBannerForm() {
                     <div className="grid grid-cols-3 gap-8">
                        <div className="space-y-2">
                           <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Display Priority</label>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             value={formData.priority}
                             onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-bold shadow-xs outline-none" 
+                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-bold shadow-xs outline-none"
                           />
                        </div>
                        <div className="space-y-2">
                           <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Banner Placement</label>
-                          <select 
+                          <select
                             value={formData.position}
                             onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                             className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-bold italic shadow-xs outline-none"
@@ -165,7 +172,7 @@ export default function AdminBannerForm() {
                        </div>
                        <div className="space-y-2">
                           <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Status</label>
-                          <select 
+                          <select
                             value={formData.is_active}
                             onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })}
                             className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-bold italic shadow-xs outline-none"
@@ -209,7 +216,7 @@ export default function AdminBannerForm() {
                  </div>
 
                  <div className="space-y-4">
-                    <MediaDropZone 
+                    <MediaDropZone
                       label="Banner Image"
                       description="Click or drag high-quality banner image here"
                       value={formData.image_url ? [formData.image_url] : []}
@@ -234,8 +241,8 @@ export default function AdminBannerForm() {
               <div className="p-8 grid grid-cols-2 gap-8">
                  <div className="space-y-2">
                     <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Auto-Publish Date</label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={formData.start_date}
                       onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                       className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-bold shadow-xs outline-none"
@@ -243,8 +250,8 @@ export default function AdminBannerForm() {
                  </div>
                  <div className="space-y-2">
                     <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Auto-Expire Date</label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={formData.end_date}
                       onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                       className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-bold shadow-xs outline-none"
@@ -262,15 +269,15 @@ export default function AdminBannerForm() {
 
            {/* Action Bar Footer */}
            <div className="flex items-center justify-between pt-4">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => navigate('/admin/banners')}
                 className="px-8 py-3 bg-slate-500 text-white font-bold text-[11px] rounded-lg hover:bg-slate-600 transition-all flex items-center gap-2 uppercase tracking-widest shadow-lg shadow-slate-100"
               >
                 <ArrowLeft size={16} /> Discard
               </button>
               <div className="flex items-center gap-3">
-                 <button 
+                 <button
                   type="submit"
                   disabled={saving}
                   className="px-10 py-3 bg-[#fa641e] text-white font-bold text-[11px] rounded-lg hover:bg-[#e45b1b] transition-all shadow-lg shadow-orange-100 flex items-center gap-2 uppercase tracking-widest"
@@ -279,7 +286,7 @@ export default function AdminBannerForm() {
                    {saving ? 'Processing...' : (id ? 'Update Asset' : 'Deploy Banner')}
                  </button>
                  {!id && (
-                   <button 
+                   <button
                     type="button"
                     onClick={(e) => handleSubmit(e, true)}
                     disabled={saving}
@@ -298,7 +305,7 @@ export default function AdminBannerForm() {
               <h2 className="text-[11px] font-bold text-slate-900 tracking-tight uppercase flex items-center gap-2 italic">
                  <ShieldCheck size={18} className="text-emerald-500" /> Operational Rules
               </h2>
-              
+
               <div className="space-y-6">
                  <div className="flex gap-4">
                     <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />

@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Lock, AlertTriangle } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 import AdminTable from '../../../components/common/AdminTable';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
+import FilterBar, { FilterField } from '../../../components/admin/FilterBar';
 
 const STAFF_TYPES = [
   { value: '', label: 'All Staff' },
@@ -14,25 +16,36 @@ const STAFF_TYPES = [
 
 export default function AdminStaffPerformance() {
   const currentMonth = new Date().toISOString().slice(0, 7);
+  const queryClient = useQueryClient();
   const [month, setMonth] = useState(currentMonth);
   const [staffType, setStaffType] = useState('');
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState(null);
-  const [finalizing, setFinalizing] = useState(false);
 
-  const fetchPerformance = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-staff-performance', month, staffType],
+    queryFn: () => {
       const params = new URLSearchParams({ month });
       if (staffType) params.set('staff_type', staffType);
-      const { data } = await api.get(`/admin/staff/performance?${params}`);
-      if (data.success) setRecords(data.data);
-    } catch { toast.error('Failed to load performance data.'); }
-    finally { setLoading(false); }
-  }, [month, staffType]);
+      return api.get(`/admin/staff/performance?${params}`).then((r) => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load performance data.'),
+  });
 
-  useEffect(() => { fetchPerformance(); }, [fetchPerformance]);
+  const records = rawData?.data || [];
+
+  const finalizeMutation = useMutation({
+    mutationFn: () => api.post('/admin/staff/performance/finalize', { month }).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-staff-performance'] });
+      toast.success('Performance finalized successfully.');
+      setConfirmModal(null);
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Finalization failed.');
+      setConfirmModal(null);
+    },
+  });
 
   const handleFinalize = () => {
     setConfirmModal({
@@ -40,16 +53,6 @@ export default function AdminStaffPerformance() {
       message: `This will lock performance records for ${month}, apply the 70% rule, and calculate salary deductions. This action cannot be undone.`,
       type: 'warning',
     });
-  };
-
-  const handleConfirm = async () => {
-    setFinalizing(true);
-    try {
-      await api.post('/admin/staff/performance/finalize', { month });
-      toast.success('Performance finalized successfully.');
-      fetchPerformance();
-    } catch (err) { toast.error(err.response?.data?.message || 'Finalization failed.'); }
-    finally { setFinalizing(false); setConfirmModal(null); }
   };
 
   const deficientStaff = records.filter((r) => r.consecutive_deficient_months >= 2);
@@ -66,6 +69,8 @@ export default function AdminStaffPerformance() {
     if (rate >= 0.5) return 'bg-amber-400';
     return 'bg-red-500';
   };
+
+  const activeFilterCount = (staffType ? 1 : 0);
 
   const columns = [
     { header: 'Staff', render: (r) => (
@@ -114,28 +119,36 @@ export default function AdminStaffPerformance() {
         </div>
         <button
           onClick={handleFinalize}
-          disabled={finalizing || isFinalized}
+          disabled={finalizeMutation.isLoading || isFinalized}
           className="flex items-center gap-2 px-4 py-2 bg-[#001b4e] text-white rounded-lg text-sm font-semibold hover:bg-[#001337] disabled:opacity-60"
         >
-          <Lock size={15} /> {isFinalized ? 'Finalized' : finalizing ? 'Finalizing...' : 'Finalize Performance'}
+          <Lock size={15} /> {isFinalized ? 'Finalized' : finalizeMutation.isLoading ? 'Finalizing...' : 'Finalize Performance'}
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-5">
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
-        />
-        <select
-          value={staffType}
-          onChange={(e) => setStaffType(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
-        >
-          {STAFF_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-      </div>
+      <FilterBar
+        open
+        activeCount={activeFilterCount}
+        onReset={() => setStaffType('')}
+      >
+        <FilterField label="Month">
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+          />
+        </FilterField>
+        <FilterField label="Staff Type">
+          <select
+            value={staffType}
+            onChange={(e) => setStaffType(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
+          >
+            {STAFF_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
 
       {deficientStaff.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-5 flex items-start gap-3">
@@ -163,10 +176,17 @@ export default function AdminStaffPerformance() {
         ))}
       </div>
 
-      <AdminTable columns={columns} data={records} loading={loading} title="" />
+      <AdminTable columns={columns} data={records} loading={loading} title="" hideSearch hideFilter />
 
       {confirmModal && (
-        <ConfirmationModal isOpen onClose={() => setConfirmModal(null)} title={confirmModal.title} message={confirmModal.message} type={confirmModal.type} onConfirm={handleConfirm} />
+        <ConfirmationModal
+          isOpen
+          onClose={() => setConfirmModal(null)}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          type={confirmModal.type}
+          onConfirm={() => finalizeMutation.mutate()}
+        />
       )}
     </div>
   );

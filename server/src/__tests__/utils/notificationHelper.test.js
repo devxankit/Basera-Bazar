@@ -1,0 +1,81 @@
+'use strict';
+
+jest.mock('../../models/System', () => ({
+  Notification: {
+    create: jest.fn(),
+  },
+}));
+jest.mock('../../models/Partner', () => ({
+  Partner: { findById: jest.fn() },
+}));
+jest.mock('../../models/User', () => ({
+  User: { findById: jest.fn() },
+}));
+jest.mock('../../services/firebaseAdmin', () => ({
+  sendPushNotification: jest.fn().mockResolvedValue({}),
+}));
+jest.mock('../../utils/logger', () => ({
+  info: jest.fn(),
+  error: jest.fn(),
+}));
+
+const { Notification } = require('../../models/System');
+const { Partner } = require('../../models/Partner');
+const { createNotification } = require('../../utils/notificationHelper');
+
+const FAKE_NOTIF = { _id: 'notif_id_1', title: 'Test', body: 'Hello' };
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  Notification.create.mockResolvedValue(FAKE_NOTIF);
+});
+
+describe('createNotification', () => {
+  test('creates a Notification document and returns it', async () => {
+    Partner.findById.mockResolvedValue(null);
+    const result = await createNotification('partner', 'partner123', 'Hello', 'World');
+    expect(Notification.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipient_type: 'partner',
+        recipient_id: 'partner123',
+        title: 'Hello',
+        body: 'World',
+      })
+    );
+    expect(result).toEqual(FAKE_NOTIF);
+  });
+
+  test('sends push notification when recipient has FCM tokens', async () => {
+    const { sendPushNotification } = require('../../services/firebaseAdmin');
+    Partner.findById.mockResolvedValue({ fcmTokens: ['token1'], fcmTokenMobile: [] });
+
+    await createNotification('partner', 'p1', 'Title', 'Body');
+    expect(sendPushNotification).toHaveBeenCalledWith(
+      ['token1'],
+      expect.objectContaining({ title: 'Title', body: 'Body' })
+    );
+  });
+
+  test('skips push notification when no FCM tokens', async () => {
+    const { sendPushNotification } = require('../../services/firebaseAdmin');
+    Partner.findById.mockResolvedValue({ fcmTokens: [], fcmTokenMobile: [] });
+
+    await createNotification('partner', 'p1', 'T', 'B');
+    expect(sendPushNotification).not.toHaveBeenCalled();
+  });
+
+  test('returns null and swallows error when Notification.create throws', async () => {
+    Notification.create.mockRejectedValue(new Error('DB error'));
+    const result = await createNotification('partner', 'p1', 'T', 'B');
+    expect(result).toBeNull();
+  });
+
+  test('de-duplicates FCM tokens before sending', async () => {
+    const { sendPushNotification } = require('../../services/firebaseAdmin');
+    Partner.findById.mockResolvedValue({ fcmTokens: ['tok1', 'tok1'], fcmTokenMobile: ['tok1'] });
+
+    await createNotification('partner', 'p1', 'T', 'B');
+    const tokens = sendPushNotification.mock.calls[0][0];
+    expect(tokens).toEqual(['tok1']);
+  });
+});

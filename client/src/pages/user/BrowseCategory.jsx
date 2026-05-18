@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
+import { useQuery } from '@tanstack/react-query';
 import { 
   ArrowLeft, Search, Filter, Map, LayoutGrid, Building2,
   ChevronRight, MapPin, Package, Star, Phone, MessageSquare, Clock, Award, X, Navigation, Send,
@@ -31,8 +32,6 @@ const BrowseCategory = () => {
   const { location } = useLocationContext();
   const { cart, addToCart, removeFromCart } = useCart();
   
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [sortBy, setSortBy] = useState('Newest First');
@@ -94,69 +93,66 @@ const BrowseCategory = () => {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    if (category === 'mandi') {
-      db.getCategories('product').then(cats => {
-        if (cats.length > 0) {
-          setMandiCategories(cats);
-          // If we have an active cat from URL, find its details
-          if (activeMandiCat) {
-            const current = cats.find(c => String(c._id) === activeMandiCat);
-            if (current) setCurrentCategoryDetails(current);
-            
-            // Fetch subcategories
-            db.getCategories('product', { parent_id: activeMandiCat }).then(subs => {
-               setSubCategories(subs);
-            });
-          }
-        }
-      });
-    }
+  // Fetch mandi categories
+  const { data: mandiCatsData } = useQuery({
+    queryKey: ['categories', 'product'],
+    queryFn: () => db.getCategories('product'),
+    enabled: category === 'mandi',
+    staleTime: 5 * 60 * 1000,
+  });
 
-    if (category === 'property') {
-      db.getCategories('property').then(cats => {
-        if (cats.length > 0) {
-          // Flatten categories to find the one matching slug
-          const allCats = [];
-          const flatten = (items) => {
-            items.forEach(item => {
-              allCats.push(item);
-              if (item.children) flatten(item.children);
-            });
-          };
-          flatten(cats);
-          
-          if (category_id_param) {
-            const current = allCats.find(c => String(c._id) === category_id_param);
-            if (current) setCurrentCategoryDetails(current);
-          } else if (subCategory) {
-            const current = allCats.find(c => c.slug === subCategory);
-            if (current) setCurrentCategoryDetails(current);
-          } else {
-            setCurrentCategoryDetails({ name: 'All Properties' });
-          }
-        }
-      });
-    }
-  }, [category, activeMandiCat, subCategory]);
+  // Fetch mandi subcategories when a parent cat is selected
+  const { data: subCatsData } = useQuery({
+    queryKey: ['categories', 'product', 'subs', activeMandiCat],
+    queryFn: () => db.getCategories('product', { parent_id: activeMandiCat }),
+    enabled: category === 'mandi' && !!activeMandiCat,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  // When mandi items load, derive any missing categories from the items themselves
-  // This ensures the sidebar always reflects what's actually available
+  // Fetch property categories
+  const { data: propertyCatsData } = useQuery({
+    queryKey: ['categories', 'property'],
+    queryFn: () => db.getCategories('property'),
+    enabled: category === 'property',
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Sync derived state from category data
   useEffect(() => {
-    if (category === 'mandi' && items.length > 0) {
-      setMandiCategories(prev => {
-        const existing = new Set(prev.map(c => String(c._id)));
-        const fromItems = [];
+    if (category === 'mandi' && mandiCatsData?.length > 0) {
+      setMandiCategories(mandiCatsData);
+      if (activeMandiCat) {
+        const current = mandiCatsData.find(c => String(c._id) === activeMandiCat);
+        if (current) setCurrentCategoryDetails(current);
+      }
+    }
+  }, [category, mandiCatsData, activeMandiCat]);
+
+  useEffect(() => {
+    if (subCatsData) setSubCategories(subCatsData);
+  }, [subCatsData]);
+
+  useEffect(() => {
+    if (category === 'property' && propertyCatsData?.length > 0) {
+      const allCats = [];
+      const flatten = (items) => {
         items.forEach(item => {
-          if (item.category_id && typeof item.category_id === 'object' && !existing.has(String(item.category_id._id || item.category_id))) {
-            fromItems.push(item.category_id);
-            existing.add(String(item.category_id._id || item.category_id));
-          }
+          allCats.push(item);
+          if (item.children) flatten(item.children);
         });
-        return fromItems.length > 0 ? [...prev, ...fromItems] : prev;
-      });
+      };
+      flatten(propertyCatsData);
+      if (category_id_param) {
+        const current = allCats.find(c => String(c._id) === category_id_param);
+        if (current) setCurrentCategoryDetails(current);
+      } else if (subCategory) {
+        const current = allCats.find(c => c.slug === subCategory);
+        if (current) setCurrentCategoryDetails(current);
+      } else {
+        setCurrentCategoryDetails({ name: 'All Properties' });
+      }
     }
-  }, [items, category]);
+  }, [category, propertyCatsData, category_id_param, subCategory]);
 
 
   const toggleFilter = (key, value) => {
@@ -206,34 +202,25 @@ const BrowseCategory = () => {
   const stockIndex = Math.max(0, stockValues.indexOf(activeFilters.minProducts || 'Any'));
   const stockPct = (stockIndex / (stockValues.length - 1)) * 100;
 
-  useEffect(() => {
-    const fetchItems = async () => {
-      setLoading(true);
-      
-      const locationParams = {};
-      if (typeof location.coords?.[1] === 'number') locationParams.lat = location.coords[1];
-      if (typeof location.coords?.[0] === 'number') locationParams.lng = location.coords[0];
-      if (location.district) locationParams.district = location.district;
-      if (location.state) locationParams.state = location.state;
+  const itemsQueryParams = {
+    category: category !== 'all' ? category : undefined,
+    subCategory: subCategory || undefined,
+    category_id: (category === 'mandi') ? (activeSubCat || activeMandiCat || undefined) : (category_id_param || undefined),
+    search: searchQuery || undefined,
+    ...(typeof location.coords?.[1] === 'number' ? { lat: location.coords[1] } : {}),
+    ...(typeof location.coords?.[0] === 'number' ? { lng: location.coords[0] } : {}),
+    ...(location.district ? { district: location.district } : {}),
+    ...(location.state ? { state: location.state } : {}),
+    ...activeFilters,
+    ...(activeFilters.featuredOnly ? { is_featured: true } : {}),
+  };
 
-      const params = {
-        category: category !== 'all' ? category : undefined,
-        subCategory: subCategory || undefined,
-        category_id: (category === 'mandi') ? (activeSubCat || activeMandiCat || undefined) : (category_id_param || undefined),
-        search: searchQuery || undefined,
-        ...locationParams,
-        ...activeFilters // Price ranges etc
-      };
+  const itemsTable = category === 'supplier' ? 'partners' : 'listings';
 
-      if (activeFilters.featuredOnly) {
-        params.is_featured = true;
-      }
-
-      const table = category === 'supplier' ? 'partners' : 'listings';
-      let data = await db.getAll(table, params);
-      
-      // Client-side filtering is now reduced since backend handles most q/is_featured/location logic
-      // But we keep some specific filters if they aren't fully supported by backend getAll yet
+  const { data: rawItems, isLoading: loading } = useQuery({
+    queryKey: ['browseItems', category, subCategory, category_id_param, location, searchQuery, activeFilters, sortBy, selectedDistricts],
+    queryFn: async () => {
+      let data = await db.getAll(itemsTable, itemsQueryParams);
 
       // Apply Advanced Filters
       if (activeFilters.propertyFor) {
@@ -245,7 +232,6 @@ const BrowseCategory = () => {
         data = data.filter(item => item.details?.propertyType?.toLowerCase() === activeFilters.propertyType.toLowerCase());
       }
       if (activeFilters.bedrooms) {
-        // DataEngine normalizes bhk to "1BHK" string in item.details.bedrooms
         data = data.filter(item => item.details?.bedrooms === activeFilters.bedrooms);
       }
       if (activeFilters.priceRange) {
@@ -290,56 +276,67 @@ const BrowseCategory = () => {
       if (activeFilters.minExperience !== 'Any') {
         const expReq = parseInt(activeFilters.minExperience);
         data = data.filter(item => {
-           if (!item.experience) return false;
-           const yrs = parseInt(item.experience);
-           return !isNaN(yrs) && yrs >= expReq;
+          if (!item.experience) return false;
+          const yrs = parseInt(item.experience);
+          return !isNaN(yrs) && yrs >= expReq;
         });
       }
       if (activeFilters.emiAvailable) {
         data = data.filter(item => item.emiAvailable === true);
       }
-      
+
       // Sort Logic
       if (sortBy === 'Newest First') {
-        // Mock sorting since we don't have created_at
-        data = [...data].reverse(); 
-      } else if (sortBy === 'Oldest First') {
-        // Default mock is oldest first
+        data = [...data].reverse();
       } else if (sortBy === 'Price: Low to High') {
-        data.sort((a,b) => {
+        data.sort((a, b) => {
           const getVal = (val) => {
             if (val === undefined || val === null) return 0;
             if (typeof val === 'number') return val;
             return parseFloat(String(val).replace(/,/g, '')) || 0;
           };
-          const vA = getVal(a.price?.value || a.pricing?.amount || a.pricing?.price_per_unit || a.pricing?.amount);
-          const vB = getVal(b.price?.value || b.pricing?.amount || b.pricing?.price_per_unit || b.pricing?.amount);
-          return vA - vB;
+          return getVal(a.price?.value || a.pricing?.amount || a.pricing?.price_per_unit) - getVal(b.price?.value || b.pricing?.amount || b.pricing?.price_per_unit);
         });
       } else if (sortBy === 'Price: High to Low') {
-        data.sort((a,b) => {
+        data.sort((a, b) => {
           const getVal = (val) => {
             if (val === undefined || val === null) return 0;
             if (typeof val === 'number') return val;
             return parseFloat(String(val).replace(/,/g, '')) || 0;
           };
-          const vA = getVal(a.price?.value || a.pricing?.amount || a.pricing?.price_per_unit || a.pricing?.amount);
-          const vB = getVal(b.price?.value || b.pricing?.amount || b.pricing?.price_per_unit || b.pricing?.amount);
-          return vB - vA;
+          return getVal(b.price?.value || b.pricing?.amount || b.pricing?.price_per_unit) - getVal(a.price?.value || a.pricing?.amount || a.pricing?.price_per_unit);
         });
       } else if (sortBy === 'Business name (A-Z)') {
-        data.sort((a,b) => (a.title || "").localeCompare(b.title || ""));
+        data.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
       } else if (sortBy === 'Business name (Z-A)') {
-        data.sort((a,b) => (b.title || "").localeCompare(a.title || ""));
+        data.sort((a, b) => (b.title || "").localeCompare(a.title || ""));
       } else if (sortBy === 'Most products') {
-        data.sort((a,b) => (b.details?.skuCount || 0) - (a.details?.skuCount || 0));
+        data.sort((a, b) => (b.details?.skuCount || 0) - (a.details?.skuCount || 0));
       }
 
-      setItems(data);
-      setLoading(false);
-    };
-    fetchItems();
-  }, [category, subCategory, category_id_param, location, searchQuery, activeFilters, sortBy, selectedDistricts]);
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const items = rawItems || [];
+
+  // When mandi items load, derive any missing categories from the items themselves
+  useEffect(() => {
+    if (category === 'mandi' && items.length > 0) {
+      setMandiCategories(prev => {
+        const existing = new Set(prev.map(c => String(c._id)));
+        const fromItems = [];
+        items.forEach(item => {
+          if (item.category_id && typeof item.category_id === 'object' && !existing.has(String(item.category_id._id || item.category_id))) {
+            fromItems.push(item.category_id);
+            existing.add(String(item.category_id._id || item.category_id));
+          }
+        });
+        return fromItems.length > 0 ? [...prev, ...fromItems] : prev;
+      });
+    }
+  }, [items, category]);
 
   const isService = category === 'service';
   const isSupplier = category === 'supplier';

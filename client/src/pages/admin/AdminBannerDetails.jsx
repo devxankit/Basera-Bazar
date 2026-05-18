@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { 
-  Edit, Trash2, PauseCircle, PlayCircle, Loader2, ArrowLeft, 
+import {
+  Edit, Trash2, PauseCircle, PlayCircle, ArrowLeft,
   Image as ImageIcon, Layout, Activity, Clock, FileText,
-  ChevronRight, MoreVertical, Calendar, Globe, Target, AlertCircle
+  ChevronRight, Calendar, Globe, Target, AlertCircle
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
@@ -18,50 +19,47 @@ function cn(...inputs) {
 export default function AdminBannerDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [banner, setBanner] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, deleting: false });
 
-  const fetchBanner = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/admin/system/banners/${id}`);
-      if (res.data.success) {
-        setBanner(res.data.data);
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Failed to load banner details');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['adminBannerDetails', id],
+    queryFn: () => api.get(`/admin/system/banners/${id}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchBanner();
-  }, [id]);
+  const banner = rawData?.data || null;
+  const error = queryError ? 'Failed to load banner details' : null;
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/admin/system/banners/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminBanners'] });
+      navigate('/admin/banners');
+    },
+    onError: () => {
+      toast.error('Error deleting banner');
+      setDeleteModal(m => ({ ...m, deleting: false }));
+    },
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: (is_active) => api.put(`/admin/system/banners/${id}`, { is_active }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminBannerDetails', id] });
+    },
+    onError: () => toast.error('Error updating status'),
+  });
 
   const handleDelete = () => setDeleteModal({ isOpen: true, deleting: false });
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     setDeleteModal(m => ({ ...m, deleting: true }));
-    try {
-      await api.delete(`/admin/system/banners/${id}`);
-      navigate('/admin/banners');
-    } catch (err) {
-      toast.error('Error deleting banner');
-      setDeleteModal(m => ({ ...m, deleting: false }));
-    }
+    deleteMutation.mutate();
   };
 
-  const toggleStatus = async () => {
-    try {
-      await api.put(`/admin/system/banners/${id}`, { is_active: !banner.is_active });
-      fetchBanner();
-    } catch (err) {
-      toast.error('Error updating status');
-    }
+  const toggleStatus = () => {
+    if (banner) toggleStatusMutation.mutate(!banner.is_active);
   };
 
   if (loading) return (
@@ -98,10 +96,10 @@ export default function AdminBannerDetails() {
         <div className="relative bg-white rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
            {/* Immersive Background element */}
            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-linear-to-bl from-orange-100/40 via-purple-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none"></div>
-           
+
            <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between p-8 gap-6 z-10">
               <div className="flex items-start gap-6">
-                 <button 
+                 <button
                    onClick={() => navigate('/admin/banners')}
                    className="p-3 bg-slate-50 text-slate-500 rounded-2xl hover:bg-orange-50 hover:text-orange-600 transition-all shadow-sm active:scale-95 group shrink-0"
                  >
@@ -127,13 +125,13 @@ export default function AdminBannerDetails() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                 <button 
+                 <button
                     onClick={() => navigate(`/admin/banners/edit/${banner._id}`)}
                     className="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-semibold text-[12px] uppercase tracking-widest rounded-2xl hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm flex items-center gap-2 active:scale-95"
                  >
                     <Edit size={14} /> Update Creative
                  </button>
-                 <button 
+                 <button
                     onClick={toggleStatus}
                     className={cn(
                       "px-6 py-3 font-semibold text-[12px] uppercase tracking-widest rounded-2xl transition-all shadow-sm flex items-center gap-2 active:scale-95",
@@ -143,7 +141,7 @@ export default function AdminBannerDetails() {
                     {banner.is_active !== false ? <PauseCircle size={14} /> : <PlayCircle size={14} />}
                     {banner.is_active !== false ? 'Deactivate' : 'Activate Live'}
                  </button>
-                 <button 
+                 <button
                    onClick={handleDelete}
                    className="p-3 border border-slate-200 bg-white text-rose-400 rounded-2xl hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm active:scale-95"
                  >
@@ -192,10 +190,10 @@ export default function AdminBannerDetails() {
                 <div className="p-10">
                    <div className="relative group rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 shadow-inner min-h-[400px] flex items-center justify-center">
                       {banner.image_url ? (
-                        <img 
-                          src={banner.image_url} 
-                          className="w-full h-full object-contain relative z-10 transition-transform duration-700 group-hover:scale-[1.02]" 
-                          alt="" 
+                        <img
+                          src={banner.image_url}
+                          className="w-full h-full object-contain relative z-10 transition-transform duration-700 group-hover:scale-[1.02]"
+                          alt=""
                         />
                       ) : (
                         <div className="flex flex-col items-center gap-4 opacity-20">
@@ -205,7 +203,7 @@ export default function AdminBannerDetails() {
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                    </div>
-                   
+
                    <div className="mt-12 space-y-8">
                       <div>
                         <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest block mb-4 ml-1">Narrative Profile</label>
@@ -260,7 +258,7 @@ export default function AdminBannerDetails() {
                 </div>
              </div>
           </div>
- 
+
           <div className="md:col-span-4 space-y-8">
              {/* Scheduling Board */}
              <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
@@ -276,8 +274,8 @@ export default function AdminBannerDetails() {
                      <div className="space-y-1">
                         <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Time Horizon</p>
                         <p className="text-base font-semibold text-slate-900 tracking-tight">
-                           {banner.start_date ? new Date(banner.start_date).toLocaleDateString() : 'Immediate'} 
-                           <span className="text-slate-300 mx-2">→</span> 
+                           {banner.start_date ? new Date(banner.start_date).toLocaleDateString() : 'Immediate'}
+                           <span className="text-slate-300 mx-2">→</span>
                            {banner.end_date ? new Date(banner.end_date).toLocaleDateString() : 'Indefinite'}
                         </p>
                      </div>
@@ -291,8 +289,8 @@ export default function AdminBannerDetails() {
                         <p className="text-xl font-semibold text-slate-900 tabular-nums">{daysActive} <span className="text-[11px] text-slate-400 uppercase font-medium">Days in rotation</span></p>
                      </div>
                   </div>
-   
-                  <Link 
+
+                  <Link
                     to={`/admin/banners/edit/${banner._id}`}
                     className="flex items-center justify-center w-full py-4 bg-slate-900 text-white rounded-2xl font-semibold text-[12px] uppercase tracking-[0.2em] hover:bg-orange-600 transition-all shadow-lg shadow-slate-200 active:scale-95"
                   >
@@ -300,7 +298,7 @@ export default function AdminBannerDetails() {
                   </Link>
                </div>
              </div>
- 
+
              {/* Creative Specs Mini */}
              <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 space-y-6 relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-indigo-500 via-purple-500 to-orange-500" />

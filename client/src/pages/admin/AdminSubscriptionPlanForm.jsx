@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { IndianRupee, Save, ArrowLeft, Plus, Trash2, Info, CheckCircle2, Infinity as InfinityIcon, Star, Zap, ShieldCheck, ChevronLeft, Minus, X } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
 export default function AdminSubscriptionPlanForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -29,61 +29,55 @@ export default function AdminSubscriptionPlanForm() {
     leads: false
   });
 
-  useEffect(() => {
-    if (id) {
-      const fetchPlan = async () => {
-        setLoading(true);
-        try {
-          const res = await api.get('/admin/subscriptions/plans');
-          if (res.data.success) {
-            const plan = res.data.data.find(p => p._id === id);
-            if (plan) {
-              setFormData({
-                ...plan,
-                applicable_to: plan.applicable_to?.[0] || '',
-                features: plan.features?.length > 0 ? plan.features : ['']
-              });
-              setUnlimited({
-                listings: plan.listings_limit === -1,
-                featured: plan.featured_listings_limit === -1,
-                leads: plan.leads_limit === -1
-              });
-            }
-          }
-        } catch (err) {
-          console.error(err);
-        } finally {
-          setLoading(false);
+  // Fetch existing plan for edit mode
+  const { isLoading: loading } = useQuery({
+    queryKey: ['adminSubscriptionPlans'],
+    queryFn: () => api.get('/admin/subscriptions/plans').then(r => r.data),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+    onSuccess: (data) => {
+      if (data?.success) {
+        const plan = data.data.find(p => p._id === id);
+        if (plan) {
+          setFormData({
+            ...plan,
+            applicable_to: plan.applicable_to || [],
+            features: plan.features?.length > 0 ? plan.features : ['']
+          });
+          setUnlimited({
+            listings: plan.listings_limit === -1,
+            featured: plan.featured_listings_limit === -1,
+            leads: plan.leads_limit === -1
+          });
         }
-      };
-      fetchPlan();
-    }
-  }, [id]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const payload = {
-        ...formData,
-        applicable_to: Array.isArray(formData.applicable_to) ? formData.applicable_to : [formData.applicable_to],
-        listings_limit: unlimited.listings ? -1 : parseInt(formData.listings_limit),
-        featured_listings_limit: unlimited.featured ? -1 : parseInt(formData.featured_listings_limit),
-        leads_limit: unlimited.leads ? -1 : parseInt(formData.leads_limit),
-        features: formData.features.filter(f => f.trim() !== '')
-      };
-
-      if (id) {
-        await api.put(`/admin/subscriptions/plans/${id}`, payload);
-      } else {
-        await api.post('/admin/subscriptions/plans', payload);
       }
+    },
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: (payload) => id
+      ? api.put(`/admin/subscriptions/plans/${id}`, payload).then(r => r.data)
+      : api.post('/admin/subscriptions/plans', payload).then(r => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminSubscriptionPlans'] });
       navigate('/admin/subscriptions/plans');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error saving plan');
-    } finally {
-      setSaving(false);
-    }
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Error saving plan'),
+  });
+
+  const saving = submitMutation.isPending;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const payload = {
+      ...formData,
+      applicable_to: Array.isArray(formData.applicable_to) ? formData.applicable_to : [formData.applicable_to],
+      listings_limit: unlimited.listings ? -1 : parseInt(formData.listings_limit),
+      featured_listings_limit: unlimited.featured ? -1 : parseInt(formData.featured_listings_limit),
+      leads_limit: unlimited.leads ? -1 : parseInt(formData.leads_limit),
+      features: formData.features.filter(f => f.trim() !== '')
+    };
+    submitMutation.mutate(payload);
   };
 
   const addFeature = () => {

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-   ArrowLeft, Edit2, MapPin, Calendar, Smartphone, 
+import {
+   ArrowLeft, Edit2, MapPin, Calendar, Smartphone,
    Info, Layout, Maximize2, Home, Key, Shield,
    ImageIcon, MoreHorizontal, User, IndianRupee, Sparkles, Building2,
    CheckCircle2, AlertCircle, Trash2, Hash, Box, Wallet, ShieldCheck, Zap, TrendingUp, Star, Globe, FileText, ChevronRight, XCircle, Loader2,
@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
@@ -21,9 +22,7 @@ function cn(...inputs) {
 export default function AdminPropertyDetails() {
    const { id } = useParams();
    const navigate = useNavigate();
-   const [listing, setListing] = useState(null);
-   const [loading, setLoading] = useState(true);
-   const [error, setError] = useState(null);
+   const queryClient = useQueryClient();
    const [activeImage, setActiveImage] = useState(0);
    const [showOptions, setShowOptions] = useState(false);
    const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
@@ -31,23 +30,25 @@ export default function AdminPropertyDetails() {
    // Rejection Modal State
    const [isRejecting, setIsRejecting] = useState(false);
    const [rejectReason, setRejectReason] = useState('');
-   const [isSubmitting, setIsSubmitting] = useState(false);
 
-   useEffect(() => {
-      const fetchPropertyDetails = async () => {
-         try {
-            const response = await api.get(`/admin/listings/detail/${id}`);
-            if (response.data.success) {
-               setListing(response.data.data);
-            }
-         } catch (err) {
-            setError("Property record not found in database.");
-         } finally {
-            setLoading(false);
-         }
-      };
-      fetchPropertyDetails();
-   }, [id]);
+   const { data: rawData, isLoading: loading, error: queryError } = useQuery({
+      queryKey: ['adminPropertyDetail', id],
+      queryFn: () => api.get(`/admin/listings/detail/${id}`).then(r => r.data),
+      staleTime: 5 * 60 * 1000,
+   });
+   const listing = rawData?.data || null;
+   const error = queryError ? "Property record not found in database." : null;
+
+   const statusMutation = useMutation({
+      mutationFn: ({ status, status_reason }) =>
+         api.patch(`/admin/listings/${id}/status`, { status, ...(status_reason && { status_reason }) }).then(r => r.data),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminPropertyDetail', id] }),
+   });
+
+   const deleteMutation = useMutation({
+      mutationFn: () => api.delete(`/admin/listings/${listing._id}`).then(r => r.data),
+      onSuccess: () => { toast.success("Property deleted successfully"); navigate('/admin/properties'); },
+   });
 
    const openConfirm = (title, message, action, type = 'danger') => {
       setConfirmModal({ isOpen: true, title, message, action, loading: false, type });
@@ -69,12 +70,9 @@ export default function AdminPropertyDetails() {
          `${newStatus === 'active' ? 'Activate' : 'Deactivate'} Listing`,
          `Are you sure you want to ${action} this property listing?`,
          async () => {
-            const res = await api.patch(`/admin/listings/${listing._id}/status`, { status: newStatus });
-            if (res.data.success) {
-               setListing({ ...listing, status: newStatus });
-               toast.success(`Property ${action}d successfully`);
-               setShowOptions(false);
-            }
+            await statusMutation.mutateAsync({ status: newStatus });
+            toast.success(`Property ${action}d successfully`);
+            setShowOptions(false);
          },
          newStatus === 'active' ? 'info' : 'warning'
       );
@@ -84,13 +82,7 @@ export default function AdminPropertyDetails() {
       openConfirm(
          'Delete Property',
          'Are you sure you want to permanently delete this property? This action cannot be undone.',
-         async () => {
-            const res = await api.delete(`/admin/listings/${listing._id}`);
-            if (res.data.success) {
-               toast.success("Property deleted successfully");
-               navigate('/admin/properties');
-            }
-         }
+         () => deleteMutation.mutateAsync()
       );
    };
 
@@ -99,11 +91,8 @@ export default function AdminPropertyDetails() {
          'Approve Property',
          'Are you sure you want to approve this property listing? It will become visible to users.',
          async () => {
-            const res = await api.patch(`/admin/listings/${id}/status`, { status: 'active' });
-            if (res.data.success) {
-               setListing(prev => ({ ...prev, status: 'active' }));
-               toast.success("Property approved successfully");
-            }
+            await statusMutation.mutateAsync({ status: 'active' });
+            toast.success("Property approved successfully");
          },
          'success'
       );
@@ -111,25 +100,16 @@ export default function AdminPropertyDetails() {
 
    const handleReject = async () => {
       if (!rejectReason.trim()) return toast.error("Please provide a reason for rejection.");
-      
-      setIsSubmitting(true);
       try {
-         const res = await api.patch(`/admin/listings/${id}/status`, { 
-            status: 'rejected',
-            status_reason: rejectReason 
-         });
-         if (res.data.success) {
-            setListing(prev => ({ ...prev, status: 'rejected', status_reason: rejectReason }));
-            setIsRejecting(false);
-            setRejectReason('');
-            toast.success("Property rejected with feedback");
-         }
+         await statusMutation.mutateAsync({ status: 'rejected', status_reason: rejectReason });
+         setIsRejecting(false);
+         setRejectReason('');
+         toast.success("Property rejected with feedback");
       } catch (err) {
          toast.error("Failed to reject property.");
-      } finally {
-         setIsSubmitting(false);
       }
    };
+   const isSubmitting = statusMutation.isPending;
 
    if (loading) return (
       <div className="flex flex-col items-center justify-center py-40 gap-4">

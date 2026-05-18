@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  UserCircle, Mail, Phone, MapPin, Landmark, 
+import {
+  UserCircle, Mail, Phone, MapPin, Landmark,
   Camera, ShieldCheck, LogOut, ChevronRight,
   ShieldAlert, CheckCircle2, Clock, MapPinned, CreditCard,
   Building2, User, Zap, Shield, Key, Edit3, X, Save, ArrowLeft, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -21,8 +22,8 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 15 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: { type: 'spring', stiffness: 260, damping: 25 }
   }
@@ -31,8 +32,7 @@ const itemVariants = {
 export default function ExecutiveProfile() {
   const { logout, user, setUser } = useAuth();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', email: '' });
   const [isSaving, setIsSaving] = useState(false);
@@ -40,35 +40,29 @@ export default function ExecutiveProfile() {
   const [bankForm, setBankForm] = useState({ account_number: '', ifsc_code: '', bank_name: '', account_holder_name: '' });
   const [isSavingBank, setIsSavingBank] = useState(false);
 
-  const fetchProfile = async () => {
-    try {
-      const res = await api.get('/executive/dashboard');
-      if (res.data.success) {
-        setProfile(res.data.data.profile);
-        setEditForm({
-          name: res.data.data.profile.name,
-          email: res.data.data.profile.email
-        });
-        const bd = res.data.data.profile.bank_details;
-        if (bd) {
-          setBankForm({
-            account_number: bd.account_number || '',
-            ifsc_code: bd.ifsc_code || '',
-            bank_name: bd.bank_name || '',
-            account_holder_name: bd.account_holder_name || ''
-          });
-        }
-      }
-    } catch (error) {
-      toast.error('Failed to load profile');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['executiveProfileData'],
+    queryFn: () => api.get('/executive/dashboard').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
+  const profile = rawData?.success ? rawData.data.profile : null;
+
+  // Sync form state when profile loads
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (profile) {
+      setEditForm({ name: profile.name, email: profile.email });
+      const bd = profile.bank_details;
+      if (bd) {
+        setBankForm({
+          account_number: bd.account_number || '',
+          ifsc_code: bd.ifsc_code || '',
+          bank_name: bd.bank_name || '',
+          account_holder_name: bd.account_holder_name || ''
+        });
+      }
+    }
+  }, [profile?.name, profile?.email]);
 
   const handleLogout = () => {
     logout(true);
@@ -82,11 +76,8 @@ export default function ExecutiveProfile() {
       const res = await api.put('/executive/profile', editForm);
       if (res.data.success) {
         toast.success('Profile updated successfully');
-        setProfile({ ...profile, ...editForm });
-        // Update global user context if needed
-        if (setUser) {
-          setUser({ ...user, ...editForm });
-        }
+        queryClient.invalidateQueries({ queryKey: ['executiveProfileData'] });
+        if (setUser) setUser({ ...user, ...editForm });
         setIsEditing(false);
       }
     } catch (error) {
@@ -103,7 +94,7 @@ export default function ExecutiveProfile() {
       const res = await api.put('/executive/bank-details', bankForm);
       if (res.data.success) {
         toast.success('Bank details updated!');
-        setProfile({ ...profile, bank_details: res.data.bank_details });
+        queryClient.invalidateQueries({ queryKey: ['executiveProfileData'] });
         setShowBankForm(false);
       }
     } catch (error) {

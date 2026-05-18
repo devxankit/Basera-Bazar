@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  UserPlus, MoreHorizontal, UserCheck, UserX, Star, 
-  Eye, Edit2, CreditCard, UserMinus, Trash2, Search, Filter 
+import React, { useState } from 'react';
+import {
+  UserPlus, MoreHorizontal, UserCheck, UserX, Star,
+  Eye, Edit2, CreditCard, UserMinus, Trash2, Search, Filter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminTable from '../../components/common/AdminTable';
@@ -9,14 +9,14 @@ import ConfirmationModal from '../../components/common/ConfirmationModal';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
-import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
+import { getAdminUsers } from '../../services/AdminService';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import Skeleton from '../../components/common/Skeleton';
 
 export default function AdminUsers() {
   const navigate = useNavigate();
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMenu, setActiveMenu] = useState(null);
@@ -29,21 +29,13 @@ export default function AdminUsers() {
     type: 'danger'
   });
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        const { getAdminUsers } = await import('../../services/AdminService');
-        const data = await getAdminUsers();
-        setUsers(data);
-      } catch (error) {
-        console.error("Failed to fetch users:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUsers();
-  }, []);
+  const { data: rawUsers, isLoading: loading } = useQuery({
+    queryKey: ['adminUsers'],
+    queryFn: () => getAdminUsers(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const users = rawUsers || [];
 
   const filterTabs = ['All', 'Admin', 'Agent', 'Supplier', 'Seller', 'Service Provider', 'Customer'];
 
@@ -225,13 +217,13 @@ export default function AdminUsers() {
                             setIsActionLoading(true);
                             try {
                               await api.put(`/admin/users/${row._id}`, { is_active: !row.is_active });
-                              window.location.reload();
+                              queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+                              setIsModalOpen(false);
                             } catch (err) {
                               console.error(err);
                               toast.error(err.response?.data?.message || 'Failed to update user status.');
                             } finally {
                               setIsActionLoading(false);
-                              setIsModalOpen(false);
                             }
                           }
                         });

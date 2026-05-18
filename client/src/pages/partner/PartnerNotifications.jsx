@@ -1,39 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Bell, Trash2, CheckCircle2, XCircle,
   Clock, ArrowLeft, Loader2, Info, MessageSquare, ShoppingBag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function PartnerNotifications() {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await api.get('/notifications');
-      if (res.data.success) {
-        setNotifications(res.data.data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch notifications");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['partnerNotifications'],
+    queryFn: () => api.get('/notifications').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+  const notifications = rawData?.success ? rawData.data : [];
 
   const handleDelete = async (id) => {
     try {
       const res = await api.delete(`/notifications/${id}`);
       if (res.data.success) {
-        setNotifications(prev => prev.filter(n => n._id !== id));
+        queryClient.setQueryData(['partnerNotifications'], (old) => {
+          if (!old?.data) return old;
+          return { ...old, data: old.data.filter(n => n._id !== id) };
+        });
       }
     } catch (err) {
       alert("Failed to delete notification");

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { useQuery } from '@tanstack/react-query';
 import { useCart } from '../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loadScript } from '../../utils/loadScript';
@@ -23,19 +24,16 @@ export default function MandiCheckout() {
    const { cart, cartTotal: total, clearCart } = useCart();
    const [loading, setLoading] = useState(false);
    const [step, setStep] = useState(1); // 1: Address, 2: Review & Pay, 3: Success
-   const [config, setConfig] = useState({ token_amount: 500 });
    const [orderData, setOrderData] = useState(null);
    const [deliveryOtp, setDeliveryOtp] = useState('');
 
-   React.useEffect(() => {
-      const fetchConfig = async () => {
-         try {
-            const res = await api.get('/admin/mandi/settings'); 
-            if (res.data.success) setConfig(res.data.data);
-         } catch (err) { console.error("Error fetching config", err); }
-      };
-      fetchConfig();
-   }, []);
+   const { data: configRaw } = useQuery({
+      queryKey: ['mandiSettings'],
+      queryFn: () => api.get('/admin/mandi/settings').then(r => r.data),
+      staleTime: 5 * 60 * 1000,
+   });
+
+   const config = configRaw?.success ? configRaw.data : { token_amount: 500 };
 
    const [address, setAddress] = useState({
       receiver_name: '',

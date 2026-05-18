@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Pencil, Power, Users, IndianRupee, BarChart3, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Pencil, Power, BarChart3, CheckCircle } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
@@ -18,47 +19,61 @@ const TAB_LIST = ['Overview', 'Team', 'Performance', 'Salary'];
 export default function AdminTeamLeaderDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [tl, setTl] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState('Overview');
   const [confirmModal, setConfirmModal] = useState(null);
 
-  const fetch = async () => {
-    setLoading(true);
-    try {
-      const { data } = await api.get(`/admin/staff/team-leaders/${id}`);
-      if (data.success) setTl(data.data);
-    } catch { toast.error('Failed to load.'); }
-    finally { setLoading(false); }
-  };
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-team-leader-detail', id],
+    queryFn: () => api.get(`/admin/staff/team-leaders/${id}`).then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load.'),
+  });
 
-  useEffect(() => { fetch(); }, [id]);
+  const tl = rawData?.data || null;
 
-  const handleApprove = async () => {
+  const approveMutation = useMutation({
+    mutationFn: () => api.put(`/admin/staff/team-leaders/${id}/approve`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-team-leader-detail', id] });
+      toast.success('Team Leader approved.');
+    },
+    onError: () => toast.error('Approval failed.'),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: () => api.put(`/admin/staff/team-leaders/${id}/toggle`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-team-leader-detail', id] });
+      toast.success('Status updated.');
+    },
+    onError: () => toast.error('Toggle failed.'),
+  });
+
+  const markPaidMutation = useMutation({
+    mutationFn: (recordId) => api.put(`/admin/staff/salary/${recordId}/pay`, { notes: '' }).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-team-leader-detail', id] });
+      toast.success('Marked as paid.');
+    },
+    onError: () => toast.error('Failed to mark as paid.'),
+  });
+
+  const handleApprove = () => {
     setConfirmModal({
       title: 'Approve Team Leader?',
       message: 'This will grant them portal access.',
       type: 'success',
       onConfirm: async () => {
-        await api.put(`/admin/staff/team-leaders/${id}/approve`);
-        toast.success('Team Leader approved.');
-        fetch();
+        await approveMutation.mutateAsync();
         setConfirmModal(null);
       },
     });
   };
 
-  const handleToggle = async () => {
-    await api.put(`/admin/staff/team-leaders/${id}/toggle`);
-    toast.success('Status updated.');
-    fetch();
-  };
+  const handleToggle = () => toggleMutation.mutate();
 
-  const markPaid = async (recordId) => {
-    await api.put(`/admin/staff/salary/${recordId}/pay`, { notes: '' });
-    toast.success('Marked as paid.');
-    fetch();
-  };
+  const markPaid = (recordId) => markPaidMutation.mutate(recordId);
 
   if (loading) return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
@@ -233,7 +248,7 @@ export default function AdminTeamLeaderDetails() {
                   <span>{Math.round(tl.performance.achievement_rate * 100)}%</span>
                 </div>
                 <div className="h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                  <div 
+                  <div
                     className={cn(
                       "h-full transition-all duration-1000",
                       tl.performance.achievement_rate >= 0.7 ? "bg-emerald-500" : "bg-amber-500"

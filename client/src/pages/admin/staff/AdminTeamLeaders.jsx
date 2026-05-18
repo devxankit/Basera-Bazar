@@ -1,10 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Pencil, Power, CheckCircle, XCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Plus, Eye, Pencil, Power } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import AdminTable from '../../../components/common/AdminTable';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
+import FilterBar, { FilterField } from '../../../components/admin/FilterBar';
+import Pagination from '../../../components/admin/Pagination';
 import { toast } from '../../../mockToast';
 
 const STATUS_BADGE = {
@@ -17,35 +19,34 @@ const STATUS_BADGE = {
 
 export default function AdminTeamLeaders() {
   const navigate = useNavigate();
-  const [teamLeaders, setTeamLeaders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [confirmModal, setConfirmModal] = useState(null);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
-  const fetchTeamLeaders = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-team-leaders', page, search, statusFilter],
+    queryFn: () => {
       const params = new URLSearchParams({ page, limit: 20 });
       if (search) params.set('search', search);
       if (statusFilter) params.set('status', statusFilter);
-      const { data } = await api.get(`/admin/staff/team-leaders?${params}`);
-      if (data.success) {
-        setTeamLeaders(data.data);
-        setTotalPages(data.totalPages || 1);
-      }
-    } catch {
-      toast.error('Failed to load Team Leaders');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search, statusFilter]);
+      return api.get(`/admin/staff/team-leaders?${params}`).then((r) => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load Team Leaders'),
+  });
 
-  useEffect(() => { fetchTeamLeaders(); }, [fetchTeamLeaders]);
+  const teamLeaders = rawData?.data || [];
+  const totalPages = rawData?.totalPages || 1;
+  const totalItems = rawData?.total || teamLeaders.length;
 
-  const handleToggle = async (id, currentActive) => {
+  const toggleMutation = useMutation({
+    mutationFn: (id) => api.put(`/admin/staff/team-leaders/${id}/toggle`).then((r) => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-team-leaders'] }),
+  });
+
+  const handleToggle = (id, currentActive) => {
     setConfirmModal({
       title: currentActive ? 'Deactivate Team Leader?' : 'Activate Team Leader?',
       message: currentActive
@@ -54,9 +55,8 @@ export default function AdminTeamLeaders() {
       type: currentActive ? 'warning' : 'success',
       onConfirm: async () => {
         try {
-          await api.put(`/admin/staff/team-leaders/${id}/toggle`);
+          await toggleMutation.mutateAsync(id);
           toast.success(currentActive ? 'Deactivated.' : 'Activated.');
-          fetchTeamLeaders();
         } catch {
           toast.error('Action failed.');
         } finally {
@@ -65,6 +65,8 @@ export default function AdminTeamLeaders() {
       },
     });
   };
+
+  const activeFilterCount = (search ? 1 : 0) + (statusFilter ? 1 : 0);
 
   const columns = [
     { header: 'Name', render: (row) => (
@@ -123,36 +125,50 @@ export default function AdminTeamLeaders() {
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <input
-          type="text"
-          placeholder="Search name, phone, email..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white w-64"
-        />
-        <select
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
-        >
-          <option value="">All Statuses</option>
-          <option value="approved">Approved</option>
-          <option value="pending_approval">Pending</option>
-          <option value="rejected">Rejected</option>
-          <option value="suspended">Suspended</option>
-        </select>
-      </div>
+      <FilterBar
+        open
+        activeCount={activeFilterCount}
+        onReset={() => { setSearch(''); setStatusFilter(''); setPage(1); }}
+      >
+        <FilterField label="Search">
+          <input
+            type="text"
+            placeholder="Search name, phone, email..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white w-64"
+          />
+        </FilterField>
+        <FilterField label="Status">
+          <select
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+          >
+            <option value="">All Statuses</option>
+            <option value="approved">Approved</option>
+            <option value="pending_approval">Pending</option>
+            <option value="rejected">Rejected</option>
+            <option value="suspended">Suspended</option>
+          </select>
+        </FilterField>
+      </FilterBar>
 
       <AdminTable
         columns={columns}
         data={teamLeaders}
         loading={loading}
         title=""
-        pagination={totalPages > 1}
+        pagination={false}
+        hideSearch
+        hideFilter
+      />
+
+      <Pagination
         currentPage={page}
         totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={20}
         onPageChange={setPage}
       />
 

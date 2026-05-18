@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { IndianRupee, TrendingUp, CheckCircle2, Clock, XCircle, Download, Filter, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 
 const statusConfig = {
@@ -11,50 +12,22 @@ const statusConfig = {
 
 export default function AdminPaymentReport() {
   const [filter, setFilter] = useState('All');
-  const [transactions, setTransactions] = useState([]);
-  const [stats, setStats] = useState({
-    totalRevenue: 0,
-    successCount: 0,
-    pendingAmount: 0,
-    failedCount: 0,
-    totalTransactions: 0
+
+  const { data: statsRaw, isLoading: statsLoading } = useQuery({
+    queryKey: ['adminFinancialStats'],
+    queryFn: () => api.get('/admin/reports/financial-stats').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
   });
-  const [loading, setLoading] = useState(true);
-  const [ledgerLoading, setLedgerLoading] = useState(false);
 
-  const fetchStats = async () => {
-    try {
-      const res = await api.get('/admin/reports/financial-stats');
-      if (res.data.success) setStats(res.data.data);
-    } catch (err) {
-      console.error("Failed to fetch financial stats:", err);
-    }
-  };
+  const { data: txRaw, isLoading: ledgerLoading } = useQuery({
+    queryKey: ['adminTransactions', filter],
+    queryFn: () => api.get(`/admin/reports/transactions?status=${filter}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const fetchTransactions = async () => {
-    setLedgerLoading(true);
-    try {
-      const res = await api.get(`/admin/reports/transactions?status=${filter}`);
-      if (res.data.success) setTransactions(res.data.data);
-    } catch (err) {
-      console.error("Failed to fetch transactions:", err);
-    } finally {
-      setLedgerLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-      await Promise.all([fetchStats(), fetchTransactions()]);
-      setLoading(false);
-    };
-    init();
-  }, []);
-
-  useEffect(() => {
-    fetchTransactions();
-  }, [filter]);
+  const stats = statsRaw?.data || { totalRevenue: 0, successCount: 0, pendingAmount: 0, failedCount: 0, totalTransactions: 0 };
+  const transactions = txRaw?.data || [];
+  const loading = statsLoading && ledgerLoading;
 
   const successRate = stats.totalTransactions > 0
     ? Math.round((stats.successCount / stats.totalTransactions) * 100)

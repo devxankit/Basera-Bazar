@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Eye, RefreshCw, GripVertical, PauseCircle, PlayCircle, Layout, ChevronRight, Settings2, ToggleLeft, ExternalLink, ArrowRightLeft } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Edit2, Trash2, Eye, GripVertical, PauseCircle, PlayCircle, Layout, ArrowRightLeft } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminTable from '../../components/common/AdminTable';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
@@ -8,54 +9,45 @@ import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 export default function AdminBanners() {
   const navigate = useNavigate();
-  const [banners, setBanners] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showInactive, setShowInactive] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, deleting: false });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/admin/system/banners');
-      if (res.data.success) {
-        setBanners(res.data.data);
-      }
-    } catch (err) {
-      console.error('Error fetching banners:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['adminBanners'],
+    queryFn: () => api.get('/admin/system/banners').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const banners = rawData?.data || [];
 
-
-
-  const handleDelete = (id) => {
-    setDeleteModal({ isOpen: true, id, deleting: false });
-  };
-
-  const confirmDelete = async () => {
-    setDeleteModal(m => ({ ...m, deleting: true }));
-    try {
-      await api.delete(`/admin/system/banners/${deleteModal.id}`);
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/admin/system/banners/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminBanners'] });
       setDeleteModal({ isOpen: false, id: null, deleting: false });
-      fetchData();
-    } catch (err) {
+    },
+    onError: () => {
       toast.error('Error deleting banner');
       setDeleteModal(m => ({ ...m, deleting: false }));
-    }
+    },
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: ({ id, is_active }) => api.put(`/admin/system/banners/${id}`, { is_active }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminBanners'] }),
+    onError: () => toast.error('Error updating status'),
+  });
+
+  const handleDelete = (id) => setDeleteModal({ isOpen: true, id, deleting: false });
+
+  const confirmDelete = () => {
+    setDeleteModal(m => ({ ...m, deleting: true }));
+    deleteMutation.mutate(deleteModal.id);
   };
 
-  const toggleStatus = async (id, currentStatus) => {
-    try {
-      await api.put(`/admin/system/banners/${id}`, { is_active: !currentStatus });
-      fetchData();
-    } catch (err) {
-      toast.error('Error updating status');
-    }
+  const toggleStatus = (id, currentStatus) => {
+    toggleStatusMutation.mutate({ id, is_active: !currentStatus });
   };
 
   const columns = [
@@ -106,8 +98,8 @@ export default function AdminBanners() {
       header: 'Status',
       render: (row) => (
         <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-[0.1em] ${
-          row.is_active !== false 
-            ? 'bg-[#4ade80] text-white shadow-sm shadow-emerald-100' 
+          row.is_active !== false
+            ? 'bg-[#4ade80] text-white shadow-sm shadow-emerald-100'
             : 'bg-rose-500 text-white shadow-sm shadow-rose-100'
         }`}>
           {row.is_active !== false ? 'Active' : 'Inactive'}
@@ -134,32 +126,32 @@ export default function AdminBanners() {
       header: 'Actions',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={() => navigate(`/admin/banners/view/${row._id}`)}
             className="w-8 h-8 flex items-center justify-center rounded-lg border border-orange-100 text-orange-500 hover:bg-orange-50 active:scale-95 transition-all shadow-xs"
             title="View Details"
           >
             <Eye size={14} />
           </button>
-          <button 
+          <button
             onClick={() => navigate(`/admin/banners/edit/${row._id}`)}
             className="w-8 h-8 flex items-center justify-center rounded-lg border border-orange-100 text-[#fa641e] hover:bg-orange-50 active:scale-95 transition-all shadow-xs"
             title="Edit Banner"
           >
             <Edit2 size={14} />
           </button>
-          <button 
+          <button
             onClick={() => toggleStatus(row._id, row.is_active !== false)}
             className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all active:scale-95 shadow-xs ${
-              row.is_active !== false 
-                ? 'border-slate-100 text-slate-400 hover:bg-slate-50' 
+              row.is_active !== false
+                ? 'border-slate-100 text-slate-400 hover:bg-slate-50'
                 : 'border-emerald-100 text-emerald-500 hover:bg-emerald-50'
             }`}
             title={row.is_active !== false ? "Deactivate Banner" : "Activate Banner"}
           >
             {row.is_active !== false ? <PauseCircle size={15} /> : <PlayCircle size={15} />}
           </button>
-          <button 
+          <button
             onClick={() => handleDelete(row._id)}
             className="w-8 h-8 flex items-center justify-center rounded-lg border border-rose-100 text-rose-400 hover:bg-rose-100 transition-all active:scale-95 shadow-xs"
             title="Delete Banner"
@@ -213,8 +205,8 @@ export default function AdminBanners() {
                     <h3 className="text-4xl font-black text-[#4ade80] mt-2 italic tabular-nums">{banners.filter(b => b.is_active !== false).length}</h3>
                  </div>
               </div>
-              
-              <button 
+
+              <button
                 onClick={() => navigate('/admin/banners/add')}
                 className="flex items-center gap-2 px-6 py-4 bg-[#fa641e] text-white font-black text-[12px] rounded-xl hover:bg-[#e45b1b] transition-all active:scale-95 uppercase tracking-widest shadow-xl shadow-orange-100 border border-orange-500/20"
               >
@@ -232,7 +224,7 @@ export default function AdminBanners() {
            </div>
            <div className="flex items-center gap-6">
               <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setShowInactive(!showInactive)}>
-                 <button 
+                 <button
                   className={`relative w-9 h-5 rounded-full transition-all flex items-center px-1 ${showInactive ? 'bg-indigo-500' : 'bg-slate-200'}`}
                  >
                     <div className={`w-3 h-3 rounded-full bg-white shadow-sm transition-all transform ${showInactive ? 'translate-x-4' : 'translate-x-0'}`} />
@@ -248,10 +240,10 @@ export default function AdminBanners() {
               <Layout size={18} className="text-slate-900" />
               <span className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] italic">Banner List <span className="opacity-40 italic font-medium lowercase tracking-normal">(Drag and drop to reorder)</span></span>
            </div>
-           
-           <AdminTable 
-              columns={columns} 
-              data={showInactive ? banners : banners.filter(b => b.is_active !== false)} 
+
+           <AdminTable
+              columns={columns}
+              data={showInactive ? banners : banners.filter(b => b.is_active !== false)}
               loading={loading}
               pagination={true}
               hideFilter={true}
@@ -259,7 +251,7 @@ export default function AdminBanners() {
            />
         </div>
       </div>
-      
+
       {/* Marketplace Footer Branding */}
       <div className="mt-12 px-8 flex items-center justify-between border-t border-slate-200 pt-8 opacity-60 max-w-[1500px] mx-auto">
          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">© 2026 BaseraBazar - Real Estate & Construction Marketplace</p>

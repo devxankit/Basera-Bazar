@@ -1,8 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Download, BarChart3 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 import AdminTable from '../../../components/common/AdminTable';
+import FilterBar, { FilterField } from '../../../components/admin/FilterBar';
+import EmptyState from '../../../components/common/EmptyState';
 
 const STAFF_TYPES = [
   { value: '', label: 'All Staff' },
@@ -15,21 +18,19 @@ export default function AdminAttendanceReport() {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [month, setMonth] = useState(currentMonth);
   const [staffType, setStaffType] = useState('');
-  const [summary, setSummary] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchSummary = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-attendance-report', month, staffType],
+    queryFn: () => {
       const params = new URLSearchParams({ month });
       if (staffType) params.set('staff_type', staffType);
-      const { data } = await api.get(`/admin/staff/attendance/summary?${params}`);
-      if (data.success) setSummary(data.data);
-    } catch { toast.error('Failed to load attendance summary.'); }
-    finally { setLoading(false); }
-  }, [month, staffType]);
+      return api.get(`/admin/staff/attendance/summary?${params}`).then((r) => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load attendance summary.'),
+  });
 
-  useEffect(() => { fetchSummary(); }, [fetchSummary]);
+  const summary = rawData?.data || [];
 
   const handleExport = async () => {
     try {
@@ -44,6 +45,8 @@ export default function AdminAttendanceReport() {
       URL.revokeObjectURL(url);
     } catch { toast.error('Export failed.'); }
   };
+
+  const activeFilterCount = staffType ? 1 : 0;
 
   const columns = [
     { header: 'Staff', render: (r) => (
@@ -103,21 +106,29 @@ export default function AdminAttendanceReport() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-5">
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
-        />
-        <select
-          value={staffType}
-          onChange={(e) => setStaffType(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
-        >
-          {STAFF_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-      </div>
+      <FilterBar
+        open
+        activeCount={activeFilterCount}
+        onReset={() => setStaffType('')}
+      >
+        <FilterField label="Month">
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+          />
+        </FilterField>
+        <FilterField label="Staff Type">
+          <select
+            value={staffType}
+            onChange={(e) => setStaffType(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
+          >
+            {STAFF_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
 
       <div className="grid grid-cols-3 gap-4 mb-5">
         {[
@@ -133,14 +144,15 @@ export default function AdminAttendanceReport() {
       </div>
 
       {summary.length === 0 && !loading && (
-        <div className="bg-white border border-slate-200 rounded-lg p-12 text-center">
-          <BarChart3 size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-sm text-slate-400">No attendance data for {month}.</p>
-        </div>
+        <EmptyState
+          icon={BarChart3}
+          title="No attendance data"
+          message={`No attendance data for ${month}.`}
+        />
       )}
 
       {(summary.length > 0 || loading) && (
-        <AdminTable columns={columns} data={summary} loading={loading} title={`Monthly Summary — ${month}`} />
+        <AdminTable columns={columns} data={summary} loading={loading} title={`Monthly Summary — ${month}`} hideSearch hideFilter />
       )}
     </div>
   );

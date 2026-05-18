@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '../../components/common/Skeleton';
 import {
@@ -13,6 +13,7 @@ import { cacheService } from '../../services/CacheService';
 import { Star, MapPin as Pin, Heart, ShoppingCart, Plus, Minus } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useLocationContext } from '../../context/LocationContext';
+import { useQuery } from '@tanstack/react-query';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -23,43 +24,33 @@ const Home = () => {
   const { cart, addToCart, removeFromCart } = useCart();
   const { location } = useLocationContext();
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [featuredProperties, setFeaturedProperties] = useState([]);
-  const [featuredServices, setFeaturedServices] = useState([]);
-  const [featuredSuppliers, setFeaturedSuppliers] = useState([]);
-  const [featuredMandi, setFeaturedMandi] = useState([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Build location params - district and state are the key filters
-        const locationParams = {};
-        if (location?.district) locationParams.district = location.district;
-        if (location?.state) locationParams.state = location.state;
+  const { data: homeData, isLoading: loading } = useQuery({
+    queryKey: ['home', location?.district, location?.state],
+    queryFn: async () => {
+      const locationParams = {};
+      if (location?.district) locationParams.district = location.district;
+      if (location?.state) locationParams.state = location.state;
 
-        // Invalidate old cached listings data to force fresh location-filtered fetch
-        cacheService.invalidate('all_listings_');
-        cacheService.invalidate('all_partners_');
+      // Invalidate old cached listings data to force fresh location-filtered fetch
+      cacheService.invalidate('all_listings_');
+      cacheService.invalidate('all_partners_');
 
-        const [props, servs, supps, mandi] = await Promise.all([
-          db.getAll('listings', { category: 'property', is_featured: 'true', limit: 8, ...locationParams }),
-          db.getAll('listings', { category: 'service', is_featured: 'true', limit: 8, ...locationParams }),
-          db.getAll('partners', { category: 'supplier', is_featured: 'true', limit: 8, ...locationParams }),
-          db.getAll('listings', { category: 'mandi', is_featured: 'true', limit: 8, ...locationParams })
-        ]);
-        setFeaturedProperties(props);
-        setFeaturedServices(servs);
-        setFeaturedSuppliers(supps);
-        setFeaturedMandi(mandi);
-      } catch (err) {
-        console.error("Error fetching homepage data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [location]);  // Re-fetch whenever user changes their location
+      const [props, servs, supps, mandi] = await Promise.all([
+        db.getAll('listings', { category: 'property', is_featured: 'true', limit: 8, ...locationParams }),
+        db.getAll('listings', { category: 'service', is_featured: 'true', limit: 8, ...locationParams }),
+        db.getAll('partners', { category: 'supplier', is_featured: 'true', limit: 8, ...locationParams }),
+        db.getAll('listings', { category: 'mandi', is_featured: 'true', limit: 8, ...locationParams })
+      ]);
+      return { props, servs, supps, mandi };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const featuredProperties = homeData?.props || [];
+  const featuredServices = homeData?.servs || [];
+  const featuredSuppliers = homeData?.supps || [];
+  const featuredMandi = homeData?.mandi || [];
 
   const categories = [
     {

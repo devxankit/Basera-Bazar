@@ -8,6 +8,8 @@ const mandiListingController = require('../controllers/mandiListingController');
 const { protect, authorizeRoles, optionalProtect, verifyApproved } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
 const debounceMiddleware = require('../middlewares/debounceMiddleware');
+const validate = require('../middlewares/validateMiddleware');
+const { listingCategorySchema, idParamSchema } = require('../utils/validators');
 
 // public routes (No authentication needed to view)
 router.get('/', debounceMiddleware, cacheMiddleware(2), listingController.getAllListings);
@@ -25,8 +27,8 @@ router.get('/seller-attributes/my', protect, authorizeRoles('partner'), cacheMid
 router.post('/properties', protect, authorizeRoles('partner'), verifyApproved, propertyListingController.createPropertyListing);
 router.post('/services', protect, authorizeRoles('partner'), verifyApproved, serviceListingController.createServiceListing);
 router.post('/mandi', protect, authorizeRoles('partner'), verifyApproved, mandiListingController.createMandiListing);
-router.post('/categories', protect, authorizeRoles('partner'), verifyApproved, mandiListingController.createPartnerCategory);
-router.delete('/categories/:id', protect, authorizeRoles('partner'), verifyApproved, mandiListingController.deletePartnerCategory);
+router.post('/categories', protect, authorizeRoles('partner'), verifyApproved, validate(listingCategorySchema), mandiListingController.createPartnerCategory);
+router.delete('/categories/:id', protect, authorizeRoles('partner'), verifyApproved, validate(idParamSchema, 'params'), mandiListingController.deletePartnerCategory);
 router.post('/seller-attributes', protect, authorizeRoles('partner'), verifyApproved, listingController.createSellerAttribute);
 router.delete('/seller-attributes/:id', protect, authorizeRoles('partner'), verifyApproved, listingController.deleteSellerAttribute);
 

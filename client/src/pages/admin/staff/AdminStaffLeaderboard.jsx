@@ -1,7 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Trophy } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
+import FilterBar, { FilterField } from '../../../components/admin/FilterBar';
+import EmptyState from '../../../components/common/EmptyState';
 
 const STAFF_TYPES = [
   { value: '', label: 'All Staff' },
@@ -23,21 +26,19 @@ export default function AdminStaffLeaderboard() {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [month, setMonth] = useState(currentMonth);
   const [staffType, setStaffType] = useState('');
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchLeaderboard = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-staff-leaderboard', month, staffType],
+    queryFn: () => {
       const params = new URLSearchParams({ month });
       if (staffType) params.set('staff_type', staffType);
-      const { data } = await api.get(`/admin/staff/leaderboard?${params}`);
-      if (data.success) setLeaderboard(data.data);
-    } catch { toast.error('Failed to load leaderboard.'); }
-    finally { setLoading(false); }
-  }, [month, staffType]);
+      return api.get(`/admin/staff/leaderboard?${params}`).then((r) => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load leaderboard.'),
+  });
 
-  useEffect(() => { fetchLeaderboard(); }, [fetchLeaderboard]);
+  const leaderboard = rawData?.data || [];
 
   const handleWhatsAppShare = (record) => {
     const text = encodeURIComponent(
@@ -51,8 +52,9 @@ export default function AdminStaffLeaderboard() {
   };
 
   const top3 = leaderboard.slice(0, 3);
-  const rest = leaderboard.slice(3);
   const podiumOrder = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3;
+
+  const activeFilterCount = staffType ? 1 : 0;
 
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto">
@@ -61,29 +63,38 @@ export default function AdminStaffLeaderboard() {
         <p className="text-sm text-slate-500">Monthly performance rankings</p>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-6">
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
-        />
-        <select
-          value={staffType}
-          onChange={(e) => setStaffType(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
-        >
-          {STAFF_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-      </div>
+      <FilterBar
+        open
+        activeCount={activeFilterCount}
+        onReset={() => setStaffType('')}
+      >
+        <FilterField label="Month">
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+          />
+        </FilterField>
+        <FilterField label="Staff Type">
+          <select
+            value={staffType}
+            onChange={(e) => setStaffType(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none bg-white"
+          >
+            {STAFF_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
 
       {loading && <div className="text-center text-slate-400 py-8">Loading...</div>}
 
       {!loading && leaderboard.length === 0 && (
-        <div className="bg-white border border-slate-200 rounded-lg p-12 text-center">
-          <Trophy size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-sm text-slate-400">No leaderboard data for {month}.</p>
-        </div>
+        <EmptyState
+          icon={Trophy}
+          title="No leaderboard data"
+          message={`No leaderboard data for ${month}.`}
+        />
       )}
 
       {!loading && top3.length > 0 && (

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Users2, UserCheck, Headphones, MapPin, CalendarClock, FileText, UserPlus, Target, IndianRupee, BarChart3 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../../services/api';
 
 const StatCard = ({ label, value, icon: Icon, color, loading }) => (
@@ -10,7 +11,7 @@ const StatCard = ({ label, value, icon: Icon, color, loading }) => (
     animate={{ opacity: 1, y: 0 }}
     className="bg-white border border-slate-200 rounded-lg p-5 flex items-center gap-4"
   >
-    <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${color}`}>
+    <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
       <Icon size={22} className="text-white" />
     </div>
     <div>
@@ -27,7 +28,7 @@ const QuickAction = ({ label, icon: Icon, path, color }) => {
       onClick={() => navigate(path)}
       className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-lg hover:border-slate-300 hover:shadow-sm transition-all text-left w-full"
     >
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${color}`}>
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
         <Icon size={18} className="text-white" />
       </div>
       <span className="text-sm font-semibold text-slate-700">{label}</span>
@@ -36,14 +37,13 @@ const QuickAction = ({ label, icon: Icon, path, color }) => {
 };
 
 export default function AdminStaffOverview() {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['admin-staff-stats'],
+    queryFn: () => api.get('/admin/staff/stats').then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    api.get('/admin/staff/stats')
-      .then(({ data }) => { if (data.success) setStats(data.data); })
-      .finally(() => setLoading(false));
-  }, []);
+  const stats = rawData?.data || null;
 
   const statCards = [
     { label: 'Team Leaders', value: stats?.team_leaders ?? 0, icon: Users2, color: 'bg-indigo-500' },
@@ -103,7 +103,7 @@ export default function AdminStaffOverview() {
             href={path}
             className="flex items-center gap-4 p-4 bg-white border border-slate-200 rounded-lg hover:border-slate-300 hover:shadow-sm transition-all"
           >
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${color}`}>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
               <Icon size={20} />
             </div>
             <div>

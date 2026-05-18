@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   CheckCircle2, XCircle, Eye, Search, Filter,
   FileText, Shield, User, MapPin, Building2, ExternalLink,
@@ -11,12 +11,12 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import Skeleton from '../../components/common/Skeleton';
 
 export default function AdminPartnerVerification() {
-  const [partners, setPartners] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,45 +33,45 @@ export default function AdminPartnerVerification() {
     type: 'danger'
   });
 
-  const fetchPartners = async () => {
-    setLoading(true);
-    try {
-      // Fetching all users and filtering partners via cached service
-      const data = await getAdminUsers();
-      // Filter only partners (Agent, Supplier, Service Provider)
-      const allPartners = data.filter(u =>
-        ['Agent', 'Supplier', 'Service Provider', 'mandi_seller'].includes(u.role) ||
-        u.partner_type || (u.roles && u.roles.length > 0)
-      );
-      setPartners(allPartners);
-    } catch (error) {
-      console.error("Failed to fetch partners:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawUsers, isLoading: loading } = useQuery({
+    queryKey: ['adminPartners'],
+    queryFn: () => getAdminUsers(),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchPartners();
-  }, []);
+  const partners = (rawUsers || []).filter(u =>
+    ['Agent', 'Supplier', 'Service Provider', 'mandi_seller'].includes(u.role) ||
+    u.partner_type || (u.roles && u.roles.length > 0)
+  );
 
-  const handleStatusUpdate = async (id, status, isActive = true, reason = null) => {
-    setIsActionLoading(true);
-    try {
-      await api.put(`/admin/users/${id}`, { 
-        onboarding_status: status,
-        is_active: isActive,
-        rejection_reason: reason
-      });
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status, isActive, reason }) =>
+      api.put(`/admin/users/${id}`, { onboarding_status: status, is_active: isActive, rejection_reason: reason }).then(r => r.data),
+    onSuccess: () => {
       refreshAdminCache();
-      fetchPartners();
+      queryClient.invalidateQueries({ queryKey: ['adminPartners'] });
       setIsModalOpen(false);
       setShowKYCView(false);
       setIsRejecting(false);
       setRejectionReason('');
-    } catch (err) {
-      console.error(err);
+    },
+    onError: (err) => {
       toast.error(err.response?.data?.message || 'Failed to update partner status.');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/admin/users/${id}`).then(r => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminPartners'] });
+      setIsModalOpen(false);
+    },
+  });
+
+  const handleStatusUpdate = async (id, status, isActive = true, reason = null) => {
+    setIsActionLoading(true);
+    try {
+      await statusMutation.mutateAsync({ id, status, isActive, reason });
     } finally {
       setIsActionLoading(false);
     }
@@ -217,13 +217,11 @@ export default function AdminPartnerVerification() {
                 onConfirm: async () => {
                   setIsActionLoading(true);
                   try {
-                    await api.delete(`/admin/users/${row._id || row.id}`);
-                    fetchPartners();
+                    await deleteMutation.mutateAsync(row._id || row.id);
                   } catch (err) {
                     console.error(err);
                   } finally {
                     setIsActionLoading(false);
-                    setIsModalOpen(false);
                   }
                 }
               });

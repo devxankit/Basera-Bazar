@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { IndianRupee } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
 export default function TeamLeaderSalary() {
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['teamLeaderSalary'],
+    queryFn: () => api.get('/team-leader/salary').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load salary data.'),
+  });
 
-  useEffect(() => {
-    api.get('/team-leader/salary')
-      .then(({ data }) => { if (data.success) setRecords(data.data); })
-      .catch(() => toast.error('Failed to load salary data.'))
-      .finally(() => setLoading(false));
-  }, []);
+  const records = rawData?.success ? rawData.data : [];
 
   const handleWhatsAppShare = (r) => {
     const text = encodeURIComponent(
@@ -27,7 +27,7 @@ export default function TeamLeaderSalary() {
 
   if (loading) return <div className="p-6 text-center text-slate-400">Loading...</div>;
 
-  const latest = records[0];
+  const latest = records[0] ?? null;
 
   return (
     <div className="p-4 max-w-lg mx-auto space-y-4">

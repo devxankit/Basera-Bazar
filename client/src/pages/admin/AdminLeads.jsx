@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Search, Filter, Eye, Trash2, Mail, Phone, Calendar, 
+import {
+  Search, Filter, Eye, Trash2, Mail, Phone, Calendar,
   ChevronDown, RotateCcw, Loader2, CheckCircle2, User,
   MessageSquare, ShieldCheck, MailSearch, Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import { clsx } from 'clsx';
@@ -13,124 +14,98 @@ import { twMerge } from 'tailwind-merge';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import Pagination from '../../components/admin/Pagination';
 import EmptyState from '../../components/common/EmptyState';
+import Skeleton from '../../components/common/Skeleton';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
-import Skeleton from '../../components/common/Skeleton';
+const DEFAULTS = {
+  owner: 'all',
+  role: 'all',
+  type: 'all',
+  readStatus: 'all',
+  contactStatus: 'all',
+  search: '',
+  dateFrom: '',
+  dateTo: ''
+};
 
 const AdminLeads = () => {
   const navigate = useNavigate();
-  const [leads, setLeads] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showFilters, setShowFilters] = useState(true);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, deleting: false });
-  
-  // States for dynamic filters
-  const [owners, setOwners] = useState([]);
-  const [filters, setFilters] = useState({
-    owner: 'all',
-    role: 'all',
-    type: 'all',
-    readStatus: 'all',
-    contactStatus: 'all',
-    search: '',
-    dateFrom: '',
-    dateTo: ''
+  const [filters, setFilters] = useState(DEFAULTS);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const { data: rawData, isLoading: loading, refetch } = useQuery({
+    queryKey: ['adminLeads', filters],
+    queryFn: () => {
+      const queryParams = new URLSearchParams(filters).toString();
+      return api.get(`/admin/leads?${queryParams}`).then(r => r.data);
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const queryParams = new URLSearchParams(filters).toString();
-      const res = await api.get(`/admin/leads?${queryParams}`);
-      if (res.data.success) {
-        setLeads(res.data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching leads:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+  const { data: ownersRaw } = useQuery({
+    queryKey: ['adminLeadOwners'],
+    queryFn: () => api.get('/admin/users?role=partner').then(r => r.data),
+    staleTime: 10 * 60 * 1000,
+  });
 
-  // Fetch owners once on mount for the filter dropdown
-  useEffect(() => {
-    const fetchOwners = async () => {
-      try {
-        const res = await api.get('/admin/users?role=partner');
-        if (res.data.success) setOwners(res.data.data);
-      } catch (err) {
-        console.error('Error fetching owners:', err);
-      }
-    };
-    fetchOwners();
-  }, []);
+  const leads = rawData?.data || [];
+  const owners = ownersRaw?.data || [];
 
-  // Real-time filtering with debounce for search
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      fetchData();
-    }, filters.search ? 300 : 0); // No delay for dropdowns, 300ms for text search
+  const toggleReadMutation = useMutation({
+    mutationFn: ({ id, is_read }) => api.put(`/admin/leads/${id}/status`, { is_read }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminLeads'] }),
+    onError: () => toast.error('Error updating status'),
+  });
 
-    return () => clearTimeout(handler);
-  }, [filters, fetchData]);
+  const toggleContactMutation = useMutation({
+    mutationFn: ({ id, contact_status }) => api.put(`/admin/leads/${id}/status`, { contact_status }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminLeads'] }),
+    onError: () => toast.error('Error updating status'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/admin/leads/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminLeads'] });
+      setDeleteModal({ isOpen: false, id: null, deleting: false });
+    },
+    onError: () => {
+      toast.error('Error deleting lead');
+      setDeleteModal(m => ({ ...m, deleting: false }));
+    },
+  });
 
   const handleResetFilters = () => {
-    setFilters({
-      owner: 'all',
-      role: 'all',
-      type: 'all',
-      readStatus: 'all',
-      contactStatus: 'all',
-      search: '',
-      dateFrom: '',
-      dateTo: ''
-    });
+    setFilters(DEFAULTS);
+    setCurrentPage(1);
   };
 
-  const toggleReadStatus = async (id, currentRead) => {
-    try {
-      await api.put(`/admin/leads/${id}/status`, { is_read: !currentRead });
-      fetchData();
-    } catch (err) {
-      toast.error('Error updating status');
-    }
+  const setFilter = (key, value) => {
+    setFilters(f => ({ ...f, [key]: value }));
+    setCurrentPage(1);
   };
 
-  const toggleContactStatus = async (id, currentContacted) => {
-    try {
-      await api.put(`/admin/leads/${id}/status`, { 
-        contact_status: currentContacted === 'contacted' ? 'not_contacted' : 'contacted' 
-      });
-      fetchData();
-    } catch (err) {
-      toast.error('Error updating status');
-    }
+  const toggleReadStatus = (id, currentRead) => {
+    toggleReadMutation.mutate({ id, is_read: !currentRead });
+  };
+
+  const toggleContactStatus = (id, currentContacted) => {
+    toggleContactMutation.mutate({ id, contact_status: currentContacted === 'contacted' ? 'not_contacted' : 'contacted' });
   };
 
   const handleDelete = (id) => setDeleteModal({ isOpen: true, id, deleting: false });
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     setDeleteModal(m => ({ ...m, deleting: true }));
-    try {
-      await api.delete(`/admin/leads/${deleteModal.id}`);
-      setDeleteModal({ isOpen: false, id: null, deleting: false });
-      fetchData();
-    } catch (err) {
-      toast.error('Error deleting lead');
-      setDeleteModal(m => ({ ...m, deleting: false }));
-    }
+    deleteMutation.mutate(deleteModal.id);
   };
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  // Reset to page 1 on filter change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters]);
 
   const totalPages = Math.ceil(leads.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -161,7 +136,7 @@ const AdminLeads = () => {
         loading={deleteModal.deleting}
       />
       <div className="max-w-400 mx-auto px-6 space-y-6">
-        
+
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between mb-8 gap-6">
             {loading ? (
@@ -177,28 +152,28 @@ const AdminLeads = () => {
                 </p>
               </div>
             )}
-           
+
            {!loading && (
              <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
                 {/* Quick Search Input */}
                 <div className="relative flex-1 lg:w-80 group">
                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                   <input 
+                   <input
                      type="text"
                      placeholder="Search by name, phone, or ID..."
                      value={filters.search}
-                     onChange={(e) => setFilters({...filters, search: e.target.value})}
+                     onChange={(e) => setFilter('search', e.target.value)}
                      className="w-full bg-white border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm group-hover:border-slate-300"
                    />
                 </div>
 
                 {/* Broadcast Quick Filter Toggle */}
-                <button 
-                   onClick={() => setFilters({...filters, type: filters.type === 'broadcast' ? 'all' : 'broadcast'})}
+                <button
+                   onClick={() => setFilter('type', filters.type === 'broadcast' ? 'all' : 'broadcast')}
                    className={cn(
                      "px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-2.5 transition-all shadow-sm border",
-                     filters.type === 'broadcast' 
-                       ? "bg-purple-600 text-white border-purple-600 shadow-purple-100" 
+                     filters.type === 'broadcast'
+                       ? "bg-purple-600 text-white border-purple-600 shadow-purple-100"
                        : "bg-white text-slate-600 border-slate-200 hover:border-purple-200 hover:bg-purple-50/30"
                    )}
                 >
@@ -206,8 +181,8 @@ const AdminLeads = () => {
                    {filters.type === 'broadcast' ? 'Showing Broadcast Only' : 'Filter Broadcast'}
                 </button>
 
-                <button 
-                  onClick={() => fetchData()}
+                <button
+                  onClick={() => refetch()}
                   className="p-3.5 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-indigo-600 transition-all hover:border-indigo-100 shadow-sm"
                 >
                   <RotateCcw size={18} />
@@ -221,7 +196,7 @@ const AdminLeads = () => {
 
         {/* Dynamic Filters Card */}
         <div className="bg-white rounded-4xl border border-slate-100 shadow-sm overflow-hidden">
-          <button 
+          <button
             onClick={() => setShowFilters(!showFilters)}
             className="w-full px-8 py-5 flex items-center justify-between border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
           >
@@ -238,7 +213,7 @@ const AdminLeads = () => {
 
           <AnimatePresence>
             {showFilters && (
-              <motion.div 
+              <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
@@ -250,9 +225,9 @@ const AdminLeads = () => {
                     {/* Lead Owner */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Lead Owner</label>
-                      <select 
+                      <select
                         value={filters.owner}
-                        onChange={(e) => setFilters({...filters, owner: e.target.value})}
+                        onChange={(e) => setFilter('owner', e.target.value)}
                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                       >
                         <option value="all">All Owners</option>
@@ -263,9 +238,9 @@ const AdminLeads = () => {
                     {/* Owner Role */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Owner Role</label>
-                      <select 
+                      <select
                         value={filters.role}
-                        onChange={(e) => setFilters({...filters, role: e.target.value})}
+                        onChange={(e) => setFilter('role', e.target.value)}
                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                       >
                         <option value="all">All Roles</option>
@@ -278,9 +253,9 @@ const AdminLeads = () => {
                     {/* Lead Type */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Lead Type</label>
-                      <select 
+                      <select
                         value={filters.type}
-                        onChange={(e) => setFilters({...filters, type: e.target.value})}
+                        onChange={(e) => setFilter('type', e.target.value)}
                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                       >
                         <option value="all">All Types</option>
@@ -295,9 +270,9 @@ const AdminLeads = () => {
                     {/* Read Status */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Read Status</label>
-                      <select 
+                      <select
                         value={filters.readStatus}
-                        onChange={(e) => setFilters({...filters, readStatus: e.target.value})}
+                        onChange={(e) => setFilter('readStatus', e.target.value)}
                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                       >
                         <option value="all">All Statuses</option>
@@ -309,9 +284,9 @@ const AdminLeads = () => {
                     {/* Contact Status */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Contact Status</label>
-                      <select 
+                      <select
                         value={filters.contactStatus}
-                        onChange={(e) => setFilters({...filters, contactStatus: e.target.value})}
+                        onChange={(e) => setFilter('contactStatus', e.target.value)}
                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                       >
                         <option value="all">All Statuses</option>
@@ -325,11 +300,11 @@ const AdminLeads = () => {
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Search Pipeline</label>
                       <div className="relative">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <input 
+                        <input
                           type="text"
                           placeholder="Name, Email, Phone..."
                           value={filters.search}
-                          onChange={(e) => setFilters({...filters, search: e.target.value})}
+                          onChange={(e) => setFilter('search', e.target.value)}
                           className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 pl-10 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                         />
                       </div>
@@ -338,10 +313,10 @@ const AdminLeads = () => {
                     {/* Date From */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Date From</label>
-                      <input 
+                      <input
                         type="date"
                         value={filters.dateFrom}
-                        onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+                        onChange={(e) => setFilter('dateFrom', e.target.value)}
                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 text-xs font-bold text-slate-700 outline-none"
                       />
                     </div>
@@ -349,17 +324,17 @@ const AdminLeads = () => {
                     {/* Date To */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Date To</label>
-                      <input 
+                      <input
                         type="date"
                         value={filters.dateTo}
-                        onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                        onChange={(e) => setFilter('dateTo', e.target.value)}
                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 text-xs font-bold text-slate-700 outline-none"
                       />
                     </div>
                   </div>
 
                   <div className="flex justify-end pt-4 border-t border-slate-50">
-                    <button 
+                    <button
                       onClick={handleResetFilters}
                       className="flex items-center gap-2 px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-xl transition-all"
                     >
@@ -489,7 +464,7 @@ const AdminLeads = () => {
                              )}>
                                 <CheckCircle2 size={12} /> {lead.is_broadcast ? 'BROADCAST' : lead.enquiry_type}
                              </div>
-                             <button 
+                             <button
                                 onClick={() => navigate(getListingUrl(lead))}
                                 className="text-sm font-bold text-indigo-600 hover:text-indigo-800 tracking-tight line-clamp-1 text-left decoration-indigo-100 underline-offset-4 hover:underline transition-all mt-1"
                              >
@@ -531,14 +506,14 @@ const AdminLeads = () => {
                       {/* Action Circles */}
                       <td className="px-8 py-5 text-right">
                          <div className="flex items-center justify-end gap-2.5">
-                            <button 
+                            <button
                               onClick={() => navigate(`/admin/leads/view/${lead._id}`)}
                               className="p-2 rounded-full border border-orange-100 text-orange-500 hover:bg-orange-50 transition-all shadow-sm group-hover:shadow-md"
                               title="View Details"
                             >
                                <Eye size={15} />
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleDelete(lead._id)}
                               className="p-2 rounded-full border border-rose-100 text-rose-500 hover:bg-rose-50 transition-all shadow-sm group-hover:shadow-md"
                               title="Delete Lead"
@@ -553,7 +528,7 @@ const AdminLeads = () => {
               </tbody>
             </table>
           </div>
-          
+
           {/* Pagination */}
           <Pagination
             currentPage={currentPage}

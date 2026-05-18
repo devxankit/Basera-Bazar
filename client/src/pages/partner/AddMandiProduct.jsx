@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
+import {
   ArrowLeft, Tag, Box, Plus, X,
-  Camera, IndianRupee, Database, 
+  Camera, IndianRupee, Database,
   Loader2, Check, ChevronRight, ChevronDown
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { db } from '../../services/DataEngine';
@@ -16,16 +17,9 @@ export default function AddMandiProduct() {
   const editId = searchParams.get('edit');
   const { user } = useAuth();
   const fileInputRef = useRef(null);
+  const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [fetchingCats, setFetchingCats] = useState(true);
-
-  // Seller's attributes
-  const [sellerTypes, setSellerTypes] = useState([]);
-  const [sellerSubTypes, setSellerSubTypes] = useState([]);
-  const [sellerBrands, setSellerBrands] = useState([]);
-  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
 
   // Inline add state
   const [addingType, setAddingType] = useState(false);
@@ -53,115 +47,96 @@ export default function AddMandiProduct() {
   });
 
   const [showLimitModal, setShowLimitModal] = useState(false);
-  const [subscriptionLimits, setSubscriptionLimits] = useState({
-    canAddListing: true,
-    canFeature: true,
-    message: '',
-    planName: 'Loading...'
+
+  // --- React Query: subscription limits ---
+  const { data: limitsData } = useQuery({
+    queryKey: ['subscriptionLimits'],
+    queryFn: () => api.get('/partners/subscription/limits').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
   });
-
-  useEffect(() => {
-    fetchCategories();
-    fetchSubscriptionLimits();
-    if (editId) fetchProductData();
-  }, []);
-
-  const fetchSubscriptionLimits = async () => {
-    try {
-      const res = await api.get('/partners/subscription/limits');
-      if (res.data.success) {
-        const { usage, plan_name, messages } = res.data.data;
-        setSubscriptionLimits({
-          canAddListing: !usage.is_listing_limit_reached,
-          canFeature: !usage.is_featured_limit_reached,
-          message: messages.listing,
-          planName: plan_name
-        });
+  const subscriptionLimits = limitsData?.success
+    ? {
+        canAddListing: !limitsData.data.usage.is_listing_limit_reached,
+        canFeature: !limitsData.data.usage.is_featured_limit_reached,
+        message: limitsData.data.messages.listing,
+        planName: limitsData.data.plan_name
       }
-    } catch (err) {
-      console.error("Error fetching limits:", err);
-    }
-  };
+    : { canAddListing: true, canFeature: true, message: '', planName: 'Loading...' };
 
-  const fetchSubscription = async () => {
-    try {
-      const res = await api.get('/partners/profile');
-      if (res.data.success) {
-        const partner = res.data.data;
+  // --- React Query: partner profile (subscription info) ---
+  const { data: profileData } = useQuery({
+    queryKey: ['partnerProfile'],
+    queryFn: () => api.get('/partners/profile').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const subscriptionInfo = profileData?.success
+    ? (() => {
+        const partner = profileData.data;
         const sub = partner.active_subscription_id;
-        setSubscriptionInfo({
+        return {
           isPro: !!sub && sub.plan_snapshot?.price > 0,
           featuredLimit: sub?.plan_snapshot?.featured_listings_limit || 0,
           district: partner.district,
           state: partner.state
-        });
-      }
-    } catch (err) {
-      console.error("Error fetching sub info:", err);
-    }
-  };
+        };
+      })()
+    : null;
 
-  const fetchCategories = async () => {
-    try {
-      setFetchingCats(true);
-      const res = await api.get('/listings/categories?type=product&parent_id=null');
-      if (res.data.success) setCategories(res.data.data);
-    } catch (err) {
-      console.error("Error fetching categories:", err);
-    } finally {
-      setFetchingCats(false);
-    }
-  };
+  // --- React Query: categories ---
+  const { data: categoriesData, isLoading: fetchingCats } = useQuery({
+    queryKey: ['mandiProductCategories'],
+    queryFn: () => api.get('/listings/categories?type=product&parent_id=null').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const categories = categoriesData?.success ? categoriesData.data : [];
 
-  const fetchProductData = async () => {
-    try {
-      const res = await api.get(`/listings/${editId}`);
-      if (res.data.success) {
-        const item = res.data.data;
-        setFormData({
-          title: item.title || '',
-          brand: item.brand || '',
-          price: item.pricing?.price_per_unit || item.price || '',
-          unit: item.pricing?.unit || item.unit || 'Bag',
-          material_id: item.category_id?._id || item.category_id || item.material_id || '',
-          material_name: item.category_id?.name || item.material_name || '',
-          grade_id: item.subcategory_id?._id || item.subcategory_id || item.grade_id || '',
-          stock: item.stock_quantity || item.stock || '',
-          description: item.description || '',
-          thumbnail: item.thumbnail || item.image || null,
-          images: item.images || [],
-          type_name: item.type_name || '',
-          sub_type_name: item.sub_type_name || '',
-          brand_name: item.brand_name || item.brand || ''
-        });
-      }
-    } catch (err) {
-      console.error("Error fetching product data:", err);
-    }
-  };
+  // --- React Query: edit product data ---
+  const { data: editProductData } = useQuery({
+    queryKey: ['editMandiProduct', editId],
+    queryFn: () => api.get(`/listings/${editId}`).then(r => r.data),
+    enabled: !!editId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  // Fetch seller's attributes when category changes
+  // Populate form when edit data arrives
   useEffect(() => {
-    if (formData.material_id) {
-      fetchSellerAttributes();
-    } else {
-      setSellerTypes([]); setSellerSubTypes([]); setSellerBrands([]);
+    if (editProductData?.success) {
+      const item = editProductData.data;
+      setFormData({
+        title: item.title || '',
+        brand: item.brand || '',
+        price: item.pricing?.price_per_unit || item.price || '',
+        unit: item.pricing?.unit || item.unit || 'Bag',
+        material_id: item.category_id?._id || item.category_id || item.material_id || '',
+        material_name: item.category_id?.name || item.material_name || '',
+        grade_id: item.subcategory_id?._id || item.subcategory_id || item.grade_id || '',
+        stock: item.stock_quantity || item.stock || '',
+        description: item.description || '',
+        thumbnail: item.thumbnail || item.image || null,
+        images: item.images || [],
+        type_name: item.type_name || '',
+        sub_type_name: item.sub_type_name || '',
+        brand_name: item.brand_name || item.brand || ''
+      });
     }
-  }, [formData.material_id]);
+  }, [editProductData]);
 
-  const fetchSellerAttributes = async () => {
-    try {
-      const res = await api.get(`/listings/seller-attributes/my?category_id=${formData.material_id}`);
-      if (res.data.success) {
-        const all = res.data.data;
-        setSellerTypes(all.filter(a => a.attribute_type === 'type'));
-        setSellerSubTypes(all.filter(a => a.attribute_type === 'sub_type'));
-        setSellerBrands(all.filter(a => a.attribute_type === 'brand'));
-      }
-    } catch (err) {
-      console.error("Error fetching seller attributes:", err);
-    }
-  };
+  // --- React Query: seller attributes (depends on selected category) ---
+  const { data: sellerAttrsData } = useQuery({
+    queryKey: ['sellerAttributes', formData.material_id],
+    queryFn: () => api.get(`/listings/seller-attributes/my?category_id=${formData.material_id}`).then(r => r.data),
+    enabled: !!formData.material_id,
+    staleTime: 5 * 60 * 1000,
+  });
+  const sellerTypes = sellerAttrsData?.success
+    ? sellerAttrsData.data.filter(a => a.attribute_type === 'type')
+    : [];
+  const sellerSubTypes = sellerAttrsData?.success
+    ? sellerAttrsData.data.filter(a => a.attribute_type === 'sub_type')
+    : [];
+  const sellerBrands = sellerAttrsData?.success
+    ? sellerAttrsData.data.filter(a => a.attribute_type === 'brand')
+    : [];
 
   // Auto-generate title from combination
   useEffect(() => {
@@ -189,7 +164,7 @@ export default function AddMandiProduct() {
       if (res.data.success) {
         setNewItemName('');
         setAddingType(false); setAddingSubType(false); setAddingBrand(false);
-        await fetchSellerAttributes();
+        queryClient.invalidateQueries({ queryKey: ['sellerAttributes', formData.material_id] });
         // Auto-select the newly added attribute
         const newAttr = res.data.data;
         if (attrType === 'type') setFormData(prev => ({ ...prev, type_name: newAttr.name, sub_type_name: '' }));

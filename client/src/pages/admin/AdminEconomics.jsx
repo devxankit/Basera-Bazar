@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  IndianRupee, 
-  Save, 
-  Loader2, 
+import {
+  IndianRupee,
+  Save,
+  Loader2,
   Users,
   Info,
   ChevronRight,
@@ -14,6 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import Skeleton from '../../components/common/Skeleton';
@@ -27,42 +28,33 @@ const labelClass = "text-[11px] font-bold text-slate-400 uppercase tracking-wide
 
 export default function AdminEconomics() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
   const [commissionAmount, setCommissionAmount] = useState(100);
 
-  const fetchSettings = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/admin/executives/config/settings');
-      if (res.data.success) {
-        setCommissionAmount(res.data.data.commission_amount);
-      }
-    } catch (err) {
-      toast.error("Failed to fetch economics settings");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawData, isLoading: loading } = useQuery({
+    queryKey: ['adminEconomicsSettings'],
+    queryFn: () => api.get('/admin/executives/config/settings').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const handleUpdateSettings = async () => {
-    setSaving(true);
-    try {
-      await api.put('/admin/executives/config/settings', { 
-        commission_amount: Number(commissionAmount)
-      });
-      toast.success("Executive commission updated successfully!");
-      fetchSettings();
-    } catch (err) {
-      toast.error("Update failed: " + (err.response?.data?.message || err.message));
-    } finally {
-      setSaving(false);
+    if (rawData?.data?.commission_amount !== undefined) {
+      setCommissionAmount(rawData.data.commission_amount);
     }
-  };
+  }, [rawData]);
+
+  const saveMutation = useMutation({
+    mutationFn: (amount) => api.put('/admin/executives/config/settings', { commission_amount: Number(amount) }),
+    onSuccess: () => {
+      toast.success("Executive commission updated successfully!");
+      queryClient.invalidateQueries({ queryKey: ['adminEconomicsSettings'] });
+    },
+    onError: (err) => {
+      toast.error("Update failed: " + (err.response?.data?.message || err.message));
+    },
+  });
+
+  const saving = saveMutation.isPending;
 
   if (loading) {
     return (
@@ -86,7 +78,7 @@ export default function AdminEconomics() {
   return (
     <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
       <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
-        
+
         {/* Breadcrumbs & Header */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
@@ -96,15 +88,15 @@ export default function AdminEconomics() {
              <ChevronRight size={12} className="text-slate-300" />
              <span className="text-indigo-600">Economics</span>
           </div>
-          
+
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
               <h1 className="text-3xl font-semibold text-slate-900 tracking-tight uppercase">Financial Economics</h1>
               <p className="text-slate-500 font-medium text-sm mt-1">Configure global commission structures and payout rules for Field Executives.</p>
             </div>
-            
-            <button 
-              onClick={handleUpdateSettings}
+
+            <button
+              onClick={() => saveMutation.mutate(commissionAmount)}
               disabled={saving}
               className="px-8 py-3.5 bg-slate-900 hover:bg-indigo-600 text-white font-bold text-[12px] uppercase tracking-widest rounded-xl shadow-lg shadow-slate-200 transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
             >
@@ -130,14 +122,14 @@ export default function AdminEconomics() {
                   <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Live Configuration</span>
                 </div>
               </div>
-              
+
               <div className="p-8 space-y-10">
                 <div className="max-w-md">
                   <label className={labelClass}>Referral Payout Amount (₹)</label>
                   <div className="relative group">
                     <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg group-focus-within:text-indigo-600 transition-colors">₹</div>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       value={commissionAmount}
                       onChange={e => setCommissionAmount(e.target.value)}
                       className={cn(inputClass, "pl-10")}

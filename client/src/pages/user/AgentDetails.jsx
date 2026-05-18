@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  ArrowLeft, Share2, MapPin, Building2, Phone, Mail, 
+import {
+  ArrowLeft, Share2, MapPin, Building2, Phone, Mail,
   ChevronRight, LayoutGrid, CheckCircle2, ShoppingCart,
   User as UserIcon, Calendar, Info, Send, X, MessageSquare,
   Package, LayoutList, Ruler, Bed, Bath
@@ -13,6 +13,7 @@ import { db } from '../../services/DataEngine';
 import Skeleton from '../../components/common/Skeleton';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -31,124 +32,88 @@ const AgentDetails = () => {
   };
   
   const [activeTab, setActiveTab] = useState('listings');
-  const [loading, setLoading] = useState(true);
-  const [listings, setListings] = useState([]);
-  const [agent, setAgent] = useState(null);
   const [isGridView, setIsGridView] = useState(true);
 
   // Inquiry Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [enquiryData, setEnquiryData] = useState({
-    name: '',
-    phone: '',
-    email: '',
+    name: user?.name || '',
+    phone: user?.phone || '',
+    email: user?.email || '',
     message: ''
   });
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpTimer, setOtpTimer] = useState(0);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
+  const [isVerified, setIsVerified] = useState(!!user);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch all properties by this agent
-        const data = await db.getAll('listings', { partner_id: id, category: 'property' });
-        setListings(data);
-        
-        if (data.length > 0) {
-          setAgent(data[0].owner);
-        } else {
-            // Fallback: If no listings, fetch a single one to get owner info if possible
-            // In a real app we'd have a getPartnerById endpoint
-            setAgent({
-                id: id,
-                name: 'Property Agent',
-                location: 'Muzaffarpur, Bihar',
-                role: 'Verified Partner'
-            });
-        }
-      } catch (error) {
-        console.error("Error fetching agent data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [id]);
+  const { data: agentData, isLoading: loading } = useQuery({
+    queryKey: ['agentListings', id],
+    queryFn: () => db.getAll('listings', { partner_id: id, category: 'property' }),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    if (user) {
-      setEnquiryData(prev => ({ 
-        ...prev, 
-        name: user.name || '', 
-        phone: user.phone || '', 
-        email: user.email || '' 
-      }));
-      setIsVerified(true);
-    }
-  }, [user]);
+  const listings = agentData || [];
+  const agent = listings.length > 0
+    ? listings[0].owner
+    : { id, name: 'Property Agent', location: 'Muzaffarpur, Bihar', role: 'Verified Partner' };
 
-  const handleSendOtp = async () => {
+  const sendOtpMutation = useMutation({
+    mutationFn: (phone) => api.post('/auth/send-otp', { phone, checkExists: false }).then(r => r.data),
+    onSuccess: () => { setOtpSent(true); setOtpTimer(60); },
+    onError: (error) => alert(error.response?.data?.message || "Failed to send OTP"),
+  });
+
+  const handleSendOtp = () => {
     if (enquiryData.phone.length < 10) return alert("Please enter a valid 10-digit phone number");
-    try {
-      setIsSendingOtp(true);
-      const res = await api.post('/auth/send-otp', { phone: enquiryData.phone, checkExists: false });
-      if (res.data.success) {
-        setOtpSent(true);
-        setOtpTimer(60);
-      }
-    } catch (error) {
-      alert(error.response?.data?.message || "Failed to send OTP");
-    } finally {
-      setIsSendingOtp(false);
-    }
+    setIsSendingOtp(true);
+    sendOtpMutation.mutate(enquiryData.phone, { onSettled: () => setIsSendingOtp(false) });
   };
 
-  const handleEnquirySubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
+  const submitEnquiryMutation = useMutation({
+    mutationFn: async (payload) => {
       let currentUserId = user?.id;
       if (!user) {
-        if (!otpSent || !otpCode) {
-          alert("Please verify OTP first");
-          setSubmitting(false);
-          return;
-        }
         const authRes = await api.post('/auth/verify-otp', {
-          phone: enquiryData.phone,
-          otp: otpCode,
-          name: enquiryData.name,
-          email: enquiryData.email,
+          phone: payload.phone,
+          otp: payload.otp,
+          name: payload.name,
+          email: payload.email,
           role: 'user',
           flow: 'signup'
-        });
-        if (authRes.data.success) {
-          localStorage.setItem('baserabazar_token', authRes.data.token);
-          currentUserId = authRes.data.user.id;
+        }).then(r => r.data);
+        if (authRes.success) {
+          localStorage.setItem('baserabazar_token', authRes.token);
+          currentUserId = authRes.user.id;
           setIsVerified(true);
         }
       }
-
-      await db.create('leads', {
-        ...enquiryData,
+      return db.create('leads', {
+        name: payload.name,
+        phone: payload.phone,
+        email: payload.email,
+        message: payload.message,
         userId: currentUserId,
         category: 'property',
-        message: `Inquiry regarding properties from ${agent?.name}. Message: ${enquiryData.message}`
+        message: `Inquiry regarding properties from ${agent?.name}. Message: ${payload.message}`
       });
+    },
+    onSuccess: () => { setShowSuccessModal(true); setIsModalOpen(false); },
+    onError: () => alert("Failed to send inquiry"),
+    onSettled: () => setSubmitting(false),
+  });
 
-      setShowSuccessModal(true);
-      setIsModalOpen(false);
-    } catch (error) {
-      alert("Failed to send inquiry");
-    } finally {
-      setSubmitting(false);
+  const handleEnquirySubmit = (e) => {
+    e.preventDefault();
+    if (!user && (!otpSent || !otpCode)) {
+      alert("Please verify OTP first");
+      return;
     }
+    setSubmitting(true);
+    submitEnquiryMutation.mutate({ ...enquiryData, otp: otpCode });
   };
 
   if (loading) return (

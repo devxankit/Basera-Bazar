@@ -10,6 +10,8 @@ const {
 const { protect } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
 const debounceMiddleware = require('../middlewares/debounceMiddleware');
+const validate = require('../middlewares/validateMiddleware');
+const { mandiInventorySchema, idParamSchema } = require('../utils/validators');
 
 // Public Marketplace Routes
 router.get('/marketplace/home', debounceMiddleware, cacheMiddleware(10), getMarketplaceHome);
@@ -17,6 +19,6 @@ router.get('/marketplace/category/:id', debounceMiddleware, cacheMiddleware(5), 
 
 // Seller Management Routes
 router.get('/dashboard', protect, getSellerDashboard);
-router.patch('/products/:id', protect, updateProductInventory);
+router.patch('/products/:id', protect, validate(idParamSchema, 'params'), validate(mandiInventorySchema), updateProductInventory);
 
 module.exports = router;

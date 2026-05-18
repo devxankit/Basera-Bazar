@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { MapPin, Camera, LogIn, LogOut, CheckCircle, AlertTriangle } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
@@ -9,29 +10,29 @@ const DAY_COLOR = { present: 'bg-green-400', absent: 'bg-red-400', half_day: 'bg
 export default function ExecutiveAttendance() {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [month, setMonth] = useState(currentMonth);
-  const [history, setHistory] = useState([]);
-  const [today, setToday] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [gpsStatus, setGpsStatus] = useState(null);
   const [selfieUrl, setSelfieUrl] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
+  const queryClient = useQueryClient();
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [todayRes, historyRes] = await Promise.all([
-        api.get('/executive/attendance/today').catch(() => ({ data: { data: null } })),
-        api.get(`/executive/attendance/history?month=${month}`),
-      ]);
-      if (todayRes.data.success) setToday(todayRes.data.data);
-      if (historyRes.data.success) setHistory(historyRes.data.data);
-    } catch { toast.error('Failed to load attendance.'); }
-    finally { setLoading(false); }
-  }, [month]);
+  const { data: todayRaw, isLoading: todayLoading } = useQuery({
+    queryKey: ['attendanceToday'],
+    queryFn: () => api.get('/executive/attendance/today').then(r => r.data).catch(() => ({ data: null })),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data: historyRaw, isLoading: historyLoading } = useQuery({
+    queryKey: ['attendanceHistory', month],
+    queryFn: () => api.get(`/executive/attendance/history?month=${month}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load attendance.'),
+  });
+
+  const today = todayRaw?.success ? todayRaw.data : null;
+  const history = historyRaw?.success ? historyRaw.data : [];
+  const loading = todayLoading || historyLoading;
 
   const getLocation = () => new Promise((resolve, reject) => {
     if (!navigator.geolocation) { reject(new Error('Geolocation not supported')); return; }
@@ -73,7 +74,8 @@ export default function ExecutiveAttendance() {
       });
       toast.success('Checked in successfully.');
       setSelfieUrl('');
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['attendanceToday'] });
+      queryClient.invalidateQueries({ queryKey: ['attendanceHistory', month] });
     } catch (err) {
       if (err.code === 1) toast.error('Location permission denied. Please enable GPS.');
       else toast.error(err.response?.data?.message || 'Check-in failed.');
@@ -85,7 +87,8 @@ export default function ExecutiveAttendance() {
     try {
       await api.post('/executive/attendance/check-out');
       toast.success('Checked out.');
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['attendanceToday'] });
+      queryClient.invalidateQueries({ queryKey: ['attendanceHistory', month] });
     } catch (err) { toast.error(err.response?.data?.message || 'Check-out failed.'); }
     finally { setCheckingIn(false); }
   };

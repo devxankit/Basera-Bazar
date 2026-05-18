@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -14,6 +14,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import { Skeleton } from '../../components/common/Skeleton';
@@ -33,7 +34,7 @@ const StatCard = ({ title, value, icon: Icon, color, trend, badge, onClick }) =>
         <p className="text-[11px] font-semibold text-slate-400 tracking-tight leading-none mb-2 lg:mb-3 uppercase">{title}</p>
         <h3 className="text-3xl lg:text-4xl font-semibold text-slate-900 tracking-tight truncate">{value}</h3>
       </div>
-      
+
       {/* Dynamic Badge */}
       <div className="flex items-center gap-2 flex-wrap">
         {trend ? (
@@ -102,69 +103,46 @@ QuickActionCard.propTypes = {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isFetchingChart, setIsFetchingChart] = useState(false);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [chartRange, setChartRange] = useState('Weekly');
+  const [isFetchingChart, setIsFetchingChart] = useState(false);
 
-  const fetchDashboardData = async (range = chartRange, silent = false) => {
-    if (silent) setIsFetchingChart(true);
-    else setLoading(true);
-    
-    setError(null);
-    try {
+  const { data: rawDashboard, isLoading: loading, error: dashboardError, refetch } = useQuery({
+    queryKey: ['adminDashboard', chartRange],
+    queryFn: async () => {
       const { getDashboardData, getActivities } = await import('../../services/AdminService');
       const [statsData, activitiesData] = await Promise.all([
-        getDashboardData(range.toLowerCase()),
+        getDashboardData(chartRange.toLowerCase()),
         getActivities(8)
       ]);
-      setData(statsData);
-      setActivities(activitiesData);
-    } catch (error) {
-      console.error("Dashboard error:", error);
-      setError('Connection to infrastructure interrupted.');
-    } finally {
-      setLoading(false);
-      setIsFetchingChart(false);
-    }
-  };
+      return { statsData, activitiesData };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const [isProcessing, setIsProcessing] = useState(false);
+  const data = rawDashboard?.statsData || null;
+  const activities = rawDashboard?.activitiesData || [];
+  const error = dashboardError ? 'Connection to infrastructure interrupted.' : null;
 
-  const handleStatusUpdate = async (id, status, type = 'Property') => {
-    setIsProcessing(true);
-    try {
-      await api.patch(`/admin/listings/${id}/status`, { status });
-      
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }) => api.patch(`/admin/listings/${id}/status`, { status }).then(r => r.data),
+    onSuccess: async (_, { id }) => {
       const { refreshAdminCache } = await import('../../services/AdminService');
       refreshAdminCache();
-
-      // Update local state instead of refetching for better UX
-      setData(prev => {
-        if (!prev?.pending?.properties) return prev;
-        const newProperties = prev.pending.properties.filter(p => p._id !== id);
-        return {
-          ...prev,
-          pending: {
-            ...prev.pending,
-            properties: newProperties
-          }
-        };
-      });
-    } catch (err) {
-      console.error(err);
+      queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
+    },
+    onError: () => {
       toast.error("Status update failed.");
-    } finally {
-      setIsProcessing(false);
-    }
+    },
+  });
+
+  const handleStatusUpdate = (id, status) => {
+    statusMutation.mutate({ id, status });
   };
 
-  useEffect(() => {
-    fetchDashboardData(chartRange, false);
-  }, [chartRange]); // re-fetch when range changes
-
+  const handleRangeChange = (range) => {
+    setChartRange(range);
+  };
 
   if (error || (!data && !loading)) {
     return (
@@ -174,7 +152,7 @@ export default function AdminDashboard() {
         <p className="text-slate-400 font-semibold uppercase tracking-[0.15em] text-[10px] max-w-[250px] text-center">
           {error || 'Unable to establish secure tunnel to statistics engine.'}
         </p>
-        <button onClick={fetchDashboardData} className="mt-6 px-10 py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-200">
+        <button onClick={() => refetch()} className="mt-6 px-10 py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-200">
           Initialize Retry
         </button>
       </div>
@@ -182,75 +160,75 @@ export default function AdminDashboard() {
   }
 
   const statsData = [
-    { 
-      title: 'TOTAL USERS', 
-      value: (data?.users || 0).toLocaleString(), 
-      icon: Users, 
-      color: 'bg-slate-100 text-slate-400', 
+    {
+      title: 'TOTAL USERS',
+      value: (data?.users || 0).toLocaleString(),
+      icon: Users,
+      color: 'bg-slate-100 text-slate-400',
       trend: { value: '57.1%', isUp: false, label: 'Since Last Month' },
       path: '/admin/users'
     },
-    { 
-      title: 'PROPERTIES LISTED', 
-      value: (data?.properties || 0).toLocaleString(), 
-      icon: Building2, 
-      color: 'bg-emerald-100 text-emerald-600', 
+    {
+      title: 'PROPERTIES LISTED',
+      value: (data?.properties || 0).toLocaleString(),
+      icon: Building2,
+      color: 'bg-emerald-100 text-emerald-600',
       trend: { value: '0%', isUp: true, label: 'Since Last Month' },
       path: '/admin/properties'
     },
-    { 
-      title: 'SERVICES LISTED', 
-      value: (data?.services || 0).toLocaleString(), 
-      icon: Briefcase, 
-      color: 'bg-slate-100 text-slate-900', 
+    {
+      title: 'SERVICES LISTED',
+      value: (data?.services || 0).toLocaleString(),
+      icon: Briefcase,
+      color: 'bg-slate-100 text-slate-900',
       badge: { text: 'ACTIVE', color: 'bg-slate-500 text-white', icon: Activity, subtext: 'Total Count' },
       path: '/admin/services'
     },
-    { 
-      title: 'PRODUCTS LISTED', 
-      value: (data?.products || 0).toLocaleString(), 
-      icon: ShoppingBag, 
-      color: 'bg-rose-100 text-rose-600', 
+    {
+      title: 'PRODUCTS LISTED',
+      value: (data?.products || 0).toLocaleString(),
+      icon: ShoppingBag,
+      color: 'bg-rose-100 text-rose-600',
       badge: { text: 'MANDI', color: 'bg-rose-500 text-white', icon: ShoppingBag, subtext: 'Live Products' },
       path: '/admin/mandi-bazar/products'
     },
-    { 
-      title: 'TOTAL REVENUE', 
-      value: `₹${(data?.revenue || 0).toLocaleString()}`, 
-      icon: IndianRupee, 
-      color: 'bg-orange-100 text-orange-600', 
+    {
+      title: 'TOTAL REVENUE',
+      value: `₹${(data?.revenue || 0).toLocaleString()}`,
+      icon: IndianRupee,
+      color: 'bg-orange-100 text-orange-600',
       trend: { value: '100%', isUp: false, label: 'Since Last Month' },
       path: '/admin/reports/payments'
     },
-    { 
-      title: 'Pending Requests', 
-      value: (data?.pending?.properties?.length || 0), 
-      icon: Clock, 
-      color: 'bg-rose-100 text-rose-600', 
+    {
+      title: 'Pending Requests',
+      value: (data?.pending?.properties?.length || 0),
+      icon: Clock,
+      color: 'bg-rose-100 text-rose-600',
       badge: { text: 'Attention', color: 'bg-rose-500 text-white', icon: AlertCircle, subtext: 'Require Review' },
       path: '/admin/dashboard/pending/properties'
     },
-    { 
-      title: 'Pending Payouts', 
-      value: (data?.pending?.withdrawals || 0), 
-      icon: Landmark, 
-      color: 'bg-indigo-100 text-indigo-600', 
+    {
+      title: 'Pending Payouts',
+      value: (data?.pending?.withdrawals || 0),
+      icon: Landmark,
+      color: 'bg-indigo-100 text-indigo-600',
       badge: { text: 'Settlement', color: 'bg-indigo-500 text-white', icon: Landmark, subtext: 'Awaiting Bank' },
       path: '/admin/executives/withdrawals'
     },
-    { 
-      title: 'Recent Activities', 
-      value: (activities.length || 0).toLocaleString(), 
-      icon: Activity, 
-      color: 'bg-slate-100 text-slate-400', 
+    {
+      title: 'Recent Activities',
+      value: (activities.length || 0).toLocaleString(),
+      icon: Activity,
+      color: 'bg-slate-100 text-slate-400',
       badge: { text: 'Latest', color: 'bg-cyan-400 text-white', icon: MessageSquare, subtext: 'System activities' },
       path: '/admin/dashboard/activities'
     },
-    { 
-      title: 'User Roles', 
-      value: '6', 
-      icon: UserCog, 
-      color: 'bg-slate-100 text-slate-900', 
+    {
+      title: 'User Roles',
+      value: '6',
+      icon: UserCog,
+      color: 'bg-slate-100 text-slate-900',
       badge: { text: 'Active', color: 'bg-cyan-400 text-white', icon: Activity, subtext: 'Role types' },
       path: '/admin/users'
     },
@@ -263,8 +241,10 @@ export default function AdminDashboard() {
     { title: 'Properties', desc: 'Review and approve property listings', icon: Building2, color: 'bg-emerald-50 text-emerald-600', path: '/admin/properties' },
     { title: 'Subscription Plans', desc: 'Manage subscription packages', icon: Crown, color: 'bg-orange-50 text-orange-500', path: '/admin/subscriptions/plans' },
     { title: 'User Subscriptions', desc: 'Monitor active subscriptions', icon: CreditCard, color: 'bg-cyan-50 text-cyan-500', path: '/admin/subscriptions' },
-  ];  const registrationData = data?.analytics?.chartData || [];
-  
+  ];
+
+  const registrationData = data?.analytics?.chartData || [];
+
   const roleColors = {
     'Admin': '#3b82f6',
     'Agent': '#10b981',
@@ -280,11 +260,6 @@ export default function AdminDashboard() {
     color: roleColors[item.name] || '#cbd5e1'
   })) || [];
 
-  const handleRangeChange = (range) => {
-    setChartRange(range);
-    fetchDashboardData(range, true); // Silent update for the chart
-  };
-   
   // Map entity_type → icon for the activity table
   const ACTIVITY_ICON_MAP = {
     user: Users, partner: Users, property: Building2,
@@ -345,8 +320,8 @@ export default function AdminDashboard() {
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 lg:p-8 space-y-6 relative overflow-hidden">
           {/* Subtle Loading Overlay for Chart */}
           <AnimatePresence>
-            {isFetchingChart && (
-              <motion.div 
+            {loading && (
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -373,7 +348,7 @@ export default function AdminDashboard() {
               ))}
             </div>
           </div>
-          
+
           <div className="h-[320px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={registrationData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -384,28 +359,28 @@ export default function AdminDashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
                   tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }}
                   dy={10}
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
                   tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="users" 
-                  stroke="#6366f1" 
+                <Area
+                  type="monotone"
+                  dataKey="users"
+                  stroke="#6366f1"
                   strokeWidth={4}
-                  fillOpacity={1} 
-                  fill="url(#colorUsers)" 
+                  fillOpacity={1}
+                  fill="url(#colorUsers)"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -420,7 +395,7 @@ export default function AdminDashboard() {
              </div>
              <h2 className="text-xl font-black text-slate-900 tracking-tight">User Distribution</h2>
           </div>
-          
+
           <div className="h-[240px] w-full relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -470,7 +445,7 @@ export default function AdminDashboard() {
               <Activity className="text-orange-500" size={20} />
               <h2 className="text-lg font-black text-slate-900 tracking-tight">Recent Activities</h2>
             </div>
-            <button 
+            <button
               onClick={() => navigate('/admin/dashboard/activities')}
               className="px-5 py-2.5 rounded-lg border border-orange-200 text-orange-500 text-[11px] font-black uppercase tracking-widest hover:bg-orange-50 transition-colors"
             >
@@ -547,7 +522,7 @@ export default function AdminDashboard() {
                 <Home className="text-slate-900" size={20} />
                 <h2 className="text-lg font-black text-slate-900 tracking-tight">Pending Property Approvals</h2>
               </div>
-                <button 
+                <button
                   onClick={() => navigate('/admin/dashboard/pending/properties')}
                   className="px-5 py-2.5 rounded-lg border border-orange-200 text-orange-500 text-[11px] font-black uppercase tracking-widest hover:bg-orange-50 transition-colors"
                 >
@@ -587,22 +562,22 @@ export default function AdminDashboard() {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                               <button 
-                                 onClick={() => navigate(`/admin/properties/view/${prop._id}`)} 
+                               <button
+                                 onClick={() => navigate(`/admin/properties/view/${prop._id}`)}
                                  className="p-2 rounded-full border border-orange-100 text-orange-500 hover:bg-orange-50 transition-colors"
                                >
                                  <Eye size={15} />
                                </button>
-                               <button 
+                               <button
                                  onClick={() => handleStatusUpdate(prop._id, 'active')}
-                                 disabled={isProcessing}
+                                 disabled={statusMutation.isPending}
                                  className="p-2 rounded-full border border-emerald-100 text-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-50"
                                >
                                  <CheckCircle2 size={15} />
                                </button>
-                               <button 
+                               <button
                                  onClick={() => handleStatusUpdate(prop._id, 'rejected')}
-                                 disabled={isProcessing}
+                                 disabled={statusMutation.isPending}
                                  className="p-2 rounded-full border border-rose-100 text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50"
                                >
                                  <XCircle size={15} />

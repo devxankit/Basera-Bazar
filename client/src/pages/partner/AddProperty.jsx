@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
+import {
   ArrowLeft, Home, MapPin, Search, Map, ChevronDown, CheckCircle2,
-  Trash2, UploadCloud, Info, BedDouble, Bath, Users, Square, Navigation, 
+  Trash2, UploadCloud, Info, BedDouble, Bath, Users, Square, Navigation,
   Building2, Camera, Star, AlertCircle, X, Triangle, Check, Car, Bike, Loader2
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '../../services/DataEngine';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -23,18 +24,13 @@ export default function AddProperty() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
+  const queryClient = useQueryClient();
 
   const [activeStep, setActiveStep] = useState(1);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
-  const [subscriptionLimits, setSubscriptionLimits] = useState({
-    canAddListing: true,
-    canFeature: false,   // LOCKED BY DEFAULT
-    message: '',
-    planName: 'Verifying...'
-  });
   
   const [formData, setFormData] = useState({
     // Step 1: Essential Details
@@ -85,89 +81,75 @@ export default function AddProperty() {
     emiDetails: ''
   });
 
-  useEffect(() => {
-    fetchSubscriptionLimits();
-  }, []);
-
-  const fetchSubscriptionLimits = async () => {
-    try {
-      const res = await api.get('/partners/subscription/limits');
-      if (res.data.success && res.data.data) {
-        const { usage, plan_name, messages } = res.data.data;
-        setSubscriptionLimits({
-          canAddListing: usage ? !usage.is_listing_limit_reached : true,
-          canFeature: usage ? !usage.is_featured_limit_reached : false,
-          message: messages?.listing || '',
-          planName: plan_name || 'Basic'
-        });
+  // --- React Query: subscription limits ---
+  const { data: limitsData } = useQuery({
+    queryKey: ['subscriptionLimits'],
+    queryFn: () => api.get('/partners/subscription/limits').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const subscriptionLimits = limitsData?.success && limitsData.data
+    ? {
+        canAddListing: limitsData.data.usage ? !limitsData.data.usage.is_listing_limit_reached : true,
+        canFeature: limitsData.data.usage ? !limitsData.data.usage.is_featured_limit_reached : false,
+        message: limitsData.data.messages?.listing || '',
+        planName: limitsData.data.plan_name || 'Basic'
       }
-    } catch (err) {
-      console.error("Error fetching limits:", err);
+    : { canAddListing: true, canFeature: false, message: '', planName: 'Verifying...' };
+
+  // --- React Query: edit property data ---
+  const { data: editPropertyData } = useQuery({
+    queryKey: ['editProperty', editId],
+    queryFn: () => api.get(`/listings/${editId}`).then(r => r.data),
+    enabled: !!editId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Populate form when edit data arrives
+  useEffect(() => {
+    if (editPropertyData?.success && editPropertyData.data) {
+      const data = editPropertyData.data;
+      setFormData(prev => ({
+        ...prev,
+        title: data.title || '',
+        description: data.description || '',
+        propertyType: data.property_type || '',
+        intention: data.listing_intent === 'rent' ? 'For Rent' : 'For Sale',
+        price: data.pricing?.amount || '',
+        categoryId: data.category_id || '',
+        subcategoryId: data.subcategory_id || '',
+        state: data.address?.state || '',
+        district: data.address?.district || '',
+        completeAddress: data.address?.full_address || '',
+        pinCode: data.address?.pincode || '',
+        bedrooms: data.details?.bhk || '',
+        bathrooms: data.details?.bathrooms || '',
+        washrooms: data.details?.washrooms || '',
+        furnishing: data.details?.furnishing || '',
+        builtUpArea: data.details?.area?.value || '',
+        unit: data.details?.area?.unit || 'sq. ft.',
+        superBuiltUpArea: data.details?.area?.super_built_up_area || '',
+        carpetArea: data.details?.area?.carpet_area || '',
+        monthlyMaintenance: data.pricing?.maintenance || '',
+        floorNumber: data.details?.floor_number || '',
+        totalFloors: data.details?.total_floors || '',
+        facing: data.details?.facing || '',
+        constructionStatus: data.details?.possession || 'ready',
+        thumbnail: data.images?.[0] || data.thumbnail || null,
+        images: data.images || [],
+        latitude: data.location?.coordinates?.[1] || '',
+        longitude: data.location?.coordinates?.[0] || '',
+        isFeatured: data.is_featured || false,
+        emiAvailable: data.emi_available || false,
+        emiDetails: data.emi_details || ''
+      }));
     }
-  };
+  }, [editPropertyData]);
 
   useEffect(() => {
     if (!user) {
       navigate('/partner/login');
-      return;
     }
-
-    if (editId) {
-      const fetchProperty = async () => {
-        try {
-          const res = await api.get(`/listings/${editId}`);
-          if (res.data.success && res.data.data) {
-            const data = res.data.data;
-            // Map backend schema back to frontend formData
-            setFormData(prev => ({
-              ...prev,
-              title: data.title || '',
-              description: data.description || '',
-              propertyType: data.property_type || '',
-              intention: data.listing_intent === 'rent' ? 'For Rent' : 'For Sale',
-              price: data.pricing?.amount || '',
-              categoryId: data.category_id || '',
-              subcategoryId: data.subcategory_id || '',
-              
-              // Address
-              state: data.address?.state || '',
-              district: data.address?.district || '',
-              completeAddress: data.address?.full_address || '',
-              pinCode: data.address?.pincode || '',
-              
-              // Details
-              bedrooms: data.details?.bhk || '',
-              bathrooms: data.details?.bathrooms || '',
-              washrooms: data.details?.washrooms || '',
-              furnishing: data.details?.furnishing || '',
-              builtUpArea: data.details?.area?.value || '',
-              unit: data.details?.area?.unit || 'sq. ft.',
-              superBuiltUpArea: data.details?.area?.super_built_up_area || '',
-              carpetArea: data.details?.area?.carpet_area || '',
-              monthlyMaintenance: data.pricing?.maintenance || '',
-              floorNumber: data.details?.floor_number || '',
-              totalFloors: data.details?.total_floors || '',
-              facing: data.details?.facing || '',
-              constructionStatus: data.details?.possession || 'ready',
-              
-              // Images
-              thumbnail: data.images?.[0] || data.thumbnail || null,
-              images: data.images || [],
-              
-              latitude: data.location?.coordinates?.[1] || '',
-              longitude: data.location?.coordinates?.[0] || '',
-              isFeatured: data.is_featured || false,
-              emiAvailable: data.emi_available || false,
-              emiDetails: data.emi_details || ''
-            }));
-          }
-        } catch (err) {
-          console.error("Error fetching property for edit:", err);
-        }
-      };
-      fetchProperty();
-    }
-  }, [editId, user, navigate]);
+  }, [user, navigate]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -201,40 +183,22 @@ export default function AddProperty() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const [parentCategories, setParentCategories] = useState([]);
-  const [subCategories, setSubCategories] = useState([]);
+  // --- React Query: parent categories ---
+  const { data: parentCatsData } = useQuery({
+    queryKey: ['propertyParentCategories'],
+    queryFn: () => api.get('/listings/categories?type=property').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const parentCategories = parentCatsData?.success && parentCatsData.data ? parentCatsData.data : [];
 
-  useEffect(() => {
-    const fetchParentCategories = async () => {
-      try {
-        const res = await api.get('/listings/categories?type=property');
-        if (res.data.success && res.data.data) {
-          setParentCategories(res.data.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch property parent categories", err);
-      }
-    };
-    fetchParentCategories();
-  }, []);
-
-  useEffect(() => {
-    if (formData.categoryId) {
-      const fetchSubCategories = async () => {
-        try {
-          const res = await api.get(`/listings/categories?type=property&parent_id=${formData.categoryId}`);
-          if (res.data.success && res.data.data) {
-            setSubCategories(res.data.data);
-          }
-        } catch (err) {
-          console.error("Failed to fetch property sub categories", err);
-        }
-      };
-      fetchSubCategories();
-    } else {
-      setSubCategories([]);
-    }
-  }, [formData.categoryId]);
+  // --- React Query: sub-categories (depends on selected parent) ---
+  const { data: subCatsData } = useQuery({
+    queryKey: ['propertySubCategories', formData.categoryId],
+    queryFn: () => api.get(`/listings/categories?type=property&parent_id=${formData.categoryId}`).then(r => r.data),
+    enabled: !!formData.categoryId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const subCategories = subCatsData?.success && subCatsData.data ? subCatsData.data : [];
 
   const handleCategorySelect = (e) => {
     const selectedId = e.target.value;
@@ -409,71 +373,64 @@ export default function AddProperty() {
     }));
   };
 
-  const submitFinalProperty = async () => {
-    if (isSubmitting) return; // Prevent multiple submissions
-    try {
-      setIsSubmitting(true);
-      
-      // Images are already uploaded to Cloudinary via handleFileChange.
-      // We just use the stored URLs directly.
+  const submitPropertyMutation = useMutation({
+    mutationFn: async (fd) => {
       const payload = {
-        ...formData,
-        image: formData.thumbnail,  // Main thumbnail URL
-        images: formData.images,    // Additional image URLs (already Cloudinary)
+        ...fd,
+        image: fd.thumbnail,
+        images: fd.images,
         category: 'property',
-        serviceType: formData.subcategoryName || formData.categoryName,
+        serviceType: fd.subcategoryName || fd.categoryName,
         details: {
-          propertyType: formData.subcategoryName || formData.categoryName,
-          categoryId: formData.categoryId,
-          subcategoryId: formData.subcategoryId,
-          area: formData.builtUpArea,
-          areaUnit: formData.unit,
-          description: formData.description,
-          bedrooms: formData.bedrooms,
-          bathrooms: formData.bathrooms,
-          furnishing: formData.furnishing,
-          facing: formData.facing,
-          constructionStatus: formData.constructionStatus
+          propertyType: fd.subcategoryName || fd.categoryName,
+          categoryId: fd.categoryId,
+          subcategoryId: fd.subcategoryId,
+          area: fd.builtUpArea,
+          areaUnit: fd.unit,
+          description: fd.description,
+          bedrooms: fd.bedrooms,
+          bathrooms: fd.bathrooms,
+          furnishing: fd.furnishing,
+          facing: fd.facing,
+          constructionStatus: fd.constructionStatus
         },
         price: {
-          value: formData.price,
-          unit: formData.intention === 'For Sale' ? 'L' : '/mo'
+          value: fd.price,
+          unit: fd.intention === 'For Sale' ? 'L' : '/mo'
         },
-        location_text: `${formData.completeAddress}, ${formData.city || formData.district}, ${formData.state}`,
-        emi_available: formData.emiAvailable,
-        emi_details: formData.emiDetails
+        location_text: `${fd.completeAddress}, ${fd.city || fd.district}, ${fd.state}`,
+        emi_available: fd.emiAvailable,
+        emi_details: fd.emiDetails
       };
-
-      // 3. Create/Update Listing via API
       if (editId) {
-        await api.put(`/listings/${editId}`, payload);
+        return api.put(`/listings/${editId}`, payload).then(r => r.data);
       } else {
-        await db.create('listings', payload);
+        return db.create('listings', payload);
       }
-      
-      // Log Activity
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['editProperty', editId] });
       const uid = user?._id || user?.id;
       if (uid) {
-         const logKey = `baserabazar_activity_${uid}`;
-         let logs = [];
-         try { logs = JSON.parse(localStorage.getItem(logKey)) || []; } catch(e){}
-         logs.push({
-           type: 'listing',
-           title: `Added Property: ${formData.title}`,
-           time: 'Just now',
-           timestamp: new Date().toISOString()
-         });
-         localStorage.setItem(logKey, JSON.stringify(logs));
+        const logKey = `baserabazar_activity_${uid}`;
+        let logs = [];
+        try { logs = JSON.parse(localStorage.getItem(logKey)) || []; } catch (e) {}
+        logs.push({ type: 'listing', title: `Added Property: ${formData.title}`, time: 'Just now', timestamp: new Date().toISOString() });
+        localStorage.setItem(logKey, JSON.stringify(logs));
       }
-      
       setShowConfirmModal(false);
       navigate('/partner/inventory');
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Error saving property:', error.response?.data || error.message);
       alert(error.response?.data?.message || 'Failed to save property. Please try again.');
-    } finally {
-      setIsSubmitting(false);
     }
+  });
+
+  const submitFinalProperty = () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    submitPropertyMutation.mutate(formData, { onSettled: () => setIsSubmitting(false) });
   };
 
   const nextStep = () => {

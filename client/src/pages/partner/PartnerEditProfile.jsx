@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, Edit2, Save, Building2, 
-  Mail, Phone, MapPin, User, Loader2, X 
+import {
+  ArrowLeft, Edit2, Save, Building2,
+  Mail, Phone, MapPin, User, Loader2, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
@@ -20,7 +21,6 @@ const SUPPLIER_CATEGORIES = [
 export default function PartnerEditProfile() {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
-  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -50,48 +50,42 @@ export default function PartnerEditProfile() {
     }
   }, [user, navigate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const response = await api.put('/auth/profile', {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        business_name: formData.businessName,
-        business_description: formData.businessDescription,
-        business_logo: formData.businessLogo,
-        ...(formData.category && { category: formData.category })
-      });
-
-      if (response.data.success) {
-        updateUser(response.data.data);
-        
-        // Log Activity
+  const updateProfileMutation = useMutation({
+    mutationFn: (payload) => api.put('/auth/profile', payload).then(r => r.data),
+    onSuccess: (data) => {
+      if (data.success) {
+        updateUser(data.data);
         const uid = user?._id || user?.id;
         if (uid) {
-           const logKey = `baserabazar_activity_${uid}`;
-           let logs = [];
-           try { logs = JSON.parse(localStorage.getItem(logKey)) || []; } catch(e){}
-           logs.push({
-             type: 'profile',
-             title: 'Profile Updated',
-             time: 'Just now',
-             timestamp: new Date().toISOString()
-           });
-           localStorage.setItem(logKey, JSON.stringify(logs));
+          const logKey = `baserabazar_activity_${uid}`;
+          let logs = [];
+          try { logs = JSON.parse(localStorage.getItem(logKey)) || []; } catch (e) {}
+          logs.push({ type: 'profile', title: 'Profile Updated', time: 'Just now', timestamp: new Date().toISOString() });
+          localStorage.setItem(logKey, JSON.stringify(logs));
         }
-
         alert('Profile updated successfully!');
         navigate('/partner/profile');
       }
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Profile update failed:', error);
       alert(error.response?.data?.message || 'Failed to update profile.');
-    } finally {
-      setLoading(false);
     }
+  });
+
+  const loading = updateProfileMutation.isPending;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    updateProfileMutation.mutate({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      business_name: formData.businessName,
+      business_description: formData.businessDescription,
+      business_logo: formData.businessLogo,
+      ...(formData.category && { category: formData.category })
+    });
   };
 
   return (

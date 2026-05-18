@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 
@@ -10,25 +11,29 @@ const INDIAN_STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chh
 const inputCls = 'w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 bg-white placeholder-slate-300';
 const labelCls = 'block text-sm font-bold text-slate-600 mb-1.5';
 
+const EMPTY_FORM = {
+  name: '', phone: '', email: '', state: '', district: '', zone: '',
+  fixed_salary: 25000, commission_rate: 5,
+  password: '', confirm_password: '',
+  profile_image: '',
+  address: { address_line: '', city: '', state: '', pincode: '' },
+};
+
 export default function AdminTeamLeaderForm() {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const [form, setForm] = useState({
-    name: '', phone: '', email: '', state: '', district: '', zone: '',
-    fixed_salary: 25000, commission_rate: 5,
-    password: '', confirm_password: '',
-    profile_image: '',
-    address: { address_line: '', city: '', state: '', pincode: '' },
-  });
-  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
   const [uploading, setUploading] = useState(false);
-  const [fetching, setFetching] = useState(isEdit);
 
-  useEffect(() => {
-    if (!isEdit) return;
-    api.get(`/admin/staff/team-leaders/${id}`).then(({ data }) => {
+  const { isLoading: fetching } = useQuery({
+    queryKey: ['admin-team-leader-form', id],
+    queryFn: () => api.get(`/admin/staff/team-leaders/${id}`).then((r) => r.data),
+    enabled: isEdit,
+    staleTime: 5 * 60 * 1000,
+    onSuccess: (data) => {
       if (data.success) {
         const tl = data.data;
         setForm((prev) => ({
@@ -45,8 +50,23 @@ export default function AdminTeamLeaderForm() {
           address: tl.address || { address_line: '', city: '', state: '', pincode: '' },
         }));
       }
-    }).finally(() => setFetching(false));
-  }, [id, isEdit]);
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: (payload) => isEdit
+      ? api.put(`/admin/staff/team-leaders/${id}`, payload).then((r) => r.data)
+      : api.post('/admin/staff/team-leaders', payload).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-team-leaders'] });
+      if (isEdit) queryClient.invalidateQueries({ queryKey: ['admin-team-leader-detail', id] });
+      toast.success(isEdit ? 'Team Leader updated successfully.' : 'Team Leader created successfully.');
+      navigate('/admin/staff/team-leaders');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to save Team Leader.'),
+  });
+
+  const loading = saveMutation.isLoading;
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -78,7 +98,7 @@ export default function AdminTeamLeaderForm() {
     if (/[A-Z]/.test(pwd)) score++;
     if (/[0-9]/.test(pwd)) score++;
     if (/[^A-Za-z0-9]/.test(pwd)) score++;
-    
+
     switch (score) {
       case 0: case 1: return { score, label: 'Very Weak', color: 'bg-red-500' };
       case 2: return { score, label: 'Weak', color: 'bg-amber-500' };
@@ -88,7 +108,7 @@ export default function AdminTeamLeaderForm() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!isEdit && form.password !== form.confirm_password) {
       toast.error('Passwords do not match.');
@@ -98,28 +118,13 @@ export default function AdminTeamLeaderForm() {
       toast.error('Please use a stronger password.');
       return;
     }
-    setLoading(true);
-    try {
-      const payload = { ...form };
-      delete payload.confirm_password;
-      if (isEdit) delete payload.password;
-
-      if (isEdit) {
-        await api.put(`/admin/staff/team-leaders/${id}`, payload);
-        toast.success('Team Leader updated successfully.');
-      } else {
-        await api.post('/admin/staff/team-leaders', payload);
-        toast.success('Team Leader created successfully.');
-      }
-      navigate('/admin/staff/team-leaders');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to save Team Leader.');
-    } finally {
-      setLoading(false);
-    }
+    const payload = { ...form };
+    delete payload.confirm_password;
+    if (isEdit) delete payload.password;
+    saveMutation.mutate(payload);
   };
 
-  if (fetching) return <div className="p-8 text-center text-slate-400">Loading...</div>;
+  if (isEdit && fetching) return <div className="p-8 text-center text-slate-400">Loading...</div>;
 
   const strength = getPasswordStrength(form.password);
 

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   User, Mail, Phone, Shield, Star, Calendar, 
   MapPin, Clock, Edit2, ArrowLeft, MoreVertical,
@@ -21,27 +22,27 @@ function cn(...inputs) {
 export default function AdminUserDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [showOptions, setShowOptions] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
 
-  useEffect(() => {
-    const fetchUserDetail = async () => {
-      try {
-        const response = await api.get(`/admin/users/${id}`);
-        if (response.data.success) {
-          setUser(response.data.data);
-        }
-      } catch (err) {
-        setError("User profile not found in database.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUserDetail();
-  }, [id]);
+  const { data: rawData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['adminUserDetail', id],
+    queryFn: () => api.get(`/admin/users/${id}`).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const user = rawData?.data || null;
+  const error = queryError ? "User profile not found in database." : null;
+
+  const updateMutation = useMutation({
+    mutationFn: (updateData) => api.put(`/admin/users/${id}`, updateData).then(r => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminUserDetail', id] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/admin/users/${id}`).then(r => r.data),
+    onSuccess: () => { toast.success("User deleted successfully"); navigate('/admin/users'); },
+  });
 
   const openConfirm = (title, message, action, type = 'danger') => {
     setConfirmModal({ isOpen: true, title, message, action, loading: false, type });
@@ -59,22 +60,21 @@ export default function AdminUserDetails() {
   const handleToggleStatus = () => {
     const newActive = !user.is_active;
     const action = newActive ? 'activate' : 'deactivate';
+    // need isPartner — derive it here before calling openConfirm
+    const userIsPartner = user.source === 'Partner' || user.partner_type || (user.roles && user.roles.length > 0) || ['Agent', 'Supplier', 'Service Provider'].includes(user.role);
     openConfirm(
       `${newActive ? 'Activate' : 'Deactivate'} User`,
       `Are you sure you want to ${action} this user?`,
       async () => {
         const updateData = { is_active: newActive };
-        if (newActive && isPartner) {
+        if (newActive && userIsPartner) {
           updateData.onboarding_status = 'approved';
           updateData['kyc.status'] = 'approved';
           updateData['kyc.reviewed_at'] = new Date().toISOString();
         }
-        const res = await api.put(`/admin/users/${id}`, updateData);
-        if (res.data.success) {
-          setUser({ ...user, ...updateData });
-          toast.success(`User ${action}d successfully`);
-          setShowOptions(false);
-        }
+        await updateMutation.mutateAsync(updateData);
+        toast.success(`User ${action}d successfully`);
+        setShowOptions(false);
       },
       newActive ? 'info' : 'warning'
     );
@@ -84,13 +84,7 @@ export default function AdminUserDetails() {
     openConfirm(
       'Delete User',
       'Are you sure you want to permanently delete this user? This action cannot be undone.',
-      async () => {
-        const res = await api.delete(`/admin/users/${id}`);
-        if (res.data.success) {
-          toast.success("User deleted successfully");
-          navigate('/admin/users');
-        }
-      }
+      () => deleteMutation.mutateAsync()
     );
   };
 

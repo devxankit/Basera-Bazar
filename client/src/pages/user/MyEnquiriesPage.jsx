@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/DataEngine';
-import { 
-  ArrowLeft, MessageSquare, Building2, Wrench, Package, 
-  Clock, ExternalLink, Send, ChevronRight, Search, 
+import {
+  ArrowLeft, MessageSquare, Building2, Wrench, Package,
+  Clock, ExternalLink, Send, ChevronRight, Search,
   Filter, Calendar, MapPin, Briefcase, ShoppingBag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Skeleton from '../../components/common/Skeleton';
+import { useQuery } from '@tanstack/react-query';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -19,36 +20,29 @@ function cn(...inputs) {
 const MyEnquiriesPage = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [enquiries, setEnquiries] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
+    if (!isAuthenticated) navigate('/login');
+  }, [isAuthenticated, navigate]);
 
-    const fetchEnquiries = async () => {
-      try {
-        const allLeads = await db.getAll('leads');
-        const userLeads = allLeads.filter(lead => 
-          (lead.userId && lead.userId === user.id) || 
-          (!lead.userId && (lead.email === user.email || lead.phone === user.phone))
-        );
-        // Sort by date newest first
-        userLeads.sort((a, b) => new Date(b.date) - new Date(a.date));
-        setEnquiries(userLeads);
-      } catch (err) {
-        console.error("Fetch enquiries error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: rawEnquiries, isLoading: loading } = useQuery({
+    queryKey: ['myEnquiries', user?.id],
+    queryFn: async () => {
+      const allLeads = await db.getAll('leads');
+      const userLeads = allLeads.filter(lead =>
+        (lead.userId && lead.userId === user.id) ||
+        (!lead.userId && (lead.email === user.email || lead.phone === user.phone))
+      );
+      userLeads.sort((a, b) => new Date(b.date) - new Date(a.date));
+      return userLeads;
+    },
+    enabled: isAuthenticated && !!user,
+    staleTime: 5 * 60 * 1000,
+  });
 
-    fetchEnquiries();
-  }, [isAuthenticated, user, navigate]);
+  const enquiries = rawEnquiries || [];
 
   const filters = [
     { id: 'all', label: 'All', icon: MessageSquare },
