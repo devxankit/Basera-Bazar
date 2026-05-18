@@ -46,20 +46,24 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
       setIsSearching(true);
       setError(null);
       try {
-        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(searchQuery)}&components=country:IN&key=${GMAPS_KEY}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const mapped = (data.results || [])
+        // Nominatim search — free, no API key, restricted to India
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&addressdetails=1&countrycodes=in&limit=8`,
+          { headers: { 'Accept-Language': 'en-US,en' } }
+        );
+        const results = await res.json();
+        const mapped = results
           .map(item => {
-            const { city, district, state } = parseComponents(item.address_components);
-            const lat = item.geometry.location.lat;
-            const lng = item.geometry.location.lng;
+            const addr = item.address || {};
+            const city = addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || '';
+            const district = addr.county || addr.state_district || '';
+            const state = addr.state || '';
             return {
-              name: city || item.formatted_address.split(',')[0].trim(),
+              name: city || item.display_name.split(',')[0].trim(),
               district,
               state,
-              coordinates: [lng, lat],
-              display: item.formatted_address,
+              coordinates: [parseFloat(item.lon), parseFloat(item.lat)],
+              display: item.display_name,
             };
           })
           .filter(r => r.state);
@@ -86,24 +90,26 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
     navigator.geolocation.getCurrentPosition(
       async ({ coords: { latitude, longitude } }) => {
         try {
-          const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GMAPS_KEY}`;
-          const res = await fetch(url);
+          // Nominatim (OpenStreetMap) — free, no API key needed
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en-US,en' } }
+          );
           const data = await res.json();
+          const addr = data.address || {};
 
-          if (data.status === 'OK' && data.results.length > 0) {
-            const { city, district, state } = parseComponents(
-              data.results[0].address_components
-            );
-            onSelect({
-              coordinates: [longitude, latitude],
-              name: city || null,
-              state,
-              district,
-              isGPS: true,
-            });
-          } else {
-            onSelect({ coordinates: [longitude, latitude], isGPS: true });
-          }
+          const city =
+            addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || '';
+          const district = addr.county || addr.state_district || '';
+          const state = addr.state || '';
+
+          onSelect({
+            coordinates: [longitude, latitude],
+            name: city || null,
+            state,
+            district,
+            isGPS: true,
+          });
         } catch {
           onSelect({ coordinates: [longitude, latitude], isGPS: true });
         } finally {

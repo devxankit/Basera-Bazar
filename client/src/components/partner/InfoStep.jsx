@@ -397,13 +397,15 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                 )}
               </AnimatePresence>
             </div>
-            <InputField 
-              icon={<User size={18} />} 
-              label="Full Name *" 
+            <InputField
+              icon={<User size={18} />}
+              label="Full Name *"
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
-              placeholder="Enter your full name" 
+              placeholder="Enter your full name"
+              inputMode="text"
+              pattern="[a-zA-Z\s]*"
             />
             <InputField
               icon={<Mail size={18} />}
@@ -688,13 +690,15 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                     ></textarea>
                   </div>
 
-                  <InputField 
-                    icon={<Map size={18} />} 
-                    label="Pincode" 
+                  <InputField
+                    icon={<Map size={18} />}
+                    label="Pincode"
                     name="pincode"
                     value={formData.pincode}
                     onChange={handleChange}
-                    placeholder="6 digit number" 
+                    placeholder="6 digit number"
+                    inputMode="numeric"
+                    maxLength={6}
                   />
                 </div>
               </motion.div>
@@ -838,7 +842,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   );
 }
 
-function InputField({ label, icon, prefix, type = "text", placeholder, toggle, action, value, onChange, name, disabled, style, error }) {
+function InputField({ label, icon, prefix, type = "text", placeholder, toggle, action, value, onChange, name, disabled, style, error, ...rest }) {
   return (
     <div className="flex flex-col gap-1.5 w-full">
       <div className="relative">
@@ -864,6 +868,7 @@ function InputField({ label, icon, prefix, type = "text", placeholder, toggle, a
             onChange={onChange}
             placeholder={placeholder}
             style={style}
+            {...rest}
             className={`w-full bg-white border ${error ? 'border-red-500' : 'border-slate-200'} rounded-2xl py-4.5 ${icon ? (prefix ? 'pl-22' : 'pl-12') : (prefix ? 'pl-14' : 'pl-5')} pr-12 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all`}
           />
           {action}
