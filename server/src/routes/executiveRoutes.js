@@ -51,10 +51,12 @@ router.post('/login', login);
 
 // Protected routes — no OTP limiter here
 router.use(protect);
-router.use(verifyApproved);
 
+// Registration completion: needs auth but not approval (onboarding_status is 'incomplete')
 router.put('/register/step2', validate(executiveBankDetailsSchema), updateStep2);
 router.put('/register/step3', updateStep3);
+
+router.use(verifyApproved);
 router.get('/dashboard', cacheMiddleware(10, true), getDashboard);
 router.get('/my-partners', cacheMiddleware(3, true), getMyPartners);
 router.get('/my-partners/:partnerId', getMyPartnerDetail);

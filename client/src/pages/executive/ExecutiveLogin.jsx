@@ -22,7 +22,7 @@ export default function ExecutiveLogin() {
   const handleInputChange = (e) => {
     let { name, value } = e.target;
     if (name === 'phone') {
-      value = value.replace(/\s+/g, '').replace(/^\+91/, '').replace(/^91/, '');
+      value = value.replace(/\s+/g, '').replace(/^\+91/, '');
       value = value.replace(/\D/g, '').slice(0, 10);
     }
     setFormData(prev => ({ ...prev, [name]: value }));

@@ -28,6 +28,7 @@ export default function ExecutiveSignUp() {
   const streamRef = useRef(null);
 
   const [otp, setOtp] = useState('');
+  const [ifscError, setIfscError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -58,8 +59,8 @@ export default function ExecutiveSignUp() {
     let { name, value } = e.target;
 
     if (['phone', 'pincode', 'account_number', 'aadhar_number'].includes(name)) {
-      if (name === 'phone') value = value.replace(/\s+/g, '').replace(/^\+91/, '').replace(/^91/, '');
-      value = value.replace(/\D/g, '').slice(0, name === 'phone' ? 10 : name === 'pincode' ? 6 : name === 'aadhar_number' ? 12 : 20);
+      if (name === 'phone') value = value.replace(/\s+/g, '').replace(/^\+91/, '');
+      value = value.replace(/\D/g, '').slice(0, name === 'phone' ? 10 : name === 'pincode' ? 6 : name === 'aadhar_number' ? 12 : name === 'account_number' ? 18 : 20);
     }
 
     if (['name', 'city', 'bank_name', 'account_holder_name'].includes(name)) {
@@ -68,6 +69,11 @@ export default function ExecutiveSignUp() {
 
     if (name === 'ifsc_code') {
       value = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 11);
+      if (value.length === 11 && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value)) {
+        setIfscError('Invalid IFSC (e.g. BARB0STAKOT)');
+      } else {
+        setIfscError('');
+      }
     }
 
     if (name === 'pan_number') {
@@ -189,7 +195,7 @@ export default function ExecutiveSignUp() {
       });
       setStep(4);
     } catch (error) {
-      toast.error('Failed to save details');
+      toast.error(error.response?.data?.message || 'Failed to save details');
     } finally {
       setIsSubmitting(false);
     }
@@ -323,17 +329,18 @@ export default function ExecutiveSignUp() {
                 <InputField label="Bank Name" name="bank_name" icon={Building2} value={formData.bank_details.bank_name} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="HDFC, SBI, etc." />
                 <InputField label="Account Number" name="account_number" value={formData.bank_details.account_number} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="0000 0000 0000" />
                 <div className="grid grid-cols-2 gap-4">
-                  <InputField label="IFSC Code" name="ifsc_code" value={formData.bank_details.ifsc_code} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="HDFC0001234" />
+                  <InputField label="IFSC Code" name="ifsc_code" value={formData.bank_details.ifsc_code} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="BARB0STAKOT" error={ifscError} />
                   <InputField label="Holder Name" name="account_holder_name" value={formData.bank_details.account_holder_name} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="John Doe" />
                 </div>
               </div>
 
-              <button 
-                onClick={submitDetails} 
+              <button
+                onClick={submitDetails}
                 disabled={
-                  isSubmitting || 
-                  !formData.address.address_line || 
-                  !formData.address.city || 
+                  isSubmitting ||
+                  !!ifscError ||
+                  !formData.address.address_line ||
+                  !formData.address.city ||
                   !formData.address.pincode ||
                   !formData.bank_details.bank_name ||
                   !formData.bank_details.account_number ||
@@ -419,7 +426,7 @@ export default function ExecutiveSignUp() {
   );
 }
 
-const InputField = ({ label, icon: Icon, prefix, ...props }) => (
+const InputField = ({ label, icon: Icon, prefix, error, ...props }) => (
   <div className="space-y-1.5 sm:space-y-2 group">
     <label className="text-[9px] sm:text-[11px] font-medium text-slate-400 uppercase tracking-widest ml-1 leading-none">{label}</label>
     <div className="relative">
@@ -427,11 +434,12 @@ const InputField = ({ label, icon: Icon, prefix, ...props }) => (
         {Icon && <Icon size={18} className="text-slate-300" />}
         {prefix && <span className="text-slate-900 font-medium text-[15px] border-r border-slate-100 pr-3">{prefix}</span>}
       </div>
-      <input 
+      <input
         {...props}
-        className={`w-full bg-slate-50 border border-slate-100 py-4 ${Icon ? (prefix ? 'pl-28' : 'pl-14') : (prefix ? 'pl-20' : 'px-5')} pr-6 rounded-xl text-[15px] font-medium text-slate-900 placeholder:text-slate-300 focus:outline-none focus:bg-white focus:border-slate-200 transition-all`}
+        className={`w-full bg-slate-50 border ${error ? 'border-red-400' : 'border-slate-100'} py-4 ${Icon ? (prefix ? 'pl-28' : 'pl-14') : (prefix ? 'pl-20' : 'px-5')} pr-6 rounded-xl text-[15px] font-medium text-slate-900 placeholder:text-slate-300 focus:outline-none focus:bg-white focus:border-slate-200 transition-all`}
       />
     </div>
+    {error && <p className="text-[11px] text-red-500 font-medium ml-1">{error}</p>}
   </div>
 );
 

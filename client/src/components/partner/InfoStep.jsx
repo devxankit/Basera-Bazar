@@ -79,8 +79,16 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
     let { name, value } = e.target;
     
     if (name === 'phone') {
-      value = value.replace(/\s+/g, '').replace(/^\+91/, '').replace(/^91/, '');
+      value = value.replace(/\s+/g, '').replace(/^\+91/, '');
       value = value.replace(/\D/g, '').slice(0, 10);
+    }
+
+    if (name === 'fullName') {
+      value = value.replace(/[^a-zA-Z\s]/g, '');
+    }
+
+    if (name === 'pincode') {
+      value = value.replace(/\D/g, '').slice(0, 6);
     }
 
     if (name === 'state') {
@@ -397,13 +405,14 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
               onChange={handleChange}
               placeholder="Enter your full name" 
             />
-            <InputField 
-              icon={<Mail size={18} />} 
-              label="Email Address *" 
+            <InputField
+              icon={<Mail size={18} />}
+              label="Email Address *"
               name="email"
+              type="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Email for communications" 
+              placeholder="Email for communications"
               error={errors.email}
             />
               <div className="relative">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,14 +12,51 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/DataEngine';
 
+const STORAGE_KEY = 'partner_reg';
+
+const DEFAULT_FORM = {
+  fullName: '',
+  email: '',
+  phone: '',
+  password: '',
+  confirmPassword: '',
+  state: '',
+  district: '',
+  category: '',
+  businessLogo: null,
+  businessName: '',
+  businessDescription: '',
+  pan: '',
+  aadhar: '',
+  gst: '',
+  address: '',
+  pincode: '',
+  profileImage: null,
+  service_radius_km: 100,
+  city: '',
+  coords: null,
+  referral_code: ''
+};
+
+// Fields that belong to each step — clearing on back uses these lists
+const STEP_FIELDS = {
+  2: Object.keys(DEFAULT_FORM), // InfoStep owns all formData
+  3: [],                        // OTP step owns authState only
+  4: ['pan', 'aadhar', 'gst', 'panImage', 'aadharFront', 'aadharBack', 'gstImage'],
+  5: [],                        // Plan step owns selectedPlan/selectedPlanObject only
+};
+
+function loadSaved() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
 export default function PartnerRegistration() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [step, setStep] = useState(1);
   const totalSteps = 5;
-  const [selectedRole, setSelectedRole] = useState(null);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [selectedPlanObject, setSelectedPlanObject] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
@@ -29,35 +66,43 @@ export default function PartnerRegistration() {
     confirmLabel: ''
   });
 
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-    state: '',
-    district: '',
-    category: '',
-    // New Fields
-    businessLogo: null,
-    businessName: '',
-    businessDescription: '',
-    pan: '',
-    aadhar: '',
-    gst: '',
-    address: '',
-    pincode: '',
-    profileImage: null,
-    service_radius_km: 100,
-    city: '',
-    coords: null,
-    referral_code: ''
-  });
-  
-  const [authState, setAuthState] = useState(null); // { token, user }
+  // Restore from sessionStorage on mount
+  const saved = loadSaved();
+  const [step, setStep] = useState(saved?.step || 1);
+  const [selectedRole, setSelectedRole] = useState(saved?.selectedRole || null);
+  const [selectedPlan, setSelectedPlan] = useState(saved?.selectedPlan || null);
+  const [selectedPlanObject, setSelectedPlanObject] = useState(saved?.selectedPlanObject || null);
+  const [formData, setFormData] = useState(saved?.formData || DEFAULT_FORM);
+  const [authState, setAuthState] = useState(saved?.authState || null);
+
+  // Persist to sessionStorage whenever relevant state changes
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+      step, selectedRole, selectedPlan, selectedPlanObject, formData, authState
+    }));
+  }, [step, selectedRole, selectedPlan, selectedPlanObject, formData, authState]);
 
   const nextStep = () => setStep(prev => Math.min(prev + 1, totalSteps));
-  const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+
+  const prevStep = () => {
+    setStep(prev => {
+      const newStep = Math.max(prev - 1, 1);
+      // Clear data belonging to steps >= current (going backward)
+      if (prev >= 2) {
+        const fieldsToClear = STEP_FIELDS[prev] || [];
+        if (fieldsToClear.length > 0) {
+          setFormData(fd => {
+            const cleared = { ...fd };
+            fieldsToClear.forEach(f => { cleared[f] = DEFAULT_FORM[f] ?? null; });
+            return cleared;
+          });
+        }
+      }
+      if (prev >= 3) setAuthState(null);
+      if (prev >= 5) { setSelectedPlan(null); setSelectedPlanObject(null); }
+      return newStep;
+    });
+  };
 
   const handleCompleteRequest = () => {
     // This now just moves to the plan step
@@ -186,6 +231,7 @@ export default function PartnerRegistration() {
       localStorage.setItem(activityKey, JSON.stringify([activity, ...filteredLogs]));
 
       login(userData, token);
+      sessionStorage.removeItem(STORAGE_KEY);
 
       setModalConfig(prev => ({ ...prev, isOpen: false }));
       navigate('/partner/home');

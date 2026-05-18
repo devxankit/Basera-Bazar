@@ -111,10 +111,15 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
         }
       },
       err => {
-        setError(err.message || 'Failed to detect location');
+        const messages = {
+          1: 'Location permission denied. Please allow access in browser settings.',
+          2: 'Could not detect location. Check your device GPS or pick a city below.',
+          3: 'Location request timed out. Please try again or pick a city below.',
+        };
+        setError(messages[err.code] || 'Failed to detect location. Pick a city below.');
         setLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: false, timeout: 60000, maximumAge: 0 }
     );
   };
 

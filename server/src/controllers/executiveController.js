@@ -33,7 +33,7 @@ exports.registerStep1 = async (req, res) => {
     let { name, email, phone, password } = req.body;
     if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
     // Normalize phone
-    phone = phone.replace(/\s+/g, '').replace(/^\+91/, '').replace(/^91/, '').replace(/\D/g, '').slice(-10);
+    phone = phone.replace(/\s+/g, '').replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
 
     if (!name || !email || !phone || !password) {
       return res.status(400).json({ success: false, message: 'All fields are required.' });
@@ -87,7 +87,7 @@ exports.verifyRegistrationOtp = async (req, res) => {
     let { phone, otp, name, email, password } = req.body;
     if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
     // Normalize phone
-    phone = phone.replace(/\s+/g, '').replace(/^\+91/, '').replace(/^91/, '').replace(/\D/g, '').slice(-10);
+    phone = phone.replace(/\s+/g, '').replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
 
     const otpRecord = await Otp.findOne({ phone }).sort({ createdAt: -1 });
     if (!otpRecord) {
@@ -257,8 +257,8 @@ exports.login = async (req, res) => {
     let { phone, password } = req.body;
     if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
     // Normalize phone (strip prefix and spaces)
-    phone = phone.replace(/\s+/g, '').replace(/^\+91/, '').replace(/^91/, '').replace(/\D/g, '').slice(-10);
-    
+    phone = phone.replace(/\s+/g, '').replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
+
     // Find the executive; if duplicates exist (data issue), prefer the active one
     const executive = await Executive.findOne({ phone }).sort({ is_active: -1, createdAt: -1 });
 
