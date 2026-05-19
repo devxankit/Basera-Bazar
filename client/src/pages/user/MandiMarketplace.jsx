@@ -141,24 +141,13 @@ export default function MandiMarketplace() {
    };
 
    const handleLocationSelect = (loc) => {
-      if (loc.isGPS) {
-         setLocation(prev => ({
-            ...prev,
-            city: loc.name || (loc.isGPS ? 'Current Location' : prev.city),
-            state: loc.state || prev.state,
-            district: loc.district || prev.district,
-            coords: loc.coordinates,
-            formattedAddress: loc.name ? `${loc.name}, ${loc.state}` : 'Current GPS Location'
-         }));
-      } else {
-         setLocation({
-            city: loc.name,
-            district: loc.district,
-            state: loc.state,
-            coords: null,
-            formattedAddress: `${loc.name}, ${loc.state}`
-         });
-      }
+      setLocation({
+         city: loc.name || (loc.isGPS ? 'Current Location' : ''),
+         district: loc.district || '',
+         state: loc.state || '',
+         coords: loc.coordinates || null,
+         formattedAddress: loc.name ? `${loc.name}, ${loc.state}` : (loc.isGPS ? 'Current GPS Location' : '')
+      });
       setIsLocationModalOpen(false);
    };
 

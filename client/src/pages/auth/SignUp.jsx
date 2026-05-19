@@ -502,23 +502,13 @@ export default function SignUp() {
               <LocationPicker
                 onClose={() => setIsLocationModalOpen(false)}
                 onSelect={(loc) => {
-                  if (loc.isGPS) {
-                    setForm(f => ({
-                      ...f,
-                      coords: loc.coordinates,
-                      city: loc.name || f.city,
-                      state: loc.state || f.state,
-                      district: loc.district || f.district
-                    }));
-                  } else {
-                    setForm(f => ({
-                      ...f,
-                      city: loc.name,
-                      district: loc.district,
-                      state: loc.state,
-                      coords: null
-                    }));
-                  }
+                  setForm(f => ({
+                    ...f,
+                    city: loc.name || (loc.isGPS ? 'Current Location' : ''),
+                    district: loc.district || '',
+                    state: loc.state || '',
+                    coords: loc.coordinates || null
+                  }));
                   setIsLocationModalOpen(false);
                 }}
               />

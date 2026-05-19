@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, Search, Check, ChevronRight, X, Loader2 } from 'lucide-react';
 
 const MAJOR_CITIES = [
-  { name: 'Muzaffarpur', state: 'Bihar', district: 'Muzaffarpur' },
-  { name: 'Patna', state: 'Bihar', district: 'Patna' },
-  { name: 'Gaya', state: 'Bihar', district: 'Gaya' },
-  { name: 'Jaipur', state: 'Rajasthan', district: 'Jaipur' },
-  { name: 'Jodhpur', state: 'Rajasthan', district: 'Jodhpur' },
-  { name: 'New Delhi', state: 'Delhi', district: 'New Delhi' },
-  { name: 'Mumbai', state: 'Maharashtra', district: 'Mumbai' },
-  { name: 'Bengaluru', state: 'Karnataka', district: 'Bengaluru' },
+  { name: 'Muzaffarpur', state: 'Bihar', district: 'Muzaffarpur', coordinates: [85.3647, 26.1209] },
+  { name: 'Patna', state: 'Bihar', district: 'Patna', coordinates: [85.1376, 25.5941] },
+  { name: 'Gaya', state: 'Bihar', district: 'Gaya', coordinates: [84.9917, 24.7906] },
+  { name: 'Jaipur', state: 'Rajasthan', district: 'Jaipur', coordinates: [75.7873, 26.9124] },
+  { name: 'Jodhpur', state: 'Rajasthan', district: 'Jodhpur', coordinates: [73.0243, 26.2389] },
+  { name: 'New Delhi', state: 'Delhi', district: 'New Delhi', coordinates: [77.2090, 28.6139] },
+  { name: 'Mumbai', state: 'Maharashtra', district: 'Mumbai', coordinates: [72.8777, 19.0760] },
+  { name: 'Bengaluru', state: 'Karnataka', district: 'Bengaluru', coordinates: [77.5946, 12.9716] },
 ];
 
 const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -106,7 +106,7 @@ async function forwardGeocode(query) {
   }
 }
 
-export default function LocationPicker({ onSelect, onClose, initialLocation = null }) {
+export default function LocationPicker({ onSelect, onClose, initialLocation = null, isMandatory = false }) {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -197,9 +197,11 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
       <div className="px-6 pt-4 pb-4 border-b border-slate-50">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-[22px] font-bold text-[#001b4e]">Select Location</h2>
-          <button onClick={onClose} className="p-2 bg-slate-50 rounded-full text-slate-400">
-            <X size={20} />
-          </button>
+          {!isMandatory && onClose && (
+            <button onClick={onClose} className="p-2 bg-slate-50 rounded-full text-slate-400">
+              <X size={20} />
+            </button>
+          )}
         </div>
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />

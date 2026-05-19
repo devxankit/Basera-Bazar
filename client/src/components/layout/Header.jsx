@@ -34,24 +34,13 @@ const Header = () => {
   }, []);
 
   const handleLocationSelect = (loc) => {
-    if (loc.isGPS) {
-      setLocation(prev => ({
-        ...prev,
-        city: loc.name || (loc.isGPS ? 'Current Location' : prev.city),
-        state: loc.state || prev.state,
-        district: loc.district || prev.district,
-        coords: loc.coordinates,
-        formattedAddress: loc.name ? `${loc.name}, ${loc.state}` : 'Current GPS Location'
-      }));
-    } else {
-      setLocation({
-        city: loc.name,
-        district: loc.district,
-        state: loc.state,
-        coords: null,
-        formattedAddress: `${loc.name}, ${loc.state}`
-      });
-    }
+    setLocation({
+      city: loc.name || (loc.isGPS ? 'Current Location' : ''),
+      district: loc.district || '',
+      state: loc.state || '',
+      coords: loc.coordinates || null,
+      formattedAddress: loc.name ? `${loc.name}, ${loc.state}` : (loc.isGPS ? 'Current GPS Location' : '')
+    });
     setIsModalOpen(false);
   };
 
@@ -110,7 +99,7 @@ const Header = () => {
             >
               <MapPin size={12} className="text-[#181d5f] shrink-0" strokeWidth={3} />
               <span className="font-black text-[#181d5f] truncate max-w-[120px] xs:max-w-none" style={{ fontSize: 'clamp(9px, 3vw, 12px)' }}>
-                {location.city || location.district || 'Muzaffarpur, Bihar'}
+                {location?.city || location?.district || 'Muzaffarpur, Bihar'}
               </span>
               <ChevronDown size={10} className="text-slate-400 shrink-0" strokeWidth={3} />
             </button>
