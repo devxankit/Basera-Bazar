@@ -4,6 +4,7 @@
   "private": true,
   "description": "Monorepo root — husky pre-commit gate for server and client",
   "scripts": {
+    "build": "npm run build --prefix client",
     "lint:server": "cd server && npm run lint",
     "lint:client": "cd client && npm run lint",
     "test:server": "cd server && npm run test:unit",
