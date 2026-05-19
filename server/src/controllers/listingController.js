@@ -10,7 +10,7 @@ const {
   enforceMandiLimits
 } = require('../utils/subscriptionUtils');
 const invalidate = require('../utils/cacheInvalidator');
-const { escapeRegex, sortByLocationPriority } = require('../utils/listingUtils');
+const { escapeRegex, sortByLocationPriority, getDistanceInKm, sortByProximity } = require('../utils/listingUtils');
 
 const mongoose = require('mongoose');
 
@@ -69,7 +69,7 @@ const getListingById = async (req, res) => {
  */
 const getAllListings = async (req, res) => {
   try {
-    let { category, limit = 20, district, state, is_featured, partner_id, q, category_id, subcategory_id, subCategory, type } = req.query;
+    let { category, limit = 20, district, state, is_featured, partner_id, q, category_id, subcategory_id, subCategory, type, lat, lng, searchRadius, radius } = req.query;
     
     
     // SANITIZATION: Prevent "undefined" or "null" strings from breaking queries
@@ -84,6 +84,21 @@ const getAllListings = async (req, res) => {
 
     const hasLocation = !!(district || state);
     const searchQuery = q || req.query.search;
+
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+    const hasCoordinates = !isNaN(latitude) && !isNaN(longitude);
+
+    let maxDistanceInMeters = 25 * 1000; // default 25km
+    const radiusParam = searchRadius || radius;
+    if (radiusParam) {
+      const match = String(radiusParam).match(/^(\d+)(km|m)?$/i);
+      if (match) {
+        const val = parseInt(match[1], 10);
+        const unit = match[2] ? match[2].toLowerCase() : 'km';
+        maxDistanceInMeters = unit === 'm' ? val : val * 1000;
+      }
+    }
 
     const fetchCategory = async (Model, modelName) => {
       if (!Model || typeof Model.find !== 'function') {
@@ -120,8 +135,18 @@ const getAllListings = async (req, res) => {
          query.listing_intent = intent;
       }
 
-      // Apply strict location filtering when location is provided
-      if (hasLocation && !partner_id) {
+      // Apply location filtering: coordinates-based geo-spatial query if available, otherwise text-matching
+      if (hasCoordinates && !partner_id) {
+        query.location = {
+          $near: {
+            $geometry: {
+              type: 'Point',
+              coordinates: [longitude, latitude]
+            },
+            $maxDistance: maxDistanceInMeters
+          }
+        };
+      } else if (hasLocation && !partner_id) {
         // Different models use different paths for district/state
         const pathPrefix = modelName === 'Partner' ? '' : 'address.';
         
@@ -159,12 +184,17 @@ const getAllListings = async (req, res) => {
         sort = { 'stats.enquiries': -1, 'stats.views': -1, createdAt: -1 };
       }
 
+      let querySort = sort;
+      if (hasCoordinates && !partner_id) {
+        // MongoDB doesn't allow sorting on other fields when using $near
+        querySort = {};
+      }
 
       const items = await Model.find(query)
         .populate({ path: 'partner_id', select: 'name phone email role default_location profile createdAt', strictPopulate: false })
         .populate({ path: 'category_id', strictPopulate: false })
         .populate({ path: 'subcategory_id', strictPopulate: false })
-        .sort(sort)
+        .sort(querySort)
         .limit(parseInt(limit));
       
 
@@ -202,8 +232,10 @@ const getAllListings = async (req, res) => {
       results = [...results, ...suppliers];
     }
 
-    // Sort combined results by location priority
-    const sorted = sortByLocationPriority(results, district, state);
+    // Sort combined results by proximity or location priority
+    const sorted = hasCoordinates 
+      ? sortByProximity(results, latitude, longitude)
+      : sortByLocationPriority(results, district, state);
 
     // Apply relevance ranking + filter zero-score items when a search query is present
     let final = sorted;

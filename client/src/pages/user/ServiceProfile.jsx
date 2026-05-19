@@ -37,6 +37,12 @@ const ServiceProfile = () => {
     staleTime: 5 * 60 * 1000,
   });
 
+  const submitEnquiryMutation = useMutation({
+    mutationFn: (payload) => db.create('leads', payload),
+    onSuccess: () => { setIsModalOpen(false); setTimeout(() => setShowSuccessModal(true), 150); },
+    onError: () => alert("Failed to send enquiry. Please try again."),
+  });
+
   // Pre-fill message once service loads
   useEffect(() => {
     if (service) {
@@ -65,12 +71,6 @@ const ServiceProfile = () => {
   }
 
   const tabs = ['About', 'Portfolio', 'Contact'];
-
-  const submitEnquiryMutation = useMutation({
-    mutationFn: (payload) => db.create('leads', payload),
-    onSuccess: () => { setIsModalOpen(false); setTimeout(() => setShowSuccessModal(true), 150); },
-    onError: () => alert("Failed to send enquiry. Please try again."),
-  });
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans pb-[200px]">

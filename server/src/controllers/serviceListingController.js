@@ -4,7 +4,7 @@ const { Category } = require('../models/System');
 const { Subscription } = require('../models/Finance');
 const { checkListingLimit } = require('../utils/subscriptionUtils');
 const invalidate = require('../utils/cacheInvalidator');
-const { escapeRegex, sortByLocationPriority } = require('../utils/listingUtils');
+const { escapeRegex, sortByLocationPriority, getDistanceInKm, sortByProximity } = require('../utils/listingUtils');
 
 /**
  * @desc    Get nearby public Services
@@ -13,23 +13,57 @@ const { escapeRegex, sortByLocationPriority } = require('../utils/listingUtils')
  */
 const getNearbyServices = async (req, res) => {
   try {
-    const { district, state } = req.query;
+    const { district, state, lat, lng, searchRadius, radius } = req.query;
 
     const query = { status: 'active' };
 
-    // Apply location filter using district/state text matching
-    if (district) {
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+    const hasCoordinates = !isNaN(latitude) && !isNaN(longitude);
+
+    let maxDistanceInMeters = 25 * 1000; // default 25km
+    const radiusParam = searchRadius || radius;
+    if (radiusParam) {
+      const match = String(radiusParam).match(/^(\d+)(km|m)?$/i);
+      if (match) {
+        const val = parseInt(match[1], 10);
+        const unit = match[2] ? match[2].toLowerCase() : 'km';
+        maxDistanceInMeters = unit === 'm' ? val : val * 1000;
+      }
+    }
+
+    // Apply location filtering: coordinates-based geo-spatial query if available, otherwise text-matching
+    if (hasCoordinates) {
+      query.location = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [longitude, latitude]
+          },
+          $maxDistance: maxDistanceInMeters
+        }
+      };
+    } else if (district) {
       query['address.district'] = { $regex: new RegExp(escapeRegex(district), 'i') };
     } else if (state) {
       query['address.state'] = { $regex: new RegExp(escapeRegex(state), 'i') };
     }
 
+    let querySort = { createdAt: -1 };
+    if (hasCoordinates) {
+      // MongoDB doesn't allow sorting on other fields when using $near
+      querySort = {};
+    }
+
     const services = await ServiceListing.find(query)
       .populate({ path: 'partner_id', select: 'name phone email role profile createdAt' })
-      .sort({ createdAt: -1 })
+      .sort(querySort)
       .limit(20);
 
-    const sorted = sortByLocationPriority(services.map(s => s.toObject()), district, state);
+    const mapped = services.map(s => s.toObject ? s.toObject() : s);
+    const sorted = hasCoordinates
+      ? sortByProximity(mapped, latitude, longitude)
+      : sortByLocationPriority(mapped, district, state);
     res.status(200).json({ success: true, count: sorted.length, data: sorted });
 
   } catch (error) {

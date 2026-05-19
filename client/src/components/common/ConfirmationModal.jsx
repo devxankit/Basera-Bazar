@@ -83,13 +83,15 @@ export default function ConfirmationModal({
 
               {/* Actions */}
               <div className="mt-10 flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={onClose}
-                  disabled={loading}
-                  className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 text-slate-500 font-black text-sm uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50"
-                >
-                  {cancelText}
-                </button>
+                {cancelText && (
+                  <button
+                    onClick={onClose}
+                    disabled={loading}
+                    className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 text-slate-500 font-black text-sm uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50"
+                  >
+                    {cancelText}
+                  </button>
+                )}
                 <button
                   onClick={onConfirm}
                   disabled={loading}

@@ -8,7 +8,7 @@ const {
   enforceMandiLimits
 } = require('../utils/subscriptionUtils');
 const invalidate = require('../utils/cacheInvalidator');
-const { escapeRegex, sortByLocationPriority } = require('../utils/listingUtils');
+const { escapeRegex, sortByLocationPriority, getDistanceInKm, sortByProximity } = require('../utils/listingUtils');
 const mongoose = require('mongoose');
 
 /**
@@ -18,7 +18,7 @@ const mongoose = require('mongoose');
  */
 const getMandiListings = async (req, res) => {
   try {
-    const { category_id, partner_id, district, state } = req.query;
+    const { category_id, partner_id, district, state, lat, lng, searchRadius, radius } = req.query;
     const query = { deleted_at: null, status: 'active' };
 
     if (partner_id) {
@@ -38,21 +38,53 @@ const getMandiListings = async (req, res) => {
       await enforceMandiLimits(partner_id);
     }
 
-    // Apply location filter using district/state text matching
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+    const hasCoordinates = !isNaN(latitude) && !isNaN(longitude);
+
+    let maxDistanceInMeters = 25 * 1000; // default 25km
+    const radiusParam = searchRadius || radius;
+    if (radiusParam) {
+      const match = String(radiusParam).match(/^(\d+)(km|m)?$/i);
+      if (match) {
+        const val = parseInt(match[1], 10);
+        const unit = match[2] ? match[2].toLowerCase() : 'km';
+        maxDistanceInMeters = unit === 'm' ? val : val * 1000;
+      }
+    }
+
+    // Apply location filter using district/state text matching or coordinates
     if (!partner_id) { // Don't filter by location when viewing a specific partner's items
-      if (district) {
+      if (hasCoordinates) {
+        query.location = {
+          $near: {
+            $geometry: {
+              type: 'Point',
+              coordinates: [longitude, latitude]
+            },
+            $maxDistance: maxDistanceInMeters
+          }
+        };
+      } else if (district) {
         query['address.district'] = { $regex: new RegExp(escapeRegex(district), 'i') };
       } else if (state) {
         query['address.state'] = { $regex: new RegExp(escapeRegex(state), 'i') };
       }
     }
 
+    let querySort = { createdAt: -1 };
+    if (hasCoordinates && !partner_id) {
+      querySort = {};
+    }
 
     const mandiItems = await MandiListing.find(query)
       .populate('category_id', 'name icon mandi_icon type')
-      .sort({ createdAt: -1 });
+      .sort(querySort);
 
-    const sorted = sortByLocationPriority(mandiItems.map(m => m.toObject ? m.toObject() : m), district, state);
+    const mapped = mandiItems.map(m => m.toObject ? m.toObject() : m);
+    const sorted = (!partner_id && hasCoordinates)
+      ? sortByProximity(mapped, latitude, longitude)
+      : sortByLocationPriority(mapped, district, state);
     res.status(200).json({ success: true, count: sorted.length, data: sorted });
 
   } catch (error) {

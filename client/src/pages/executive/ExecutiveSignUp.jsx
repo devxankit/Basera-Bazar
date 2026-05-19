@@ -252,6 +252,10 @@ export default function ExecutiveSignUp() {
   };
 
   const finalize = async () => {
+    if (!validateStep(['aadhar_number', 'pan_number'])) {
+      toast.error('Please fix the highlighted errors in KYC documents');
+      return;
+    }
     setIsSubmitting(true);
     const loadingToast = toast.loading('Uploading documents...');
     try {

@@ -139,6 +139,28 @@ export default function PartnerHome() {
       </div>
 
       <div className="p-6 space-y-8">
+        {user.onboarding_status === 'rejected' && (
+          <div className="bg-rose-50 border-2 border-rose-200 rounded-3xl p-5 shadow-sm mb-6 animate-pulse">
+            <div className="flex items-start gap-3">
+              <div className="bg-rose-100 p-2 rounded-xl text-rose-600 shrink-0">
+                <AlertCircle size={24} />
+              </div>
+              <div>
+                <h3 className="text-rose-700 font-bold text-[16px] mb-1">Account Action Required</h3>
+                <p className="text-rose-600 text-[13px] font-medium leading-relaxed mb-3">
+                  Your KYC verification was rejected: {user.kyc?.rejection_reason || 'Please provide clearer documents'}. You must resubmit your documents to list products.
+                </p>
+                <button 
+                  onClick={() => navigate('/partner/onboarding')}
+                  className="bg-rose-600 text-white px-5 py-2.5 rounded-xl text-[13px] font-bold shadow-md shadow-rose-200 active:scale-95 transition-all w-full"
+                >
+                  Resubmit KYC Documents
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Welcome Section */}
         <div className="flex flex-col gap-1">
           <div className="flex items-start justify-between">

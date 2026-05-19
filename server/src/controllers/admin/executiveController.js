@@ -76,7 +76,7 @@ const updateExecutiveStatus = async (req, res) => {
       executive.approved_at = new Date();
     } else if (status === 'rejected') {
       executive.kyc.rejection_reason = rejection_reason;
-      executive.is_active = false;
+      // Do not deactivate the executive on KYC rejection; retain current active status.
     }
 
     await executive.save();

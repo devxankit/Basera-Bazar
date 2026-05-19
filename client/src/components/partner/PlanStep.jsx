@@ -3,7 +3,7 @@ import { CheckCircle2, ChevronRight, ArrowLeft, BadgePercent, Gift, Zap } from '
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 
-export default function PlanStep({ selectedRole, selectedPlan, onSelect, onNext, onBack }) {
+export default function PlanStep({ selectedRole, selectedPlan, onSelect, onNext, onBack, submitting }) {
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState([]);
   const [offerActive, setOfferActive] = useState(false);
@@ -74,7 +74,7 @@ export default function PlanStep({ selectedRole, selectedPlan, onSelect, onNext,
   return (
     <div className="flex flex-col font-Inter pb-10">
       <div className="mb-8 flex items-center gap-4">
-        <button onClick={onBack} className="p-2 -ml-2 text-slate-400 hover:text-indigo-600 transition-colors">
+        <button onClick={onBack} disabled={submitting} className="p-2 -ml-2 text-slate-400 hover:text-indigo-600 transition-colors disabled:opacity-50">
           <ArrowLeft size={24} />
         </button>
         <div>
@@ -123,13 +123,13 @@ export default function PlanStep({ selectedRole, selectedPlan, onSelect, onNext,
         {plans.map((plan) => (
           <motion.div
             key={plan._id}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onSelect(plan._id, plan)}
+            whileTap={submitting ? {} : { scale: 0.98 }}
+            onClick={() => !submitting && onSelect(plan._id, plan)}
             className={`relative p-6 rounded-[2rem] border-2 cursor-pointer transition-all duration-300 ${
               selectedPlan === plan._id 
                 ? 'border-indigo-600 bg-indigo-50/30 shadow-lg shadow-indigo-100/50' 
                 : 'border-slate-100 bg-white hover:border-slate-200'
-            }`}
+            } ${submitting ? 'pointer-events-none' : ''}`}
           >
             <div className="flex justify-between items-start mb-6">
               <div className="flex flex-col gap-2">
@@ -193,21 +193,32 @@ export default function PlanStep({ selectedRole, selectedPlan, onSelect, onNext,
       <div className="mt-10 flex gap-4">
         <button
           onClick={onBack}
-          className="flex-1 py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest border-2 border-slate-100 text-slate-400 hover:bg-slate-50 transition-all"
+          disabled={submitting}
+          className="flex-1 py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest border-2 border-slate-100 text-slate-400 hover:bg-slate-50 transition-all disabled:opacity-50"
         >
           Back
         </button>
         <button
-          disabled={!selectedPlan}
+          disabled={!selectedPlan || submitting}
           onClick={onNext}
           className={`flex-[2] py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-xl ${
             selectedPlan 
               ? 'bg-slate-900 text-white shadow-slate-200' 
               : 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none'
-          }`}
+          } ${submitting ? 'opacity-80' : ''}`}
         >
-          {selectedPlan === 'free_trial' ? 'Start Free Trial' : 'Continue to Payment'}
-          <ChevronRight size={20} />
+          {submitting ? (
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+              className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+            />
+          ) : (
+            <>
+              {selectedPlan === 'free_trial' ? 'Start Free Trial' : 'Continue to Payment'}
+              <ChevronRight size={20} />
+            </>
+          )}
         </button>
       </div>
     </div>

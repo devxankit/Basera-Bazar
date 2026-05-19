@@ -398,7 +398,17 @@ export default function PartnerRegistration() {
                 formData={formData}
                 setFormData={setFormData}
                 onBack={prevStep}
-                onComplete={nextStep}
+                onComplete={() => {
+                  if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) {
+                    alert("Please enter a valid PAN Card number (e.g. ABCDE1234F).");
+                    return;
+                  }
+                  if (formData.aadhar && !/^\d{12}$/.test(formData.aadhar)) {
+                    alert("Please enter a valid 12-digit Aadhar Card number.");
+                    return;
+                  }
+                  nextStep();
+                }}
                 onSkip={nextStep}
                 role={selectedRole}
               />
@@ -418,6 +428,7 @@ export default function PartnerRegistration() {
                 }}
                 onBack={prevStep}
                 onNext={handlePaymentAndActivate}
+                submitting={isSubmitting}
               />
             )}
           </motion.div>

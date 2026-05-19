@@ -396,7 +396,7 @@ export default function AdminPartnerVerification() {
                         Cancel
                       </button>
                       <button 
-                        onClick={() => handleStatusUpdate(selectedPartner._id || selectedPartner.id, 'rejected', false, rejectionReason)}
+                        onClick={() => handleStatusUpdate(selectedPartner._id || selectedPartner.id, 'rejected', true, rejectionReason)}
                         disabled={!rejectionReason.trim()}
                         className="px-8 py-3 bg-rose-500 text-white font-black rounded-xl hover:bg-rose-600 disabled:opacity-50 transition-all shadow-lg shadow-rose-100"
                       >

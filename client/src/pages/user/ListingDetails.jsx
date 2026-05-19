@@ -24,7 +24,7 @@ const ListingDetails = () => {
   const { user } = useAuth();
   const { cart, addToCart, removeFromCart } = useCart();
 
-  const isMandi = listing?.category === 'mandi';
+  // State Declarations
   const [activeTab, setActiveTab] = useState('details');
   const [activeImg, setActiveImg] = useState(0);
   const [slideDir, setSlideDir] = useState(1);
@@ -43,10 +43,6 @@ const ListingDetails = () => {
   const [otpTimer, setOtpTimer] = useState(0);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
 
-  const isSupplier = listing?.category === 'supplier' || listing?.isPartner;
-
-  useScrollLock(isModalOpen || isLightboxOpen || isVariationModalOpen);
-
   // Attribute-based variation system
   const [isVariationModalOpen, setIsVariationModalOpen] = useState(false);
   const [categoryAttributes, setCategoryAttributes] = useState({ types: [], sub_types: [], brands: [] });
@@ -57,6 +53,24 @@ const ListingDetails = () => {
   const [selectedBrand, setSelectedBrand] = useState('');
   const [matchedListing, setMatchedListing] = useState(null);
   const [isAdded, setIsAdded] = useState(false);
+
+  // Query Hook
+  const { data: listing, isLoading: loading } = useQuery({
+    queryKey: ['listing', id],
+    queryFn: async () => {
+      let data = await db.getById('listings', id);
+      if (!data) data = await db.getById('partners', id);
+      return data || null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Derived Values
+  const isMandi = listing?.category === 'mandi';
+  const isSupplier = listing?.category === 'supplier' || listing?.isPartner;
+
+  // Custom Hook
+  useScrollLock(isModalOpen || isLightboxOpen || isVariationModalOpen);
 
   useEffect(() => {
     let interval;
@@ -218,15 +232,7 @@ const ListingDetails = () => {
     }
   }, [user?.id]);
 
-  const { data: listing, isLoading: loading } = useQuery({
-    queryKey: ['listing', id],
-    queryFn: async () => {
-      let data = await db.getById('listings', id);
-      if (!data) data = await db.getById('partners', id);
-      return data || null;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+
 
   // Set default message when listing loads
   useEffect(() => {

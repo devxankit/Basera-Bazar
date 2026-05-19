@@ -32,19 +32,22 @@ export const AuthProvider = ({ children }) => {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           const message = error.response.data?.message;
           const code = error.response.data?.code;
+          const hasSavedUser = !!localStorage.getItem('baserabazar_user');
           
-          if (message === 'User no longer exists.' || message === 'Account deleted') {
-            setAccountStatusError({
-              show: true,
-              title: 'Account Not Found',
-              message: 'Your account no longer exists or has been removed. You will be redirected to the login page.'
-            });
-          } else if (error.response.status === 403 && (message === 'Your account has been deactivated.' || code === 'ACCOUNT_INACTIVE')) {
-            setAccountStatusError({
-              show: true,
-              title: 'Account Deactivated',
-              message: 'Your account has been deactivated by the administrator. Please contact support for more information.'
-            });
+          if (hasSavedUser) {
+            if (message === 'User no longer exists.' || message === 'Account deleted') {
+              setAccountStatusError({
+                show: true,
+                title: 'Account Not Found',
+                message: 'Your account no longer exists or has been removed. You will be redirected to the login page.'
+              });
+            } else if (error.response.status === 403 && (message === 'Your account has been deactivated.' || code === 'ACCOUNT_INACTIVE')) {
+              setAccountStatusError({
+                show: true,
+                title: 'Account Deactivated',
+                message: 'Your account has been deactivated by the administrator. Please contact support for more information.'
+              });
+            }
           }
         }
         return Promise.reject(error);
@@ -54,13 +57,13 @@ export const AuthProvider = ({ children }) => {
     return () => api.interceptors.response.eject(interceptor);
   }, []);
 
-  const handleStatusErrorConfirm = () => {
+  const handleStatusErrorConfirm = async () => {
     const path = window.location.pathname;
     const isPartnerRoute = path.startsWith('/partner');
     const isExecutiveRoute = path.startsWith('/executive');
     
     setAccountStatusError({ show: false, title: '', message: '' });
-    logout(true);
+    await logout(true);
     
     if (isPartnerRoute) window.location.href = '/partner/login';
     else if (isExecutiveRoute) window.location.href = '/executive/login';
@@ -116,14 +119,18 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('baserabazar_user', JSON.stringify(userData));
   };
 
-  const logout = (callServer = false) => {
+  const logout = async (callServer = false) => {
     setUser(null);
     localStorage.removeItem('baserabazar_token');
     localStorage.removeItem('baserabazar_user');
     localStorage.removeItem('baserabazar_partner_role');
-    // Clear HttpOnly cookies server-side (fire-and-forget; state is already cleared above)
+    // Clear HttpOnly cookies server-side
     if (callServer) {
-      api.post('/auth/logout').catch(() => {});
+      try {
+        await api.post('/auth/logout');
+      } catch (err) {
+        console.error('Logout API call failed:', err);
+      }
     }
   };
 
@@ -178,7 +185,7 @@ export const AuthProvider = ({ children }) => {
         title={accountStatusError.title}
         message={accountStatusError.message}
         confirmText="Okay"
-        cancelText="Close"
+        cancelText={null}
         type="warning"
       />
     </AuthContext.Provider>

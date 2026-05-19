@@ -1,5 +1,5 @@
 'use strict';
-const { escapeRegex, sortByLocationPriority } = require('../../utils/listingUtils');
+const { escapeRegex, sortByLocationPriority, getDistanceInKm, sortByProximity } = require('../../utils/listingUtils');
 
 describe('escapeRegex', () => {
   test('escapes regex metacharacters', () => {
@@ -60,3 +60,37 @@ describe('sortByLocationPriority', () => {
     expect(result[0].district).toBe('muzaffarpur');
   });
 });
+
+describe('getDistanceInKm', () => {
+  test('calculates correct distance between two points', () => {
+    const dist = getDistanceInKm(26.2, 78.1, 26.1209, 85.3647);
+    expect(dist).toBeGreaterThan(700);
+    expect(dist).toBeLessThan(750);
+  });
+
+  test('returns 0 for the same point', () => {
+    const dist = getDistanceInKm(26.2, 78.1, 26.2, 78.1);
+    expect(dist).toBe(0);
+  });
+});
+
+describe('sortByProximity', () => {
+  const items = [
+    { name: 'Far Item', location: { coordinates: [85.3647, 26.1209] } },
+    { name: 'Near Item', location: { coordinates: [78.12, 26.21] } },
+    { name: 'No Coord Item' }
+  ];
+
+  test('sorts items by proximity to target coordinates', () => {
+    const sorted = sortByProximity(items, 26.2, 78.1);
+    expect(sorted[0].name).toBe('Near Item');
+    expect(sorted[1].name).toBe('Far Item');
+    expect(sorted[2].name).toBe('No Coord Item');
+  });
+
+  test('returns original list if coordinates are invalid', () => {
+    const sorted = sortByProximity(items, NaN, NaN);
+    expect(sorted).toEqual(items);
+  });
+});
+

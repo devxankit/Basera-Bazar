@@ -43,7 +43,8 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
             <input 
               type="text" 
               value={formData.pan}
-              onChange={(e) => setFormData(prev => ({ ...prev, pan: e.target.value.toUpperCase() }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, pan: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) }))}
+              maxLength={10}
               placeholder="ABCDE1234F"
               className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium"
             />
@@ -76,7 +77,8 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
             <input 
               type="text" 
               value={formData.aadhar}
-              onChange={(e) => setFormData(prev => ({ ...prev, aadhar: e.target.value }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, aadhar: e.target.value.replace(/\D/g, '').slice(0, 12) }))}
+              maxLength={12}
               placeholder="1234 5678 9012"
               className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium"
             />

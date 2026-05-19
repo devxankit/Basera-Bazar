@@ -121,6 +121,14 @@ export default function PartnerOnboarding() {
       alert("Please upload all required documents (PAN and Aadhar).");
       return;
     }
+    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) {
+      alert("Please enter a valid PAN Card number (e.g. ABCDE1234F).");
+      return;
+    }
+    if (formData.aadhar && !/^\d{12}$/.test(formData.aadhar)) {
+      alert("Please enter a valid 12-digit Aadhar Card number.");
+      return;
+    }
     if (isMandi && !formData.businessName) {
       alert("Please enter your Business Name.");
       return;
@@ -129,6 +137,8 @@ export default function PartnerOnboarding() {
   };
 
   const isPending = user?.onboarding_status === 'pending_approval';
+  const isRejected = user?.onboarding_status === 'rejected';
+  const rejectionReason = user?.kyc?.rejection_reason;
 
   return (
     <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-white flex flex-col font-sans">
@@ -141,21 +151,35 @@ export default function PartnerOnboarding() {
           <ArrowLeft size={24} />
         </button>
         <h2 className="text-[17px] font-bold text-[#001b4e]">
-          {isPending ? 'Verification Pending' : 'Complete Profile'}
+          {isPending ? 'Verification Pending' : isRejected ? 'Verification Rejected' : 'Complete Profile'}
         </h2>
       </div>
 
       <main className="flex-grow px-6 pt-8 pb-32">
         <div className="mb-6">
           <h1 className="text-[28px] font-bold text-[#001b4e] tracking-tight">
-            {isPending ? 'Under Review' : 'Identity Verification'}
+            {isPending ? 'Under Review' : isRejected ? 'Action Required' : 'Identity Verification'}
           </h1>
           <p className="text-slate-500 text-[15px]">
             {isPending 
               ? 'Our team is verifying your documents. This usually takes 24-48 hours.' 
+              : isRejected 
+              ? 'Your previous submission was rejected. Please review and resubmit.' 
               : 'Upload your documents to activate your account'}
           </p>
         </div>
+
+        {isRejected && (
+          <div className="bg-rose-50 border border-rose-200 p-5 rounded-2xl mb-8 shadow-sm">
+            <h3 className="text-rose-700 font-bold text-[14px] flex items-center gap-2 mb-2">
+              <span className="w-5 h-5 bg-rose-100 rounded-full flex items-center justify-center">!</span>
+              Documents Rejected
+            </h3>
+            <p className="text-rose-600 text-[13px] leading-relaxed font-medium">
+              Reason: {rejectionReason || 'Invalid or blurry documents provided.'}
+            </p>
+          </div>
+        )}
 
         {isPending && (
           <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex gap-3 items-start mb-8">
@@ -166,7 +190,7 @@ export default function PartnerOnboarding() {
           </div>
         )}
 
-        {!isPending && (
+        {!isPending && !isRejected && (
           <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex gap-3 items-start mb-8">
             <ShieldCheck size={20} className="text-blue-500 shrink-0 mt-0.5" />
             <p className="text-[12px] text-blue-700 leading-relaxed font-medium">
@@ -229,7 +253,8 @@ export default function PartnerOnboarding() {
               <input 
                 type="text" 
                 value={formData.pan}
-                onChange={(e) => setFormData(prev => ({ ...prev, pan: e.target.value.toUpperCase() }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, pan: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) }))}
+                maxLength={10}
                 placeholder="ABCDE1234F"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium"
               />
@@ -259,7 +284,8 @@ export default function PartnerOnboarding() {
               <input 
                 type="text" 
                 value={formData.aadhar}
-                onChange={(e) => setFormData(prev => ({ ...prev, aadhar: e.target.value }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, aadhar: e.target.value.replace(/\D/g, '').slice(0, 12) }))}
+                maxLength={12}
                 placeholder="1234 5678 9012"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium"
               />

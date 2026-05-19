@@ -379,7 +379,14 @@ const updateProfile = async (req, res) => {
 
     // Whitelist allowed fields to prevent mass-assignment
     const ALLOWED_USER_FIELDS = ['name', 'email', 'phone', 'profileImage', 'default_location', 'city', 'state', 'district', 'pincode'];
-    const ALLOWED_PARTNER_FIELDS = ['name', 'email', 'profileImage', 'business_name', 'business_description', 'business_logo', 'address', 'city', 'state', 'district', 'pincode'];
+    const ALLOWED_PARTNER_FIELDS = [
+      'name', 'email', 'image', 'profileImage', 'business_name', 'business_description', 'business_logo', 
+      'address', 'city', 'state', 'district', 'pincode', 'partner_type', 'roles', 'active_role', 
+      'service_radius_km', 'location', 'kyc.pan_number', 'kyc.pan_image', 'kyc.aadhar_number', 
+      'kyc.aadhar_front_image', 'kyc.aadhar_back_image', 'kyc.gst_number', 'kyc.gst_image', 
+      'onboarding_status', 'profile.mandi_profile.business_name', 'profile.mandi_profile.business_logo', 
+      'profile.mandi_profile.business_description'
+    ];
 
     const allowedFields = isPartner ? ALLOWED_PARTNER_FIELDS : ALLOWED_USER_FIELDS;
     const updateData = {};

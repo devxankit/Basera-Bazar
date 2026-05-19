@@ -77,7 +77,7 @@ const protect = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Your account has been suspended. Please contact support.' });
     }
 
-    if (userFound.is_active === false) {
+    if (userFound.is_active === false && !req.originalUrl.endsWith('/logout')) {
       return res.status(403).json({ success: false, message: 'Your account has been deactivated.' });
     }
 
