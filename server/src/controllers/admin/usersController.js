@@ -217,6 +217,12 @@ const updateUser = async (req, res) => {
     const { id } = req.params;
     const { is_active, material_categories, delivery_radius_km, subscription_id, active_subscription_id, service_category_id, state, district, address, name, email, phone, business_name, business_description, roles, active_role, onboarding_status, rejection_reason, image, business_logo } = req.body;
 
+    // Admin accounts cannot be deactivated.
+    const isAdmin = await AdminUser.exists({ _id: id });
+    if (isAdmin && is_active === false) {
+      return res.status(403).json({ success: false, message: 'The Super Admin account cannot be deactivated.' });
+    }
+
     let account = await User.findById(id) || await Partner.findById(id);
     if (!account) return res.status(404).json({ success: false, message: 'User not found.' });
 
@@ -289,10 +295,20 @@ const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const userResult = await User.findByIdAndDelete(id);
-    const partnerResult = await Partner.findByIdAndDelete(id);
+    // Admin accounts are permanent — block deletion entirely.
+    const isAdmin = await AdminUser.exists({ _id: id });
+    if (isAdmin) {
+      return res.status(403).json({ success: false, message: 'The Super Admin account cannot be deleted.' });
+    }
 
-    if (!userResult && !partnerResult) return res.status(404).json({ success: false, message: 'User not found.' });
+    const [userResult, partnerResult] = await Promise.all([
+      User.findByIdAndDelete(id),
+      Partner.findByIdAndDelete(id),
+    ]);
+
+    if (!userResult && !partnerResult) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
 
     let listingsDeleted = 0;
     if (partnerResult || userResult) {

@@ -272,18 +272,16 @@ const FCMHandler = ({ children }) => {
 
 // --- MANDATORY LOCATION GATE ---
 // Blocks every customer-facing route until a location is selected.
-// Staff panels (admin/partner/executive/team-lead/office-staff) are exempt — they
-// have their own location/service-area workflows.
-const STAFF_ROUTE_PREFIXES = ['/admin', '/partner', '/executive', '/team-lead', '/office'];
-
 const LocationGate = ({ children }) => {
   const { location: activeLocation, setLocation } = useLocationContext();
   const routerLocation = useLocation();
 
-  const isStaffRoute = STAFF_ROUTE_PREFIXES.some(p => routerLocation.pathname.startsWith(p));
   const hasValidLocation = activeLocation && (activeLocation.city || activeLocation.state);
 
-  const gateActive = !isStaffRoute && !hasValidLocation;
+  // Show the location picker ONLY on the home page when no location is set yet.
+  // All other pages (including staff/admin/partner routes) are unaffected.
+  const isHomePage = routerLocation.pathname === '/';
+  const gateActive = isHomePage && !hasValidLocation;
 
   // Lock browser scroll + swallow ESC key while gate is active
   React.useEffect(() => {

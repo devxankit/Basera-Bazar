@@ -181,12 +181,19 @@ export default function AdminUsers() {
         </div>
       )
     },
-    { 
-      header: 'ACTIONS', 
-      render: (row, index) => (
+    {
+      header: 'ACTIONS',
+      render: (row, index) => {
+        const ADMIN_ROLE_VALUES = ['admin', 'superadmin', 'super_admin', 'superAdmin', 'Admin', 'SuperAdmin'];
+        const isAdminRow = row.source === 'AdminUser'
+          || ADMIN_ROLE_VALUES.includes(row.role)
+          || (Array.isArray(row.displayRoles) && row.displayRoles.some(r => r === 'Admin'))
+          || row.displayRole === 'Admin';
+
+        return (
         <div className="flex items-center gap-3 relative">
           {/* View Icon (Eye) */}
-          <button 
+          <button
             onClick={() => navigate(`/admin/users/view/${row._id}`)}
             className="w-10 h-10 flex items-center justify-center bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-all shadow-md active:scale-95 group/view relative"
           >
@@ -231,84 +238,85 @@ export default function AdminUsers() {
                       <CreditCard size={18} className="text-slate-400" />
                       Subscriptions
                     </button>
-                    <button 
-                      onClick={() => {
-                        setActiveMenu(null);
-                        setModalConfig({
-                          title: row.is_active ? 'Deactivate User' : 'Activate User',
-                          message: `Are you sure you want to ${row.is_active ? 'deactivate' : 'activate'} ${row.name}? All active sessions will be terminated.`,
-                          type: 'warning',
-                          onConfirm: async () => {
-                            setIsActionLoading(true);
+                    {!isAdminRow && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setActiveMenu(null);
+                            setModalConfig({
+                              title: row.is_active ? 'Deactivate User' : 'Activate User',
+                              message: `Are you sure you want to ${row.is_active ? 'deactivate' : 'activate'} ${row.name}? All active sessions will be terminated.`,
+                              type: 'warning',
+                              onConfirm: async () => {
+                                setIsActionLoading(true);
+                                try {
+                                  await api.put(`/admin/users/${row._id}`, { is_active: !row.is_active });
+                                  queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+                                  setIsModalOpen(false);
+                                } catch (err) {
+                                  console.error(err);
+                                  toast.error(err.response?.data?.message || 'Failed to update user status.');
+                                } finally {
+                                  setIsActionLoading(false);
+                                }
+                              }
+                            });
+                            setIsModalOpen(true);
+                          }}
+                          className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                        >
+                          <UserMinus size={18} className={row.is_active ? "text-rose-400" : "text-emerald-400"} />
+                          {row.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <div className="h-px bg-slate-50 my-2 mx-5" />
+                        <button
+                          onClick={async () => {
+                            setActiveMenu(null);
+                            let hasListings = false;
+                            let listingsCount = 0;
                             try {
-                              await api.put(`/admin/users/${row._id}`, { is_active: !row.is_active });
-                              queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
-                              setIsModalOpen(false);
+                              const res = await api.get(`/listings?partner_id=${row._id}`);
+                              listingsCount = res.data?.data?.length || res.data?.length || 0;
+                              hasListings = listingsCount > 0;
                             } catch (err) {
-                              console.error(err);
-                              toast.error(err.response?.data?.message || 'Failed to update user status.');
-                            } finally {
-                              setIsActionLoading(false);
+                              console.error("Failed to check listings", err);
                             }
-                          }
-                        });
-                        setIsModalOpen(true);
-                      }}
-                      className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
-                    >
-                      <UserMinus size={18} className={row.is_active ? "text-rose-400" : "text-emerald-400"} />
-                      {row.is_active ? 'Deactivate' : 'Activate'}
-                    </button>
-                    <div className="h-[1px] bg-slate-50 my-2 mx-5" />
-                    <button 
-                      onClick={async () => {
-                        setActiveMenu(null);
-                        
-                        let hasListings = false;
-                        let listingsCount = 0;
-                        if (row.role !== 'Customer' && row.role !== 'Admin') {
-                          try {
-                            const res = await api.get(`/listings?partner_id=${row._id}`);
-                            listingsCount = res.data?.data?.length || res.data?.length || 0;
-                            hasListings = listingsCount > 0;
-                          } catch (err) {
-                            console.error("Failed to check listings", err);
-                          }
-                        }
-
-                        setModalConfig({
-                          title: 'Permanent Deletion',
-                          message: hasListings 
-                            ? `CRITICAL: ${row.name} has ${listingsCount} active property/service listing(s). Deleting this partner will also permanently delete all their listings from the database. This action is irreversible.`
-                            : `CRITICAL: Are you sure you want to erase ${row.name} from the database? This action is irreversible and will remove all associated data.`,
-                          type: 'danger',
-                          onConfirm: async () => {
-                            setIsActionLoading(true);
-                            try {
-                              await api.delete(`/admin/users/${row._id}`);
-                              window.location.reload();
-                            } catch (err) {
-                              console.error(err);
-                            } finally {
-                              setIsActionLoading(false);
-                              setIsModalOpen(false);
-                            }
-                          }
-                        });
-                        setIsModalOpen(true);
-                      }}
-                      className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-rose-600 hover:bg-rose-50 transition-colors"
-                    >
-                      <Trash2 size={18} />
-                      Delete From DB
-                    </button>
+                            setModalConfig({
+                              title: 'Permanent Deletion',
+                              message: hasListings
+                                ? `CRITICAL: ${row.name} has ${listingsCount} active listing(s). Deleting this partner will also permanently delete all their listings. This action is irreversible.`
+                                : `CRITICAL: Are you sure you want to erase ${row.name} from the database? This action is irreversible.`,
+                              type: 'danger',
+                              onConfirm: async () => {
+                                setIsActionLoading(true);
+                                try {
+                                  await api.delete(`/admin/users/${row._id}`);
+                                  window.location.reload();
+                                } catch (err) {
+                                  toast.error(err.response?.data?.message || 'Deletion failed.');
+                                } finally {
+                                  setIsActionLoading(false);
+                                  setIsModalOpen(false);
+                                }
+                              }
+                            });
+                            setIsModalOpen(true);
+                          }}
+                          className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-rose-600 hover:bg-rose-50 transition-colors"
+                        >
+                          <Trash2 size={18} />
+                          Delete From DB
+                        </button>
+                      </>
+                    )}
                   </motion.div>
                 </>
               )}
             </AnimatePresence>
           </div>
         </div>
-      )
+        );
+      }
     }
   ];
 

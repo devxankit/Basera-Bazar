@@ -337,13 +337,6 @@ export default function StaffLogin() {
             )}
           </AnimatePresence>
 
-          {/* Footer */}
-          <p className="text-center text-xs text-slate-400 mt-5">
-            Admin?{' '}
-            <a href="/admin/login" className="text-[#001b4e] font-semibold hover:underline">
-              Go to Admin Login
-            </a>
-          </p>
         </motion.div>
       </div>
     </div>
