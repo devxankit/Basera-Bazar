@@ -198,7 +198,7 @@ const SearchResults = () => {
 
   // ── Fetch ──────────────────────────────────────────────────────────────
 
-  const { data: rawData, isLoading: loading, error: queryError } = useQuery({
+  const { data: rawData, isLoading: loading, error: queryError, refetch } = useQuery({
     queryKey: ['searchResults', query, location.district, location.state],
     queryFn: async () => {
       const params = new URLSearchParams({ q: query.trim(), limit: 80 });
@@ -413,7 +413,7 @@ const SearchResults = () => {
             </div>
             <p className="text-[13px] font-medium text-slate-500">{error}</p>
             <button
-              onClick={() => fetchResults(query)}
+              onClick={() => refetch()}
               className="text-primary-600 font-semibold text-[12px] underline"
             >
               Try again
