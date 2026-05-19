@@ -39,11 +39,22 @@ const getUserDetail = async (req, res) => {
     }
     accountObj.source = source;
 
-    const [propertyCount, serviceCount, leadCount, activeSub] = await Promise.all([
+    const [propertyCount, serviceCount, mandiCount, leadCount, activeSub, properties, services, products] = await Promise.all([
       PropertyListing.countDocuments({ partner_id: id }),
       ServiceListing.countDocuments({ partner_id: id }),
+      MandiListing.countDocuments({ partner_id: id }),
       Enquiry.countDocuments({ $or: [{ user_id: id }, { partner_id: id }] }),
-      mongoose.model('Subscription').findOne({ partner_id: id, status: { $in: ['active', 'trial'] } }).populate('plan_id').sort({ createdAt: -1 })
+      mongoose.model('Subscription').findOne({ partner_id: id, status: { $in: ['active', 'trial'] } }).populate('plan_id').sort({ createdAt: -1 }),
+      // Only fetch listing rows when this account is a partner (cheap no-op otherwise)
+      source === 'Partner'
+        ? PropertyListing.find({ partner_id: id }).sort({ createdAt: -1 }).limit(50).lean()
+        : Promise.resolve([]),
+      source === 'Partner'
+        ? ServiceListing.find({ partner_id: id }).sort({ createdAt: -1 }).limit(50).lean()
+        : Promise.resolve([]),
+      source === 'Partner'
+        ? MandiListing.find({ partner_id: id }).sort({ createdAt: -1 }).limit(50).lean()
+        : Promise.resolve([]),
     ]);
 
     let calculatedSubscription = null;
@@ -96,7 +107,8 @@ const getUserDetail = async (req, res) => {
       district: accountObj.district || accountObj.default_location?.district || 'Muzaffarpur',
       address: accountObj.address || accountObj.default_location?.address || 'Muzaffarpur, Bihar',
       partner_profile: partnerProfileAlias,
-      stats: { properties: propertyCount, services: serviceCount, leads: leadCount },
+      stats: { properties: propertyCount, services: serviceCount, products: mandiCount, leads: leadCount },
+      listings: { properties, services, products },
       active_subscription: calculatedSubscription
     };
 

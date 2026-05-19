@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  User, Mail, Phone, Shield, Star, Calendar, 
+import {
+  User, Mail, Phone, Shield, Star, Calendar,
   MapPin, Clock, Edit2, ArrowLeft, MoreVertical,
   CreditCard, Activity, CheckCircle2, AlertCircle,
   Briefcase, TrendingUp, ChevronRight, BarChart3,
   Package, Store, ShieldCheck, Globe, Zap, FileText, ExternalLink,
-  UserMinus, UserCheck, Trash2, Landmark, Building2
+  UserMinus, UserCheck, Trash2, Landmark, Building2,
+  Home, Wrench, ShoppingBag, Eye
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -33,6 +34,27 @@ export default function AdminUserDetails() {
   });
   const user = rawData?.data || null;
   const error = queryError ? "User profile not found in database." : null;
+
+  const { data: propertyListings = [] } = useQuery({
+    queryKey: ['adminPartnerListings', id, 'property'],
+    queryFn: () => api.get(`/admin/listings/property?partner_id=${id}&limit=50`).then(r => r.data.data || []),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: serviceListings = [] } = useQuery({
+    queryKey: ['adminPartnerListings', id, 'service'],
+    queryFn: () => api.get(`/admin/listings/service?partner_id=${id}&limit=50`).then(r => r.data.data || []),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: productListings = [] } = useQuery({
+    queryKey: ['adminPartnerListings', id, 'product'],
+    queryFn: () => api.get(`/admin/listings/product?partner_id=${id}&limit=50`).then(r => r.data.data || []),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const updateMutation = useMutation({
     mutationFn: (updateData) => api.put(`/admin/users/${id}`, updateData).then(r => r.data),
@@ -232,10 +254,10 @@ export default function AdminUserDetails() {
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
            {[
-             { label: 'Listings', value: user.stats?.properties || 0, icon: Briefcase, color: 'bg-indigo-50 text-indigo-600' },
-             { label: 'Leads', value: user.stats?.leads || 0, icon: TrendingUp, color: 'bg-emerald-50 text-emerald-600' },
+             { label: 'Properties', value: user.stats?.properties || 0, icon: Building2, color: 'bg-indigo-50 text-indigo-600' },
              { label: 'Services', value: user.stats?.services || 0, icon: Activity, color: 'bg-purple-50 text-purple-600' },
-             { label: 'Rating', value: user.rating?.toFixed(1) || '0.0', icon: Star, color: 'bg-amber-50 text-amber-600' }
+             { label: 'Products', value: user.stats?.products || 0, icon: Package, color: 'bg-orange-50 text-orange-600' },
+             { label: 'Leads', value: user.stats?.leads || 0, icon: TrendingUp, color: 'bg-emerald-50 text-emerald-600' }
            ].map((stat, i) => (
              <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
                 <div className={cn("p-3 rounded-xl", stat.color)}>
@@ -372,7 +394,129 @@ export default function AdminUserDetails() {
                  </div>
                </div>
              )}
+
+             {/* Listings — only for partners */}
+             {isPartner && (
+               <ListingsSection
+                 properties={propertyListings}
+                 services={serviceListings}
+                 products={productListings}
+               />
+             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ListingsSection({ properties, services, products }) {
+  const navigate = useNavigate();
+
+  const groups = [
+    {
+      key: 'properties', label: 'Properties', Icon: Building2,
+      headerCls: 'text-indigo-600', badgeCls: 'bg-indigo-50 text-indigo-700',
+      items: properties, pathPrefix: '/admin/properties/view'
+    },
+    {
+      key: 'services', label: 'Services', Icon: Activity,
+      headerCls: 'text-purple-600', badgeCls: 'bg-purple-50 text-purple-700',
+      items: services, pathPrefix: '/admin/services/view'
+    },
+    {
+      key: 'products', label: 'Mandi Products', Icon: Package,
+      headerCls: 'text-orange-600', badgeCls: 'bg-orange-50 text-orange-700',
+      items: products, pathPrefix: '/admin/mandi'
+    },
+  ];
+
+  const totalCount = properties.length + services.length + products.length;
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="px-8 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+          Listings {totalCount > 0 && `(${totalCount})`}
+        </h3>
+        <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-600 px-2 py-1 rounded border border-indigo-100 uppercase tracking-widest">All Types</span>
+      </div>
+
+      {totalCount === 0 ? (
+        <div className="p-10 text-center">
+          <Briefcase className="mx-auto text-slate-300 mb-3" size={40} />
+          <p className="text-sm font-semibold text-slate-500">This partner hasn't created any listings yet.</p>
+        </div>
+      ) : (
+        <div className="p-6 space-y-8">
+          {groups.map(g => g.items.length > 0 && (
+            <div key={g.key}>
+              <div className="flex items-center gap-2 mb-3">
+                <g.Icon size={16} className={g.headerCls} />
+                <h4 className="text-[12px] font-bold text-slate-700 uppercase tracking-wider">{g.label}</h4>
+                <span className="text-[10px] font-bold text-slate-400">({g.items.length})</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {g.items.map(item => (
+                  <ListingCard
+                    key={item._id}
+                    item={item}
+                    badgeCls={g.badgeCls}
+                    onView={() => navigate(`${g.pathPrefix}/${item._id}`)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ListingCard({ item, badgeCls, onView }) {
+  const image = item.images?.[0] || item.image || item.thumbnail;
+  const title = item.title || item.name || 'Untitled';
+  const price = item.pricing?.amount ?? item.price ?? item.starting_price ?? item.budget_min;
+  const status = item.status || (item.is_active === false ? 'inactive' : 'active');
+  const location = item.address?.district || item.address?.city || item.district || item.city || null;
+
+  return (
+    <div className="flex gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-300 transition-all group">
+      <div className="w-16 h-16 rounded-lg bg-white border border-slate-100 overflow-hidden flex items-center justify-center shrink-0">
+        {image ? (
+          <img src={image} alt={title} className="w-full h-full object-cover" />
+        ) : (
+          <Package className="text-slate-300" size={20} />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-bold text-slate-900 truncate leading-snug">{title}</p>
+        {location && (
+          <p className="text-[11px] text-slate-400 font-medium mt-0.5 truncate flex items-center gap-1">
+            <MapPin size={10} /> {location}
+          </p>
+        )}
+        <div className="flex items-center justify-between mt-1.5">
+          <div className="flex items-center gap-2">
+            {price != null && (
+              <span className="text-[11px] font-bold text-slate-700 tabular-nums">
+                ₹{Number(price).toLocaleString('en-IN')}
+              </span>
+            )}
+            <span className={cn(
+              'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded',
+              status === 'active' ? badgeCls : 'bg-slate-200 text-slate-500'
+            )}>
+              {status}
+            </span>
+          </div>
+          <button
+            onClick={onView}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200"
+          >
+            <Eye size={14} />
+          </button>
         </div>
       </div>
     </div>

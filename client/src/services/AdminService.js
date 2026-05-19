@@ -5,10 +5,8 @@ import { cacheService } from './CacheService';
  * Admin Service handles administrative data with caching.
  */
 export const getAdminUsers = async () => {
-  return cacheService.get('admin_users', async () => {
-    const res = await api.get('/admin/users');
-    return res.data.data || [];
-  });
+  const res = await api.get('/admin/users');
+  return res.data.data || [];
 };
 
 export const getRoleRequests = async () => {

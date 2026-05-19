@@ -9,12 +9,13 @@ const pick = require('../../utils/pick');
 const getListings = async (req, res) => {
   try {
     const { type } = req.params;
-    const { category, category_id, subcategory, listing_intent, status, state, district, price_range, search } = req.query;
+    const { category, category_id, subcategory, listing_intent, status, state, district, price_range, search, partner_id } = req.query;
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
     const skip = (page - 1) * limit;
 
     let query = {};
+    if (partner_id) query.partner_id = partner_id;
     if (category) query.category_id = category;
     if (category_id) query.category_id = category_id;
     if (subcategory) query.subcategory_id = subcategory;

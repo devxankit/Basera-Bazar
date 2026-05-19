@@ -32,19 +32,44 @@ export default function AdminUsers() {
   const { data: rawUsers, isLoading: loading } = useQuery({
     queryKey: ['adminUsers'],
     queryFn: () => getAdminUsers(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
   const users = rawUsers || [];
 
   const filterTabs = ['All', 'Admin', 'Agent', 'Supplier', 'Seller', 'Service Provider', 'Customer'];
 
+  // Maps each filter tab to all raw DB values that qualify for that tab.
+  // A partner matches if ANY value in their displayRoles OR raw roles array
+  // appears in the set for the selected filter.
+  const RAW_ROLE_ALIASES = {
+    'agent':            ['agent', 'property_agent'],
+    'supplier':         ['supplier'],
+    'seller':           ['seller', 'mandi_seller'],
+    'service provider': ['service provider', 'service_provider', 'serviceprovider'],
+    'admin':            ['admin', 'superadmin', 'super_admin'],
+    'customer':         ['customer', 'user'],
+  };
+
   const filteredData = users.filter(user => {
-    // 1. Role Filtering (Robust case-insensitive check)
+    // 1. Role Filtering — works for both single-role and multi-role partners
     if (activeFilter !== 'All') {
-      const displayRole = (user.displayRole || user.role || '').toString().toLowerCase().trim();
-      const targetRole = activeFilter.toLowerCase().trim();
-      if (displayRole !== targetRole) return false;
+      const target = activeFilter.toLowerCase().trim();
+      const aliases = RAW_ROLE_ALIASES[target] || [target];
+
+      // Collect every role string this user has (display names + raw DB values)
+      const allRoleStrings = [
+        ...(Array.isArray(user.displayRoles) ? user.displayRoles : []),
+        ...(Array.isArray(user.roles) ? user.roles : []),
+        user.displayRole,
+        user.role,
+        user.partner_type,
+      ]
+        .filter(Boolean)
+        .map(r => r.toString().toLowerCase().trim());
+
+      const matched = allRoleStrings.some(r => aliases.includes(r) || r === target);
+      if (!matched) return false;
     }
 
     // 2. Search Bar Filtering
