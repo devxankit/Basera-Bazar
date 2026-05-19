@@ -270,9 +270,67 @@ const FCMHandler = ({ children }) => {
   return children;
 };
 
+// --- MANDATORY LOCATION GATE ---
+// Blocks every customer-facing route until a location is selected.
+// Staff panels (admin/partner/executive/team-lead/office-staff) are exempt — they
+// have their own location/service-area workflows.
+const STAFF_ROUTE_PREFIXES = ['/admin', '/partner', '/executive', '/team-lead', '/office'];
+
+const LocationGate = ({ children }) => {
+  const { location: activeLocation, setLocation } = useLocationContext();
+  const routerLocation = useLocation();
+
+  const isStaffRoute = STAFF_ROUTE_PREFIXES.some(p => routerLocation.pathname.startsWith(p));
+  const hasValidLocation = activeLocation && (activeLocation.city || activeLocation.state);
+
+  const gateActive = !isStaffRoute && !hasValidLocation;
+
+  // Lock browser scroll + swallow ESC key while gate is active
+  React.useEffect(() => {
+    if (!gateActive) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const swallowEsc = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); } };
+    window.addEventListener('keydown', swallowEsc, true);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', swallowEsc, true);
+    };
+  }, [gateActive]);
+
+  const handleLocationSelect = (loc) => {
+    setLocation({
+      city: loc.name || (loc.isGPS ? 'Current Location' : ''),
+      district: loc.district || '',
+      state: loc.state || '',
+      coords: loc.coordinates || null,
+      formattedAddress: loc.name ? `${loc.name}, ${loc.state}` : (loc.isGPS ? 'Current GPS Location' : '')
+    });
+  };
+
+  return (
+    <>
+      {children}
+      {gateActive && (
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md bg-white rounded-t-[40px] shadow-2xl" style={{ height: '75dvh' }}>
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-2 mb-1 opacity-50" />
+            <LocationPicker
+              onClose={null}
+              onSelect={handleLocationSelect}
+              initialLocation={null}
+              isMandatory={true}
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 // --- USER LAYOUT ---
 const UserLayout = ({ children }) => {
-  const { location: activeLocation, setLocation } = useLocationContext();
   const location = useLocation();
   const isHome = location.pathname === '/';
   const isDetail = location.pathname.startsWith('/products/') || location.pathname.startsWith('/service/') || location.pathname.startsWith('/agent/');
@@ -289,35 +347,6 @@ const UserLayout = ({ children }) => {
   const isBrowse = location.pathname.startsWith('/browse/');
   const isMandi = location.pathname.startsWith('/mandi');
   const showBottomNav = !isDetail && !isCart && !isNotifications && !isProfile && !isOrders && !isEnquiries && !isEditProfile && !isMandiCheckout && !isBroadcastLead;
-
-  const handleLocationSelect = (loc) => {
-    setLocation({
-      city: loc.name || (loc.isGPS ? 'Current Location' : ''),
-      district: loc.district || '',
-      state: loc.state || '',
-      coords: loc.coordinates || null,
-      formattedAddress: loc.name ? `${loc.name}, ${loc.state}` : (loc.isGPS ? 'Current GPS Location' : '')
-    });
-  };
-
-  if (!activeLocation) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-hidden">
-        <div className="fixed inset-0 z-[100] flex items-end justify-center">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative w-full max-w-md bg-white rounded-t-[40px] shadow-2xl transform translate-y-0" style={{ height: '75dvh' }}>
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-2 mb-1 opacity-50" />
-            <LocationPicker 
-              onClose={null} 
-              onSelect={handleLocationSelect}
-              initialLocation={null}
-              isMandatory={true}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
@@ -346,6 +375,7 @@ function App() {
           <CartProvider>
             <FCMHandler>
               <Router>
+                <LocationGate>
                 <Suspense fallback={<PageSpinner />}>
                   <Routes>
                     {/* User Routes */}
@@ -542,6 +572,7 @@ function App() {
                     </Route>{/* end Staff section ErrorBoundary */}
                   </Routes>
                 </Suspense>
+                </LocationGate>
               </Router>
             </FCMHandler>
           </CartProvider>

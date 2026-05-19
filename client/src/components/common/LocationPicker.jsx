@@ -288,8 +288,10 @@ export default function LocationPicker({ onSelect, onClose, initialLocation = nu
       </div>
 
       <div className="p-6 bg-slate-50">
-        <p className="text-[11px] text-slate-400 text-center leading-relaxed">
-          Accurate location helps us show you the best services and products available in your area.
+        <p className="text-[11px] text-slate-500 text-center leading-relaxed font-medium">
+          {isMandatory
+            ? 'Please select a location to continue. This is required to show services in your area.'
+            : 'Accurate location helps us show you the best services and products available in your area.'}
         </p>
       </div>
     </div>
