@@ -1,16 +1,17 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { saveLocationToCookie, loadLocationFromCookie } from '../utils/locationStorage';
 
 const LocationContext = createContext();
 
-// Location is kept in memory only. A hard refresh (or new tab) always
-// re-triggers the mandatory location modal — by design.
-// SPA route changes preserve it because state survives in-app navigation.
 export const LocationProvider = ({ children }) => {
-  const [location, setLocation] = useState(null);
-
-  // Clear any legacy value from earlier builds so it doesn't leak in
-  useEffect(() => {
+  const [location, setLocationState] = useState(() => {
     try { localStorage.removeItem('basera_location_v2'); } catch { /* ignore */ }
+    return loadLocationFromCookie();
+  });
+
+  const setLocation = useCallback((loc) => {
+    saveLocationToCookie(loc);
+    setLocationState(loc);
   }, []);
 
   return (

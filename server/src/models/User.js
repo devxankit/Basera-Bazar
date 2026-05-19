@@ -13,6 +13,7 @@ const pointSchema = new mongoose.Schema({
     required: true
   },
   city: { type: String },
+  district: { type: String },
   state: { type: String },
   pincode: { type: String },
   label: { type: String } // e.g., 'Home', 'Work' for saved_locations

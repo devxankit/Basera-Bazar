@@ -32,8 +32,8 @@ const LeadSubmission = () => {
     name: '',
     phone: '',
     email: '',
-    state: location.state || 'Bihar',
-    district: location.district || 'Muzaffarpur',
+    state: location?.state || 'Bihar',
+    district: location?.district || 'Muzaffarpur',
     full_address: '',
     requirement_details: '',
     document_url: ''

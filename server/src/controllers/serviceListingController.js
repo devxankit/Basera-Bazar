@@ -1,6 +1,7 @@
 const { ServiceListing } = require('../models/Listing');
 const logger = require('../utils/logger');
 const { Category } = require('../models/System');
+const { Partner } = require('../models/Partner');
 const { Subscription } = require('../models/Finance');
 const { checkListingLimit } = require('../utils/subscriptionUtils');
 const invalidate = require('../utils/cacheInvalidator');
@@ -32,28 +33,26 @@ const getNearbyServices = async (req, res) => {
       }
     }
 
-    // Apply location filtering: coordinates-based geo-spatial query if available, otherwise text-matching
+    // Apply location filtering: use $geoWithin (supports $or) so we can also
+    // catch listings stored with [0,0] coordinates but a matching district.
     if (hasCoordinates) {
-      query.location = {
-        $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [longitude, latitude]
-          },
-          $maxDistance: maxDistanceInMeters
-        }
-      };
+      const radiusInRadians = maxDistanceInMeters / 6378100;
+      const locationOr = [
+        { location: { $geoWithin: { $centerSphere: [[longitude, latitude], radiusInRadians] } } }
+      ];
+      if (district) {
+        locationOr.push({ 'location.coordinates': [0, 0], 'address.district': { $regex: new RegExp(escapeRegex(district), 'i') } });
+      } else if (state) {
+        locationOr.push({ 'location.coordinates': [0, 0], 'address.state': { $regex: new RegExp(escapeRegex(state), 'i') } });
+      }
+      query.$or = locationOr;
     } else if (district) {
       query['address.district'] = { $regex: new RegExp(escapeRegex(district), 'i') };
     } else if (state) {
       query['address.state'] = { $regex: new RegExp(escapeRegex(state), 'i') };
     }
 
-    let querySort = { createdAt: -1 };
-    if (hasCoordinates) {
-      // MongoDB doesn't allow sorting on other fields when using $near
-      querySort = {};
-    }
+    const querySort = { createdAt: -1 }; // $geoWithin allows normal sorting
 
     const services = await ServiceListing.find(query)
       .populate({ path: 'partner_id', select: 'name phone email role profile createdAt' })
@@ -127,6 +126,24 @@ const createServiceListing = async (req, res) => {
       }
     }
 
+    // Resolve final location: use provided GeoJSON if valid, else inherit from partner profile
+    let finalLocation = location;
+    let finalState = state;
+    let finalDistrict = district;
+    const coordsAreZero = !finalLocation || (
+      Array.isArray(finalLocation.coordinates) &&
+      finalLocation.coordinates[0] === 0 &&
+      finalLocation.coordinates[1] === 0
+    );
+    if (coordsAreZero) {
+      const partner = await Partner.findById(partnerId).select('location state district pincode address');
+      if (partner) {
+        if (coordsAreZero && partner.location) finalLocation = partner.location;
+        finalState    = state    || partner.state;
+        finalDistrict = district || partner.district;
+      }
+    }
+
     const newService = await ServiceListing.create({
       partner_id: partnerId,
       category_id: final_category_id,
@@ -141,12 +158,12 @@ const createServiceListing = async (req, res) => {
       thumbnail: thumbnail || image,
       portfolio_images: portfolio_images || images || [],
       address: address || {
-        state,
-        district,
+        state: finalState,
+        district: finalDistrict,
         full_address: location_text,
         pincode
       },
-      location: location || { type: 'Point', coordinates: [0, 0] },
+      location: finalLocation || { type: 'Point', coordinates: [0, 0] },
       service_radius_km: Number(service_radius_km) || 50, // Use provided radius or default to 50
       status: 'active',
       is_featured: !!is_featured

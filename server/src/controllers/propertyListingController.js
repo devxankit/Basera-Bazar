@@ -1,6 +1,7 @@
 const { PropertyListing } = require('../models/Listing');
 const logger = require('../utils/logger');
 const { Category } = require('../models/System');
+const { Partner } = require('../models/Partner');
 const { checkListingLimit } = require('../utils/subscriptionUtils');
 const invalidate = require('../utils/cacheInvalidator');
 
@@ -50,6 +51,13 @@ const createPropertyListing = async (req, res) => {
     const locationLng = parseFloat(item.longitude || item.location?.coordinates?.[0]) || 0;
     const locationLat = parseFloat(item.latitude || item.location?.coordinates?.[1]) || 0;
 
+    // Fall back to partner's stored coordinates when property has no explicit GPS pin
+    let finalCoords = [locationLng, locationLat];
+    if (locationLng === 0 && locationLat === 0) {
+      const partnerDoc = await Partner.findById(partnerId).select('location');
+      if (partnerDoc?.location?.coordinates) finalCoords = partnerDoc.location.coordinates;
+    }
+
     // Safely build details — map frontend field names to schema field names and normalize enums
     const rawDetails = item.details || {};
 
@@ -92,7 +100,7 @@ const createPropertyListing = async (req, res) => {
       subcategory_id: (item.subcategoryId && item.subcategoryId.length === 24) ? item.subcategoryId : undefined,
       location: {
         type: 'Point',
-        coordinates: [parseFloat(locationLng), parseFloat(locationLat)]
+        coordinates: finalCoords
       },
       address: {
         district: item.district,

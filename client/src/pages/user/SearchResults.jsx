@@ -199,11 +199,13 @@ const SearchResults = () => {
   // ── Fetch ──────────────────────────────────────────────────────────────
 
   const { data: rawData, isLoading: loading, error: queryError, refetch } = useQuery({
-    queryKey: ['searchResults', query, location.district, location.state],
+    queryKey: ['searchResults', query, location?.district, location?.state, location?.coords?.[0], location?.coords?.[1]],
     queryFn: async () => {
       const params = new URLSearchParams({ q: query.trim(), limit: 80 });
-      if (location.district) params.set('district', location.district);
-      if (location.state) params.set('state', location.state);
+      if (location?.district) params.set('district', location.district);
+      if (location?.state) params.set('state', location.state);
+      if (location?.coords?.[0] != null) params.set('lng', location.coords[0]);
+      if (location?.coords?.[1] != null) params.set('lat', location.coords[1]);
       return api.get(`/listings?${params}`).then(r => r.data);
     },
     staleTime: 5 * 60 * 1000,
@@ -348,7 +350,7 @@ const SearchResults = () => {
               <span className="font-bold text-primary-900">{sorted.length}</span>
               {' '}result{sorted.length !== 1 ? 's' : ''} for{' '}
               <span className="font-bold text-primary-900">"{query}"</span>
-              {location.district && (
+              {location?.district && (
                 <span className="text-slate-400"> · {location.district}</span>
               )}
             </span>

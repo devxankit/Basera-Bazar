@@ -207,10 +207,10 @@ const BrowseCategory = () => {
     subCategory: subCategory || undefined,
     category_id: (category === 'mandi') ? (activeSubCat || activeMandiCat || undefined) : (category_id_param || undefined),
     search: searchQuery || undefined,
-    ...(typeof location.coords?.[1] === 'number' ? { lat: location.coords[1] } : {}),
-    ...(typeof location.coords?.[0] === 'number' ? { lng: location.coords[0] } : {}),
-    ...(location.district ? { district: location.district } : {}),
-    ...(location.state ? { state: location.state } : {}),
+    ...(typeof location?.coords?.[1] === 'number' ? { lat: location.coords[1] } : {}),
+    ...(typeof location?.coords?.[0] === 'number' ? { lng: location.coords[0] } : {}),
+    ...(location?.district ? { district: location.district } : {}),
+    ...(location?.state ? { state: location.state } : {}),
     ...activeFilters,
     ...(activeFilters.featuredOnly ? { is_featured: true } : {}),
   };
@@ -813,7 +813,7 @@ const BrowseCategory = () => {
                           <Navigation size={20} className="text-[#1f2355]" />
                           <div className="text-left">
                             <p className="text-[14px] font-medium text-[#1f2355]">Use Current Location</p>
-                            <p className="text-[12px] text-[#124db5] mt-0.5">{location.display_location || 'Fetching location...'}</p>
+                            <p className="text-[12px] text-[#124db5] mt-0.5">{location?.display_location || 'Fetching location...'}</p>
                           </div>
                         </div>
                         {activeFilters.locationType !== 'manual' ? (
@@ -865,7 +865,7 @@ const BrowseCategory = () => {
                     {activeFilters.locationType !== 'manual' && (
                       <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3 flex items-center gap-2">
                         <Navigation size={16} className="text-emerald-600" />
-                        <span className="text-emerald-600 font-medium text-[13px]">Current: {location.district}, {location.state}</span>
+                        <span className="text-emerald-600 font-medium text-[13px]">Current: {location?.district}, {location?.state}</span>
                       </div>
                     )}
                   </div>
@@ -1385,8 +1385,8 @@ const BrowseCategory = () => {
 
       {/* Location Selector Modal */}
       {isLocationModalOpen && (() => {
-        const homeState = (location.state || location.formattedAddress?.split(',')[1])?.trim() || 'Bihar';
-        const homeCity  = location.city || location.formattedAddress?.split(',')[0]?.trim() || '';
+        const homeState = (location?.state || location?.formattedAddress?.split(',')[1])?.trim() || 'Bihar';
+        const homeCity  = location?.city || location?.formattedAddress?.split(',')[0]?.trim() || '';
         const districtList = INDIA_DISTRICTS[homeState] || INDIA_DISTRICTS['Bihar'] || Object.values(INDIA_DISTRICTS)[0] || [];
 
         const toggleDistrict = (d) => {

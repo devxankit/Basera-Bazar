@@ -82,6 +82,11 @@ const getAllListings = async (req, res) => {
     if (district && typeof district !== 'string') district = String(district);
     if (state && typeof state !== 'string') state = String(state);
 
+    // Normalize: strip common suffixes like "District", "Zila", "Jila" for robust text matching
+    const normalizePlace = (s) => s ? s.trim().replace(/\s*(district|zila|jila|जिला)\s*$/i, '').trim() : s;
+    if (district) district = normalizePlace(district);
+    if (state) state = normalizePlace(state);
+
     const hasLocation = !!(district || state);
     const searchQuery = q || req.query.search;
 
@@ -135,21 +140,34 @@ const getAllListings = async (req, res) => {
          query.listing_intent = intent;
       }
 
-      // Apply location filtering: coordinates-based geo-spatial query if available, otherwise text-matching
+      // Apply location filtering
       if (hasCoordinates && !partner_id) {
-        query.location = {
-          $near: {
-            $geometry: {
-              type: 'Point',
-              coordinates: [longitude, latitude]
-            },
-            $maxDistance: maxDistanceInMeters
-          }
-        };
+        const pathPrefix = modelName === 'Partner' ? '' : 'address.';
+        // Convert metres → radians for $centerSphere
+        const radiusInRadians = maxDistanceInMeters / 6378100;
+
+        // Use $geoWithin (supports $or, unlike $near) so we can also catch
+        // listings that were saved with [0,0] coordinates but have a matching
+        // district/state text field (common for listings created before the
+        // partner-location backfill was applied).
+        const locationOr = [
+          { location: { $geoWithin: { $centerSphere: [[longitude, latitude], radiusInRadians] } } }
+        ];
+        if (district) {
+          locationOr.push({
+            'location.coordinates': [0, 0],
+            [`${pathPrefix}district`]: { $regex: new RegExp(escapeRegex(district), 'i') }
+          });
+        } else if (state) {
+          locationOr.push({
+            'location.coordinates': [0, 0],
+            [`${pathPrefix}state`]: { $regex: new RegExp(escapeRegex(state), 'i') }
+          });
+        }
+        query.$or = locationOr;
       } else if (hasLocation && !partner_id) {
         // Different models use different paths for district/state
         const pathPrefix = modelName === 'Partner' ? '' : 'address.';
-        
         if (district) {
           query[`${pathPrefix}district`] = { $regex: new RegExp(escapeRegex(district), 'i') };
         } else if (state) {
@@ -160,35 +178,40 @@ const getAllListings = async (req, res) => {
       // ── TEXT SEARCH SUPPORT ──
       if (searchQuery) {
         const regex = { $regex: new RegExp(escapeRegex(searchQuery), 'i') };
-        if (modelName === 'Partner') {
-          query.$or = [
-            { name: regex },
-            { 'profile.supplier_profile.business_name': regex },
-            { 'profile.mandi_profile.business_name': regex },
-            { district: regex }
-          ];
+        const textOr = modelName === 'Partner'
+          ? [
+              { name: regex },
+              { 'profile.supplier_profile.business_name': regex },
+              { 'profile.mandi_profile.business_name': regex },
+              { district: regex }
+            ]
+          : [
+              { title: regex },
+              { description: regex },
+              { short_description: regex },
+              { full_description: regex },
+              { 'address.district': regex },
+              { material_name: regex }
+            ];
+
+        // If location already claimed $or, combine both conditions with $and
+        if (query.$or) {
+          query.$and = (query.$and || []).concat([
+            { $or: query.$or },
+            { $or: textOr }
+          ]);
+          delete query.$or;
         } else {
-          query.$or = [
-            { title: regex },
-            { description: regex },
-            { short_description: regex },
-            { full_description: regex },
-            { 'address.district': regex },
-            { material_name: regex }
-          ];
+          query.$or = textOr;
         }
       }
 
-      let sort = { createdAt: -1 };
-      if (modelName === 'MandiListing' || category === 'mandi') {
-        sort = { 'stats.enquiries': -1, 'stats.views': -1, createdAt: -1 };
-      }
+      const sort = (modelName === 'MandiListing' || category === 'mandi')
+        ? { 'stats.enquiries': -1, 'stats.views': -1, createdAt: -1 }
+        : { createdAt: -1 };
 
-      let querySort = sort;
-      if (hasCoordinates && !partner_id) {
-        // MongoDB doesn't allow sorting on other fields when using $near
-        querySort = {};
-      }
+      // $geoWithin (unlike $near) allows normal sorting
+      const querySort = sort;
 
       const items = await Model.find(query)
         .populate({ path: 'partner_id', select: 'name phone email role default_location profile createdAt', strictPopulate: false })

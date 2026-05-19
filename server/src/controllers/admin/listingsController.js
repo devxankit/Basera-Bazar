@@ -37,10 +37,10 @@ const getListings = async (req, res) => {
 
     if (type === 'property') {
       total = await PropertyListing.countDocuments(query);
-      listings = await PropertyListing.find(query).populate('partner_id', 'name phone').sort({ createdAt: -1 }).skip(skip).limit(limit);
+      listings = await PropertyListing.find(query).populate('partner_id', 'name phone').populate('category_id', 'name').sort({ createdAt: -1 }).skip(skip).limit(limit);
     } else if (type === 'service') {
       total = await ServiceListing.countDocuments(query);
-      listings = await ServiceListing.find(query).populate('partner_id', 'name phone').sort({ createdAt: -1 }).skip(skip).limit(limit);
+      listings = await ServiceListing.find(query).populate('partner_id', 'name phone').populate('category_id', 'name').sort({ createdAt: -1 }).skip(skip).limit(limit);
     } else if (type === 'product') {
       total = await MandiListing.countDocuments(query);
       listings = await MandiListing.find(query).populate('partner_id', 'name phone').populate('category_id', 'name').populate('subcategory_id', 'name').sort({ createdAt: -1 }).skip(skip).limit(limit);

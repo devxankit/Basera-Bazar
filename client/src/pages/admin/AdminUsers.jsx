@@ -1,59 +1,81 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
-  UserPlus, MoreHorizontal, UserCheck, UserX, Star,
-  Eye, Edit2, CreditCard, UserMinus, Trash2, Search, Filter
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import AdminTable from '../../components/common/AdminTable';
-import ConfirmationModal from '../../components/common/ConfirmationModal';
-import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
-import { toast } from '../../mockToast';
-import { getAdminUsers } from '../../services/AdminService';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+  UserPlus,
+  MoreHorizontal,
+  UserCheck,
+  UserX,
+  Star,
+  Eye,
+  Edit2,
+  CreditCard,
+  UserMinus,
+  Trash2,
+  Search,
+  Filter,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import AdminTable from "../../components/common/AdminTable";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
+import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
+import { toast } from "../../mockToast";
+import { getAdminUsers } from "../../services/AdminService";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import Skeleton from '../../components/common/Skeleton';
+import Skeleton from "../../components/common/Skeleton";
 
 export default function AdminUsers() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
   const [activeMenu, setActiveMenu] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [modalConfig, setModalConfig] = useState({
-    title: '',
-    message: '',
+    title: "",
+    message: "",
     onConfirm: () => {},
-    type: 'danger'
+    type: "danger",
   });
 
   const { data: rawUsers, isLoading: loading } = useQuery({
-    queryKey: ['adminUsers'],
+    queryKey: ["adminUsers"],
     queryFn: () => getAdminUsers(),
     staleTime: 0,
   });
 
   const users = rawUsers || [];
 
-  const filterTabs = ['All', 'Admin', 'Agent', 'Supplier', 'Seller', 'Service Provider', 'Customer'];
+  const filterTabs = [
+    "All",
+    "Admin",
+    "Agent",
+    "Supplier",
+    "Seller",
+    "Service Provider",
+    "Customer",
+  ];
 
   // Maps each filter tab to all raw DB values that qualify for that tab.
   // A partner matches if ANY value in their displayRoles OR raw roles array
   // appears in the set for the selected filter.
   const RAW_ROLE_ALIASES = {
-    'agent':            ['agent', 'property_agent'],
-    'supplier':         ['supplier'],
-    'seller':           ['seller', 'mandi_seller'],
-    'service provider': ['service provider', 'service_provider', 'serviceprovider'],
-    'admin':            ['admin', 'superadmin', 'super_admin'],
-    'customer':         ['customer', 'user'],
+    agent: ["agent", "property_agent"],
+    supplier: ["supplier"],
+    seller: ["seller", "mandi_seller"],
+    "service provider": [
+      "service provider",
+      "service_provider",
+      "serviceprovider",
+    ],
+    admin: ["admin", "superadmin", "super_admin"],
+    customer: ["customer", "user"],
   };
 
-  const filteredData = users.filter(user => {
+  const filteredData = users.filter((user) => {
     // 1. Role Filtering — works for both single-role and multi-role partners
-    if (activeFilter !== 'All') {
+    if (activeFilter !== "All") {
       const target = activeFilter.toLowerCase().trim();
       const aliases = RAW_ROLE_ALIASES[target] || [target];
 
@@ -66,9 +88,11 @@ export default function AdminUsers() {
         user.partner_type,
       ]
         .filter(Boolean)
-        .map(r => r.toString().toLowerCase().trim());
+        .map((r) => r.toString().toLowerCase().trim());
 
-      const matched = allRoleStrings.some(r => aliases.includes(r) || r === target);
+      const matched = allRoleStrings.some(
+        (r) => aliases.includes(r) || r === target,
+      );
       if (!matched) return false;
     }
 
@@ -86,244 +110,345 @@ export default function AdminUsers() {
   });
 
   const columns = [
-    { 
-      header: 'CUSTOMER', 
+    {
+      header: "CUSTOMER",
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold overflow-hidden border border-slate-200 shadow-sm relative group">
-             <img src={`https://ui-avatars.com/api/?name=${row.name}&background=random&color=555`} alt="" className="w-full h-full object-cover" />
-             <div className="absolute inset-0 bg-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <img
+              src={`https://ui-avatars.com/api/?name=${row.name}&background=random&color=555`}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
           <div>
-            <p className="font-bold text-slate-900 tracking-tight text-[15px]">{row.name}</p>
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{String(row._id).padStart(8, '0')}</p>
+            <p className="font-bold text-slate-900 tracking-tight text-[15px]">
+              {row.name}
+            </p>
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
+              {String(row._id).padStart(8, "0")}
+            </p>
           </div>
         </div>
-      )
+      ),
     },
-    { header: 'EMAIL / PHONE', render: (row) => (
-      <div className="space-y-0.5">
-        <p className="text-slate-600 font-bold tracking-tight">{row.email || 'N/A'}</p>
-        <p className="text-[12px] text-slate-400 font-black tracking-widest">{row.phone}</p>
-      </div>
-    )},
-    { 
-      header: 'ROLE', 
+    {
+      header: "EMAIL / PHONE",
+      render: (row) => (
+        <div className="space-y-0.5">
+          <p className="text-slate-600 font-bold tracking-tight">
+            {row.email || "N/A"}
+          </p>
+          <p className="text-[12px] text-slate-400 font-black tracking-widest">
+            {row.phone}
+          </p>
+        </div>
+      ),
+    },
+    {
+      header: "ROLE",
       render: (row) => {
-        const displayRole = row.displayRole || (row.role === 'user' ? 'Customer' : row.role);
-        
+        const displayRole =
+          row.displayRole || (row.role === "user" ? "Customer" : row.role);
+
         if (row.displayRoles && row.displayRoles.length > 1) {
           return (
             <div className="flex gap-1.5">
               {row.displayRoles.map((r, i) => {
-                const initial = r.split(' ').map(w => w[0]).join('');
-                const colorClass = 
-                  r === 'Agent' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                  r === 'Supplier' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                  r === 'Seller' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                  r === 'Service Provider' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                  'bg-slate-50 text-slate-600 border-slate-200';
-                  
+                const initial = r
+                  .split(" ")
+                  .map((w) => w[0])
+                  .join("");
+                const colorClass =
+                  r === "Agent"
+                    ? "bg-indigo-50 text-indigo-600 border-indigo-100"
+                    : r === "Supplier"
+                      ? "bg-amber-50 text-amber-600 border-amber-100"
+                      : r === "Seller"
+                        ? "bg-orange-50 text-orange-600 border-orange-100"
+                        : r === "Service Provider"
+                          ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                          : "bg-slate-50 text-slate-600 border-slate-200";
+
                 return (
-                  <span key={i} title={r} className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-black uppercase tracking-widest border shadow-sm ${colorClass}`}>
+                  <span
+                    key={i}
+                    title={r}
+                    className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-black uppercase tracking-widest border shadow-sm ${colorClass}`}>
                     {initial}
                   </span>
-                )
+                );
               })}
             </div>
-          )
+          );
         }
 
         return (
-          <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm whitespace-nowrap inline-block ${
-            displayRole === 'Admin' ? 'bg-rose-50 text-rose-600 border-rose-100' : 
-            displayRole === 'Agent' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-            displayRole === 'Customer' ? 'bg-slate-50 text-slate-600 border-slate-200' :
-            displayRole === 'Supplier' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-            displayRole === 'Seller' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-            'bg-emerald-50 text-emerald-600 border-emerald-100'
-          }`}>
+          <span
+            className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm whitespace-nowrap inline-block ${
+              displayRole === "Admin"
+                ? "bg-rose-50 text-rose-600 border-rose-100"
+                : displayRole === "Agent"
+                  ? "bg-indigo-50 text-indigo-600 border-indigo-100"
+                  : displayRole === "Customer"
+                    ? "bg-slate-50 text-slate-600 border-slate-200"
+                    : displayRole === "Supplier"
+                      ? "bg-amber-50 text-amber-600 border-amber-100"
+                      : displayRole === "Seller"
+                        ? "bg-orange-50 text-orange-600 border-orange-100"
+                        : "bg-emerald-50 text-emerald-600 border-emerald-100"
+            }`}>
             {displayRole}
           </span>
         );
-      }
+      },
     },
-    { 
-      header: 'RATING', 
+    {
+      header: "RATING",
       render: (row) => (
         <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1.5 rounded-xl w-fit border border-amber-100 shadow-sm">
           <Star size={14} className="text-amber-500 fill-amber-500" />
-          <span className="text-[13px] font-black text-amber-700 tabular-nums">{row.rating?.toFixed(1) || '0.0'}</span>
+          <span className="text-[13px] font-black text-amber-700 tabular-nums">
+            {row.rating?.toFixed(1) || "0.0"}
+          </span>
         </div>
-      )
+      ),
     },
-    { 
-      header: 'JOINED', 
+    {
+      header: "JOINED",
       render: (row) => (
         <div className="space-y-0.5 whitespace-nowrap">
           <p className="text-xs font-black text-slate-900 uppercase tracking-widest">
-            {new Date(row.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+            {new Date(row.createdAt).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
           </p>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            {new Date(row.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+            {new Date(row.createdAt).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })}
           </p>
         </div>
-      )
-    },
-    { 
-      header: 'STATUS', 
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          <div className={`w-2.5 h-2.5 rounded-full ${row.is_active ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`}></div>
-          <span className={`text-[11px] font-black uppercase tracking-widest ${row.is_active ? 'text-emerald-600' : 'text-slate-400'}`}>
-            {row.is_active ? 'Active' : 'Inactive'}
-          </span>
-        </div>
-      )
+      ),
     },
     {
-      header: 'ACTIONS',
+      header: "STATUS",
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <div
+            className={`w-2.5 h-2.5 rounded-full ${row.is_active ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-slate-300"}`}></div>
+          <span
+            className={`text-[11px] font-black uppercase tracking-widest ${row.is_active ? "text-emerald-600" : "text-slate-400"}`}>
+            {row.is_active ? "Active" : "Inactive"}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: "ACTIONS",
       render: (row, index) => {
-        const ADMIN_ROLE_VALUES = ['admin', 'superadmin', 'super_admin', 'superAdmin', 'Admin', 'SuperAdmin'];
-        const isAdminRow = row.source === 'AdminUser'
-          || ADMIN_ROLE_VALUES.includes(row.role)
-          || (Array.isArray(row.displayRoles) && row.displayRoles.some(r => r === 'Admin'))
-          || row.displayRole === 'Admin';
+        const ADMIN_ROLE_VALUES = [
+          "admin",
+          "superadmin",
+          "super_admin",
+          "superAdmin",
+          "Admin",
+          "SuperAdmin",
+        ];
+        const isAdminRow =
+          row.source === "AdminUser" ||
+          ADMIN_ROLE_VALUES.includes(row.role) ||
+          (Array.isArray(row.displayRoles) &&
+            row.displayRoles.some((r) => r === "Admin")) ||
+          row.displayRole === "Admin";
 
         return (
-        <div className="flex items-center gap-3 relative">
-          {/* View Icon (Eye) */}
-          <button
-            onClick={() => navigate(`/admin/users/view/${row._id}`)}
-            className="w-10 h-10 flex items-center justify-center bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-all shadow-md active:scale-95 group/view relative"
-          >
-            <Eye size={18} />
-          </button>
-          
-          {/* Edit Icon (Pencil) */}
-          <button 
-            onClick={() => navigate(`/admin/users/edit/${row._id}`)}
-            className="w-10 h-10 flex items-center justify-center bg-white border-2 border-amber-400 text-amber-500 rounded-full hover:bg-amber-50 transition-all shadow-sm active:scale-95 group/edit relative"
-          >
-            <Edit2 size={18} />
-          </button>
-          
-          {/* More Menu */}
-          <div className="relative">
-            <button 
-              onClick={() => setActiveMenu(activeMenu === row._id ? null : row._id)}
-              className={`w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-95 ${
-                activeMenu === row._id ? 'bg-slate-900 text-white ring-4 ring-slate-100' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-              }`}
-            >
-              <MoreHorizontal size={20} />
+          <div className="flex items-center gap-3 relative">
+            {/* View Icon (Eye) */}
+            <button
+              onClick={() => navigate(`/admin/users/view/${row._id}`)}
+              className="w-10 h-10 flex items-center justify-center bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-all shadow-md active:scale-95 group/view relative">
+              <Eye size={18} />
             </button>
-            
-            <AnimatePresence>
-              {activeMenu === row._id && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setActiveMenu(null)} />
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: (index > 5 || (index > filteredData.length - 3 && filteredData.length > 2)) ? 10 : -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: (index > 5 || (index > filteredData.length - 3 && filteredData.length > 2)) ? 10 : -10 }}
-                    className={`absolute right-0 w-48 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 py-3 z-20 ${
-                      (index > 5 || (index > filteredData.length - 3 && filteredData.length > 2)) ? 'bottom-full mb-3' : 'top-full mt-3'
-                    }`}
-                  >
-                    <button 
-                      onClick={() => navigate(`/admin/users/subscriptions/${row._id}`)}
-                      className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
-                    >
-                      <CreditCard size={18} className="text-slate-400" />
-                      Subscriptions
-                    </button>
-                    {!isAdminRow && (
-                      <>
-                        <button
-                          onClick={() => {
-                            setActiveMenu(null);
-                            setModalConfig({
-                              title: row.is_active ? 'Deactivate User' : 'Activate User',
-                              message: `Are you sure you want to ${row.is_active ? 'deactivate' : 'activate'} ${row.name}? All active sessions will be terminated.`,
-                              type: 'warning',
-                              onConfirm: async () => {
-                                setIsActionLoading(true);
-                                try {
-                                  await api.put(`/admin/users/${row._id}`, { is_active: !row.is_active });
-                                  queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
-                                  setIsModalOpen(false);
-                                } catch (err) {
-                                  console.error(err);
-                                  toast.error(err.response?.data?.message || 'Failed to update user status.');
-                                } finally {
-                                  setIsActionLoading(false);
-                                }
+
+            {/* Edit Icon (Pencil) */}
+            <button
+              onClick={() => navigate(`/admin/users/edit/${row._id}`)}
+              className="w-10 h-10 flex items-center justify-center bg-white border-2 border-amber-400 text-amber-500 rounded-full hover:bg-amber-50 transition-all shadow-sm active:scale-95 group/edit relative">
+              <Edit2 size={18} />
+            </button>
+
+            {/* More Menu */}
+            <div className="relative">
+              <button
+                onClick={() =>
+                  setActiveMenu(activeMenu === row._id ? null : row._id)
+                }
+                className={`w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-95 ${
+                  activeMenu === row._id
+                    ? "bg-slate-900 text-white ring-4 ring-slate-100"
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                }`}>
+                <MoreHorizontal size={20} />
+              </button>
+
+              <AnimatePresence>
+                {activeMenu === row._id && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setActiveMenu(null)}
+                    />
+                    <motion.div
+                      initial={{
+                        opacity: 0,
+                        scale: 0.95,
+                        y:
+                          index > 5 ||
+                          (index > filteredData.length - 3 &&
+                            filteredData.length > 2)
+                            ? 10
+                            : -10,
+                      }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{
+                        opacity: 0,
+                        scale: 0.95,
+                        y:
+                          index > 5 ||
+                          (index > filteredData.length - 3 &&
+                            filteredData.length > 2)
+                            ? 10
+                            : -10,
+                      }}
+                      className={`absolute right-0 w-48 bg-white rounded-1.5rem shadow-2xl border border-slate-100 py-3 z-20 ${
+                        index > 5 ||
+                        (index > filteredData.length - 3 &&
+                          filteredData.length > 2)
+                          ? "bottom-full mb-3"
+                          : "top-full mt-3"
+                      }`}>
+                      <button
+                        onClick={() =>
+                          navigate(`/admin/users/subscriptions/${row._id}`)
+                        }
+                        className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                        <CreditCard size={18} className="text-slate-400" />
+                        Subscriptions
+                      </button>
+                      {!isAdminRow && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setActiveMenu(null);
+                              setModalConfig({
+                                title: row.is_active
+                                  ? "Deactivate User"
+                                  : "Activate User",
+                                message: `Are you sure you want to ${row.is_active ? "deactivate" : "activate"} ${row.name}? All active sessions will be terminated.`,
+                                type: "warning",
+                                onConfirm: async () => {
+                                  setIsActionLoading(true);
+                                  try {
+                                    await api.put(`/admin/users/${row._id}`, {
+                                      is_active: !row.is_active,
+                                    });
+                                    queryClient.invalidateQueries({
+                                      queryKey: ["adminUsers"],
+                                    });
+                                    setIsModalOpen(false);
+                                  } catch (err) {
+                                    console.error(err);
+                                    toast.error(
+                                      err.response?.data?.message ||
+                                        "Failed to update user status.",
+                                    );
+                                  } finally {
+                                    setIsActionLoading(false);
+                                  }
+                                },
+                              });
+                              setIsModalOpen(true);
+                            }}
+                            className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                            <UserMinus
+                              size={18}
+                              className={
+                                row.is_active
+                                  ? "text-rose-400"
+                                  : "text-emerald-400"
                               }
-                            });
-                            setIsModalOpen(true);
-                          }}
-                          className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
-                        >
-                          <UserMinus size={18} className={row.is_active ? "text-rose-400" : "text-emerald-400"} />
-                          {row.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <div className="h-px bg-slate-50 my-2 mx-5" />
-                        <button
-                          onClick={async () => {
-                            setActiveMenu(null);
-                            let hasListings = false;
-                            let listingsCount = 0;
-                            try {
-                              const res = await api.get(`/listings?partner_id=${row._id}`);
-                              listingsCount = res.data?.data?.length || res.data?.length || 0;
-                              hasListings = listingsCount > 0;
-                            } catch (err) {
-                              console.error("Failed to check listings", err);
-                            }
-                            setModalConfig({
-                              title: 'Permanent Deletion',
-                              message: hasListings
-                                ? `CRITICAL: ${row.name} has ${listingsCount} active listing(s). Deleting this partner will also permanently delete all their listings. This action is irreversible.`
-                                : `CRITICAL: Are you sure you want to erase ${row.name} from the database? This action is irreversible.`,
-                              type: 'danger',
-                              onConfirm: async () => {
-                                setIsActionLoading(true);
-                                try {
-                                  await api.delete(`/admin/users/${row._id}`);
-                                  window.location.reload();
-                                } catch (err) {
-                                  toast.error(err.response?.data?.message || 'Deletion failed.');
-                                } finally {
-                                  setIsActionLoading(false);
-                                  setIsModalOpen(false);
-                                }
+                            />
+                            {row.is_active ? "Deactivate" : "Activate"}
+                          </button>
+                          <div className="h-px bg-slate-50 my-2 mx-5" />
+                          <button
+                            onClick={async () => {
+                              setActiveMenu(null);
+                              let hasListings = false;
+                              let listingsCount = 0;
+                              try {
+                                const res = await api.get(
+                                  `/listings?partner_id=${row._id}`,
+                                );
+                                listingsCount =
+                                  res.data?.data?.length ||
+                                  res.data?.length ||
+                                  0;
+                                hasListings = listingsCount > 0;
+                              } catch (err) {
+                                console.error("Failed to check listings", err);
                               }
-                            });
-                            setIsModalOpen(true);
-                          }}
-                          className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-rose-600 hover:bg-rose-50 transition-colors"
-                        >
-                          <Trash2 size={18} />
-                          Delete From DB
-                        </button>
-                      </>
-                    )}
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+                              setModalConfig({
+                                title: "Permanent Deletion",
+                                message: hasListings
+                                  ? `CRITICAL: ${row.name} has ${listingsCount} active listing(s). Deleting this partner will also permanently delete all their listings. This action is irreversible.`
+                                  : `CRITICAL: Are you sure you want to erase ${row.name} from the database? This action is irreversible.`,
+                                type: "danger",
+                                onConfirm: async () => {
+                                  setIsActionLoading(true);
+                                  try {
+                                    await api.delete(`/admin/users/${row._id}`);
+                                    window.location.reload();
+                                  } catch (err) {
+                                    toast.error(
+                                      err.response?.data?.message ||
+                                        "Deletion failed.",
+                                    );
+                                  } finally {
+                                    setIsActionLoading(false);
+                                    setIsModalOpen(false);
+                                  }
+                                },
+                              });
+                              setIsModalOpen(true);
+                            }}
+                            className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-rose-600 hover:bg-rose-50 transition-colors">
+                            <Trash2 size={18} />
+                            Delete From DB
+                          </button>
+                        </>
+                      )}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
-        </div>
         );
-      }
-    }
+      },
+    },
   ];
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         {loading ? (
           <div className="space-y-2">
             <Skeleton className="h-10 w-64 rounded-xl" />
@@ -331,25 +456,28 @@ export default function AdminUsers() {
           </div>
         ) : (
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">User Management</h1>
-            <p className="text-slate-500 font-medium mt-1 text-lg">Manage customers, partners, and administrators system-wide.</p>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+              User Management
+            </h1>
+            <p className="text-slate-500 font-medium mt-1 text-lg">
+              Manage customers, partners, and administrators system-wide.
+            </p>
           </div>
         )}
-        
+
         {!loading && (
-          <button 
-            onClick={() => navigate('/admin/users/add')}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-indigo-100 transition-all flex items-center gap-3 active:scale-95 text-[15px] w-fit"
-          >
+          <button
+            onClick={() => navigate("/admin/users/add")}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-indigo-100 transition-all flex items-center gap-3 active:scale-95 text-[15px] w-fit">
             <UserPlus size={22} strokeWidth={2.5} />
             Add New User
           </button>
         )}
       </div>
-      <AdminTable 
-        columns={columns} 
-        data={filteredData} 
-        loading={loading} 
+      <AdminTable
+        columns={columns}
+        data={filteredData}
+        loading={loading}
         onSearch={setSearchTerm}
         hideFilter={true}
         searchPlaceholder="Find users by name, id, email..."
@@ -361,11 +489,10 @@ export default function AdminUsers() {
                   key={tab}
                   onClick={() => setActiveFilter(tab)}
                   className={`px-4 py-2 rounded-xl text-[11px] font-black transition-all ${
-                    activeFilter === tab 
-                      ? 'bg-white text-orange-500 shadow-sm ring-1 ring-slate-100' 
-                      : 'text-slate-400 hover:text-slate-600'
-                  }`}
-                >
+                    activeFilter === tab
+                      ? "bg-white text-orange-500 shadow-sm ring-1 ring-slate-100"
+                      : "text-slate-400 hover:text-slate-600"
+                  }`}>
                   {tab}
                 </button>
               ))}
