@@ -7,6 +7,8 @@ import api from '../../services/api';
 import { registerFCMToken } from '../../services/pushNotificationService';
 import LocationPicker from '../../components/common/LocationPicker';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { v, sanitize } from '../../utils/validators';
+import useFormValidation from '../../hooks/useFormValidation';
 
 // ─── Small reusable popup modal ───────────────────────────────────────────────
 function AlertModal({ icon: Icon, iconBg, iconColor, title, message, primaryText, primaryAction, secondaryText, secondaryAction }) {
@@ -78,6 +80,7 @@ export default function SignUp() {
   const [popup, setPopup] = useState(null);
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const { errors, validateAll, setError, clearError } = useFormValidation();
 
   useScrollLock(isLocationModalOpen || showTerms || showPrivacy || !!popup);
 
@@ -101,13 +104,15 @@ export default function SignUp() {
 
   // ── Validate all fields before any API call ──────────────────────────────
   const validate = () => {
-    if (!form.fullName.trim()) { alert('Please enter your full name.'); return false; }
-    if (!form.email.trim()) { alert('Please enter your email address.'); return false; }
-    if (!form.password.trim()) { alert('Please enter a password.'); return false; }
-    if (form.password.length < 8) { alert('Password must be at least 8 characters.'); return false; }
-    if (!form.city || !form.state || !form.district) { alert('Please select your location.'); return false; }
-    if (form.phone.length !== 10) { alert('Please enter a valid 10-digit phone number.'); return false; }
-    return true;
+    return validateAll({
+      fullName: v.name(form.fullName),
+      phone:    v.phone(form.phone),
+      email:    v.email(form.email),
+      password: v.password(form.password),
+      address:  v.address(form.address),
+      pincode:  form.pincode ? v.pincode(form.pincode) : null,
+      location: (!form.city || !form.state || !form.district) ? 'Please select your location (city, state, district).' : null,
+    });
   };
 
   // ── Resend OTP ───────────────────────────────────────────────────────────
@@ -156,10 +161,8 @@ export default function SignUp() {
     }
 
     // ── Step 2: verify OTP + create account in one call ──
-    if (otp.length !== 6) {
-      alert('Please enter the 6-digit OTP sent to your phone.');
-      return;
-    }
+    const otpErr = v.otp(otp);
+    if (otpErr) { setError('otp', otpErr); return; }
     try {
       setLoading(true);
       const response = await api.post('/auth/verify-otp', {
@@ -266,9 +269,10 @@ export default function SignUp() {
               <input
                 type="text" placeholder="Full Name" required
                 value={form.fullName}
-                onChange={e => setForm({ ...form, fullName: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
-                style={inputStyle}
+                onChange={e => { setForm({ ...form, fullName: e.target.value.replace(/[^A-Za-z\s'\-]/g, '') }); clearError('fullName'); }}
+                style={{ ...inputStyle, borderColor: errors.fullName ? '#f87171' : '#dde1f0' }}
               />
+              {errors.fullName && <p style={{ fontSize: '12px', color: '#e11d48', marginTop: '4px', fontWeight: '500' }}>{errors.fullName}</p>}
             </motion.div>
 
             {/* Email */}
@@ -277,20 +281,22 @@ export default function SignUp() {
               <input
                 type="email" placeholder="Email Address" required
                 value={form.email}
-                onChange={e => setForm({ ...form, email: e.target.value })}
-                style={inputStyle}
+                onChange={e => { setForm({ ...form, email: e.target.value }); clearError('email'); }}
+                style={{ ...inputStyle, borderColor: errors.email ? '#f87171' : '#dde1f0' }}
               />
+              {errors.email && <p style={{ fontSize: '12px', color: '#e11d48', marginTop: '4px', fontWeight: '500' }}>{errors.email}</p>}
             </motion.div>
 
             {/* Password */}
             <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '18px' }}>
               <span style={iconStyle}><Lock size={22} strokeWidth={1.8} /></span>
               <input
-                type={showPassword ? 'text' : 'password'} placeholder="Password (min. 8 characters)" required minLength={8}
+                type={showPassword ? 'text' : 'password'} placeholder="Password (uppercase, lowercase, digit, special char)" required
                 value={form.password}
-                onChange={e => setForm({ ...form, password: e.target.value })}
-                style={{ ...inputStyle, paddingRight: '54px' }}
+                onChange={e => { setForm({ ...form, password: e.target.value }); clearError('password'); }}
+                style={{ ...inputStyle, paddingRight: '54px', borderColor: errors.password ? '#f87171' : '#dde1f0' }}
               />
+              {errors.password && <p style={{ fontSize: '12px', color: '#e11d48', marginTop: '4px', fontWeight: '500' }}>{errors.password}</p>}
               <button
                 type="button" onClick={() => setShowPassword(v => !v)}
                 style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#3b52d4', display: 'flex', alignItems: 'center' }}
@@ -304,9 +310,10 @@ export default function SignUp() {
               <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#4a567a', marginBottom: '8px', paddingLeft: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Your Location (Mandatory)
               </div>
+              {errors.location && <p style={{ fontSize: '12px', color: '#e11d48', marginTop: '-4px', marginBottom: '6px', fontWeight: '500' }}>{errors.location}</p>}
               <button
                 type="button"
-                onClick={() => setIsLocationModalOpen(true)}
+                onClick={() => { setIsLocationModalOpen(true); clearError('location'); }}
                 style={{
                   width: '100%', padding: '16px 18px', backgroundColor: '#ffffff',
                   border: '1.5px solid #dde1f0', borderRadius: '12px',
@@ -334,17 +341,19 @@ export default function SignUp() {
                   <input
                     type="text" placeholder="Full Address / Landmark" required
                     value={form.address}
-                    onChange={e => setForm({ ...form, address: e.target.value })}
-                    style={inputStyle}
+                    onChange={e => { setForm({ ...form, address: e.target.value }); clearError('address'); }}
+                    style={{ ...inputStyle, borderColor: errors.address ? '#f87171' : '#dde1f0' }}
                   />
+                  {errors.address && <p style={{ fontSize: '12px', color: '#e11d48', marginTop: '4px', fontWeight: '500' }}>{errors.address}</p>}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
                   <input
                     type="text" placeholder="Pincode" required maxLength={6}
                     value={form.pincode}
-                    onChange={e => setForm({ ...form, pincode: e.target.value.replace(/\D/g, '') })}
-                    style={{ ...inputStyle, paddingLeft: '18px' }}
+                    onChange={e => { setForm({ ...form, pincode: sanitize.pincode(e.target.value) }); clearError('pincode'); }}
+                    style={{ ...inputStyle, paddingLeft: '18px', borderColor: errors.pincode ? '#f87171' : '#dde1f0' }}
                   />
+                  {errors.pincode && <p style={{ fontSize: '12px', color: '#e11d48', marginTop: '4px', fontWeight: '500' }}>{errors.pincode}</p>}
                 </div>
               </motion.div>
             )}
@@ -359,11 +368,11 @@ export default function SignUp() {
                 inputMode="numeric"
                 autoComplete="tel-national"
                 onChange={e => {
-                  let v = e.target.value.replace(/\s+/g, '').replace(/^\+91/, '');
-                  v = v.replace(/\D/g, '').slice(0, 10);
-                  setForm({ ...form, phone: v });
+                  const val = sanitize.phone(e.target.value.replace(/^\+91/, ''));
+                  setForm({ ...form, phone: val });
+                  clearError('phone');
                 }}
-                style={{ ...inputStyle, opacity: showOtpInput ? 0.6 : 1 }}
+                style={{ ...inputStyle, opacity: showOtpInput ? 0.6 : 1, borderColor: errors.phone ? '#f87171' : '#dde1f0' }}
               />
               {showOtpInput && (
                 <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '13px', fontWeight: '600' }}>
@@ -379,9 +388,11 @@ export default function SignUp() {
                   type="text" placeholder="Enter 6-digit OTP"
                   maxLength={6}
                   value={otp}
-                  onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                  style={{ ...inputStyle, paddingLeft: '18px', borderColor: '#2334b2', backgroundColor: '#f8f9ff', letterSpacing: '0.3em', textAlign: 'center', fontSize: '20px', fontWeight: '700' }}
+                  onChange={e => { setOtp(sanitize.otp(e.target.value)); clearError('otp'); }}
+                  style={{ ...inputStyle, paddingLeft: '18px', borderColor: errors.otp ? '#f87171' : '#2334b2', backgroundColor: '#f8f9ff', letterSpacing: '0.3em', textAlign: 'center', fontSize: '20px', fontWeight: '700' }}
                 />
+                {errors.otp && <p style={{ fontSize: '12px', color: '#e11d48', marginTop: '4px', fontWeight: '500', textAlign: 'center' }}>{errors.otp}</p>}
+                {errors.phone && <p style={{ fontSize: '12px', color: '#e11d48', marginTop: '4px', fontWeight: '500' }}>{errors.phone}</p>}
               </motion.div>
             )}
 

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import MediaDropZone from '../../components/common/MediaDropZone';
+import { v } from '../../utils/validators';
 
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "block text-sm font-bold text-slate-600 mb-1.5";
@@ -97,6 +98,10 @@ export default function AdminCategoryForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.name?.trim()) { setError('Category name is required.'); return; }
+    if (formData.description && formData.description.trim().length > 0 && formData.description.trim().length < 3) {
+      setError('Description must be at least 3 characters.'); return;
+    }
     setLoading(true);
     setError(null);
     setSuccess(null);

@@ -22,7 +22,8 @@ export default function AdminLogin() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!identifier || !password) return;
+    if (!identifier.trim()) { setError('Username or email is required.'); return; }
+    if (!password) { setError('Password is required.'); return; }
     
     try {
       setLoading(true);

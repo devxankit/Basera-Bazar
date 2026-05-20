@@ -8,6 +8,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { v } from '../../utils/validators';
 
 const ALL_ROLES = [
   {
@@ -199,6 +200,13 @@ export default function AddRolePage() {
   };
 
   const handleAddRole = async () => {
+    if (gstData.number) {
+      const gstErr = v.gst(gstData.number);
+      if (gstErr) { alert(gstErr); return; }
+    }
+    if (profileData.business_name && profileData.business_description && profileData.business_description.trim().length > 0 && profileData.business_description.trim().length < 10) {
+      alert('Business description must be at least 10 characters.'); return;
+    }
     setSubmitting(true);
     try {
       const payload = {

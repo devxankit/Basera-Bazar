@@ -4,6 +4,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
+import { v } from '../../utils/validators';
 
 export default function AdminSubscriptionPlanForm() {
   const { id } = useParams();
@@ -69,6 +70,10 @@ export default function AdminSubscriptionPlanForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!formData.name?.trim()) { toast.error('Plan name is required.'); return; }
+    if (formData.price < 0) { toast.error('Price cannot be negative.'); return; }
+    const daysErr = v.positiveInt(formData.duration_days, { label: 'Duration' });
+    if (daysErr) { toast.error(daysErr); return; }
     const payload = {
       ...formData,
       applicable_to: Array.isArray(formData.applicable_to) ? formData.applicable_to : [formData.applicable_to],

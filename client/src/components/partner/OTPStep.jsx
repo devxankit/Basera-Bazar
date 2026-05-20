@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Phone, ArrowLeft, Loader2, CheckCircle2, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
+import { v, sanitize } from '../../utils/validators';
 
 export default function OTPStep({ formData, selectedRole, onBack, onVerified }) {
   const [otp, setOtp] = useState('');
@@ -34,7 +35,8 @@ export default function OTPStep({ formData, selectedRole, onBack, onVerified }) 
   };
 
   const handleVerify = async () => {
-    if (otp.length !== 6) return;
+    const otpErr = v.otp(otp);
+    if (otpErr) { setError(otpErr); return; }
     try {
       setVerifying(true);
       setError('');
@@ -95,7 +97,7 @@ export default function OTPStep({ formData, selectedRole, onBack, onVerified }) 
             pattern="[0-9]*"
             maxLength={6}
             value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+            onChange={(e) => { setOtp(sanitize.otp(e.target.value)); setError(''); }}
             placeholder="Enter 6-digit OTP"
             className={`w-full bg-white border ${error ? 'border-red-500' : 'border-slate-200'} rounded-2xl py-5 pl-12 pr-4 text-[22px] font-black tracking-[0.4em] text-[#001b4e] placeholder:text-slate-300 placeholder:tracking-normal placeholder:font-medium outline-none focus:border-[#001b4e] focus:ring-4 focus:ring-blue-50/50 transition-all`}
           />

@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { db } from '../../services/DataEngine';
+import { v } from '../../utils/validators';
 
 export default function AddMandiProduct() {
   const navigate = useNavigate();
@@ -194,10 +195,12 @@ export default function AddMandiProduct() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.material_id || !formData.price) {
-      alert("Please select a category and set the price.");
+    if (!formData.material_id) {
+      alert("Please select a product category.");
       return;
     }
+    const priceErr = v.price(formData.price);
+    if (priceErr) { alert(priceErr); return; }
     try {
       setLoading(true);
       const payload = {

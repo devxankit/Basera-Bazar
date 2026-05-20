@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '../../services/DataEngine';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { v } from '../../utils/validators';
 
 const SERVICE_CATEGORIES = [
   'AC maintenance', 'CCTV Services', 'Architect', 'Carpenter', 'Civil Engineer', 
@@ -299,13 +300,26 @@ export default function AddService() {
 
   const isSubmitting = saveServiceMutation.isPending;
 
+  const [formErrors, setFormErrors] = useState({});
+
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
     if (isSubmitting) return;
-    if (!formData.category_id) {
-      alert("Please select a service category.");
+    const errs = {};
+    if (!formData.category_id) errs.category_id = 'Please select a service category.';
+    const nameErr = v.title(formData.serviceName);
+    if (nameErr) errs.serviceName = nameErr;
+    const radiusErr = v.radius(formData.serviceRadiusKm);
+    if (radiusErr) errs.serviceRadiusKm = radiusErr;
+    const videoErr = v.urlOptional(formData.videoLink);
+    if (videoErr) errs.videoLink = videoErr;
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs);
+      const first = Object.values(errs)[0];
+      alert(first);
       return;
     }
+    setFormErrors({});
     saveServiceMutation.mutate(formData);
   };
 

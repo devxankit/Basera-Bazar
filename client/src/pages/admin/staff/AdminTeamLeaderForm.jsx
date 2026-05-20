@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
+import { v } from '../../../utils/validators';
 
 const INDIAN_STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Jammu and Kashmir','Ladakh'];
 
@@ -110,13 +111,16 @@ export default function AdminTeamLeaderForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!isEdit && form.password !== form.confirm_password) {
-      toast.error('Passwords do not match.');
-      return;
-    }
-    if (!isEdit && getPasswordStrength(form.password).score < 3) {
-      toast.error('Please use a stronger password.');
-      return;
+    const nameErr = v.name(form.name);
+    if (nameErr) { toast.error(nameErr); return; }
+    const phoneErr = v.phone(form.phone);
+    if (phoneErr) { toast.error(phoneErr); return; }
+    const emailErr = v.email(form.email);
+    if (emailErr) { toast.error(emailErr); return; }
+    if (!isEdit) {
+      const passErr = v.password(form.password);
+      if (passErr) { toast.error(passErr); return; }
+      if (form.password !== form.confirm_password) { toast.error('Passwords do not match.'); return; }
     }
     const payload = { ...form };
     delete payload.confirm_password;

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import MediaDropZone from '../../components/common/MediaDropZone';
+import { v } from '../../utils/validators';
 
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "block text-sm font-bold text-slate-600 mb-1.5";
@@ -134,6 +135,8 @@ export default function AdminServiceForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const titleErr = v.title(formData.title);
+    if (titleErr) { setError(titleErr); return; }
     setError(null);
     setSuccess(null);
     try {

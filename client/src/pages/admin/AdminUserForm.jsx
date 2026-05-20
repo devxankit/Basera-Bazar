@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { db } from '../../services/DataEngine';
+import { v, sanitize } from '../../utils/validators';
 
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "block text-sm font-bold text-slate-600 mb-1.5";
@@ -132,6 +133,21 @@ export default function AdminUserForm() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+
+    const nameErr = v.name(formData.name);
+    if (nameErr) { setError(nameErr); return; }
+    const emailErr = v.email(formData.email);
+    if (emailErr) { setError(emailErr); return; }
+    const phoneErr = v.phone(formData.phone);
+    if (phoneErr) { setError(phoneErr); return; }
+    if (!isEdit && !formData.password) { setError('Password is required.'); return; }
+    if (formData.delivery_radius_km) {
+      const radErr = v.radius(formData.delivery_radius_km);
+      if (radErr) { setError(radErr); return; }
+    }
+    if (formData.business_description && formData.business_description.trim().length > 0 && formData.business_description.trim().length < 10) {
+      setError('Business description must be at least 10 characters.'); return;
+    }
 
     try {
       const updatedData = { ...formData };

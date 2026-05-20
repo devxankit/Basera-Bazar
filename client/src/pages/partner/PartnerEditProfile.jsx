@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { v } from '../../utils/validators';
 
 const SUPPLIER_CATEGORIES = [
   'Aggregate supplier', 
@@ -77,6 +78,13 @@ export default function PartnerEditProfile() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const nameErr = v.name(formData.name);
+    if (nameErr) { alert(nameErr); return; }
+    const emailErr = v.emailOptional(formData.email);
+    if (emailErr) { alert(emailErr); return; }
+    if (formData.businessDescription && formData.businessDescription.trim().length > 0 && formData.businessDescription.trim().length < 10) {
+      alert('Business description must be at least 10 characters.'); return;
+    }
     updateProfileMutation.mutate({
       name: formData.name,
       email: formData.email,

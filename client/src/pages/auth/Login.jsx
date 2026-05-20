@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { registerFCMToken } from '../../services/pushNotificationService';
+import { v, sanitize } from '../../utils/validators';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ export default function Login() {
   const [fpLoading, setFpLoading] = useState(false);
   const [fpError, setFpError] = useState('');
   const [fpTimer, setFpTimer] = useState(0);
+  const [loginError, setLoginError] = useState('');
 
   // Legal modals
   const [showTerms, setShowTerms] = useState(false);
@@ -71,7 +73,8 @@ export default function Login() {
   };
 
   const handleFpSendOtp = async () => {
-    if (fpPhone.length !== 10) return;
+    const err = v.phone(fpPhone);
+    if (err) { setFpError(err); return; }
     setFpLoading(true); setFpError('');
     try {
       await api.post('/auth/send-otp', { phone: fpPhone, checkExists: true });
@@ -85,13 +88,15 @@ export default function Login() {
     // Don't call the API here — verify_only would delete the OTP from DB,
     // then resetPassword (step 3) would find nothing. Verify OTP atomically
     // in the final reset call instead.
-    if (fpOtp.length !== 6) return;
+    const err = v.otp(fpOtp);
+    if (err) { setFpError(err); return; }
     setFpError('');
     setFpStep(3);
   };
 
   const handleFpReset = async () => {
-    if (fpNewPass.length < 8) { setFpError('Password must be at least 8 characters.'); return; }
+    const pwErr = v.password(fpNewPass);
+    if (pwErr) { setFpError(pwErr); return; }
     if (fpNewPass !== fpConfirm) { setFpError('Passwords do not match.'); return; }
     setFpLoading(true); setFpError('');
     try {
@@ -106,7 +111,9 @@ export default function Login() {
   };
 
   const handleSendOtp = async () => {
-    if (identifier.length !== 10) return;
+    const err = v.phone(identifier);
+    if (err) { setLoginError(err); return; }
+    setLoginError('');
     try {
       setLoading(true);
       const response = await api.post('/auth/send-otp', { 
@@ -132,7 +139,9 @@ export default function Login() {
   
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!otp) return;
+    const err = v.otp(otp);
+    if (err) { setLoginError(err); return; }
+    setLoginError('');
     
     try {
       setLoading(true);
@@ -162,7 +171,10 @@ export default function Login() {
     if (loginMethod === 'otp') {
        handleVerifyOtp(e);
     } else {
-      if (!identifier || !password) return;
+      const idErr = identifier.includes('@') ? v.email(identifier) : v.phone(identifier);
+      if (idErr) { setLoginError(idErr); return; }
+      if (!password) { setLoginError('Password is required.'); return; }
+      setLoginError('');
       try {
         setLoading(true);
         const response = await api.post('/auth/login', {
@@ -307,7 +319,11 @@ export default function Login() {
               required
               value={identifier}
               maxLength={loginMethod === 'otp' ? 10 : undefined}
-              onChange={e => setIdentifier(e.target.value)}
+              onChange={e => {
+                const val = loginMethod === 'otp' ? sanitize.phone(e.target.value) : e.target.value;
+                setIdentifier(val);
+                setLoginError('');
+              }}
               style={{
                 width: '100%',
                 boxSizing: 'border-box',
@@ -345,6 +361,10 @@ export default function Login() {
             )}
           </motion.div>
 
+          {loginError && (
+            <p style={{ fontSize: '13px', color: '#e11d48', fontWeight: '600', marginTop: '-12px', marginBottom: '12px' }}>{loginError}</p>
+          )}
+
           {/* OTP input or Password input */}
           {loginMethod === 'otp' && otpSent && (
             <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '18px' }}>
@@ -357,7 +377,7 @@ export default function Login() {
                 required
                 maxLength={6}
                 value={otp}
-                onChange={e => setOtp(e.target.value)}
+                onChange={e => { setOtp(sanitize.otp(e.target.value)); setLoginError(''); }}
                 style={{
                   width: '100%',
                   boxSizing: 'border-box',

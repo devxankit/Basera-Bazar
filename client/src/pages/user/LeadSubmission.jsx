@@ -10,6 +10,8 @@ import { useAuth } from '../../context/AuthContext';
 import { INDIAN_STATES_DISTRICTS, INDIAN_STATES } from '../../constants/indiaGeoData';
 import clsx from 'clsx';
 import { useMutation } from '@tanstack/react-query';
+import { v, sanitize } from '../../utils/validators';
+import useFormValidation from '../../hooks/useFormValidation';
 
 // Map any browse category type to valid backend enum values
 const toValidCategory = (type) => {
@@ -39,6 +41,7 @@ const LeadSubmission = () => {
     document_url: ''
   });
 
+  const { errors, validateAll, clearError } = useFormValidation();
   const [products, setProducts] = useState([
     { item_name: '', quantity: '', unit: 'Unit' }
   ]);
@@ -103,11 +106,14 @@ const LeadSubmission = () => {
       navigate('/login', { state: { from: window.location.pathname + window.location.search } });
       return;
     }
-    const phoneDigits = formData.phone.replace(/\D/g, '');
-    if (phoneDigits.length !== 10) {
-      alert("Please enter a valid 10-digit mobile number.");
-      return;
-    }
+    const ok = validateAll({
+      name:                v.name(formData.name),
+      phone:               v.phone(formData.phone),
+      email:               v.emailOptional(formData.email),
+      full_address:        v.address(formData.full_address),
+      requirement_details: v.description(formData.requirement_details, { required: false }),
+    });
+    if (!ok) return;
     if (products.some(p => !p.item_name.trim())) {
       alert("Please fill the item name for all rows.");
       return;

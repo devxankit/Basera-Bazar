@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '../../services/DataEngine';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { v } from '../../utils/validators';
 
 const TYPES = ['Commercial', 'Residential', 'Agricultural', 'Industrial'];
 const UNITS = ['sq. ft.', 'sq. m.', 'acre', 'dismil', 'gaj'];
@@ -434,19 +435,20 @@ export default function AddProperty() {
   };
 
   const nextStep = () => {
-    // Basic Validation per Step
     if (activeStep === 1) {
-      if (!formData.title || !formData.price || !formData.categoryId || (subCategories.length > 0 && !formData.subcategoryId)) {
-        alert('Please fill in all required fields: Title, Price, and Category.');
-        return;
-      }
+      const titleErr = v.title(formData.title);
+      if (titleErr) { alert(titleErr); return; }
+      const priceErr = v.price(formData.price);
+      if (priceErr) { alert(priceErr); return; }
+      if (!formData.categoryId) { alert('Please select a property category.'); return; }
+      if (subCategories.length > 0 && !formData.subcategoryId) { alert('Please select a sub-category.'); return; }
     }
-    
+
     if (activeStep === 3) {
-      if (!formData.state || !formData.district || !formData.completeAddress || !formData.pinCode) {
-        alert('Please fill in all required location details: State, City, Address, and PIN Code.');
-        return;
-      }
+      if (!formData.state || !formData.district) { alert('Please select a state and district.'); return; }
+      if (!formData.completeAddress) { alert('Please enter the complete address.'); return; }
+      const pincodeErr = v.pincode(formData.pinCode);
+      if (pincodeErr) { alert(pincodeErr); return; }
     }
 
     if (activeStep < 4) {

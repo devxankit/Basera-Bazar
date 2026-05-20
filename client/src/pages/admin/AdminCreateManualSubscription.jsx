@@ -4,6 +4,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
+import { v } from '../../utils/validators';
 
 export default function AdminCreateManualSubscription() {
   const { userId } = useParams();
@@ -91,6 +92,11 @@ export default function AdminCreateManualSubscription() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.plan_id) { toast.error('Please select a subscription plan.'); return; }
+    const startErr = v.date(formData.starts_at, { label: 'Start date' });
+    if (startErr) { toast.error(startErr); return; }
+    const daysErr = v.positiveInt(formData.duration_days, { label: 'Duration' });
+    if (daysErr) { toast.error(daysErr); return; }
     setSaving(true);
     const payload = {
       partner_id: userId,

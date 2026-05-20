@@ -11,6 +11,7 @@ import api from '../../services/api';
 import LocationPicker from '../common/LocationPicker';
 
 import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
+import { v } from '../../utils/validators';
 
 const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
@@ -128,7 +129,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
     }
 
     if (name === 'fullName') {
-      value = value.replace(/[^a-zA-Z\s]/g, '');
+      value = value.replace(/[^A-Za-z\s'\-]/g, '');
     }
 
     if (name === 'pincode') {
@@ -209,62 +210,40 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   const validateForm = () => {
     const newErrors = {};
 
-    // Name: only alphabets and spaces
-    if (!formData.fullName?.trim()) {
-      newErrors.fullName = "Full name is required";
-    } else if (!/^[a-zA-Z\s]+$/.test(formData.fullName.trim())) {
-      newErrors.fullName = "Name should only contain letters";
+    const nameErr = v.name(formData.fullName);
+    if (nameErr) newErrors.fullName = nameErr;
+
+    const emailErr = v.email(formData.email);
+    if (emailErr) newErrors.email = emailErr;
+
+    const phoneErr = v.phone(formData.phone);
+    if (phoneErr) newErrors.phone = phoneErr;
+
+    const pwErr = v.password(formData.password);
+    if (pwErr) newErrors.password = pwErr;
+
+    const cfmErr = v.passwordConfirm(formData.confirmPassword, formData.password);
+    if (cfmErr) newErrors.confirmPassword = cfmErr;
+
+    if (formData.aadhar) {
+      const aErr = v.aadhar(formData.aadhar);
+      if (aErr) newErrors.aadhar = aErr;
     }
 
-    // Email: standard format
-    if (!formData.email?.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Invalid email format";
+    if (formData.pan) {
+      const pErr = v.pan(formData.pan);
+      if (pErr) newErrors.pan = pErr;
     }
 
-    // Phone: 10 digits, starts with 6-9
-    if (!formData.phone) {
-      newErrors.phone = "Phone number is required";
-    } else if (!/^[6-9]\d{9}$/.test(formData.phone)) {
-      newErrors.phone = "Enter a valid 10-digit Indian mobile number";
-    }
-
-    // Password: min 8 chars, at least 1 number
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    } else if (!/\d/.test(formData.password)) {
-      newErrors.password = "Password must contain at least one number";
-    }
-
-    // Confirm Password
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    // Aadhar: exactly 12 digits
-    if (formData.aadhar && !/^\d{12}$/.test(formData.aadhar.replace(/\s/g, ''))) {
-      newErrors.aadhar = "Aadhar must be exactly 12 digits";
-    }
-
-    // PAN: Indian format ABCDE1234F
-    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan.toUpperCase())) {
-      newErrors.pan = "Invalid PAN format (e.g. ABCDE1234F)";
-    }
-
-    // Location
     if (!formData.state || !(formData.city || formData.district)) {
       newErrors.location = "Please set your state and city/district";
     }
 
-    if (!formData.service_radius_km) {
-      newErrors.service_radius_km = "Service radius is required";
-    }
-    
+    const radiusErr = v.radius(formData.service_radius_km);
+    if (radiusErr) newErrors.service_radius_km = radiusErr;
+
     if (role === 'supplier' && (!formData.category || formData.category.length === 0)) {
-       newErrors.category = "Please select at least one category";
+      newErrors.category = "Please select at least one category";
     }
 
     setErrors(newErrors);

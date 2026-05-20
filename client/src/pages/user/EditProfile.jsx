@@ -10,6 +10,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { v, sanitize } from '../../utils/validators';
+import useFormValidation from '../../hooks/useFormValidation';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -49,6 +51,7 @@ const EditProfile = () => {
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
   const [showPass, setShowPass] = useState({ current: false, next: false, confirm: false });
   const [passStatus, setPassStatus] = useState(null);
+  const { errors, validateAll, clearError } = useFormValidation();
 
   if (!isAuthenticated) return null;
 
@@ -67,6 +70,11 @@ const EditProfile = () => {
   const handleUpdateBasic = (e) => {
     e.preventDefault();
     setBasicStatus(null);
+    const ok = validateAll({
+      name:  v.name(basicInfo.name),
+      email: v.email(basicInfo.email),
+    });
+    if (!ok) return;
     updateBasicMutation.mutate({
       name: basicInfo.name.trim(),
       email: basicInfo.email.trim().toLowerCase(),
@@ -83,7 +91,8 @@ const EditProfile = () => {
   });
 
   const handleSendOtp = () => {
-    if (newPhone.length !== 10) return;
+    const err = v.phone(newPhone);
+    if (err) { setPhoneStatus({ type: 'error', message: err }); return; }
     setPhoneStatus(null);
     sendOtpMutation.mutate(newPhone);
   };
@@ -104,7 +113,8 @@ const EditProfile = () => {
   });
 
   const handleVerifyOtp = () => {
-    if (otp.length !== 6) return;
+    const err = v.otp(otp);
+    if (err) { setPhoneStatus({ type: 'error', message: err }); return; }
     setPhoneStatus(null);
     verifyOtpMutation.mutate({ phone: newPhone, otp });
   };
@@ -123,11 +133,11 @@ const EditProfile = () => {
 
   const handleUpdatePassword = (e) => {
     e.preventDefault();
-    if (passwords.next !== passwords.confirm) return;
-    if (passwords.next.length < 8) {
-      setPassStatus({ type: 'error', message: 'Password must be at least 8 characters.' });
-      return;
-    }
+    if (!passwords.current) { setPassStatus({ type: 'error', message: 'Current password is required.' }); return; }
+    const pwErr = v.password(passwords.next);
+    if (pwErr) { setPassStatus({ type: 'error', message: pwErr }); return; }
+    const cfmErr = v.passwordConfirm(passwords.confirm, passwords.next);
+    if (cfmErr) { setPassStatus({ type: 'error', message: cfmErr }); return; }
     setPassStatus(null);
     updatePasswordMutation.mutate({ currentPassword: passwords.current, newPassword: passwords.next });
   };
@@ -174,9 +184,10 @@ const EditProfile = () => {
                 <div className={iconClass}><User size={18} /></div>
                 <input
                   type="text" value={basicInfo.name}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, name: e.target.value })}
-                  className={inputClass} placeholder="Enter full name" required
+                  onChange={(e) => { setBasicInfo({ ...basicInfo, name: e.target.value.replace(/[^A-Za-z\s'\-]/g, '') }); clearError('name'); }}
+                  className={cn(inputClass, errors.name && 'border-red-300')} placeholder="Enter full name" required
                 />
+                {errors.name && <p className="text-[12px] text-red-500 font-semibold mt-1">{errors.name}</p>}
               </div>
             </div>
 
@@ -186,9 +197,10 @@ const EditProfile = () => {
                 <div className={iconClass}><Mail size={18} /></div>
                 <input
                   type="email" value={basicInfo.email}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, email: e.target.value })}
-                  className={inputClass} placeholder="Enter email address" required
+                  onChange={(e) => { setBasicInfo({ ...basicInfo, email: e.target.value }); clearError('email'); }}
+                  className={cn(inputClass, errors.email && 'border-red-300')} placeholder="Enter email address" required
                 />
+                {errors.email && <p className="text-[12px] text-red-500 font-semibold mt-1">{errors.email}</p>}
               </div>
             </div>
 

@@ -5,6 +5,7 @@ import { Users, Phone, Lock, Eye, EyeOff, MapPin, Headphones, ArrowRight, Shield
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from '../../mockToast';
+import { v, sanitize } from '../../utils/validators';
 
 const ROLES = [
   {
@@ -62,7 +63,10 @@ export default function StaffLogin() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!selectedRole) return;
+    if (!selectedRole) { toast.error('Please select your role.'); return; }
+    const idErr = identifier.includes('@') ? v.email(identifier) : v.phone(identifier);
+    if (idErr) { toast.error(idErr); return; }
+    if (!password) { toast.error('Password is required.'); return; }
     setIsSubmitting(true);
 
     const apiRole = selectedRole.apiRole || selectedRole.id;

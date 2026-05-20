@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import MediaDropZone from '../../components/common/MediaDropZone';
+import { v } from '../../utils/validators';
 
 const DEFAULT_FORM = {
   title: '',
@@ -66,6 +67,10 @@ export default function AdminBannerForm() {
 
   const handleSubmit = async (e, addAnother = false) => {
     if (e) e.preventDefault();
+    if (!formData.title?.trim()) { setError('Banner title is required.'); return; }
+    if (formData.image_url && !formData.image_url.startsWith('https://')) {
+      setError('Image URL must start with https://.'); return;
+    }
     setSaving(true);
     setError(null);
     try {

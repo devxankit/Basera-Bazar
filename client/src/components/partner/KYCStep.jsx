@@ -1,6 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { ShieldCheck, Camera, CheckCircle2, ChevronRight, FileText, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { v, sanitize } from '../../utils/validators';
 
 export default function KYCStep({ formData, setFormData, onBack, onComplete, onSkip, role }) {
   const panInputRef = useRef(null);
@@ -19,7 +20,18 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
     reader.readAsDataURL(file);
   };
 
+  const [kycErrors, setKycErrors] = useState({});
   const isMandiOrSupplier = role === 'mandi' || role === 'supplier';
+
+  const handleComplete = () => {
+    const errs = {};
+    if (formData.pan) { const e = v.pan(formData.pan); if (e) errs.pan = e; }
+    if (formData.aadhar) { const e = v.aadhar(formData.aadhar); if (e) errs.aadhar = e; }
+    if (isMandiOrSupplier && formData.gst) { const e = v.gstOptional(formData.gst); if (e) errs.gst = e; }
+    if (Object.keys(errs).length > 0) { setKycErrors(errs); return; }
+    setKycErrors({});
+    onComplete();
+  };
 
   return (
     <div className="flex flex-col font-sans pb-10">
@@ -43,11 +55,12 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
             <input 
               type="text" 
               value={formData.pan}
-              onChange={(e) => setFormData(prev => ({ ...prev, pan: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) }))}
+              onChange={(e) => { setFormData(prev => ({ ...prev, pan: sanitize.pan(e.target.value) })); setKycErrors(p => ({ ...p, pan: undefined })); }}
               maxLength={10}
               placeholder="ABCDE1234F"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium"
+              className={`w-full bg-slate-50 border rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium ${kycErrors.pan ? 'border-red-400' : 'border-slate-200'}`}
             />
+            {kycErrors.pan && <p className="text-[12px] text-red-500 font-semibold mt-1 ml-1">{kycErrors.pan}</p>}
           </div>
           <div className="space-y-1.5">
             <label className="text-[13px] font-bold text-slate-700 ml-1">PAN Card Image</label>
@@ -77,11 +90,12 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
             <input 
               type="text" 
               value={formData.aadhar}
-              onChange={(e) => setFormData(prev => ({ ...prev, aadhar: e.target.value.replace(/\D/g, '').slice(0, 12) }))}
+              onChange={(e) => { setFormData(prev => ({ ...prev, aadhar: sanitize.aadhar(e.target.value) })); setKycErrors(p => ({ ...p, aadhar: undefined })); }}
               maxLength={12}
               placeholder="1234 5678 9012"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium"
+              className={`w-full bg-slate-50 border rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium ${kycErrors.aadhar ? 'border-red-400' : 'border-slate-200'}`}
             />
+            {kycErrors.aadhar && <p className="text-[12px] text-red-500 font-semibold mt-1 ml-1">{kycErrors.aadhar}</p>}
           </div>
           <div className="space-y-1.5">
             <label className="text-[13px] font-bold text-slate-700 ml-1">Aadhar Card Images</label>
@@ -130,10 +144,11 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
               <input 
                 type="text" 
                 value={formData.gst}
-                onChange={(e) => setFormData(prev => ({ ...prev, gst: e.target.value.toUpperCase() }))}
+                onChange={(e) => { setFormData(prev => ({ ...prev, gst: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15) })); setKycErrors(p => ({ ...p, gst: undefined })); }}
                 placeholder="22AAAAA0000A1Z5"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium"
+                className={`w-full bg-slate-50 border rounded-xl py-3 px-4 text-[14px] outline-none focus:border-blue-500 transition-all font-medium ${kycErrors.gst ? 'border-red-400' : 'border-slate-200'}`}
               />
+              {kycErrors.gst && <p className="text-[12px] text-red-500 font-semibold mt-1 ml-1">{kycErrors.gst}</p>}
             </div>
             <div className="space-y-1.5">
               <label className="text-[13px] font-bold text-slate-700 ml-1">GST Certificate</label>
@@ -160,7 +175,7 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
 
       <div className="mt-12 space-y-3">
         <button
-          onClick={onComplete}
+          onClick={handleComplete}
           className="w-full py-5 bg-[#001b4e] text-white rounded-2xl font-bold text-[16px] shadow-lg shadow-indigo-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
         >
           Complete Registration

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Target, FileText, PlusCircle, CheckCircle2, AlertCircle, RefreshCw, Users } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
+import { v } from '../../utils/validators';
 import Skeleton from '../common/Skeleton';
 
 export default function AdminDailyTaskTab() {
@@ -44,9 +45,12 @@ export default function AdminDailyTaskTab() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.date || formData.target_count <= 0) {
-      toast.error('Please enter a valid date and target count greater than 0');
-      return;
+    const dateErr = v.date(formData.date, { label: 'Date' });
+    if (dateErr) { toast.error(dateErr); return; }
+    const countErr = v.positiveInt(formData.target_count, { label: 'Target count' });
+    if (countErr) { toast.error(countErr); return; }
+    if (formData.description && formData.description.trim().length > 0 && formData.description.trim().length < 10) {
+      toast.error('Description must be at least 10 characters.'); return;
     }
     setSubmitting(true);
     try {

@@ -6,6 +6,7 @@ import logo from '../../assets/baseralogo.png';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { registerFCMToken } from '../../services/pushNotificationService';
+import { v, sanitize } from '../../utils/validators';
 
 export default function PartnerLogin() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function PartnerLogin() {
   const [showPassword, setShowPassword] = useState(false);
 
   // UI state
+  const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showInactiveModal, setShowInactiveModal] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
@@ -65,7 +67,9 @@ export default function PartnerLogin() {
 
   // ── OTP Handlers ──
   const handleSendOtp = async () => {
-    if (phone.length !== 10) return;
+    const err = v.phone(phone);
+    if (err) { setLoginError(err); return; }
+    setLoginError('');
     try {
       setLoading(true);
       const res = await api.post('/auth/send-otp', { phone, checkExists: true });
@@ -81,7 +85,9 @@ export default function PartnerLogin() {
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!otp) return;
+    const err = v.otp(otp);
+    if (err) { setLoginError(err); return; }
+    setLoginError('');
     try {
       setLoading(true);
       const res = await api.post('/auth/verify-otp', { phone, otp, role: 'partner' });
@@ -97,7 +103,10 @@ export default function PartnerLogin() {
   // ── Password Handler ──
   const handlePasswordLogin = async (e) => {
     e.preventDefault();
-    if (!identifier || !password) return;
+    const idErr = identifier.includes('@') ? v.email(identifier) : v.phone(identifier);
+    if (idErr) { setLoginError(idErr); return; }
+    if (!password) { setLoginError('Password is required.'); return; }
+    setLoginError('');
     try {
       setLoading(true);
       const res = await api.post('/auth/login', { identifier, password, role: 'partner' });

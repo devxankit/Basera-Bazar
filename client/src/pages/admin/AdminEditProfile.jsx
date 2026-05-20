@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Shield, CheckCircle2, Save, Key, Upload, Lock, Loader2, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { v } from '../../utils/validators';
 
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "block text-sm font-bold text-slate-600 mb-1.5";
@@ -103,8 +104,16 @@ export default function AdminEditProfile() {
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    setSavingProfile(true);
     setProfileMsg(null);
+    const nameErr = v.name(profileForm.name);
+    if (nameErr) { setProfileMsg({ type: 'error', text: nameErr }); return; }
+    const emailErr = v.email(profileForm.email);
+    if (emailErr) { setProfileMsg({ type: 'error', text: emailErr }); return; }
+    if (profileForm.phone) {
+      const phoneErr = v.phone(profileForm.phone);
+      if (phoneErr) { setProfileMsg({ type: 'error', text: phoneErr }); return; }
+    }
+    setSavingProfile(true);
     try {
       const res = await api.put('/admin/profile/update', {
         name: profileForm.name,
@@ -134,13 +143,17 @@ export default function AdminEditProfile() {
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setPasswordMsg(null);
+    if (!passwordForm.currentPassword) {
+      setPasswordMsg({ type: 'error', text: 'Current password is required.' }); return;
+    }
+    if (!passwordForm.newPassword) {
+      setPasswordMsg({ type: 'error', text: 'New password is required.' }); return;
+    }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordMsg({ type: 'error', text: 'New passwords do not match.' });
-      return;
+      setPasswordMsg({ type: 'error', text: 'New passwords do not match.' }); return;
     }
     if (passwordForm.newPassword.length < 6) {
-      setPasswordMsg({ type: 'error', text: 'Password must be at least 6 characters.' });
-      return;
+      setPasswordMsg({ type: 'error', text: 'Password must be at least 6 characters.' }); return;
     }
     setSavingPassword(true);
     try {
