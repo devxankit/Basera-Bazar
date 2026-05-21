@@ -74,7 +74,11 @@ export const refreshAdminCache = () => {
   window.dispatchEvent(new CustomEvent('refreshAdminBadges'));
 };
 
-// Listen for global refresh events
-window.addEventListener('refreshAdminBadges', () => {
-  cacheService.invalidate('admin_');
-});
+// Listen for global refresh events (guard against duplicate registration)
+let _adminRefreshListenerAdded = false;
+if (!_adminRefreshListenerAdded) {
+  _adminRefreshListenerAdded = true;
+  window.addEventListener('refreshAdminBadges', () => {
+    cacheService.invalidate('admin_');
+  });
+}

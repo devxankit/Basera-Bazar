@@ -72,12 +72,12 @@ exports.createBroadcastLead = async (req, res) => {
     const notificationBody = `${name} is looking for ${products?.[0]?.item_name || 'materials'} in ${district}. Check details and contact now!`;
 
     // Send notifications in parallel (ignoring failures for individual partners)
-    Promise.all(localPartners.map(partner => 
+    await Promise.all(localPartners.map(partner =>
       createNotification(
-        'partner', 
-        partner._id, 
-        notificationTitle, 
-        notificationBody, 
+        'partner',
+        partner._id,
+        notificationTitle,
+        notificationBody,
         { type: 'broadcast_lead', lead_id: lead._id.toString() }
       )
     )).catch(err => logger.error("[BroadcastLead] Notification error:", err))
@@ -130,7 +130,7 @@ exports.getPartnerLeads = async (req, res) => {
       query.target_category = 'supplier';
     }
 
-    const leads = await BroadcastLead.find(query).sort({ createdAt: -1 });
+    const leads = await BroadcastLead.find(query).sort({ createdAt: -1 }).limit(200);
 
     // Check limits
     const limits = await getPartnerLimits(req.user.id);

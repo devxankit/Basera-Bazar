@@ -22,9 +22,7 @@ const sendOTP = async (phone, otp) => {
 
     // 2. Guard clause: if credentials are not set, run in development mock mode
     if (!apiKey || apiKey === 'your_smsindiahub_api_key') {
-      logger.info(`\n[DEVELOPMENT MODE - MOCK SMS]`)
-      logger.info(`>> OTP: ${otp} would have been sent to +91${phone}`)
-      logger.info(`>> To enable real SMS, set SMS_PASSWORD (API key) in .env\n`)
+      logger.info(`[DEVELOPMENT MODE - MOCK SMS] OTP would have been sent to +91${phone}. Set SMS_API_KEY in .env to enable real SMS.`)
       return true; // Pretend success in dev mode
     }
     const appName = "Basera Bazar";

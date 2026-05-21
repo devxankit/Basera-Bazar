@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { db } from '../../services/DataEngine';
 import { v } from '../../utils/validators';
+import toast from '../../mockToast';
 
 export default function AddMandiProduct() {
   const navigate = useNavigate();
@@ -173,7 +174,7 @@ export default function AddMandiProduct() {
         if (attrType === 'brand') setFormData(prev => ({ ...prev, brand_name: newAttr.name }));
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to add. May already exist.");
+      toast.error(err.response?.data?.message || "Failed to add. May already exist.");
     } finally {
       setSavingAttr(false);
     }
@@ -187,8 +188,7 @@ export default function AddMandiProduct() {
       const res = await db.uploadFile(file);
       if (res?.url) setFormData(prev => ({ ...prev, thumbnail: res.url }));
     } catch (err) {
-      console.error("Upload failed:", err);
-      alert("Image upload failed.");
+      toast.error("Image upload failed.");
     } finally {
       setLoading(false);
     }
@@ -196,11 +196,11 @@ export default function AddMandiProduct() {
 
   const handleSubmit = async () => {
     if (!formData.material_id) {
-      alert("Please select a product category.");
+      toast.error("Please select a product category.");
       return;
     }
     const priceErr = v.price(formData.price);
-    if (priceErr) { alert(priceErr); return; }
+    if (priceErr) { toast.error(priceErr); return; }
     try {
       setLoading(true);
       const payload = {
@@ -215,11 +215,10 @@ export default function AddMandiProduct() {
       }
       navigate('/partner/inventory');
     } catch (err) {
-      console.error("Submit error:", err);
       if (err.response?.status === 403 && err.response?.data?.limit_reached) {
         setShowLimitModal(true);
       } else {
-        alert(err.response?.data?.message || "Failed to save product.");
+        toast.error(err.response?.data?.message || "Failed to save product.");
       }
     } finally {
       setLoading(false);
@@ -513,7 +512,7 @@ export default function AddMandiProduct() {
               <button 
                 onClick={() => {
                   if (!subscriptionLimits.canFeature && !formData.is_featured) {
-                    alert(subscriptionLimits.message || "Featured limit reached! Upgrade to feature more.");
+                    toast.error(subscriptionLimits.message || "Featured limit reached! Upgrade to feature more.");
                   } else {
                     setFormData({...formData, is_featured: !formData.is_featured});
                   }

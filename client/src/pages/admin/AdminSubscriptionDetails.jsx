@@ -156,7 +156,6 @@ export default function AdminSubscriptionDetails() {
       const filename = `BaseraBazar-INV-${new Date().getFullYear()}-${subscription?._id?.slice(-6).toUpperCase()}.pdf`;
       pdf.save(filename);
     } catch (error) {
-       console.error("Invoice generation failed:", error);
        toast.error(`Invoice generation failed: ${error.message || 'Unknown error'}`);
     }
   };

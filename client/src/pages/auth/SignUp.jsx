@@ -9,6 +9,7 @@ import LocationPicker from '../../components/common/LocationPicker';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { v, sanitize } from '../../utils/validators';
 import useFormValidation from '../../hooks/useFormValidation';
+import toast from '../../mockToast';
 
 // ─── Small reusable popup modal ───────────────────────────────────────────────
 function AlertModal({ icon: Icon, iconBg, iconColor, title, message, primaryText, primaryAction, secondaryText, secondaryAction }) {
@@ -122,7 +123,7 @@ export default function SignUp() {
       const res = await api.post('/auth/send-otp', { phone: form.phone });
       if (res.data.success) setTimer(60);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to resend OTP. Try again.');
+      toast.error(err.response?.data?.message || 'Failed to resend OTP. Try again.');
     } finally {
       setLoading(false);
     }
@@ -152,7 +153,7 @@ export default function SignUp() {
         if (code === 'EMAIL_EXISTS' || code === 'PHONE_EXISTS' || code === 'USER_EXISTS') {
           setPopup(code);
         } else {
-          alert(msg ? `Error: ${msg}` : 'Connection error. Please check your internet and try again.');
+          toast.error(msg ? `Error: ${msg}` : 'Connection error. Please check your internet and try again.');
         }
       } finally {
         setLoading(false);
@@ -193,7 +194,7 @@ export default function SignUp() {
         setPopup(code);
         setShowOtpInput(false);
       } else {
-        alert(msg || 'Invalid OTP. Please try again.');
+        toast.error(msg || 'Invalid OTP. Please try again.');
       }
     } finally {
       setLoading(false);

@@ -33,7 +33,6 @@ export default function AdminCategoryManagement({
         setItems(res.data.data);
       }
     } catch (err) {
-      console.error(err);
     } finally {
       setLoading(false);
     }

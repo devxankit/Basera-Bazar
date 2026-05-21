@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from '../../mockToast';
 import {
   Building2,
   Briefcase,
@@ -330,7 +331,7 @@ export default function PartnerHome() {
 function ActionCard({ title, icon, color, onClick, disabled }) {
   return (
     <button 
-      onClick={disabled ? () => alert("Verification Required: Please wait for Admin approval to list products.") : onClick}
+      onClick={disabled ? () => toast.error("Verification Required: Please wait for Admin approval to list products.") : onClick}
       className={`${disabled ? 'bg-slate-400 cursor-not-allowed opacity-80' : color} p-5 rounded-2xl text-white flex flex-col items-start gap-4 active:scale-95 transition-all shadow-lg text-left w-full`}
     >
       <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">

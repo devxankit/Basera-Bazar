@@ -5,7 +5,14 @@ const { Partner } = require('../models/Partner');
 const { logActivity } = require('../utils/activityLogger');
 const logger = require('../utils/logger');
 
+let _jobRunning = false;
+
 const runMonthlyDeductionJob = async (targetMonthStr = null) => {
+  if (_jobRunning) {
+    logger.warn('[SCHEDULER] Monthly deduction job already running — skipping concurrent execution.');
+    return;
+  }
+  _jobRunning = true;
   logger.info('[SCHEDULER] Running monthly salary deduction check...');
   const now = new Date();
   
@@ -102,6 +109,7 @@ const runMonthlyDeductionJob = async (targetMonthStr = null) => {
     }
   }
   logger.info(`[SCHEDULER] Completed monthly processing for ${monthStr}.`);
+  _jobRunning = false;
 };
 
 const scheduleMonthlyDeduction = () => {

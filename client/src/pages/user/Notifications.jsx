@@ -47,7 +47,6 @@ const Notifications = () => {
           return { ...old, data: old.data.map(n => n._id === note._id ? { ...n, is_read: true } : n) };
         });
       } catch (err) {
-        console.error('Error marking notification as read:', err);
       }
     }
     const redirectUrl = note.data?.redirect_url;
@@ -62,7 +61,6 @@ const Notifications = () => {
         return { ...old, data: old.data.map(n => ({ ...n, is_read: true })) };
       });
     } catch (err) {
-      console.error('Error marking all as read:', err);
     }
   };
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import toast from '../../mockToast';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import {
   ArrowLeft, History, CheckCircle2,
@@ -164,8 +165,7 @@ export default function PartnerSubscription() {
       rzp.open();
 
     } catch (err) {
-      console.error("Subscription Error:", err);
-      alert(err.response?.data?.message || "Something went wrong. Please try again.");
+      toast.error(err.response?.data?.message || "Something went wrong. Please try again.");
       setSubmitting(false);
     }
   };
@@ -187,7 +187,7 @@ export default function PartnerSubscription() {
         setShowSimModal(false);
       }
     } catch (err) {
-      alert("Payment verification failed. Please contact support.");
+      toast.error("Payment verification failed. Please contact support.");
     } finally {
       setSubmitting(false);
     }
@@ -198,13 +198,12 @@ export default function PartnerSubscription() {
       setCancelling(true);
       const res = await api.post('/finance/subscription/cancel');
       if (res.data.success) {
-        alert(res.data.message);
+        toast.success(res.data.message);
         setShowCancelModal(false);
         window.location.reload(); // Refresh to update user state
       }
     } catch (err) {
-      console.error("Cancellation Error:", err);
-      alert(err.response?.data?.message || "Failed to cancel subscription.");
+      toast.error(err.response?.data?.message || "Failed to cancel subscription.");
     } finally {
       setCancelling(false);
     }
@@ -240,7 +239,6 @@ export default function PartnerSubscription() {
                 setTransactions(res.data.data);
               }
             } catch (err) {
-              console.error("Error fetching transactions:", err);
             } finally {
               setLoadingHistory(false);
             }

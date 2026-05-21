@@ -86,7 +86,6 @@ export default function AdminCategoryDetails() {
           }
         }
       } catch (err) {
-        console.error("Associated listings fetch failure:", err);
       } finally {
         setListingsLoading(false);
       }

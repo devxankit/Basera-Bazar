@@ -11,6 +11,7 @@ import { db } from '../../services/DataEngine';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { v } from '../../utils/validators';
+import toast from '../../mockToast';
 
 const TYPES = ['Commercial', 'Residential', 'Agricultural', 'Industrial'];
 const UNITS = ['sq. ft.', 'sq. m.', 'acre', 'dismil', 'gaj'];
@@ -261,8 +262,7 @@ export default function AddProperty() {
         }
       }
     } catch (err) {
-      console.error('Image upload failed:', err);
-      alert('Failed to upload image. Please try again.');
+      toast.error('Failed to upload image. Please try again.');
     } finally {
       setUploadingImage(false);
     }
@@ -278,7 +278,7 @@ export default function AddProperty() {
   const [detecting, setDetecting] = useState(false);
   const handleAutoDetectLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      toast.error("Geolocation is not supported by your browser");
       return;
     }
 
@@ -289,7 +289,7 @@ export default function AddProperty() {
         try {
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
           const data = await response.json();
-          
+
           if (data && data.address) {
             const adr = data.address;
             const clean = (s) => s ? s.replace(/\s(district|zila|tahsil|division|subdivision|township|taluk|mandal)$/i, '').trim() : '';
@@ -304,8 +304,8 @@ export default function AddProperty() {
             // Find matching district
             const availableDistricts = INDIAN_STATES_DISTRICTS[normalizedState] || [];
             const cleanedRaw = clean(rawDistrict);
-            const matchedDistrict = availableDistricts.find(d => clean(d) === cleanedRaw) || 
-                                   availableDistricts.find(d => clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))) || 
+            const matchedDistrict = availableDistricts.find(d => clean(d) === cleanedRaw) ||
+                                   availableDistricts.find(d => clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))) ||
                                    rawDistrict;
 
             setFormData(prev => ({
@@ -318,22 +318,21 @@ export default function AddProperty() {
               latitude: latitude.toString(),
               longitude: longitude.toString()
             }));
-            alert("Location details detected successfully!");
+            toast.success("Location details detected successfully!");
           }
         } catch (err) {
-          console.error("Geocoding error:", err);
           setFormData(prev => ({
             ...prev,
             latitude: latitude.toString(),
             longitude: longitude.toString()
           }));
-          alert("GPS Coordinates detected. Please enter address manually.");
+          toast.info("GPS Coordinates detected. Please enter address manually.");
         } finally {
           setDetecting(false);
         }
       },
       (error) => {
-        alert("Failed to get location. Please allow location permissions.");
+        toast.error("Failed to get location. Please allow location permissions.");
         setDetecting(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -342,7 +341,7 @@ export default function AddProperty() {
 
   const handleFetchCoordinates = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      toast.error("Geolocation is not supported by your browser");
       return;
     }
 
@@ -355,11 +354,11 @@ export default function AddProperty() {
           latitude: latitude.toString(),
           longitude: longitude.toString()
         }));
-        alert("Coordinates captured successfully!");
+        toast.success("Coordinates captured successfully!");
         setDetecting(false);
       },
       (error) => {
-        alert("Failed to get location. Please allow location permissions.");
+        toast.error("Failed to get location. Please allow location permissions.");
         setDetecting(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -423,8 +422,7 @@ export default function AddProperty() {
       navigate('/partner/inventory');
     },
     onError: (error) => {
-      console.error('Error saving property:', error.response?.data || error.message);
-      alert(error.response?.data?.message || 'Failed to save property. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to save property. Please try again.');
     }
   });
 
@@ -437,18 +435,18 @@ export default function AddProperty() {
   const nextStep = () => {
     if (activeStep === 1) {
       const titleErr = v.title(formData.title);
-      if (titleErr) { alert(titleErr); return; }
+      if (titleErr) { toast.error(titleErr); return; }
       const priceErr = v.price(formData.price);
-      if (priceErr) { alert(priceErr); return; }
-      if (!formData.categoryId) { alert('Please select a property category.'); return; }
-      if (subCategories.length > 0 && !formData.subcategoryId) { alert('Please select a sub-category.'); return; }
+      if (priceErr) { toast.error(priceErr); return; }
+      if (!formData.categoryId) { toast.error('Please select a property category.'); return; }
+      if (subCategories.length > 0 && !formData.subcategoryId) { toast.error('Please select a sub-category.'); return; }
     }
 
     if (activeStep === 3) {
-      if (!formData.state || !formData.district) { alert('Please select a state and district.'); return; }
-      if (!formData.completeAddress) { alert('Please enter the complete address.'); return; }
+      if (!formData.state || !formData.district) { toast.error('Please select a state and district.'); return; }
+      if (!formData.completeAddress) { toast.error('Please enter the complete address.'); return; }
       const pincodeErr = v.pincode(formData.pinCode);
-      if (pincodeErr) { alert(pincodeErr); return; }
+      if (pincodeErr) { toast.error(pincodeErr); return; }
     }
 
     if (activeStep < 4) {
@@ -456,7 +454,7 @@ export default function AddProperty() {
       window.scrollTo(0, 0);
     } else if (activeStep === 4) {
       if (!formData.thumbnail && formData.images.length === 0) {
-        alert('Please upload at least one image of the property.');
+        toast.error('Please upload at least one image of the property.');
         return;
       }
       setShowConfirmModal(true);

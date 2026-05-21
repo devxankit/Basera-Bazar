@@ -201,7 +201,6 @@ export default function LocationPicker({
         const mapped = await forwardGeocode(searchQuery);
         setSearchResults(mapped);
       } catch (err) {
-        console.error("Location search error:", err);
         setError("Search failed. Please try again.");
       } finally {
         setIsSearching(false);

@@ -24,7 +24,7 @@ const subscriptionPlanSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const subscriptionSchema = new mongoose.Schema({
-  partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
   plan_id: { type: mongoose.Schema.Types.ObjectId, ref: 'SubscriptionPlan' },
   plan_snapshot: { type: mongoose.Schema.Types.Mixed, required: true },
   status: {

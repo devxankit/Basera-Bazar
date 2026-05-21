@@ -38,7 +38,6 @@ export default function PartnerLeadDetails() {
         });
       }
     } catch (err) {
-      console.error("Error updating status:", err);
     } finally {
       setUpdating(false);
     }
@@ -49,7 +48,6 @@ export default function PartnerLeadDetails() {
       await api.delete(`/partners/enquiries/${id}`);
       navigate('/partner/inquiries');
     } catch (err) {
-      console.error("Error deleting lead:", err);
     }
   };
 

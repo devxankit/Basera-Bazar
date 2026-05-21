@@ -33,6 +33,10 @@ const SellerAttribute = mongoose.model('SellerAttribute', sellerAttributeSchema)
 // One-time: drop the old index that didn't include parent_attribute_id
 SellerAttribute.collection.dropIndex('partner_id_1_category_id_1_attribute_type_1_name_1')
   .then(() => logger.info('SellerAttribute: old index dropped, new index will be created'))
-  .catch(() => {}); // already dropped or doesn't exist — ignore
+  .catch(err => {
+    if (err?.codeName !== 'IndexNotFound') {
+      logger.warn({ err }, 'SellerAttribute: unexpected error dropping old index');
+    }
+  });
 
 module.exports = SellerAttribute;

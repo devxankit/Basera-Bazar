@@ -29,7 +29,10 @@ const orderItemSchema = new mongoose.Schema({
 const orderSchema = new mongoose.Schema({
   order_id: { type: String, required: true, unique: true }, // Client-friendly ID
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  items: [orderItemSchema],
+  items: {
+    type: [orderItemSchema],
+    validate: { validator: v => v.length > 0, message: 'Order must contain at least one item.' }
+  },
   total_amount: { type: Number, required: true },
   
   token_payment: {

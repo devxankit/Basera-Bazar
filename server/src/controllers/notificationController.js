@@ -16,14 +16,23 @@ const getMyNotifications = async (req, res) => {
       recipient_type = 'admin';
     }
 
-    const notifications = await Notification.find({
-      recipient_type,
-      recipient_id: req.user._id
-    }).sort({ created_at: -1 });
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const skip = (page - 1) * limit;
+
+    const [notifications, total] = await Promise.all([
+      Notification.find({ recipient_type, recipient_id: req.user._id })
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limit),
+      Notification.countDocuments({ recipient_type, recipient_id: req.user._id })
+    ]);
 
     res.status(200).json({
       success: true,
       count: notifications.length,
+      total,
+      page,
       data: notifications
     });
   } catch (error) {

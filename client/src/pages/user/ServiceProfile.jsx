@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../../services/DataEngine';
+import toast from '../../mockToast';
 import {
   ArrowLeft, Star, MapPin, Phone, MessageSquare,
   Navigation, Info, Image as ImageIcon, Contact,
@@ -40,7 +41,7 @@ const ServiceProfile = () => {
   const submitEnquiryMutation = useMutation({
     mutationFn: (payload) => db.create('leads', payload),
     onSuccess: () => { setIsModalOpen(false); setTimeout(() => setShowSuccessModal(true), 150); },
-    onError: () => alert("Failed to send enquiry. Please try again."),
+    onError: () => toast.error("Failed to send enquiry. Please try again."),
   });
 
   // Pre-fill message once service loads

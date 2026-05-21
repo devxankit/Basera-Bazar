@@ -12,6 +12,7 @@ import clsx from 'clsx';
 import { useMutation } from '@tanstack/react-query';
 import { v, sanitize } from '../../utils/validators';
 import useFormValidation from '../../hooks/useFormValidation';
+import toast from '../../mockToast';
 
 // Map any browse category type to valid backend enum values
 const toValidCategory = (type) => {
@@ -73,9 +74,8 @@ const LeadSubmission = () => {
         setFormData({ ...formData, document_url: res.url });
       }
     } catch (err) {
-      console.error("Upload failed:", err);
       const msg = err.response?.data?.message || err.message || "Unknown error";
-      alert(`File upload failed: ${msg}. Please ensure it is an image or PDF under 5MB.`);
+      toast.error(`File upload failed: ${msg}. Please ensure it is an image or PDF under 5MB.`);
     } finally {
       setUploading(false);
     }
@@ -88,13 +88,12 @@ const LeadSubmission = () => {
         setSuccess(true);
         setTimeout(() => navigate(-1), 3000);
       } else {
-        alert(res.message || "Failed to broadcast lead.");
+        toast.error(res.message || "Failed to broadcast lead.");
       }
     },
     onError: (err) => {
-      console.error("Submission error:", err);
       const msg = err.response?.data?.message || err.message || "Unknown error";
-      alert(`Broadcast failed: ${msg}. Please check your connection and try again.`);
+      toast.error(`Broadcast failed: ${msg}. Please check your connection and try again.`);
     },
   });
 
@@ -115,7 +114,7 @@ const LeadSubmission = () => {
     });
     if (!ok) return;
     if (products.some(p => !p.item_name.trim())) {
-      alert("Please fill the item name for all rows.");
+      toast.error("Please fill the item name for all rows.");
       return;
     }
     broadcastMutation.mutate({ ...formData, products, target_category: targetCategory });

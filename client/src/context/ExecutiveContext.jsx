@@ -19,7 +19,7 @@ export const ExecutiveProvider = ({ children }) => {
       const res = await api.get('/executive/dashboard');
       if (res.data.success) setData(res.data.data);
     } catch (e) {
-      console.error('Executive dashboard fetch error:', e);
+      // dashboard fetch failure handled silently
     } finally {
       setLoading(false);
     }

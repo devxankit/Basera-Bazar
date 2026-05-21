@@ -363,7 +363,6 @@ export default function AdminUsers() {
                                     });
                                     setIsModalOpen(false);
                                   } catch (err) {
-                                    console.error(err);
                                     toast.error(
                                       err.response?.data?.message ||
                                         "Failed to update user status.",
@@ -402,7 +401,6 @@ export default function AdminUsers() {
                                   0;
                                 hasListings = listingsCount > 0;
                               } catch (err) {
-                                console.error("Failed to check listings", err);
                               }
                               setModalConfig({
                                 title: "Permanent Deletion",

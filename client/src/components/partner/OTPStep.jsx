@@ -63,7 +63,6 @@ export default function OTPStep({ formData, selectedRole, onBack, onVerified }) 
         onVerified(response.data.user, response.data.token);
       }
     } catch (err) {
-      console.error("Verification error:", err);
       setError(err.response?.data?.message || 'Invalid OTP. Please try again.');
     } finally {
       setVerifying(false);

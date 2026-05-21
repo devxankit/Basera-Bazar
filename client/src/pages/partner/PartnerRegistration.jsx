@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from '../../mockToast';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -111,7 +112,7 @@ export default function PartnerRegistration() {
 
   const handleConfirmRegistration = async () => {
     if (!authState) {
-       alert("Please verify your phone number first.");
+       toast.error("Please verify your phone number first.");
        return;
     }
 
@@ -214,7 +215,6 @@ export default function PartnerRegistration() {
           // We'll use a hidden 0-price plan if available, or just skip and let admin handle it
           // For now, let's just complete registration.
         } catch (subErr) {
-          console.error("Failed to activate free trial:", subErr);
         }
       }
 
@@ -236,8 +236,7 @@ export default function PartnerRegistration() {
       setModalConfig(prev => ({ ...prev, isOpen: false }));
       navigate('/partner/home');
     } catch (error) {
-      console.error("Registration error:", error);
-      alert(error.response?.data?.message || "Registration failed. Please try again.");
+      toast.error(error.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -281,7 +280,7 @@ export default function PartnerRegistration() {
             // 3. Complete Profile Update
             await handleConfirmRegistration();
           } catch (err) {
-            alert("Payment verification failed. Please contact support.");
+            toast.error("Payment verification failed. Please contact support.");
           }
         },
         prefill: {
@@ -299,8 +298,7 @@ export default function PartnerRegistration() {
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (error) {
-      console.error("Payment initiation error:", error);
-      alert(error.response?.data?.message || "Failed to start payment.");
+      toast.error(error.response?.data?.message || "Failed to start payment.");
       setIsSubmitting(false);
     }
   };

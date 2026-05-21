@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from '../../mockToast';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Building2, Wrench, Package, Store, Check, 
@@ -126,7 +127,7 @@ export default function AddRolePage() {
         navigate('/partner/home');
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to switch role.");
+      toast.error(err.response?.data?.message || "Failed to switch role.");
     } finally {
       setSwitching(null);
     }
@@ -188,8 +189,7 @@ export default function AddRolePage() {
         throw new Error(res.data.message || "Upload failed");
       }
     } catch (err) {
-      console.error("Upload error:", err);
-      alert(err.response?.data?.message || "Failed to upload certificate. Ensure it is a valid image (jpg/png).");
+      toast.error(err.response?.data?.message || "Failed to upload certificate. Ensure it is a valid image (jpg/png).");
     } finally {
       if (type === 'rera') {
         setProfileData(prev => ({ ...prev, uploading: false }));
@@ -202,10 +202,10 @@ export default function AddRolePage() {
   const handleAddRole = async () => {
     if (gstData.number) {
       const gstErr = v.gst(gstData.number);
-      if (gstErr) { alert(gstErr); return; }
+      if (gstErr) { toast.error(gstErr); return; }
     }
     if (profileData.business_name && profileData.business_description && profileData.business_description.trim().length > 0 && profileData.business_description.trim().length < 10) {
-      alert('Business description must be at least 10 characters.'); return;
+      toast.error('Business description must be at least 10 characters.'); return;
     }
     setSubmitting(true);
     try {
@@ -245,8 +245,7 @@ export default function AddRolePage() {
         }
       }
     } catch (error) {
-      console.error('Add role error:', error);
-      alert(error.response?.data?.message || 'Failed to add role. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to add role. Please try again.');
     } finally {
       setSubmitting(false);
     }

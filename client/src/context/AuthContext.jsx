@@ -129,7 +129,7 @@ export const AuthProvider = ({ children }) => {
       try {
         await api.post('/auth/logout');
       } catch (err) {
-        console.error('Logout API call failed:', err);
+        // logout API failure is non-critical
       }
     }
   };
@@ -153,7 +153,7 @@ export const AuthProvider = ({ children }) => {
         return freshUser;
       }
     } catch (error) {
-      console.error('refreshUser failed:', error);
+      // refreshUser failure is non-critical
     }
     return null;
   };

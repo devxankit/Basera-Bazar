@@ -60,8 +60,12 @@ teamLeaderSchema.methods.matchPassword = async function (enteredPassword) {
 
 teamLeaderSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
+  try {
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 teamLeaderSchema.set('toJSON', {
@@ -139,8 +143,12 @@ officeStaffSchema.methods.matchPassword = async function (enteredPassword) {
 
 officeStaffSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
+  try {
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 officeStaffSchema.set('toJSON', {

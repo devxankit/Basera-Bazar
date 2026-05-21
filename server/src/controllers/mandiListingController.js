@@ -157,7 +157,11 @@ const createMandiListing = async (req, res) => {
         deleted_at: null
       });
       if (featuredCount >= limits.featured) {
-        finalFeatured = false; // Silently disable or reject? I'll disable to allow creation.
+        return res.status(403).json({
+          success: false,
+          message: `Featured listing limit reached. Your plan allows only ${limits.featured} featured listing(s). Please upgrade or unfeature an existing listing.`,
+          limit_reached: true
+        });
       }
     }
 

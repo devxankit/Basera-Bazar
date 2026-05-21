@@ -15,8 +15,14 @@ const withdrawalRequestSchema = new mongoose.Schema({
     default: 'pending'
   },
   bank_details: {
-    account_number: { type: String, required: true },
-    ifsc_code: { type: String, required: true },
+    account_number: {
+      type: String, required: true,
+      validate: { validator: v => /^\d{9,18}$/.test(v), message: 'Account number must be 9–18 digits.' }
+    },
+    ifsc_code: {
+      type: String, required: true,
+      validate: { validator: v => /^[A-Z]{4}0[A-Z0-9]{6}$/.test(v), message: 'Invalid IFSC code format.' }
+    },
     bank_name: { type: String },
     account_holder_name: { type: String }
   },

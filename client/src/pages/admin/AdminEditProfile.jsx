@@ -49,7 +49,6 @@ export default function AdminEditProfile() {
           });
         }
       } catch (err) {
-        console.error('Failed to fetch admin profile:', err);
         const errMsg = err.response?.data?.message || `Connection failed (${err.code || 'Check if server is running on port 5001'})`;
         setFetchError(errMsg);
       } finally {
@@ -85,7 +84,6 @@ export default function AdminEditProfile() {
         setProfileMsg({ type: 'success', text: 'Image uploaded! Remember to save profile.' });
       }
     } catch (err) {
-      console.error('Upload failed:', err);
       setProfileMsg({ type: 'error', text: 'Image upload failed. Please try again.' });
     } finally {
       setUploadingImage(false);

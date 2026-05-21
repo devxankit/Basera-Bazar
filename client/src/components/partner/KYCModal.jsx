@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Camera, FileText, X, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import api from '../../services/api';
 import { db } from '../../services/DataEngine';
+import toast from '../../mockToast';
 
 export default function KYCModal({ isOpen, onClose, user, onComplete }) {
   const [loading, setLoading] = useState(false);
@@ -64,11 +65,11 @@ export default function KYCModal({ isOpen, onClose, user, onComplete }) {
 
     // Basic validation
     if (!formData.panImage || !formData.aadharFront || !formData.aadharBack) {
-      alert("Please upload PAN and both sides of Aadhar card.");
+      toast.error("Please upload PAN and both sides of Aadhar card.");
       return;
     }
     if (isMandiOrSupplier && !formData.gstImage) {
-      alert("Please upload your GST certificate.");
+      toast.error("Please upload your GST certificate.");
       return;
     }
 
@@ -110,8 +111,7 @@ export default function KYCModal({ isOpen, onClose, user, onComplete }) {
         onClose();
       }, 2000);
     } catch (err) {
-      console.error(err);
-      alert("Failed to upload documents. Please try again.");
+      toast.error("Failed to upload documents. Please try again.");
     } finally {
       setLoading(false);
     }

@@ -37,7 +37,6 @@ const BannerCarousel = () => {
         setBanners(defaultBanners);
       }
     } catch (err) {
-      console.error("Banner fetch error:", err);
       setBanners(defaultBanners);
     }
   };

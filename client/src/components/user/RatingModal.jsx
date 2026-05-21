@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, X, MessageSquare, ShieldCheck, ThumbsUp, Truck } from 'lucide-react';
+import toast from '../../mockToast';
 
 export default function RatingModal({ isOpen, onClose, onSubmit, orderId, partnerId, items, initialData }) {
   const [behaviorRating, setBehaviorRating] = useState(initialData?.behavior_rating || 0);
@@ -30,7 +31,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit, orderId, partne
 
   const handleFormSubmit = async () => {
     if (behaviorRating === 0 || itemRatings.some(r => r.quality === 0 || r.quantity === 0)) {
-      alert("Please provide all ratings before submitting.");
+      toast.error("Please provide all ratings before submitting.");
       return;
     }
 
@@ -45,7 +46,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit, orderId, partne
       });
       onClose();
     } catch (err) {
-      console.error(err);
+      // submit error handled by parent
     } finally {
       setSubmitting(false);
     }

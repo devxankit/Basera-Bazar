@@ -344,9 +344,17 @@ const updateLeadStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: `Cannot update a ${currentStatus} item.` });
     }
 
-    // Block backwards progression
-    if (status !== 'cancelled' && statusPriority[status] < statusPriority[currentStatus]) {
-      return res.status(400).json({ success: false, message: `Cannot move status back from ${currentStatus} to ${status}.` });
+    // Allow cancellation from any non-terminal state
+    if (status !== 'cancelled') {
+      // Block backwards progression
+      if (statusPriority[status] < statusPriority[currentStatus]) {
+        return res.status(400).json({ success: false, message: `Cannot move status back from ${currentStatus} to ${status}.` });
+      }
+
+      // Block skipping steps — only one step forward at a time
+      if (statusPriority[status] > statusPriority[currentStatus] + 1) {
+        return res.status(400).json({ success: false, message: `Cannot skip from ${currentStatus} to ${status}. Follow the required sequence.` });
+      }
     }
 
     // Specialized checks for 'shipped' and 'delivered'
@@ -438,12 +446,7 @@ const getUserOrders = async (req, res) => {
     // We fetch orders linked to the specific ID OR orders matching the user's phone number.
     // This handles cases where a person might have both a User and Partner record
     // but wants to see all their marketplace orders in one place.
-    const orders = await Order.find({ 
-      $or: [
-        { user_id: userId },
-        { "shipping_address.phone": userPhone }
-      ]
-    })
+    const orders = await Order.find({ user_id: userId })
       .populate({
         path: 'items.productId',
         model: 'MandiListing'
@@ -508,15 +511,31 @@ const getSellerOrders = async (req, res) => {
  */
 const getOrderDetails = async (req, res) => {
   try {
+    const requesterId = (req.user._id || req.user.id).toString();
+    const requesterRole = req.user.role;
+
     const order = await Order.findById(req.params.id)
       .populate('user_id', 'name phone email')
       .populate({ path: 'items.productId', model: 'MandiListing' })
-      .populate({ path: 'items.seller_id', model: 'Partner' });
+      .populate({
+        path: 'items.seller_id',
+        model: 'Partner',
+        select: 'name shop_name phone profile_image district'
+      });
 
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
+    const isAdmin = ['super_admin', 'SuperAdmin', 'Admin'].includes(requesterRole);
+    const isBuyer = order.user_id?._id?.toString() === requesterId;
+    const isSeller = order.items.some(i => i.seller_id?._id?.toString() === requesterId || i.seller_id?.toString() === requesterId);
+
+    if (!isAdmin && !isBuyer && !isSeller) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view this order.' });
+    }
+
     res.status(200).json({ success: true, data: order });
   } catch (error) {
+    logger.error({ err: error }, 'getOrderDetails error');
     res.status(500).json({ success: false, message: 'Error fetching order details' });
   }
 };
@@ -532,9 +551,13 @@ const addReview = async (req, res) => {
     const userId = req.user.id;
     const Review = require('../models/Review');
 
-    // 1. Verify order exists and is delivered
+    // 1. Verify order exists and that the requester is the buyer
     const order = await Order.findById(order_id);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+
+    if (order.user_id.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized to review this order.' });
+    }
 
     // 2. Create or Update the review
     const newReview = await Review.findOneAndUpdate(
@@ -596,7 +619,7 @@ const resendOrderOTP = async (req, res) => {
       return res.status(502).json({ success: false, message: 'Failed to send SMS. Please try again later.' });
     }
   } catch (error) {
-    logger.error({ err: error }, 'Update order status error')
+    logger.error({ err: error }, 'Resend order OTP error')
     res.status(500).json({ success: false, message: 'Internal server error.' });
   }
 };
@@ -604,10 +627,25 @@ const resendOrderOTP = async (req, res) => {
 const getOrderReview = async (req, res) => {
   try {
     const { id } = req.params;
+    const requesterId = (req.user._id || req.user.id).toString();
+    const requesterRole = req.user.role;
     const Review = require('../models/Review');
+
+    const order = await Order.findById(id).select('user_id items');
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+
+    const isAdmin = ['super_admin', 'SuperAdmin', 'Admin'].includes(requesterRole);
+    const isBuyer = order.user_id?.toString() === requesterId;
+    const isSeller = order.items.some(i => i.seller_id?.toString() === requesterId);
+
+    if (!isAdmin && !isBuyer && !isSeller) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view this review.' });
+    }
+
     const reviews = await Review.find({ order_id: id });
     res.status(200).json({ success: true, data: reviews });
   } catch (error) {
+    logger.error({ err: error }, 'getOrderReview error');
     res.status(500).json({ success: false, message: 'Error fetching review.' });
   }
 };

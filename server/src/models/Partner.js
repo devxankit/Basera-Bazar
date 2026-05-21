@@ -135,18 +135,21 @@ const partnerSchema = new mongoose.Schema({
     reviewed_at: { type: Date },
     rejection_reason: { type: String, default: null }
   },
-  role_requests: [{
-    role: { type: String, enum: ['service_provider', 'property_agent', 'supplier', 'mandi_seller'] },
-    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-    gst_number: { type: String },
-    gst_image: { type: String },
-    rera_number: { type: String },
-    rera_certificate_image: { type: String },
-    submitted_at: { type: Date, default: Date.now },
-    is_free_upgrade: { type: Boolean, default: false },
-    reviewed_at: { type: Date },
-    rejection_reason: { type: String }
-  }],
+  role_requests: {
+    type: [{
+      role: { type: String, enum: ['service_provider', 'property_agent', 'supplier', 'mandi_seller'] },
+      status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+      gst_number: { type: String },
+      gst_image: { type: String },
+      rera_number: { type: String },
+      rera_certificate_image: { type: String },
+      submitted_at: { type: Date, default: Date.now },
+      is_free_upgrade: { type: Boolean, default: false },
+      reviewed_at: { type: Date },
+      rejection_reason: { type: String }
+    }],
+    validate: { validator: v => v.length <= 20, message: 'Too many role requests.' }
+  },
   deleted_roles: {
     type: [String],
     default: []

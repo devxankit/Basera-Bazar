@@ -13,6 +13,7 @@ import { db } from '../../services/DataEngine';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { v } from '../../utils/validators';
+import toast from '../../mockToast';
 
 const SERVICE_CATEGORIES = [
   'AC maintenance', 'CCTV Services', 'Architect', 'Carpenter', 'Civil Engineer', 
@@ -165,7 +166,7 @@ export default function AddService() {
       setFormData(prev => ({ ...prev, district: value, city: prev.city || value }));
     } else if (name === 'is_featured') {
       if (e.target.checked && !subscriptionLimits.canFeature && !formData.is_featured) {
-        alert(subscriptionLimits.message || `You have reached your featured listings limit. Please upgrade your plan to feature more services.`);
+        toast.error(subscriptionLimits.message || `You have reached your featured listings limit. Please upgrade your plan to feature more services.`);
         return;
       }
       setFormData(prev => ({ ...prev, [name]: e.target.checked }));
@@ -293,8 +294,7 @@ export default function AddService() {
       setShowSuccessModal(true);
     },
     onError: (error) => {
-      console.error('Error saving service:', error);
-      alert(error.response?.data?.message || 'Failed to save service. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to save service. Please try again.');
     }
   });
 
@@ -316,7 +316,7 @@ export default function AddService() {
     if (Object.keys(errs).length > 0) {
       setFormErrors(errs);
       const first = Object.values(errs)[0];
-      alert(first);
+      toast.error(first);
       return;
     }
     setFormErrors({});
@@ -326,7 +326,7 @@ export default function AddService() {
   const [detecting, setDetecting] = useState(false);
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      toast.error("Geolocation is not supported by your browser");
       return;
     }
 
@@ -337,7 +337,7 @@ export default function AddService() {
         try {
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
           const data = await response.json();
-          
+
           if (data && data.address) {
             const adr = data.address;
             const clean = (s) => s ? s.replace(/\s(district|zila|tahsil|division|tahsil|zila|subdivision|township|taluk|mandal)$/i, '').trim() : '';
@@ -345,15 +345,15 @@ export default function AddService() {
             const stateName = adr.state || '';
             const INDIAN_STATES = Object.keys(INDIAN_STATES_DISTRICTS);
             const normalizedState = INDIAN_STATES.find(s => s.toLowerCase() === stateName.toLowerCase()) || stateName;
-            
+
             const cityName = clean(adr.city || adr.town || adr.village || adr.suburb || 'Unknown');
             const rawDistrict = adr.county || adr.state_district || adr.city_district || cityName;
 
             // Find matching district
             const availableDistricts = INDIAN_STATES_DISTRICTS[normalizedState] || [];
             const cleanedRaw = clean(rawDistrict);
-            const matchedDistrict = availableDistricts.find(d => clean(d) === cleanedRaw) || 
-                                   availableDistricts.find(d => clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))) || 
+            const matchedDistrict = availableDistricts.find(d => clean(d) === cleanedRaw) ||
+                                   availableDistricts.find(d => clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))) ||
                                    rawDistrict;
 
             setFormData(prev => ({
@@ -365,17 +365,16 @@ export default function AddService() {
               latitude,
               longitude
             }));
-            alert("Location detected successfully!");
+            toast.success("Location detected successfully!");
           }
         } catch (err) {
-          console.error("Geocoding error:", err);
-          alert("Failed to detect address details. Please enter manually.");
+          toast.error("Failed to detect address details. Please enter manually.");
         } finally {
           setDetecting(false);
         }
       },
       (err) => {
-        alert(err.message || "Failed to detect location");
+        toast.error(err.message || "Failed to detect location");
         setDetecting(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }

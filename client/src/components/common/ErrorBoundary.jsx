@@ -25,7 +25,6 @@ export default class ErrorBoundary extends React.Component {
   componentDidCatch(error, info) {
     // Intentionally not using console.error in production — errors are captured by Sentry
     if (process.env.NODE_ENV !== 'production') {
-      console.error('[ErrorBoundary] Caught error:', error, info.componentStack);
     }
   }
 

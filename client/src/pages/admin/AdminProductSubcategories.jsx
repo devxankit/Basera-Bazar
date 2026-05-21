@@ -42,7 +42,6 @@ export default function AdminProductSubcategories() {
         setSubcategories(all.filter(c => !!c.parent_id));
       }
     } catch (err) {
-      console.error('Fetch error', err);
     } finally {
       setLoading(false);
     }

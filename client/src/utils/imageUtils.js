@@ -53,7 +53,6 @@ export const compressImage = async (file, { maxWidth = 1280, maxHeight = 1280, q
               lastModified: Date.now(),
             });
             
-            // resolve(optimizedFile);
             resolve(optimizedFile);
           },
           format,

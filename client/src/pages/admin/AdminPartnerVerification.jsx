@@ -219,7 +219,6 @@ export default function AdminPartnerVerification() {
                   try {
                     await deleteMutation.mutateAsync(row._id || row.id);
                   } catch (err) {
-                    console.error(err);
                   } finally {
                     setIsActionLoading(false);
                   }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import toast from '../../mockToast';
 import {
   ArrowLeft, Share2, MapPin, Building2, Phone, Mail,
   ChevronRight, LayoutGrid, CheckCircle2, ShoppingCart,
@@ -67,11 +68,11 @@ const AgentDetails = () => {
   const sendOtpMutation = useMutation({
     mutationFn: (phone) => api.post('/auth/send-otp', { phone, checkExists: false }).then(r => r.data),
     onSuccess: () => { setOtpSent(true); setOtpTimer(60); },
-    onError: (error) => alert(error.response?.data?.message || "Failed to send OTP"),
+    onError: (error) => toast.error(error.response?.data?.message || "Failed to send OTP"),
   });
 
   const handleSendOtp = () => {
-    if (enquiryData.phone.length < 10) return alert("Please enter a valid 10-digit phone number");
+    if (enquiryData.phone.length < 10) { toast.error("Please enter a valid 10-digit phone number"); return; }
     setIsSendingOtp(true);
     sendOtpMutation.mutate(enquiryData.phone, { onSettled: () => setIsSendingOtp(false) });
   };
@@ -105,14 +106,14 @@ const AgentDetails = () => {
       });
     },
     onSuccess: () => { setShowSuccessModal(true); setIsModalOpen(false); },
-    onError: () => alert("Failed to send inquiry"),
+    onError: () => toast.error("Failed to send inquiry"),
     onSettled: () => setSubmitting(false),
   });
 
   const handleEnquirySubmit = (e) => {
     e.preventDefault();
     if (!user && (!otpSent || !otpCode)) {
-      alert("Please verify OTP first");
+      toast.error("Please verify OTP first");
       return;
     }
     setSubmitting(true);

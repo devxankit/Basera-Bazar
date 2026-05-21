@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import toast from '../../mockToast';
 import { 
   ArrowLeft, Building2, Package, MapPin, CheckCircle2,
   Trash2, UploadCloud, Info, Check, Plus, Camera, Navigation, Hash, 
@@ -69,7 +70,7 @@ export default function AddProduct() {
     // They must use their partner profile for discovery.
     const actualRole = (user.active_role || user.partner_type || '').toLowerCase();
     if (actualRole.includes('supplier')) {
-      alert("Suppliers can no longer add products. Please update your profile details for discovery.");
+      toast.info("Suppliers can no longer add products. Please update your profile details for discovery.");
       navigate('/partner/home');
       return;
     }
@@ -165,8 +166,7 @@ export default function AddProduct() {
         }
       }
     } catch (err) {
-      console.error('Image upload failed:', err);
-      alert('Failed to upload image. Please try again.');
+      toast.error('Failed to upload image. Please try again.');
     } finally {
       setUploadingImage(false);
     }
@@ -204,7 +204,7 @@ export default function AddProduct() {
   const handleDetectLocation = () => {
     if (isSubmitting) return;
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      toast.error("Geolocation is not supported by your browser");
       return;
     }
 
@@ -242,17 +242,16 @@ export default function AddProduct() {
               completeAddress: adr.road || prev.completeAddress,
               pinCode: adr.postcode || prev.pinCode
             }));
-            alert("Location detected successfully!");
+            toast.success("Location detected successfully!");
           }
         } catch (err) {
-          console.error("Geocoding error:", err);
-          alert("Failed to detect address details. Please enter manually.");
+          toast.error("Failed to detect address details. Please enter manually.");
         } finally {
           setDetecting(false);
         }
       },
       (err) => {
-        alert(err.message || "Failed to detect location");
+        toast.error(err.message || "Failed to detect location");
         setDetecting(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -292,8 +291,7 @@ export default function AddProduct() {
       setShowConfirmModal(false);
       navigate('/partner/products'); 
     } catch (error) {
-      console.error('Error saving product:', error);
-      alert(error.response?.data?.message || 'Failed to save product. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to save product. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

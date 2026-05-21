@@ -5,6 +5,7 @@ import {
   ChevronRight, AlertTriangle, Home, Building2, BedDouble, Bath, Square, Navigation, Car, Bike, Users, IndianRupee, Tag, Package, Camera, Star
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from '../../mockToast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
@@ -49,8 +50,7 @@ export default function PartnerServiceDetails() {
       await api.delete(`/listings/${service._id || service.id}`);
       navigate(-1);
     } catch (err) {
-      console.error("Error deleting listing:", err);
-      alert("Failed to delete listing.");
+      toast.error("Failed to delete listing.");
     }
   };
 

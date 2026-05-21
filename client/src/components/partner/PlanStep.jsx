@@ -56,7 +56,6 @@ export default function PlanStep({ selectedRole, selectedPlan, onSelect, onNext,
         }
       }
     } catch (err) {
-      console.error("Failed to fetch plans or offers:", err);
     } finally {
       setLoading(false);
     }

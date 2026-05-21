@@ -701,7 +701,8 @@ const getMySellerAttributes = async (req, res) => {
     const attrs = await SellerAttribute.find(query)
       .populate('category_id', 'name')
       .populate('parent_attribute_id', 'name')
-      .sort({ attribute_type: 1, name: 1 });
+      .sort({ attribute_type: 1, name: 1 })
+      .limit(500);
 
     res.status(200).json({ success: true, count: attrs.length, data: attrs });
   } catch (error) {

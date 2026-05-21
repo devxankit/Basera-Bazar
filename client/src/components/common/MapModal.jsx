@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, CheckCircle2, Search, Loader2, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import toast from '../../mockToast';
 
 export default function MapModal({ isOpen, onClose, onConfirm, initialCoordinates }) {
   const mapContainerRef = useRef(null);
@@ -29,7 +30,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialCoordinate
         setSuggestions(data || []);
         setShowSuggestions(true);
       } catch (err) {
-        console.error("Suggestion fetch error:", err);
+        // Suggestion fetch failed silently
       }
     }, 500);
 
@@ -98,13 +99,15 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialCoordinate
     }
 
     if (!window.L) {
-      const script = document.createElement('script');
-      script.id = 'leaflet-js';
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = () => {
-        initMap();
-      };
-      document.head.appendChild(script);
+      if (!document.getElementById('leaflet-js')) {
+        const script = document.createElement('script');
+        script.id = 'leaflet-js';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => {
+          initMap();
+        };
+        document.head.appendChild(script);
+      }
     } else {
       // Small timeout to ensure DOM is ready
       setTimeout(initMap, 0);
@@ -152,11 +155,10 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialCoordinate
           markerInstanceRef.current = window.L.marker([newPos.lat, newPos.lng]).addTo(mapInstanceRef.current);
         }
       } else {
-        alert("Location not found. Please try a different search term.");
+        toast.error("Location not found. Please try a different search term.");
       }
     } catch (err) {
-      console.error("Search error:", err);
-      alert("Failed to search location. Please try again.");
+      toast.error("Failed to search location. Please try again.");
     } finally {
       setIsSearching(false);
     }

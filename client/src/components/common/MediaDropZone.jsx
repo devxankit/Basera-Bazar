@@ -3,15 +3,24 @@ import { Upload, X, FileImage, Loader2, CheckCircle2, AlertCircle } from 'lucide
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 
-export default function MediaDropZone({ 
-  value = [], 
-  onChange, 
+const accentColorMap = {
+  blue:   { border: 'border-blue-500',   bg: 'bg-blue-50/30',   icon: 'text-blue-600'   },
+  green:  { border: 'border-green-500',  bg: 'bg-green-50/30',  icon: 'text-green-600'  },
+  red:    { border: 'border-red-500',    bg: 'bg-red-50/30',    icon: 'text-red-600'    },
+  indigo: { border: 'border-indigo-500', bg: 'bg-indigo-50/30', icon: 'text-indigo-600' },
+  orange: { border: 'border-orange-500', bg: 'bg-orange-50/30', icon: 'text-orange-600' },
+};
+
+export default function MediaDropZone({
+  value = [],
+  onChange,
   multiple = true,
   maxFiles = 10,
   label = "Assets",
   description = "Drag & drop files or click to browse",
   accentColor = "indigo"
 }) {
+  const colors = accentColorMap[accentColor] || accentColorMap.indigo;
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
@@ -42,7 +51,6 @@ export default function MediaDropZone({
       const uploadedUrls = [];
       for (const file of files) {
         if (!file.type.startsWith('image/')) {
-          console.warn("Skipping non-image file:", file.name);
           continue;
         }
 
@@ -60,7 +68,6 @@ export default function MediaDropZone({
       const newValue = multiple ? [...value, ...uploadedUrls] : [uploadedUrls[0]];
       onChange(newValue);
     } catch (err) {
-      console.error("Upload error:", err);
       setError(err.response?.data?.message || "Failed to upload assets. Please check connection.");
     } finally {
       setUploading(false);
@@ -83,8 +90,8 @@ export default function MediaDropZone({
         onDragLeave={() => setIsDragging(false)}
         onDrop={onDrop}
         className={`relative group h-48 rounded-[32px] border-2 border-dashed transition-all flex flex-col items-center justify-center gap-2 overflow-hidden ${
-          isDragging 
-            ? `border-${accentColor}-500 bg-${accentColor}-50/30` 
+          isDragging
+            ? `${colors.border} ${colors.bg}`
             : 'border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300'
         }`}
       >
@@ -96,7 +103,7 @@ export default function MediaDropZone({
         ) : (
           <>
             <div className={`p-4 rounded-3xl bg-white shadow-sm transition-transform group-hover:scale-110 ${isDragging ? 'scale-110' : ''}`}>
-              <Upload className={`text-${accentColor}-600`} size={24} />
+              <Upload className={colors.icon} size={24} />
             </div>
             <div className="text-center">
               <p className="text-sm font-black text-slate-900 tracking-tight">

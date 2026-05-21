@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from '../../mockToast';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 
@@ -49,9 +50,9 @@ export default function PartnerMilestones() {
       });
       setClaimed(true);
       setShowRewardForm(false);
-      alert("Reward claim submitted successfully!");
+      toast.success("Reward claim submitted successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to claim reward.");
+      toast.error(err.response?.data?.message || "Failed to claim reward.");
     } finally {
       setSubmitting(false);
     }

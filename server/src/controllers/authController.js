@@ -157,8 +157,7 @@ const verifyOtp = async (req, res) => {
     } = req.body;
     const phone = rawPhone ? rawPhone.trim() : '';
 
-    // DEBUG: Log incoming request body for troubleshooting
-    logger.info({ body: req.body }, '[AUTH] Verify OTP request received');
+    logger.info({ phone, role: req.body?.role }, '[AUTH] Verify OTP request received');
 
     if (!otp || typeof otp !== 'string' || !/^\d{6}$/.test(otp.trim())) {
       return res.status(400).json({ success: false, message: 'Invalid OTP format.' });
@@ -342,10 +341,9 @@ const verifyOtp = async (req, res) => {
     });
 
   } catch (error) {
-    logger.error({ 
-      err: error.message, 
-      stack: error.stack,
-      body: req.body 
+    logger.error({
+      err: error.message,
+      stack: error.stack
     }, 'OTP verification error:');
     
     // Check if it's a validation error (e.g. missing required location fields)

@@ -43,7 +43,6 @@ export default function AdminCategoryForm() {
         setAvailableParents(res.data.data.filter(p => p._id !== id));
       }
     } catch (err) {
-      console.error("Error fetching parents:", err);
     } finally {
       setFetchingParents(false);
     }

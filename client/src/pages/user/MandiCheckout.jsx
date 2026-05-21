@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useCart } from '../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loadScript } from '../../utils/loadScript';
+import toast from '../../mockToast';
 
 export default function MandiCheckout() {
    const navigate = useNavigate();
@@ -130,7 +131,7 @@ export default function MandiCheckout() {
                         setStep(3);
                      }
                   } catch (err) {
-                     alert("Payment verification failed. Please contact support.");
+                     toast.error("Payment verification failed. Please contact support.");
                   } finally {
                      setLoading(false);
                   }
@@ -150,7 +151,7 @@ export default function MandiCheckout() {
          }
       } catch (err) {
          const errorMsg = err.response?.data?.message || "Order failed";
-         alert(errorMsg);
+         toast.error(errorMsg);
       } finally {
          setLoading(false);
       }
@@ -250,9 +251,9 @@ export default function MandiCheckout() {
                   <button
                      onClick={() => {
                         if (!address.receiver_name || !address.receiver_phone || !address.street || !address.city || !address.pincode) {
-                           alert("Please fill all required fields marked with *");
+                           toast.error("Please fill all required fields marked with *");
                         } else if (address.receiver_phone.length !== 10) {
-                           alert("Please enter a valid 10-digit phone number");
+                           toast.error("Please enter a valid 10-digit phone number");
                         }
                         else setStep(2);
                      }}

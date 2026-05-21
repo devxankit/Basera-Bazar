@@ -246,7 +246,7 @@ export default function AdminLayout({ children }) {
           pendingReports: staffStats.pending_reports || 0
         });
       } catch (err) {
-        console.error("Failed to fetch sidebar badges:", err);
+        // badge fetch failure is non-critical
       }
     };
     

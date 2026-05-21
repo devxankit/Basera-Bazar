@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from '../../mockToast';
 import {
   ArrowLeft, Edit2, Save, Building2,
   Mail, Phone, MapPin, User, Loader2, X
@@ -64,13 +65,12 @@ export default function PartnerEditProfile() {
           logs.push({ type: 'profile', title: 'Profile Updated', time: 'Just now', timestamp: new Date().toISOString() });
           localStorage.setItem(logKey, JSON.stringify(logs));
         }
-        alert('Profile updated successfully!');
+        toast.success('Profile updated successfully!');
         navigate('/partner/profile');
       }
     },
     onError: (error) => {
-      console.error('Profile update failed:', error);
-      alert(error.response?.data?.message || 'Failed to update profile.');
+      toast.error(error.response?.data?.message || 'Failed to update profile.');
     }
   });
 
@@ -79,11 +79,11 @@ export default function PartnerEditProfile() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const nameErr = v.name(formData.name);
-    if (nameErr) { alert(nameErr); return; }
+    if (nameErr) { toast.error(nameErr); return; }
     const emailErr = v.emailOptional(formData.email);
-    if (emailErr) { alert(emailErr); return; }
+    if (emailErr) { toast.error(emailErr); return; }
     if (formData.businessDescription && formData.businessDescription.trim().length > 0 && formData.businessDescription.trim().length < 10) {
-      alert('Business description must be at least 10 characters.'); return;
+      toast.error('Business description must be at least 10 characters.'); return;
     }
     updateProfileMutation.mutate({
       name: formData.name,

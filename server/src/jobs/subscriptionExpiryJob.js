@@ -59,7 +59,13 @@ const runSubscriptionExpiryJob = async () => {
   let processed = 0;
   for (const sub of expiredSubs) {
     try {
-      await Subscription.findByIdAndUpdate(sub._id, { $set: { status: 'expired' } });
+      // Atomic update: only succeeds if status is still active/trial (prevents double-processing)
+      const updated = await Subscription.findOneAndUpdate(
+        { _id: sub._id, status: { $in: ['active', 'trial'] } },
+        { $set: { status: 'expired' } },
+        { new: true }
+      );
+      if (!updated) continue; // Already processed by another instance
 
       // Only deactivate the partner if this sub is still their active one
       const partner = await Partner.findOne({

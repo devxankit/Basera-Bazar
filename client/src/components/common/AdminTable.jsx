@@ -19,7 +19,7 @@ export default function AdminTable({
   // Reset to page 1 whenever search/data changes
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [(data || []).length]);
+  }, [data?.length ?? 0]);
 
   const safeData = data || [];
   const totalPages = Math.ceil(safeData.length / itemsPerPage);

@@ -27,10 +27,10 @@ const getWalletStats = async (req, res) => {
  * @access  Private (Partner Only)
  */
 const requestWithdrawal = async (req, res) => {
-  const { amount } = req.body;
+  const amount = Number(req.body.amount);
   const partnerId = req.user.id;
 
-  if (!amount || amount <= 0) {
+  if (isNaN(amount) || !isFinite(amount) || amount <= 0) {
     return res.status(400).json({ success: false, message: 'Invalid withdrawal amount.' });
   }
 

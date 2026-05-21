@@ -333,7 +333,9 @@ exports.getDashboard = async (req, res) => {
     }
 
     // Calculate Stats
-    const allPartners = await Partner.find({ referral_code_used: executive.referral_code });
+    const allPartners = await Partner.find({ referral_code_used: executive.referral_code })
+      .select('onboarding_status kyc active_subscription_id')
+      .limit(1000);
     const totalSellers = allPartners.length;
     const pendingVerify = allPartners.filter(p => p.onboarding_status === 'pending_approval' || p.kyc?.status === 'pending').length;
     

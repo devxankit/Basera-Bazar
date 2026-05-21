@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from '../../mockToast';
 import { db } from '../../services/DataEngine';
 import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star, ShoppingCart, Plus, Minus, Package, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -121,7 +122,6 @@ const ListingDetails = () => {
       setSelectedSubType(listing.sub_type_name || '');
       setSelectedBrand(listing.brand_name || listing.brand || '');
     } catch (err) {
-      console.error("Error fetching attributes:", err);
     } finally {
       setLoadingVariations(false);
     }
@@ -156,13 +156,13 @@ const ListingDetails = () => {
   const sendOtpMutation = useMutation({
     mutationFn: (phone) => api.post('/auth/send-otp', { phone, checkExists: false }).then(r => r.data),
     onSuccess: () => { setOtpSent(true); setOtpTimer(60); },
-    onError: (error) => alert(error.response?.data?.message || "Failed to send OTP. Please try again."),
+    onError: (error) => toast.error(error.response?.data?.message || "Failed to send OTP. Please try again."),
     onSettled: () => setIsSendingOtp(false),
   });
 
   const handleSendOtp = () => {
     if (enquiryData.phone.length < 10) {
-      alert("Please enter a valid 10-digit phone number");
+      toast.error("Please enter a valid 10-digit phone number");
       return;
     }
     setIsSendingOtp(true);
@@ -212,14 +212,14 @@ const ListingDetails = () => {
       setIsModalOpen(false);
       if (wasGuest) setTimeout(() => window.location.reload(), 2000);
     },
-    onError: (error) => alert(error.message || "Failed to send enquiry. Please try again."),
+    onError: (error) => toast.error(error.message || "Failed to send enquiry. Please try again."),
     onSettled: () => { setIsVerifying(false); },
   });
 
   const handleEnquirySubmit = (e) => {
     e.preventDefault();
     if (!user && (!otpSent || !otpCode)) {
-      alert("Please verify your phone number via OTP first.");
+      toast.error("Please verify your phone number via OTP first.");
       return;
     }
     submitEnquiryMutation.mutate({ ...enquiryData, otp: otpCode });
@@ -821,7 +821,7 @@ const ListingDetails = () => {
                           if (lat && lng) {
                             window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
                           } else {
-                            alert('Location details not available for this listing');
+                            toast.info('Location details not available for this listing');
                           }
                         }}
                         className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-[#f0f4ff] border border-[#d1daff] active:scale-95 transition-all"

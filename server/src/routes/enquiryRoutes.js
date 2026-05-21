@@ -9,17 +9,17 @@ const {
   deleteInquiry 
 } = require('../controllers/enquiryController');
 
-const { protect } = require('../middlewares/authMiddleware');
+const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
 const { enquirySchema, idParamSchema } = require('../utils/validators');
 
-router.post('/enquiries', protect, validate(enquirySchema), createEnquiry);
-router.get('/users/enquiries', protect, getMyEnquiries);
+router.post('/enquiries', protect, authorizeRoles('user', 'Customer'), validate(enquirySchema), createEnquiry);
+router.get('/users/enquiries', protect, authorizeRoles('user', 'Customer'), getMyEnquiries);
 
 // Partner Routes
-router.get('/partners/enquiries', protect, getPartnerInquiries);
-router.get('/partners/enquiries/:id', protect, validate(idParamSchema, 'params'), getInquiryById);
-router.patch('/partners/enquiries/:id/status', protect, validate(idParamSchema, 'params'), updateInquiryStatus);
-router.delete('/partners/enquiries/:id', protect, validate(idParamSchema, 'params'), deleteInquiry);
+router.get('/partners/enquiries', protect, authorizeRoles('partner'), getPartnerInquiries);
+router.get('/partners/enquiries/:id', protect, authorizeRoles('partner'), validate(idParamSchema, 'params'), getInquiryById);
+router.patch('/partners/enquiries/:id/status', protect, authorizeRoles('partner'), validate(idParamSchema, 'params'), updateInquiryStatus);
+router.delete('/partners/enquiries/:id', protect, authorizeRoles('partner'), validate(idParamSchema, 'params'), deleteInquiry);
 
 module.exports = router;

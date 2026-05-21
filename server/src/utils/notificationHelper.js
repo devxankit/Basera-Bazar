@@ -78,7 +78,6 @@ const createNotification = async (recipientType, recipientId, title, body, data 
     
     return notification;
   } catch (error) {
-    console.error('NOTIFICATION ERROR:', error);
     logger.error({ err: error }, 'Error creating notification:')
     return null;
   }

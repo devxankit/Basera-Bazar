@@ -129,7 +129,6 @@ export default function ExecutiveSignUp() {
         await videoRef.current.play();
       }
     } catch (err) {
-      console.error("Camera error:", err);
       toast.error('Camera access failed. Please upload a photo instead.');
       setIsCameraOpen(false);
       // Automatically trigger file input for fallback

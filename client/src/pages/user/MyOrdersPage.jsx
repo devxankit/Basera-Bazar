@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import toast from '../../mockToast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { 
@@ -54,7 +55,7 @@ const MyOrdersPage = () => {
             }
           }
         } catch (err) {
-          console.error("Error fetching review for order:", err);
+          // review fetch failure is non-critical
         }
       };
       fetchReview();
@@ -70,8 +71,7 @@ const MyOrdersPage = () => {
       }
       setRatingModal({ isOpen: false, order: null, initialData: null });
     } catch (err) {
-      console.error("Review error:", err);
-      alert("Failed to save review");
+      toast.error("Failed to save review");
     }
   };
 
@@ -87,7 +87,6 @@ const MyOrdersPage = () => {
       }
       setRatingModal({ isOpen: true, order, initialData: existingReview });
     } catch (err) {
-      console.error("Error opening rating modal:", err);
       setRatingModal({ isOpen: true, order, initialData: null });
     }
   };
@@ -180,8 +179,7 @@ const MyOrdersPage = () => {
 
       html2pdf().from(invoiceContent).set(opt).save();
     } catch (err) {
-      console.error("Invoice Error:", err);
-      alert("Failed to generate invoice");
+      toast.error("Failed to generate invoice");
     }
   };
 

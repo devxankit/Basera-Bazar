@@ -26,7 +26,7 @@ function TeamLeaderBottomNav() {
       try {
         const { data } = await api.get('/staff/team-leader/pending-counts');
         if (data.success) setCounts(data.data);
-      } catch (err) { console.error('Failed to fetch counts', err); }
+      } catch (err) { /* counts fetch failure is non-critical */ }
     };
     fetchCounts();
     const interval = setInterval(fetchCounts, 60000); // Refresh every minute

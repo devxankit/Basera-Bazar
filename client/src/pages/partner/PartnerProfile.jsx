@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from '../../mockToast';
 import {
   ArrowLeft, Edit2, Box, Building2, ChevronRight,
   User, Mail, Phone, CreditCard, HelpCircle, Info, LogOut, Trash2, Clock, Loader2,
@@ -42,8 +43,7 @@ export default function PartnerProfile() {
       setShowDeleteRoleModal(null);
     },
     onError: (err) => {
-      console.error('Delete role error:', err);
-      alert(err.response?.data?.message || 'Failed to delete role.');
+      toast.error(err.response?.data?.message || 'Failed to delete role.');
     }
   });
 

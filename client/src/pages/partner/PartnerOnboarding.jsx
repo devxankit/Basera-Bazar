@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from '../../mockToast';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, Camera, ChevronRight, FileText, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -104,13 +105,12 @@ export default function PartnerOnboarding() {
     onSuccess: (data) => {
       if (data.success) {
         login(data.data, localStorage.getItem('baserabazar_token'));
-        alert("Verification details submitted successfully! Please wait for Admin approval.");
+        toast.success("Verification details submitted successfully! Please wait for Admin approval.");
         navigate('/partner/home');
       }
     },
     onError: (error) => {
-      console.error('Onboarding error:', error);
-      alert(error.response?.data?.message || 'Submission failed. Please try again.');
+      toast.error(error.response?.data?.message || 'Submission failed. Please try again.');
     }
   });
 
@@ -118,19 +118,19 @@ export default function PartnerOnboarding() {
 
   const handleComplete = () => {
     if (!formData.pan || !formData.panImage || !formData.aadhar || !formData.aadharFront || !formData.aadharBack) {
-      alert("Please upload all required documents (PAN and Aadhar).");
+      toast.error("Please upload all required documents (PAN and Aadhar).");
       return;
     }
     if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) {
-      alert("Please enter a valid PAN Card number (e.g. ABCDE1234F).");
+      toast.error("Please enter a valid PAN Card number (e.g. ABCDE1234F).");
       return;
     }
     if (formData.aadhar && !/^\d{12}$/.test(formData.aadhar)) {
-      alert("Please enter a valid 12-digit Aadhar Card number.");
+      toast.error("Please enter a valid 12-digit Aadhar Card number.");
       return;
     }
     if (isMandi && !formData.businessName) {
-      alert("Please enter your Business Name.");
+      toast.error("Please enter your Business Name.");
       return;
     }
     submitOnboardingMutation.mutate(formData);

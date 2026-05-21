@@ -12,6 +12,7 @@ import LocationPicker from '../common/LocationPicker';
 
 import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
 import { v } from '../../utils/validators';
+import toast from '../../mockToast';
 
 const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
@@ -105,7 +106,6 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
             setDynamicSupplierCategories(res.data.data);
           }
         } catch (err) {
-          console.error("Error fetching supplier categories:", err);
         }
       };
       fetchSupplierCats();
@@ -286,7 +286,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
         onProceedToVerify();
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to send OTP.");
+      toast.error(error.response?.data?.message || "Failed to send OTP.");
     } finally {
       setVerifying(false);
     }

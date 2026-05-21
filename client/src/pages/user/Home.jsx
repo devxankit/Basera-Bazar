@@ -41,7 +41,7 @@ const Home = () => {
         db.getAll('listings', { category: 'service', is_featured: 'true', limit: 8, ...locationParams }),
         db.getAll('partners', { category: 'supplier', is_featured: 'true', limit: 8, ...locationParams }),
         db.getAll('listings', { category: 'mandi', is_featured: 'true', limit: 8, ...locationParams })
-      ]);
+      ]).catch(() => [[], [], [], []]);
       return { props, servs, supps, mandi };
     },
     staleTime: 5 * 60 * 1000,

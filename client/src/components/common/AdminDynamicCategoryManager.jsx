@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import MediaDropZone from '../common/MediaDropZone';
+import toast from '../../mockToast';
 
 const inputClass =
   'w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300';
@@ -123,7 +124,6 @@ export default function AdminDynamicCategoryManager({ type = 'supplier' }) {
         setPartnerCountMap(map);
       }
     } catch (err) {
-      console.error('Fetch error', err);
     } finally {
       setLoading(false);
     }
@@ -214,7 +214,7 @@ export default function AdminDynamicCategoryManager({ type = 'supplier' }) {
       await api.delete(`${endpoint}/${id}`);
       await fetchAll();
     } catch (err) {
-      alert(err.response?.data?.message || 'Delete failed.');
+      toast.error(err.response?.data?.message || 'Delete failed.');
     }
   };
 
@@ -230,7 +230,7 @@ export default function AdminDynamicCategoryManager({ type = 'supplier' }) {
         prev.map(c => c._id === cat._id ? { ...c, is_active: !c.is_active } : c)
       );
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update status.');
+      toast.error(err.response?.data?.message || 'Failed to update status.');
     }
   };
 

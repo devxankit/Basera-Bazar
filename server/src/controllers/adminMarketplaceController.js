@@ -147,10 +147,18 @@ const processWithdrawal = async (req, res) => {
  */
 const getAllWithdrawals = async (req, res) => {
   try {
-    const requests = await WithdrawalRequest.find()
-      .populate('user_id', 'name phone email')
-      .sort({ createdAt: -1 });
-    res.status(200).json({ success: true, data: requests });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
+    const [requests, total] = await Promise.all([
+      WithdrawalRequest.find()
+        .populate('user_id', 'name phone email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      WithdrawalRequest.countDocuments()
+    ]);
+    res.status(200).json({ success: true, data: requests, page, limit, total, totalPages: Math.ceil(total / limit) });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error fetching withdrawals.' });
   }
@@ -163,20 +171,22 @@ const getAllWithdrawals = async (req, res) => {
 const getAllOrders = async (req, res) => {
   try {
     logger.info("Admin requesting all marketplace orders...")
-    const orders = await Order.find({})
-      .populate('user_id', 'name phone')
-      .populate({
-        path: 'items.productId',
-        model: 'MandiListing'
-      })
-      .populate({
-        path: 'items.seller_id',
-        model: 'Partner'
-      })
-      .sort({ createdAt: -1 });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
+    const [orders, total] = await Promise.all([
+      Order.find({})
+        .populate('user_id', 'name phone')
+        .populate({ path: 'items.productId', model: 'MandiListing' })
+        .populate({ path: 'items.seller_id', model: 'Partner', select: 'name shop_name phone' })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Order.countDocuments()
+    ]);
 
-    logger.info(`Successfully fetched ${orders.length} orders for admin`)
-    res.status(200).json({ success: true, data: orders });
+    logger.info(`Successfully fetched ${orders.length} orders for admin (page ${page})`)
+    res.status(200).json({ success: true, data: orders, page, limit, total, totalPages: Math.ceil(total / limit) });
   } catch (error) {
     logger.error({ err: error }, "CRITICAL: Get All Orders Admin Error:")
     res.status(500).json({ success: false, message: 'Error fetching orders.' });

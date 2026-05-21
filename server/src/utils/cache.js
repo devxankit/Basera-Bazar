@@ -38,7 +38,8 @@ const CacheManager = {
     try {
       if (redisClient && redisClient.status === 'ready') {
         const data = await redisClient.get(key);
-        return data ? JSON.parse(data) : null;
+        if (!data) return null;
+        try { return JSON.parse(data); } catch { return null; }
       }
     } catch (e) { /* fall through */ }
 

@@ -377,13 +377,13 @@ const PartnerAddSwitcher = () => {
 // --- ROUTE GUARDS ---
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <PageSpinner />;
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
 const AdminRoute = ({ children }) => {
   const { user, isAuthenticated, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <PageSpinner />;
   if (!isAuthenticated || user?.role !== "super_admin")
     return <Navigate to="/admin/login" replace />;
   return children;
@@ -391,7 +391,7 @@ const AdminRoute = ({ children }) => {
 
 const VerifiedPartnerRoute = ({ children }) => {
   const { user, isAuthenticated, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <PageSpinner />;
   if (!isAuthenticated || user?.role !== "partner")
     return <Navigate to="/partner/login" replace />;
   if (user?.onboarding_status !== "approved")
@@ -401,7 +401,7 @@ const VerifiedPartnerRoute = ({ children }) => {
 
 const ExecutiveRoute = ({ children }) => {
   const { user, isAuthenticated, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <PageSpinner />;
   if (!isAuthenticated || user?.role !== "executive")
     return <Navigate to="/staff/login" replace />;
   return children;
@@ -409,7 +409,7 @@ const ExecutiveRoute = ({ children }) => {
 
 const TeamLeaderRoute = ({ children }) => {
   const { user, isAuthenticated, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <PageSpinner />;
   if (!isAuthenticated || user?.role !== "team_leader")
     return <Navigate to="/staff/login" replace />;
   return children;
@@ -417,7 +417,7 @@ const TeamLeaderRoute = ({ children }) => {
 
 const OfficeStaffRoute = ({ children }) => {
   const { user, isAuthenticated, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <PageSpinner />;
   if (!isAuthenticated || user?.role !== "office_staff")
     return <Navigate to="/staff/login" replace />;
   return children;
@@ -432,8 +432,8 @@ const FCMHandler = ({ children }) => {
     const setup = async () => {
       try {
         await initializeFCM();
-        unsubscribe = setupForegroundHandler((payload) => {
-          console.log("FCM Foreground Message:", payload);
+        unsubscribe = setupForegroundHandler((_payload) => {
+          // FCM foreground message received
         });
       } catch (err) {
         // Push notifications are non-critical — app stays fully functional without them

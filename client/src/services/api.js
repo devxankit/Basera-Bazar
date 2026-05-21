@@ -2,8 +2,8 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
-if (!import.meta.env.VITE_API_BASE_URL && import.meta.env.PROD) {
-  console.error('[api] VITE_API_BASE_URL is not set. API calls will fail in production.');
+if (!import.meta.env.VITE_API_BASE_URL) {
+  if (import.meta.env.DEV) console.warn('[api] VITE_API_BASE_URL is not set. Falling back to localhost.');
 }
 
 const api = axios.create({

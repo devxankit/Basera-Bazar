@@ -123,7 +123,7 @@ const getPartnerInquiries = async (req, res) => {
 
     const inquiries = await Enquiry.find(query)
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit) || 50);
+      .limit(Math.min(100, Math.max(1, parseInt(limit) || 50)));
 
     // 2. Check Subscription Limits
     const limits = await getPartnerLimits(req.user._id);
@@ -136,7 +136,7 @@ const getPartnerInquiries = async (req, res) => {
       const obj = inq.toObject();
       if (limitReached) {
         if (obj.user_details) {
-          obj.user_details.phone = obj.user_details.phone?.substring(0, 3) + '*******';
+          obj.user_details.phone = obj.user_details.phone ? obj.user_details.phone.substring(0, 3) + '*******' : '***';
           obj.user_details.email = obj.user_details.email ? '*******@' + (obj.user_details.email.split('@')[1] || 'hidden.com') : null;
         }
         obj.limitReached = true;
@@ -171,7 +171,7 @@ const getInquiryById = async (req, res) => {
 
     // Security: Check ownership
     if (inquiry.partner_id && inquiry.partner_id.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ success: false, message: 'Not authorized to view this lead.' });
+      return res.status(403).json({ success: false, message: 'Not authorized to view this lead.' });
     }
 
     // Mark as read if it was new
@@ -203,8 +203,8 @@ const getInquiryById = async (req, res) => {
     if (limitReached) {
       // Redact sensitive info
       if (data.user_details) {
-        data.user_details.phone = data.user_details.phone.substring(0, 3) + '*******';
-        data.user_details.email = '*******@' + (data.user_details.email.split('@')[1] || 'hidden.com');
+        data.user_details.phone = data.user_details.phone ? data.user_details.phone.substring(0, 3) + '*******' : '***';
+        data.user_details.email = data.user_details.email ? '*******@' + (data.user_details.email.split('@')[1] || 'hidden.com') : null;
       }
       data.limitReached = true;
     }
@@ -268,7 +268,7 @@ const deleteInquiry = async (req, res) => {
     }
 
     if (inquiry.partner_id.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ success: false, message: 'Not authorized.' });
+      return res.status(403).json({ success: false, message: 'Not authorized.' });
     }
 
     await inquiry.deleteOne();

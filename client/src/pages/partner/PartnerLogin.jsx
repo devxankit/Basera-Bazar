@@ -7,6 +7,7 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { registerFCMToken } from '../../services/pushNotificationService';
 import { v, sanitize } from '../../utils/validators';
+import toast from '../../mockToast';
 
 export default function PartnerLogin() {
   const navigate = useNavigate();
@@ -51,7 +52,6 @@ export default function PartnerLogin() {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') registerFCMToken(true);
     } catch (err) {
-      console.error('Permission request failed', err);
     } finally {
       setShowNotificationPrompt(false);
       navigate('/partner/home');
@@ -77,7 +77,7 @@ export default function PartnerLogin() {
     } catch (err) {
       if (err.response?.status === 404 && err.response?.data?.notExists) setShowSignupModal(true);
       else if (err.response?.status === 403 && err.response?.data?.code === 'ACCOUNT_INACTIVE') setShowInactiveModal(true);
-      else alert(err.response?.data?.message || 'Failed to send OTP.');
+      else toast.error(err.response?.data?.message || 'Failed to send OTP.');
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ export default function PartnerLogin() {
       if (res.data.success) onLoginSuccess(res.data.user, res.data.token);
     } catch (err) {
       if (err.response?.status === 403 && err.response?.data?.code === 'ACCOUNT_INACTIVE') setShowInactiveModal(true);
-      else alert(err.response?.data?.message || 'Invalid OTP.');
+      else toast.error(err.response?.data?.message || 'Invalid OTP.');
     } finally {
       setLoading(false);
     }
@@ -116,7 +116,7 @@ export default function PartnerLogin() {
       if (code === 'NOT_REGISTERED') setShowSignupModal(true);
       else if (code === 'NO_PASSWORD') setShowOtpOnlyModal(true);
       else if (err.response?.status === 403 && code === 'ACCOUNT_INACTIVE') setShowInactiveModal(true);
-      else alert(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      else toast.error(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }

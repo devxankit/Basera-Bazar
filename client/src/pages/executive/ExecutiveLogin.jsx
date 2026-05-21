@@ -48,7 +48,6 @@ export default function ExecutiveLogin() {
     } catch (error) {
       // Defensive logging to avoid extension noise
       if (error.name !== "FrameDoesNotExistError") {
-        console.error("Login failed:", error);
       }
 
       if (

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from '../../mockToast';
 import {
   Bell, Trash2, CheckCircle2, XCircle,
   Clock, ArrowLeft, Loader2, Info, MessageSquare, ShoppingBag
@@ -30,7 +31,7 @@ export default function PartnerNotifications() {
         });
       }
     } catch (err) {
-      alert("Failed to delete notification");
+      toast.error("Failed to delete notification");
     }
   };
 

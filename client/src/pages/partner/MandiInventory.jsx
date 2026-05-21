@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from '../../mockToast';
 import {
   Package,
   Plus,
@@ -72,8 +73,7 @@ export default function MandiInventory() {
         await api.delete(`/listings/${id}`);
         queryClient.invalidateQueries({ queryKey: ['mandiMyListings'] });
       } catch (err) {
-        console.error("Delete error:", err);
-        alert("Failed to delete product.");
+        toast.error("Failed to delete product.");
       }
     }
   };
@@ -86,8 +86,7 @@ export default function MandiInventory() {
         queryClient.invalidateQueries({ queryKey: ['mandiMyListings'] });
       }
     } catch (err) {
-      console.error("Toggle status error:", err);
-      alert("Failed to update product status.");
+      toast.error("Failed to update product status.");
     }
   };
 
@@ -200,7 +199,7 @@ export default function MandiInventory() {
              <button 
                onClick={() => {
                  if (user.onboarding_status !== 'approved') {
-                   alert("Verification Required: Please wait for Admin approval to list products.");
+                   toast.error("Verification Required: Please wait for Admin approval to list products.");
                    return;
                  }
                  navigate('/partner/add-product');
@@ -311,7 +310,7 @@ export default function MandiInventory() {
         <button 
           onClick={() => {
             if (user.onboarding_status !== 'approved') {
-              alert("Verification Required: You will be able to add products once the Admin approves your account.");
+              toast.error("Verification Required: You will be able to add products once the Admin approves your account.");
               return;
             }
             navigate('/partner/add-product');

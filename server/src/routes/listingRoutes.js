@@ -37,7 +37,7 @@ router.patch('/:id/toggle-featured', protect, authorizeRoles('partner'), verifyA
 router.delete('/:id', protect, authorizeRoles('partner', 'admin', 'super_admin', 'SuperAdmin', 'Admin'), listingController.deleteListing);
 
 // Parameterized catch-all — MUST be LAST
-router.post('/:id/interaction', listingController.recordListingInteraction);
+router.post('/:id/interaction', optionalProtect, listingController.recordListingInteraction);
 router.get('/:id', optionalProtect, cacheMiddleware(5, false), listingController.getListingById);
 
 module.exports = router;

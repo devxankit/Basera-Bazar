@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from '../../mockToast';
 import {
   Building2,
   Briefcase,
@@ -98,7 +99,7 @@ export default function PartnerInventory() {
     } else if (role.includes('mandi')) {
       navigate('/partner/add-product');
     } else {
-      alert(`Add ${labels.item} flow coming soon for ${role}s!`);
+      toast.info(`Add ${labels.item} flow coming soon for ${role}s!`);
     }
   };
 
@@ -130,8 +131,7 @@ export default function PartnerInventory() {
            localStorage.setItem(logKey, JSON.stringify(logs));
         }
       } catch (err) {
-        console.error("Error deleting listing:", err);
-        alert("Failed to delete listing. Please try again.");
+        toast.error("Failed to delete listing. Please try again.");
       }
     }
   };
@@ -142,7 +142,7 @@ export default function PartnerInventory() {
 
     // If trying to feature and limit reached
     if (!isCurrentlyFeatured && !subscriptionLimits.canFeature) {
-      alert(subscriptionLimits.message || "Featured limit reached! Un-feature another item to feature this one.");
+      toast.error(subscriptionLimits.message || "Featured limit reached! Un-feature another item to feature this one.");
       return;
     }
 
@@ -153,8 +153,7 @@ export default function PartnerInventory() {
         queryClient.invalidateQueries({ queryKey: ['inventorySubscriptionLimits'] });
       }
     } catch (err) {
-      console.error("Toggle featured error:", err);
-      alert(err.response?.data?.message || "Failed to update featured status");
+      toast.error(err.response?.data?.message || "Failed to update featured status");
     }
   };
 
@@ -373,7 +372,7 @@ export default function PartnerInventory() {
             <button 
               onClick={() => {
                 if (!partner.is_active) {
-                  alert("Your account is disabled. Complete KYC to start listing.");
+                  toast.error("Your account is disabled. Complete KYC to start listing.");
                   return;
                 }
                 handleAddAction();

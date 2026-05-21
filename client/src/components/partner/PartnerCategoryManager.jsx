@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import toast from '../../mockToast';
 
 const TABS = [
   { key: 'type', label: 'Types', icon: Layers, color: 'blue' },
@@ -32,7 +33,6 @@ export default function PartnerCategoryManager({ onClose }) {
         const res = await api.get('/listings/categories?type=supplier&parent_id=null');
         setParentCategories(res.data.data || []);
       } catch (err) {
-        console.error(err);
       }
     };
     fetchCats();
@@ -51,7 +51,6 @@ export default function PartnerCategoryManager({ onClose }) {
       const res = await api.get(`/listings/seller-attributes/my${params}`);
       setAttributes(res.data.data || []);
     } catch (err) {
-      console.error(err);
       setError("Failed to load your attributes.");
     } finally {
       setLoading(false);
@@ -85,7 +84,6 @@ export default function PartnerCategoryManager({ onClose }) {
         fetchAttributes();
       }
     } catch (err) {
-      console.error(err);
       setError(err.response?.data?.message || "Failed to add.");
     } finally {
       setSubmitting(false);
@@ -98,8 +96,7 @@ export default function PartnerCategoryManager({ onClose }) {
       await api.delete(`/listings/seller-attributes/${id}`);
       fetchAttributes();
     } catch (err) {
-      console.error(err);
-      alert("Failed to delete.");
+      toast.error("Failed to delete.");
     }
   };
 

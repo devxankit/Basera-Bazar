@@ -2,7 +2,7 @@
  * Dynamically load an external script and return a promise
  */
 export const loadScript = (src) => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     // Check if already loaded
     const existing = document.querySelector(`script[src="${src}"]`);
     if (existing) {
@@ -16,7 +16,7 @@ export const loadScript = (src) => {
       resolve(true);
     };
     script.onerror = () => {
-      resolve(false);
+      reject(new Error('Failed to load script: ' + src));
     };
     document.body.appendChild(script);
   });
