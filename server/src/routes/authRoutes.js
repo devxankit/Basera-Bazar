@@ -15,42 +15,42 @@ const rateLimit = require('express-rate-limit');
 // Rate limiters — moved from global index.js to here
 // -----------------------------------------------------
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // Relaxed slightly from 20
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test',
-  message: { success: false, message: 'Too many authentication attempts. Please try again in 15 minutes.' }
+  message: { success: false, message: 'Too many authentication attempts. Please try again in 5 minutes.' }
 });
 
-// 5 OTP sends per 10 min per IP (login + forgot password combined)
+// 20 OTP sends per 5 min per IP (login + forgot password combined)
 const sendOtpLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 5,
+  windowMs: 5 * 60 * 1000,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test',
-  message: { success: false, message: 'Too many OTP requests. Please wait 10 minutes before trying again.' }
+  message: { success: false, message: 'Too many OTP requests. Please wait 5 minutes before trying again.' }
 });
 
-// 10 verify attempts per 10 min per IP — separate pool from send-otp
+// 30 verify attempts per 5 min per IP — separate pool from send-otp
 const verifyOtpLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 10,
+  windowMs: 5 * 60 * 1000,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test',
-  message: { success: false, message: 'Too many OTP verification attempts. Please wait 10 minutes.' }
+  message: { success: false, message: 'Too many OTP verification attempts. Please wait 5 minutes.' }
 });
 
-// 5 reset-password attempts per 15 min per IP — independent of OTP send counter
+// 15 reset-password attempts per 5 min per IP — independent of OTP send counter
 const resetPasswordLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
+  windowMs: 5 * 60 * 1000,
+  max: 15,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test',
-  message: { success: false, message: 'Too many password reset attempts. Please wait 15 minutes before trying again.' }
+  message: { success: false, message: 'Too many password reset attempts. Please wait 5 minutes before trying again.' }
 });
 
 // POST /api/auth/check-exists — Check if email/phone already registered (Signup)
