@@ -4,6 +4,7 @@ const LeaveRequest = require('../../models/LeaveRequest');
 const { calculateDistance } = require('../../utils/geoFence');
 const { OfficeStaff } = require('../../models/Staff');
 const Executive = require('../../models/Executive');
+const cacheInvalidator = require('../../utils/cacheInvalidator');
 
 const GEO_FENCE_RADIUS_METERS = parseInt(process.env.GEO_FENCE_RADIUS_METERS || '500', 10);
 const OFFICE_LAT = parseFloat(process.env.OFFICE_LAT || '28.6139');
@@ -43,6 +44,8 @@ const fieldExecutiveCheckIn = async (req, res) => {
       { upsert: true, new: true }
     );
 
+    await cacheInvalidator.executiveProfile(req.user.id);
+
     res.status(200).json({
       success: true,
       data: { geo_fence_valid: geoFenceValid, distance_m: Math.round(distanceM) },
@@ -71,6 +74,8 @@ const fieldExecutiveCheckOut = async (req, res) => {
     record.working_hours = parseFloat(hours.toFixed(2));
     if (hours < 4) record.status = 'half_day';
     await record.save();
+
+    await cacheInvalidator.executiveProfile(req.user.id);
 
     res.status(200).json({
       success: true,
@@ -140,6 +145,8 @@ const officeStaffCheckIn = async (req, res) => {
       { upsert: true, new: true }
     );
 
+    await cacheInvalidator.officeStaffProfile(req.user.id);
+
     res.status(200).json({ success: true, message: 'Checked in successfully.' });
   } catch (err) {
     logger.error({ err }, 'officeStaffCheckIn Error');
@@ -164,6 +171,8 @@ const officeStaffCheckOut = async (req, res) => {
     record.working_hours = parseFloat(hours.toFixed(2));
     if (hours < 4) record.status = 'half_day';
     await record.save();
+
+    await cacheInvalidator.officeStaffProfile(req.user.id);
 
     res.status(200).json({
       success: true,

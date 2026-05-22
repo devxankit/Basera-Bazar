@@ -80,7 +80,7 @@ async function checkoutAndVerify(qty = 2) {
     .set('Authorization', `Bearer ${buyerToken}`)
     .send({
       items: [{ productId: product._id.toString(), qty }],
-      shipping_address: { name: 'Test Buyer', phone: '9700000002', address: '1 Test St', city: 'Patna', pincode: '800001' }
+      shipping_address: { full_name: 'Test Buyer', phone: '9700000002', full_address: '1 Test Street Address', city: 'Patna', state: 'Bihar', pincode: '800001' }
     });
 
   expect(checkoutRes.status).toBe(201);
@@ -113,7 +113,7 @@ describe('POST /api/orders/checkout', () => {
       .set('Authorization', `Bearer ${buyerToken}`)
       .send({
         items: [{ productId: product._id.toString(), qty: 3 }],
-        shipping_address: { name: 'Test Buyer', phone: '9700000002', address: '1 Test St', city: 'Patna', pincode: '800001' }
+        shipping_address: { full_name: 'Test Buyer', phone: '9700000002', full_address: '1 Test Street Address', city: 'Patna', state: 'Bihar', pincode: '800001' }
       });
 
     expect(res.status).toBe(201);
@@ -134,7 +134,10 @@ describe('POST /api/orders/checkout', () => {
     const res = await request(app)
       .post('/api/orders/checkout')
       .set('Authorization', `Bearer ${buyerToken}`)
-      .send({ items: [] });
+      .send({
+        items: [],
+        shipping_address: { full_name: 'Test Buyer', phone: '9700000002', full_address: '1 Test Street Address', city: 'Patna', state: 'Bihar', pincode: '800001' }
+      });
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
@@ -144,7 +147,10 @@ describe('POST /api/orders/checkout', () => {
     const res = await request(app)
       .post('/api/orders/checkout')
       .set('Authorization', `Bearer ${buyerToken}`)
-      .send({ items: [{ productId: 'not-an-object-id', qty: 1 }] });
+      .send({
+        items: [{ productId: 'not-an-object-id', qty: 1 }],
+        shipping_address: { full_name: 'Test Buyer', phone: '9700000002', full_address: '1 Test Street Address', city: 'Patna', state: 'Bihar', pincode: '800001' }
+      });
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
@@ -154,7 +160,10 @@ describe('POST /api/orders/checkout', () => {
     const res = await request(app)
       .post('/api/orders/checkout')
       .set('Authorization', `Bearer ${buyerToken}`)
-      .send({ items: [{ productId: product._id.toString(), qty: 1.5 }] });
+      .send({
+        items: [{ productId: product._id.toString(), qty: 1.5 }],
+        shipping_address: { full_name: 'Test Buyer', phone: '9700000002', full_address: '1 Test Street Address', city: 'Patna', state: 'Bihar', pincode: '800001' }
+      });
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
@@ -167,7 +176,10 @@ describe('POST /api/orders/checkout', () => {
     const res = await request(app)
       .post('/api/orders/checkout')
       .set('Authorization', `Bearer ${buyerToken}`)
-      .send({ items: [{ productId: product._id.toString(), qty: 1 }] });
+      .send({
+        items: [{ productId: product._id.toString(), qty: 1 }],
+        shipping_address: { full_name: 'Test Buyer', phone: '9700000002', full_address: '1 Test Street Address', city: 'Patna', state: 'Bihar', pincode: '800001' }
+      });
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
@@ -180,7 +192,10 @@ describe('POST /api/orders/checkout', () => {
     const res = await request(app)
       .post('/api/orders/checkout')
       .set('Authorization', `Bearer ${buyerToken}`)
-      .send({ items: [{ productId: fakeId, qty: 1 }] });
+      .send({
+        items: [{ productId: fakeId, qty: 1 }],
+        shipping_address: { full_name: 'Test Buyer', phone: '9700000002', full_address: '1 Test Street Address', city: 'Patna', state: 'Bihar', pincode: '800001' }
+      });
 
     expect(res.status).toBe(404);
     expect(res.body.success).toBe(false);
@@ -200,7 +215,7 @@ describe('POST /api/orders/payment/verify', () => {
       .set('Authorization', `Bearer ${buyerToken}`)
       .send({
         items: [{ productId: product._id.toString(), qty: 5 }],
-        shipping_address: { name: 'Test Buyer', phone: '9700000002', address: '1 Test St', city: 'Patna', pincode: '800001' }
+        shipping_address: { full_name: 'Test Buyer', phone: '9700000002', full_address: '1 Test Street Address', city: 'Patna', state: 'Bihar', pincode: '800001' }
       });
 
     expect(checkoutRes.status).toBe(201);
@@ -228,7 +243,7 @@ describe('POST /api/orders/payment/verify', () => {
       .set('Authorization', `Bearer ${buyerToken}`)
       .send({
         items: [{ productId: product._id.toString(), qty: 1 }],
-        shipping_address: { name: 'Test Buyer', phone: '9700000002', address: '1 Test St', city: 'Patna', pincode: '800001' }
+        shipping_address: { full_name: 'Test Buyer', phone: '9700000002', full_address: '1 Test Street Address', city: 'Patna', state: 'Bihar', pincode: '800001' }
       });
 
     const { razorpay_order_id } = checkoutRes.body.data;
@@ -270,7 +285,7 @@ describe('POST /api/orders/payment/verify', () => {
       .set('Authorization', `Bearer ${buyerToken}`)
       .send({
         items: [{ productId: product._id.toString(), qty: 10 }],
-        shipping_address: { name: 'Test Buyer', phone: '9700000002', address: '1 Test St', city: 'Patna', pincode: '800001' }
+        shipping_address: { full_name: 'Test Buyer', phone: '9700000002', full_address: '1 Test Street Address', city: 'Patna', state: 'Bihar', pincode: '800001' }
       });
 
     expect(checkoutRes.status).toBe(201);

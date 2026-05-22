@@ -3,11 +3,13 @@ import { MapPin, Camera, LogIn, LogOut, CheckCircle, AlertTriangle, X } from 'lu
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
+import { useExecutive } from '../../context/ExecutiveContext';
 
 const STATUS_COLOR = { present: 'bg-green-100 text-green-700', absent: 'bg-red-100 text-red-700', half_day: 'bg-amber-100 text-amber-700', on_leave: 'bg-blue-100 text-blue-700' };
 const DAY_COLOR = { present: 'bg-green-400', absent: 'bg-red-400', half_day: 'bg-amber-300', on_leave: 'bg-blue-400' };
 
 export default function ExecutiveAttendance() {
+  const { setHideBottomNavOverride } = useExecutive();
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [month, setMonth] = useState(currentMonth);
   const [checkingIn, setCheckingIn] = useState(false);
@@ -23,6 +25,11 @@ export default function ExecutiveAttendance() {
   const streamRef = useRef(null);
   const fallbackInputRef = useRef(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    setHideBottomNavOverride(cameraOpen);
+    return () => setHideBottomNavOverride(false);
+  }, [cameraOpen, setHideBottomNavOverride]);
 
   const { data: todayRaw, isLoading: todayLoading } = useQuery({
     queryKey: ['attendanceToday'],

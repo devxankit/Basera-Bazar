@@ -150,10 +150,10 @@ setTimeout(async () => {
       await grantFreeTrial(p._id);
     }
     if (orphans.length > 0) {
-      require('./utils/logger').info(`[BACKFILL] Granted free trials to ${orphans.length} existing partners.`);
+      logger.info(`[BACKFILL] Granted free trials to ${orphans.length} existing partners.`);
     }
   } catch (err) {
-    require('./utils/logger').error({ err }, '[BACKFILL] Free trial backfill failed');
+    logger.error({ err }, '[BACKFILL] Free trial backfill failed');
   }
 }, 20000);
 

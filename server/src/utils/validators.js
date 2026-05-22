@@ -326,7 +326,7 @@ const commissionUpdateSchema = z.object({
 const addressSchema = z.object({
   full_name: z.string().min(2, 'Recipient name is required'),
   phone: indianPhone,
-  address_line: z.string().min(5, 'Address is required'),
+  full_address: z.string().min(5, 'Address is required'),
   city: z.string().min(2, 'City is required'),
   state: z.string().min(2, 'State is required'),
   pincode: z.string().regex(/^\d{6}$/, 'Pincode must be 6 digits'),
@@ -334,8 +334,8 @@ const addressSchema = z.object({
 
 const orderCheckoutSchema = z.object({
   items: z.array(z.object({
-    listing_id: mongoId,
-    quantity: z.number({ invalid_type_error: 'Quantity must be a number' }).int().positive('Quantity must be at least 1'),
+    productId: mongoId,
+    qty: z.number({ invalid_type_error: 'Quantity must be a number' }).int().positive('Quantity must be at least 1'),
   })).min(1, 'Order must contain at least one item'),
   shipping_address: addressSchema,
   billing_address: addressSchema.optional(),

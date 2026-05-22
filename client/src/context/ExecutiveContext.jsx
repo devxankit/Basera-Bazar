@@ -25,10 +25,18 @@ export const ExecutiveProvider = ({ children }) => {
     }
   }, []);
 
+  const [hideBottomNavOverride, setHideBottomNavOverride] = useState(false);
+
   useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
 
   return (
-    <ExecutiveContext.Provider value={{ data, loading, refetch: fetchDashboard }}>
+    <ExecutiveContext.Provider value={{ 
+      data, 
+      loading, 
+      refetch: fetchDashboard, 
+      hideBottomNavOverride, 
+      setHideBottomNavOverride 
+    }}>
       {children}
     </ExecutiveContext.Provider>
   );
