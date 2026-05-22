@@ -22,6 +22,7 @@ const getAllExecutives = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
+      .populate('team_leader_id', 'name')
       .lean();
 
     const enrichedExecutives = await Promise.all(executives.map(async (exec) => {

@@ -186,6 +186,18 @@ export default function AdminExecutives({ filter = 'All' }) {
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Commission</span>
       </div>
     )},
+    { header: 'TEAM LEADER', render: (row) => (
+      row.team_leader_id ? (
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+            <Users size={12} className="text-violet-600" />
+          </div>
+          <span className="font-bold text-slate-800 text-[13px]">{row.team_leader_id.name}</span>
+        </div>
+      ) : (
+        <span className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">Unassigned</span>
+      )
+    )},
     {
       header: 'STATUS',
       render: (row) => {
