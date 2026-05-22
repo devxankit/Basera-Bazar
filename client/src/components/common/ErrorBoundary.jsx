@@ -30,7 +30,26 @@ export default class ErrorBoundary extends React.Component {
 
   handleReset = () => {
     this.setState({ hasError: false, error: null });
-    window.location.href = '/';
+    const { section } = this.props;
+    const pathname = window.location.pathname;
+
+    if (section === 'Admin') {
+      window.location.href = '/admin/dashboard';
+    } else if (section === 'Partner') {
+      window.location.href = '/partner/home';
+    } else if (section === 'Executive') {
+      window.location.href = '/executive/dashboard';
+    } else if (section === 'Staff') {
+      if (pathname.startsWith('/team-leader')) {
+        window.location.href = '/team-leader/dashboard';
+      } else if (pathname.startsWith('/office-staff')) {
+        window.location.href = '/office-staff/dashboard';
+      } else {
+        window.location.href = '/';
+      }
+    } else {
+      window.location.href = '/';
+    }
   };
 
   render() {
@@ -64,7 +83,7 @@ export default class ErrorBoundary extends React.Component {
             onClick={this.handleReset}
             className="px-6 py-3 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors"
           >
-            Refresh
+            Okay
           </button>
         </div>
       );

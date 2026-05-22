@@ -19,7 +19,7 @@ const authLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'test',
+  skip: () => process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined,
   message: { success: false, message: 'Too many authentication attempts. Please try again in 5 minutes.' }
 });
 
@@ -29,7 +29,7 @@ const sendOtpLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'test',
+  skip: () => process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined,
   message: { success: false, message: 'Too many OTP requests. Please wait 5 minutes before trying again.' }
 });
 
@@ -39,7 +39,7 @@ const verifyOtpLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'test',
+  skip: () => process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined,
   message: { success: false, message: 'Too many OTP verification attempts. Please wait 5 minutes.' }
 });
 
@@ -49,7 +49,7 @@ const resetPasswordLimiter = rateLimit({
   max: 15,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'test',
+  skip: () => process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined,
   message: { success: false, message: 'Too many password reset attempts. Please wait 5 minutes before trying again.' }
 });
 

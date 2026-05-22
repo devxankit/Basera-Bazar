@@ -190,7 +190,7 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later.' },
-  skip: () => process.env.NODE_ENV === 'test',
+  skip: () => process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined,
 });
 
 const heavyLimiter = rateLimit({
@@ -199,7 +199,7 @@ const heavyLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Rate limit exceeded on this endpoint.' },
-  skip: () => process.env.NODE_ENV === 'test',
+  skip: () => process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined,
 });
 
 app.use('/api', globalLimiter);

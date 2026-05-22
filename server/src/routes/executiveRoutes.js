@@ -42,6 +42,7 @@ const otpLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined,
   message: { success: false, message: 'Too many OTP requests. Please wait 10 minutes before trying again.' }
 });
 
