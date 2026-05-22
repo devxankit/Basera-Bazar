@@ -209,6 +209,7 @@ const createOfficeStaff = async (req, res) => {
     if (existing) return res.status(409).json({ success: false, message: 'Phone or email already in use.' });
 
     const os = await OfficeStaff.create({ ...req.body, onboarding_status: 'approved' });
+    await invalidate.adminStaff();
     res.status(201).json({ success: true, data: os.toJSON(), message: 'Office Staff created successfully.' });
   } catch (err) {
     logger.error({ err }, 'createOfficeStaff Error');
@@ -232,6 +233,7 @@ const updateOfficeStaff = async (req, res) => {
 
     const os = await OfficeStaff.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
     if (!os) return res.status(404).json({ success: false, message: 'Office Staff not found.' });
+    await invalidate.adminStaff();
     res.status(200).json({ success: true, data: os.toJSON(), message: 'Office Staff updated.' });
   } catch (err) {
     logger.error({ err }, 'updateOfficeStaff Error');
@@ -246,6 +248,7 @@ const toggleOfficeStaffActive = async (req, res) => {
     os.is_active = !os.is_active;
     if (!os.is_active) os.deactivated_at = new Date();
     await os.save();
+    await invalidate.adminStaff();
     res.status(200).json({ success: true, data: { is_active: os.is_active }, message: `Office Staff ${os.is_active ? 'activated' : 'deactivated'}.` });
   } catch (err) {
     logger.error({ err }, 'toggleOfficeStaffActive Error');
@@ -267,6 +270,7 @@ const approveOfficeStaff = async (req, res) => {
       user_agent: req.get('User-Agent')
     });
 
+    await invalidate.adminStaff();
     res.status(200).json({ success: true, message: 'Office Staff approved.' });
   } catch (err) {
     logger.error({ err }, 'approveOfficeStaff Error');
@@ -291,6 +295,7 @@ const rejectOfficeStaff = async (req, res) => {
       user_agent: req.get('User-Agent')
     });
 
+    await invalidate.adminStaff();
     res.status(200).json({ success: true, message: 'Office Staff rejected.' });
   } catch (err) {
     logger.error({ err }, 'rejectOfficeStaff Error');
@@ -306,6 +311,7 @@ const reassignOfficeStaff = async (req, res) => {
     if (!tl) return res.status(404).json({ success: false, message: 'Target Team Leader not found.' });
     const os = await OfficeStaff.findByIdAndUpdate(req.params.id, { $set: { team_leader_id: new_team_leader_id } }, { new: true });
     if (!os) return res.status(404).json({ success: false, message: 'Office Staff not found.' });
+    await invalidate.adminStaff();
     res.status(200).json({ success: true, message: `Office Staff reassigned to ${tl.name}.` });
   } catch (err) {
     logger.error({ err }, 'reassignOfficeStaff Error');
@@ -321,6 +327,7 @@ const assignExecutiveToTL = async (req, res) => {
     if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
     const exec = await Executive.findByIdAndUpdate(req.params.id, { $set: { team_leader_id } }, { new: true });
     if (!exec) return res.status(404).json({ success: false, message: 'Executive not found.' });
+    await invalidate.adminStaff();
     res.status(200).json({ success: true, message: `Executive assigned to ${tl.name}.` });
   } catch (err) {
     logger.error({ err }, 'assignExecutiveToTL Error');

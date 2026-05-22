@@ -358,6 +358,7 @@ const createTeamLeader = async (req, res) => {
       onboarding_status: 'approved',
     });
 
+    await invalidate.adminStaff();
     res.status(201).json({ success: true, data: tl.toJSON(), message: 'Team Leader created successfully.' });
   } catch (err) {
     logger.error({ err }, 'createTeamLeader Error');
@@ -381,6 +382,7 @@ const updateTeamLeader = async (req, res) => {
 
     const tl = await TeamLeader.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true, runValidators: true });
     if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
+    await invalidate.adminStaff();
     res.status(200).json({ success: true, data: tl.toJSON(), message: 'Team Leader updated.' });
   } catch (err) {
     logger.error({ err }, 'updateTeamLeader Error');
@@ -395,6 +397,7 @@ const toggleTeamLeaderActive = async (req, res) => {
     tl.is_active = !tl.is_active;
     if (!tl.is_active) tl.deactivated_at = new Date();
     await tl.save();
+    await invalidate.adminStaff();
     res.status(200).json({ success: true, data: { is_active: tl.is_active }, message: `Team Leader ${tl.is_active ? 'activated' : 'deactivated'}.` });
   } catch (err) {
     logger.error({ err }, 'toggleTeamLeaderActive Error');
@@ -420,6 +423,7 @@ const approveTeamLeader = async (req, res) => {
       user_agent: req.get('User-Agent')
     });
 
+    await invalidate.adminStaff();
     res.status(200).json({ success: true, message: 'Team Leader approved.' });
   } catch (err) {
     logger.error({ err }, 'approveTeamLeader Error');
@@ -448,6 +452,7 @@ const rejectTeamLeader = async (req, res) => {
       user_agent: req.get('User-Agent')
     });
 
+    await invalidate.adminStaff();
     res.status(200).json({ success: true, message: 'Team Leader rejected.' });
   } catch (err) {
     logger.error({ err }, 'rejectTeamLeader Error');
@@ -464,6 +469,7 @@ const updateTeamLeaderSalary = async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
+    await invalidate.adminStaff();
     res.status(200).json({ success: true, message: 'Salary structure updated.' });
   } catch (err) {
     logger.error({ err }, 'updateTeamLeaderSalary Error');
