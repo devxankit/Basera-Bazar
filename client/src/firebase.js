@@ -16,27 +16,32 @@ const firebaseConfig = {
 const requiredConfig = ['apiKey', 'authDomain', 'projectId', 'appId'];
 const missingKeys = requiredConfig.filter(key => !firebaseConfig[key]);
 
-if (missingKeys.length > 0) {
-  console.error(`❌ Firebase Configuration Error: Missing values for [${missingKeys.join(', ')}]. Check your .env file.`);
-}
+let app = null;
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+if (missingKeys.length > 0) {
+  console.warn(`⚠️ Firebase configuration is incomplete. Missing keys: [${missingKeys.join(', ')}]. Push notifications will be disabled.`);
+} else {
+  try {
+    // Initialize Firebase
+    app = initializeApp(firebaseConfig);
+    console.log("✅ Firebase initialized successfully");
+  } catch (err) {
+    console.error("❌ Failed to initialize Firebase App:", err);
+  }
+}
 
 // Safe Messaging Initialization (Prevents crash in unsupported browsers)
 let messaging = null;
 try {
   // Check if messaging is supported before initializing
-  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'Notification' in window) {
+  if (app && typeof window !== 'undefined' && 'serviceWorker' in navigator && 'Notification' in window) {
     messaging = getMessaging(app);
     console.log("✅ Firebase Messaging initialized");
   } else {
-    console.warn("⚠️ Firebase Messaging is not supported in this browser environment.");
+    console.warn("⚠️ Firebase Messaging is not supported or Firebase App not initialized.");
   }
 } catch (err) {
   console.error("❌ Failed to initialize Firebase Messaging:", err);
 }
-
-console.log("✅ Firebase initialized successfully");
 
 export { messaging, getToken, onMessage };
