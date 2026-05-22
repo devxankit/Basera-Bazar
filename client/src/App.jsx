@@ -423,6 +423,34 @@ const OfficeStaffRoute = ({ children }) => {
   return children;
 };
 
+// Redirects already-authenticated users away from login pages
+const PartnerLoginRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return <PageSpinner />;
+  if (isAuthenticated && user?.role === "partner")
+    return <Navigate to="/partner/home" replace />;
+  return children;
+};
+
+const AdminLoginRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return <PageSpinner />;
+  if (isAuthenticated && user?.role === "super_admin")
+    return <Navigate to="/admin/dashboard" replace />;
+  return children;
+};
+
+const StaffLoginRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return <PageSpinner />;
+  if (isAuthenticated) {
+    if (user?.role === "executive") return <Navigate to="/executive/dashboard" replace />;
+    if (user?.role === "team_leader") return <Navigate to="/team-leader/dashboard" replace />;
+    if (user?.role === "office_staff") return <Navigate to="/office-staff/dashboard" replace />;
+  }
+  return children;
+};
+
 // --- FCM HANDLER ---
 const FCMHandler = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
@@ -852,7 +880,11 @@ function App() {
                       <Route element={<SectionErrorLayout section="Partner" />}>
                         <Route
                           path="/partner/login"
-                          element={<PartnerLogin />}
+                          element={
+                            <PartnerLoginRoute>
+                              <PartnerLogin />
+                            </PartnerLoginRoute>
+                          }
                         />
                         <Route
                           path="/partner/register"
@@ -1129,7 +1161,14 @@ function App() {
 
                       {/* Admin Routes */}
                       <Route element={<SectionErrorLayout section="Admin" />}>
-                        <Route path="/admin/login" element={<AdminLogin />} />
+                        <Route
+                          path="/admin/login"
+                          element={
+                            <AdminLoginRoute>
+                              <AdminLogin />
+                            </AdminLoginRoute>
+                          }
+                        />
                         <Route
                           path="/admin"
                           element={<Navigate to="/admin/dashboard" replace />}
@@ -1700,7 +1739,14 @@ function App() {
 
                       {/* --- Staff section (Team Leader, Office Staff, Field Executive extensions, Admin staff mgmt) --- */}
                       <Route element={<SectionErrorLayout section="Staff" />}>
-                        <Route path="/staff/login" element={<StaffLogin />} />
+                        <Route
+                          path="/staff/login"
+                          element={
+                            <StaffLoginRoute>
+                              <StaffLogin />
+                            </StaffLoginRoute>
+                          }
+                        />
                         <Route
                           path="/staff/forgot-password"
                           element={<StaffForgotPassword />}
