@@ -441,7 +441,7 @@ export default function PartnerSubscription() {
                 Your premium seller plan is now active. You can now enjoy full benefits.
               </p>
               <button 
-                onClick={() => {
+                onClick={async () => {
                   setSuccess(false);
                   await refreshUser();
                 }} 

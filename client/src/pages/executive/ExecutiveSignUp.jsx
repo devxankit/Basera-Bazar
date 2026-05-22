@@ -250,6 +250,17 @@ export default function ExecutiveSignUp() {
     }
   };
 
+  // Helper: convert a data: URL to a proper File with correct MIME type + name
+  const dataURLtoFile = (dataUrl, filename) => {
+    const [header, data] = dataUrl.split(',');
+    const mime = header.match(/:(.*?);/)[1];
+    const byteString = atob(data);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    return new File([ab], filename, { type: mime });
+  };
+
   const finalize = async () => {
     if (!validateStep(['aadhar_number', 'pan_number'])) {
       toast.error('Please fix the highlighted errors in KYC documents');
@@ -263,7 +274,8 @@ export default function ExecutiveSignUp() {
       
       for (const field of uploadFields) {
         if (kycData[field]?.startsWith('data:')) {
-          const res = await db.uploadFile(await fetch(kycData[field]).then(r => r.blob()));
+          const file = dataURLtoFile(kycData[field], `${field}.jpg`);
+          const res = await db.uploadFile(file);
           kycData[field] = res.url;
         }
       }
@@ -280,6 +292,7 @@ export default function ExecutiveSignUp() {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col max-w-md mx-auto relative overflow-x-hidden">
