@@ -34,8 +34,11 @@ export default function AdminExecutiveDetails() {
   const [transferModal, setTransferModal] = useState({ isOpen: false, loading: false });
   const [executives, setExecutives] = useState([]);
   const [toExecutiveId, setToExecutiveId] = useState('');
+  const [assignTLModal, setAssignTLModal] = useState({ isOpen: false, loading: false });
+  const [teamLeaders, setTeamLeaders] = useState([]);
+  const [selectedTLId, setSelectedTLId] = useState('');
 
-  useScrollLock(confirmModal.isOpen || transferModal.isOpen);
+  useScrollLock(confirmModal.isOpen || transferModal.isOpen || assignTLModal.isOpen);
 
   const { data: rawData, isLoading: loading, error: queryError } = useQuery({
     queryKey: ['adminExecutiveDetails', id],
@@ -99,7 +102,20 @@ export default function AdminExecutiveDetails() {
     },
   });
 
-  const isActionLoading = statusMutation.isPending || toggleActiveMutation.isPending || resetKycMutation.isPending;
+  const assignTLMutation = useMutation({
+    mutationFn: (team_leader_id) => api.put(`/admin/staff/executives/${id}/assign-tl`, { team_leader_id }),
+    onSuccess: (res) => {
+      toast.success(res.data.message || 'Team Leader assigned successfully');
+      queryClient.invalidateQueries({ queryKey: ['adminExecutiveDetails', id] });
+      setAssignTLModal({ isOpen: false, loading: false });
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Assignment failed');
+      setAssignTLModal(m => ({ ...m, loading: false }));
+    },
+  });
+
+  const isActionLoading = statusMutation.isPending || toggleActiveMutation.isPending || resetKycMutation.isPending || assignTLMutation.isPending;
 
   const handleStatusUpdate = (status, reason = '') => {
     if (status === 'rejected' && !reason) {
@@ -158,6 +174,25 @@ export default function AdminExecutiveDetails() {
     if (!toExecutiveId) { toast.error('Please select a target executive'); return; }
     setTransferModal(m => ({ ...m, loading: true }));
     transferLeadsMutation.mutate(toExecutiveId);
+  };
+
+  const openAssignTLModal = async () => {
+    setShowOptions(false);
+    try {
+      const res = await api.get('/admin/staff/team-leaders?status=approved&limit=100');
+      const all = res.data?.data || res.data || [];
+      setTeamLeaders(all);
+      setSelectedTLId(executive?.team_leader_id?._id || executive?.team_leader_id || '');
+      setAssignTLModal({ isOpen: true, loading: false });
+    } catch {
+      toast.error('Failed to load team leaders list');
+    }
+  };
+
+  const handleAssignTL = () => {
+    if (!selectedTLId) { toast.error('Please select a team leader'); return; }
+    setAssignTLModal(m => ({ ...m, loading: true }));
+    assignTLMutation.mutate(selectedTLId);
   };
 
   const handleResetKyc = () => {
@@ -251,6 +286,45 @@ export default function AdminExecutiveDetails() {
           </div>
         </div>
       )}
+
+      {/* Assign Team Leader Modal */}
+      {assignTLModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 p-8 w-full max-w-md mx-4 z-10">
+            <button onClick={() => setAssignTLModal({ isOpen: false, loading: false })} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"><X size={18} /></button>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><UserCheck size={20} /></div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Assign Team Leader</h3>
+                <p className="text-xs text-slate-400">Link <strong>{executive.name}</strong> to a Team Leader (State Head)</p>
+              </div>
+            </div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Select Team Leader</label>
+            <select
+              value={selectedTLId}
+              onChange={e => setSelectedTLId(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-indigo-500 mb-6"
+            >
+              <option value="">-- Select Team Leader --</option>
+              {teamLeaders.map(tl => (
+                <option key={tl._id} value={tl._id}>{tl.name} ({tl.state})</option>
+              ))}
+            </select>
+            {teamLeaders.length === 0 && <p className="text-xs text-amber-600 bg-amber-50 p-3 rounded-xl mb-4">No active Team Leaders found.</p>}
+            <div className="flex gap-3">
+              <button onClick={() => setAssignTLModal({ isOpen: false, loading: false })} className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all">Cancel</button>
+              <button
+                onClick={handleAssignTL}
+                disabled={assignTLModal.loading || !selectedTLId}
+                className="flex-1 px-4 py-3 bg-emerald-600 text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 disabled:opacity-50"
+              >
+                {assignTLModal.loading ? 'Assigning...' : 'Assign TL'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-400 mx-auto px-8 space-y-8 mt-6">
 
         {/* Profile Header */}
@@ -336,6 +410,12 @@ export default function AdminExecutiveDetails() {
                               className="w-full px-4 py-2.5 text-left text-[11px] font-bold text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
                            >
                               <ArrowRightLeft size={14} /> Transfer Leads
+                           </button>
+                           <button
+                              onClick={openAssignTLModal}
+                              className="w-full px-4 py-2.5 text-left text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
+                           >
+                              <UserCheck size={14} /> Assign Team Leader
                            </button>
                            <div className="h-px bg-slate-50 my-1 mx-2" />
                            <button
@@ -432,6 +512,18 @@ export default function AdminExecutiveDetails() {
                         <MapPin size={12} className="text-slate-400" /> Work Location
                      </label>
                      <p className="text-sm font-semibold text-slate-900 uppercase">{executive.address?.city || 'N/A'}, {executive.address?.state || 'N/A'}</p>
+                  </div>
+                  <div className="space-y-1">
+                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <User size={12} className="text-slate-400" /> Assigned Team Leader
+                     </label>
+                     <p className="text-sm font-semibold text-slate-900 uppercase">
+                       {executive.team_leader_id?.name ? (
+                         <span>{executive.team_leader_id.name} ({executive.team_leader_id.phone})</span>
+                       ) : (
+                         <span className="text-slate-400">None Assigned</span>
+                       )}
+                     </p>
                   </div>
                </div>
              </div>

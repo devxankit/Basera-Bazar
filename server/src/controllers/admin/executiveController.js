@@ -8,6 +8,7 @@ const { createNotification } = require('../../utils/notificationHelper');
 const invalidate = require('../../utils/cacheInvalidator');
 const DailyTask = require('../../models/DailyTask');
 const SalaryRecord = require('../../models/SalaryRecord');
+const { TeamLeader } = require('../../models/Staff');
 const StaffAttendance = require('../../models/StaffAttendance');
 
 const getAllExecutives = async (req, res) => {
@@ -39,7 +40,7 @@ const getAllExecutives = async (req, res) => {
 
 const getExecutiveDetail = async (req, res) => {
   try {
-    const executive = await Executive.findById(req.params.id).lean();
+    const executive = await Executive.findById(req.params.id).populate('team_leader_id', 'name phone').lean();
     if (!executive) return res.status(404).json({ success: false, message: 'Executive not found' });
 
     const [partners, attendance] = await Promise.all([
