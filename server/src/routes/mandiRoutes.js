@@ -7,8 +7,7 @@ const {
   getMarketplaceHome, 
   getCategoryListings 
 } = require('../controllers/mandiController');
-const { protect } = require('../middlewares/authMiddleware');
-const { authorizeRoles } = require('../middlewares/roleMiddleware');
+const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
 const debounceMiddleware = require('../middlewares/debounceMiddleware');
 const validate = require('../middlewares/validateMiddleware');
