@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -29,30 +29,31 @@ export default function AdminTeamLeaderForm() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [uploading, setUploading] = useState(false);
 
-  const { isLoading: fetching } = useQuery({
+  const { isLoading: fetching, data: teamLeaderFormData } = useQuery({
     queryKey: ['admin-team-leader-form', id],
     queryFn: () => api.get(`/admin/staff/team-leaders/${id}`).then((r) => r.data),
     enabled: isEdit,
     staleTime: 5 * 60 * 1000,
-    onSuccess: (data) => {
-      if (data.success) {
-        const tl = data.data;
-        setForm((prev) => ({
-          ...prev,
-          name: tl.name || '',
-          phone: tl.phone || '',
-          email: tl.email || '',
-          state: tl.state || '',
-          district: tl.district || '',
-          zone: tl.zone || '',
-          fixed_salary: tl.fixed_salary || 25000,
-          commission_rate: tl.commission_rate || 5,
-          profile_image: tl.profile_image || '',
-          address: tl.address || { address_line: '', city: '', state: '', pincode: '' },
-        }));
-      }
-    },
   });
+
+  useEffect(() => {
+    if (teamLeaderFormData?.success) {
+      const tl = teamLeaderFormData.data;
+      setForm((prev) => ({
+        ...prev,
+        name: tl.name || '',
+        phone: tl.phone || '',
+        email: tl.email || '',
+        state: tl.state || '',
+        district: tl.district || '',
+        zone: tl.zone || '',
+        fixed_salary: tl.fixed_salary || 25000,
+        commission_rate: tl.commission_rate || 5,
+        profile_image: tl.profile_image || '',
+        address: tl.address || { address_line: '', city: '', state: '', pincode: '' },
+      }));
+    }
+  }, [teamLeaderFormData]);
 
   const saveMutation = useMutation({
     mutationFn: (payload) => isEdit

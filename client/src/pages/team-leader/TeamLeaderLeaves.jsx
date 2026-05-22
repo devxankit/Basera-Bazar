@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Plus } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
@@ -29,19 +29,25 @@ export default function TeamLeaderLeaves() {
   const [noteInputs, setNoteInputs] = useState({});
   const queryClient = useQueryClient();
 
-  const { data: teamRaw, isLoading: teamLoading } = useQuery({
+  const { data: teamRaw, isLoading: teamLoading, error: teamLeavesError } = useQuery({
     queryKey: ['teamLeaderTeamLeaves'],
     queryFn: () => api.get('/team-leader/leaves/team').then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load team leaves.'),
   });
 
-  const { data: myRaw, isLoading: myLoading } = useQuery({
+  const { data: myRaw, isLoading: myLoading, error: myLeavesError } = useQuery({
     queryKey: ['teamLeaderMyLeaves'],
     queryFn: () => api.get('/team-leader/leaves/my').then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load your leaves.'),
   });
+
+  useEffect(() => {
+    if (teamLeavesError) toast.error('Failed to load team leaves.');
+  }, [teamLeavesError]);
+
+  useEffect(() => {
+    if (myLeavesError) toast.error('Failed to load your leaves.');
+  }, [myLeavesError]);
 
   const teamLeaves = teamRaw?.success ? teamRaw.data : [];
   const myLeaves = myRaw?.success ? myRaw.data : [];

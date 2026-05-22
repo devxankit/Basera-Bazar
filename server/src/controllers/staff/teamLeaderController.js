@@ -1,4 +1,5 @@
 const logger = require('../../utils/logger');
+const { escapeRegex } = require('../../utils/listingUtils');
 const { TeamLeader, OfficeStaff } = require('../../models/Staff');
 const Executive = require('../../models/Executive');
 const SalaryRecord = require('../../models/SalaryRecord');
@@ -58,15 +59,27 @@ const getTLExecutives = async (req, res) => {
       .select('name phone email onboarding_status is_active salary')
       .lean();
 
-    const enriched = await Promise.all(
-      executives.map(async (exec) => {
-        const [att, perf] = await Promise.all([
-          StaffAttendance.findOne({ staff_id: exec._id, date: today }).lean(),
-          StaffPerformance.findOne({ staff_id: exec._id, month }).lean(),
-        ]);
-        return { ...exec, today_attendance: att, monthly_performance: perf };
-      })
-    );
+    if (executives.length === 0) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    // Bulk-fetch attendance and performance for all executives in two queries
+    // instead of two queries per executive (N+1).
+    const staffIds = executives.map(e => e._id);
+
+    const [attendanceRecords, perfRecords] = await Promise.all([
+      StaffAttendance.find({ staff_id: { $in: staffIds }, date: today }).lean(),
+      StaffPerformance.find({ staff_id: { $in: staffIds }, month }).lean(),
+    ]);
+
+    const attMap = new Map(attendanceRecords.map(a => [a.staff_id.toString(), a]));
+    const perfMap = new Map(perfRecords.map(p => [p.staff_id.toString(), p]));
+
+    const enriched = executives.map(exec => ({
+      ...exec,
+      today_attendance: attMap.get(exec._id.toString()) || null,
+      monthly_performance: perfMap.get(exec._id.toString()) || null,
+    }));
 
     res.status(200).json({ success: true, data: enriched });
   } catch (err) {
@@ -85,15 +98,27 @@ const getTLOfficeStaff = async (req, res) => {
       .select('name phone email onboarding_status is_active fixed_salary calling_specialization')
       .lean();
 
-    const enriched = await Promise.all(
-      officeStaff.map(async (os) => {
-        const [att, perf] = await Promise.all([
-          StaffAttendance.findOne({ staff_id: os._id, date: today }).lean(),
-          StaffPerformance.findOne({ staff_id: os._id, month }).lean(),
-        ]);
-        return { ...os, today_attendance: att, monthly_performance: perf };
-      })
-    );
+    if (officeStaff.length === 0) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    // Bulk-fetch attendance and performance for all office staff in two queries
+    // instead of two queries per member (N+1).
+    const staffIds = officeStaff.map(os => os._id);
+
+    const [attendanceRecords, perfRecords] = await Promise.all([
+      StaffAttendance.find({ staff_id: { $in: staffIds }, date: today }).lean(),
+      StaffPerformance.find({ staff_id: { $in: staffIds }, month }).lean(),
+    ]);
+
+    const attMap = new Map(attendanceRecords.map(a => [a.staff_id.toString(), a]));
+    const perfMap = new Map(perfRecords.map(p => [p.staff_id.toString(), p]));
+
+    const enriched = officeStaff.map(os => ({
+      ...os,
+      today_attendance: attMap.get(os._id.toString()) || null,
+      monthly_performance: perfMap.get(os._id.toString()) || null,
+    }));
 
     res.status(200).json({ success: true, data: enriched });
   } catch (err) {
@@ -229,10 +254,10 @@ const getAllTeamLeaders = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const filter = {};
-    if (req.query.state) filter.state = new RegExp(req.query.state, 'i');
+    if (req.query.state) filter.state = new RegExp(escapeRegex(req.query.state), 'i');
     if (req.query.status) filter.onboarding_status = req.query.status;
     if (req.query.search) {
-      const re = new RegExp(req.query.search, 'i');
+      const re = new RegExp(escapeRegex(req.query.search), 'i');
       filter.$or = [{ name: re }, { phone: re }, { email: re }];
     }
 

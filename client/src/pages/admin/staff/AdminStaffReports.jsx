@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, CheckCircle, XCircle, FileText } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
@@ -27,7 +27,7 @@ export default function AdminStaffReports() {
   const [expandedId, setExpandedId] = useState(null);
   const [remarkInput, setRemarkInput] = useState('');
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: staffReportsError } = useQuery({
     queryKey: ['admin-staff-reports', date, staffType],
     queryFn: () => {
       const params = new URLSearchParams({ date });
@@ -35,8 +35,11 @@ export default function AdminStaffReports() {
       return api.get(`/admin/staff/reports/daily?${params}`).then((r) => r.data);
     },
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load reports.'),
   });
+
+  useEffect(() => {
+    if (staffReportsError) toast.error('Failed to load reports.');
+  }, [staffReportsError]);
 
   const reports = rawData?.data || [];
 

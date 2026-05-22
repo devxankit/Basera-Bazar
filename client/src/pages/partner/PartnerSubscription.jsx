@@ -48,7 +48,7 @@ export default function PartnerSubscription() {
   // Refresh user (subscription status) once on mount
   useEffect(() => {
     if (user) refreshUser();
-  }, []);
+  }, [refreshUser]);
 
   if (!user) return null;
   const partner = user;
@@ -200,7 +200,7 @@ export default function PartnerSubscription() {
       if (res.data.success) {
         toast.success(res.data.message);
         setShowCancelModal(false);
-        window.location.reload(); // Refresh to update user state
+        await refreshUser();
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to cancel subscription.");
@@ -443,7 +443,7 @@ export default function PartnerSubscription() {
               <button 
                 onClick={() => {
                   setSuccess(false);
-                  window.location.reload(); // Hard refresh to update auth state
+                  await refreshUser();
                 }} 
                 className="w-full py-4.5 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-emerald-900/20"
               >

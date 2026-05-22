@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Wallet, ArrowUpRight, History,
@@ -25,12 +25,15 @@ export default function ExecutiveWallet() {
   const navigate = useNavigate();
   const { data, loading: dashLoading, refetch } = useExecutive();
 
-  const { data: txRaw, isLoading: txLoading, refetch: refetchTx } = useQuery({
+  const { data: txRaw, isLoading: txLoading, refetch: refetchTx, error: txError } = useQuery({
     queryKey: ['executiveTransactions'],
     queryFn: () => api.get('/executive/transactions').then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load transaction history'),
   });
+
+  useEffect(() => {
+    if (txError) toast.error('Failed to load transaction history');
+  }, [txError]);
 
   const transactions = txRaw?.success ? txRaw.data : [];
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Lock, AlertTriangle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
@@ -21,7 +21,7 @@ export default function AdminStaffPerformance() {
   const [staffType, setStaffType] = useState('');
   const [confirmModal, setConfirmModal] = useState(null);
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: staffPerformanceError } = useQuery({
     queryKey: ['admin-staff-performance', month, staffType],
     queryFn: () => {
       const params = new URLSearchParams({ month });
@@ -29,8 +29,11 @@ export default function AdminStaffPerformance() {
       return api.get(`/admin/staff/performance?${params}`).then((r) => r.data);
     },
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load performance data.'),
   });
+
+  useEffect(() => {
+    if (staffPerformanceError) toast.error('Failed to load performance data.');
+  }, [staffPerformanceError]);
 
   const records = rawData?.data || [];
 

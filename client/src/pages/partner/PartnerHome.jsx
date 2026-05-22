@@ -44,9 +44,6 @@ export default function PartnerHome() {
     queryFn: () => api.get('/partners/activities').then(r => r.data),
     staleTime: 5 * 60 * 1000,
     enabled: !!user,
-    onError: () => {
-      // Fallback handled via localActivities below
-    },
   });
 
   const { data: limitsRaw, isLoading: limitsLoading } = useQuery({

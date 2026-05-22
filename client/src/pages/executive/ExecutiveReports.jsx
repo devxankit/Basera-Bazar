@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -15,12 +15,15 @@ const STATUS_BADGE = {
 export default function ExecutiveReports() {
   const navigate = useNavigate();
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: reportsError } = useQuery({
     queryKey: ['executiveReportsHistory'],
     queryFn: () => api.get('/executive/reports/history').then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load reports.'),
   });
+
+  useEffect(() => {
+    if (reportsError) toast.error('Failed to load reports.');
+  }, [reportsError]);
 
   const reports = rawData?.success ? rawData.data : [];
 

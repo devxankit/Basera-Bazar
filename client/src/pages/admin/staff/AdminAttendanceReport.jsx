@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, BarChart3 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../../services/api';
@@ -19,7 +19,7 @@ export default function AdminAttendanceReport() {
   const [month, setMonth] = useState(currentMonth);
   const [staffType, setStaffType] = useState('');
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: attendanceReportError } = useQuery({
     queryKey: ['admin-attendance-report', month, staffType],
     queryFn: () => {
       const params = new URLSearchParams({ month });
@@ -27,8 +27,11 @@ export default function AdminAttendanceReport() {
       return api.get(`/admin/staff/attendance/summary?${params}`).then((r) => r.data);
     },
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load attendance summary.'),
   });
+
+  useEffect(() => {
+    if (attendanceReportError) toast.error('Failed to load attendance summary.');
+  }, [attendanceReportError]);
 
   const summary = rawData?.data || [];
 

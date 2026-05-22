@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trophy } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../../services/api';
@@ -27,7 +27,7 @@ export default function AdminStaffLeaderboard() {
   const [month, setMonth] = useState(currentMonth);
   const [staffType, setStaffType] = useState('');
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: leaderboardError } = useQuery({
     queryKey: ['admin-staff-leaderboard', month, staffType],
     queryFn: () => {
       const params = new URLSearchParams({ month });
@@ -35,8 +35,11 @@ export default function AdminStaffLeaderboard() {
       return api.get(`/admin/staff/leaderboard?${params}`).then((r) => r.data);
     },
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load leaderboard.'),
   });
+
+  useEffect(() => {
+    if (leaderboardError) toast.error('Failed to load leaderboard.');
+  }, [leaderboardError]);
 
   const leaderboard = rawData?.data || [];
 

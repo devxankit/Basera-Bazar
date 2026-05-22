@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -83,40 +83,44 @@ export default function AdminPropertyForm() {
   const subcategories = subcatData?.data || [];
 
   // Fetch existing listing for edit mode
-  const { isLoading: initLoading } = useQuery({
+  const { isLoading: initLoading, data: propertyDetailData, error: propertyDetailError } = useQuery({
     queryKey: ['adminPropertyDetail', id],
     queryFn: () => api.get(`/admin/listings/detail/${id}`).then(r => r.data),
     enabled: isEdit,
     staleTime: 5 * 60 * 1000,
-    onSuccess: (data) => {
-      if (data?.success) {
-        const d = data.data;
-        setFormData({
-          partner_id: d.partner_id?._id || d.partner_id || '',
-          category_id: d.category_id?._id || d.category_id || '',
-          subcategory_id: d.subcategory_id?._id || d.subcategory_id || '',
-          title: d.title || '',
-          description: d.description || '',
-          property_type: d.property_type || 'apartment',
-          listing_intent: d.listing_intent || 'sell',
-          location: { type: 'Point', coordinates: d.location?.coordinates || [77.1025, 28.7041] },
-          address: { full_address: d.address?.full_address || '', state: d.address?.state || '', district: d.address?.district || '', pincode: d.address?.pincode || '' },
-          pricing: { amount: d.pricing?.amount || '', currency: d.pricing?.currency || 'INR', negotiable: d.pricing?.negotiable || false, deposit: d.pricing?.deposit || '', maintenance: d.pricing?.maintenance || '' },
-          details: {
-            area: { value: d.details?.area?.value || '', unit: d.details?.area?.unit || 'sqft', super_built_up_area: d.details?.area?.super_built_up_area || '', carpet_area: d.details?.area?.carpet_area || '' },
-            bhk: d.details?.bhk || '', bathrooms: d.details?.bathrooms || '', washrooms: d.details?.washrooms || '',
-            furnishing: d.details?.furnishing || 'unfurnished', floor_number: d.details?.floor_number || '',
-            total_floors: d.details?.total_floors || '', parking: d.details?.parking || 'none',
-            facing: d.details?.facing || 'no-preference', possession: d.details?.possession || 'ready'
-          },
-          images: d.images || [], thumbnail: d.thumbnail || '',
-          status: d.status || 'pending_approval', is_featured: d.is_featured || false,
-          emi_available: d.emi_available || false, emi_details: d.emi_details || ''
-        });
-      }
-    },
-    onError: () => setError("Failed to sync database references."),
   });
+
+  useEffect(() => {
+    if (propertyDetailData?.success) {
+      const d = propertyDetailData.data;
+      setFormData({
+        partner_id: d.partner_id?._id || d.partner_id || '',
+        category_id: d.category_id?._id || d.category_id || '',
+        subcategory_id: d.subcategory_id?._id || d.subcategory_id || '',
+        title: d.title || '',
+        description: d.description || '',
+        property_type: d.property_type || 'apartment',
+        listing_intent: d.listing_intent || 'sell',
+        location: { type: 'Point', coordinates: d.location?.coordinates || [77.1025, 28.7041] },
+        address: { full_address: d.address?.full_address || '', state: d.address?.state || '', district: d.address?.district || '', pincode: d.address?.pincode || '' },
+        pricing: { amount: d.pricing?.amount || '', currency: d.pricing?.currency || 'INR', negotiable: d.pricing?.negotiable || false, deposit: d.pricing?.deposit || '', maintenance: d.pricing?.maintenance || '' },
+        details: {
+          area: { value: d.details?.area?.value || '', unit: d.details?.area?.unit || 'sqft', super_built_up_area: d.details?.area?.super_built_up_area || '', carpet_area: d.details?.area?.carpet_area || '' },
+          bhk: d.details?.bhk || '', bathrooms: d.details?.bathrooms || '', washrooms: d.details?.washrooms || '',
+          furnishing: d.details?.furnishing || 'unfurnished', floor_number: d.details?.floor_number || '',
+          total_floors: d.details?.total_floors || '', parking: d.details?.parking || 'none',
+          facing: d.details?.facing || 'no-preference', possession: d.details?.possession || 'ready'
+        },
+        images: d.images || [], thumbnail: d.thumbnail || '',
+        status: d.status || 'pending_approval', is_featured: d.is_featured || false,
+        emi_available: d.emi_available || false, emi_details: d.emi_details || ''
+      });
+    }
+  }, [propertyDetailData]);
+
+  useEffect(() => {
+    if (propertyDetailError) setError("Failed to sync database references.");
+  }, [propertyDetailError]);
 
   const submitMutation = useMutation({
     mutationFn: (payload) => isEdit
@@ -132,7 +136,7 @@ export default function AdminPropertyForm() {
     const val = type === 'checkbox' ? checked : (type === 'number' && value !== '' ? Number(value) : value);
 
     setFormData(prev => {
-      const updated = { ...prev };
+      const updated = JSON.parse(JSON.stringify(prev));
       if (fieldPath) {
         const parts = fieldPath.split('.');
         let current = updated;

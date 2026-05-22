@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { IndianRupee } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
 export default function TeamLeaderSalary() {
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: salaryError } = useQuery({
     queryKey: ['teamLeaderSalary'],
     queryFn: () => api.get('/team-leader/salary').then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load salary data.'),
   });
+
+  useEffect(() => {
+    if (salaryError) toast.error('Failed to load salary data.');
+  }, [salaryError]);
 
   const records = rawData?.success ? rawData.data : [];
 

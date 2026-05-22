@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IndianRupee, Save, ArrowLeft, Plus, Trash2, Info, CheckCircle2, Infinity as InfinityIcon, Star, Zap, ShieldCheck, ChevronLeft, Minus, X } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,29 +31,30 @@ export default function AdminSubscriptionPlanForm() {
   });
 
   // Fetch existing plan for edit mode
-  const { isLoading: loading } = useQuery({
+  const { isLoading: loading, data: planListData } = useQuery({
     queryKey: ['adminSubscriptionPlans'],
     queryFn: () => api.get('/admin/subscriptions/plans').then(r => r.data),
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
-    onSuccess: (data) => {
-      if (data?.success) {
-        const plan = data.data.find(p => p._id === id);
-        if (plan) {
-          setFormData({
-            ...plan,
-            applicable_to: plan.applicable_to || [],
-            features: plan.features?.length > 0 ? plan.features : ['']
-          });
-          setUnlimited({
-            listings: plan.listings_limit === -1,
-            featured: plan.featured_listings_limit === -1,
-            leads: plan.leads_limit === -1
-          });
-        }
-      }
-    },
   });
+
+  useEffect(() => {
+    if (planListData?.success) {
+      const plan = planListData.data.find(p => p._id === id);
+      if (plan) {
+        setFormData({
+          ...plan,
+          applicable_to: plan.applicable_to || [],
+          features: plan.features?.length > 0 ? plan.features : ['']
+        });
+        setUnlimited({
+          listings: plan.listings_limit === -1,
+          featured: plan.featured_listings_limit === -1,
+          leads: plan.leads_limit === -1
+        });
+      }
+    }
+  }, [planListData, id]);
 
   const submitMutation = useMutation({
     mutationFn: (payload) => id

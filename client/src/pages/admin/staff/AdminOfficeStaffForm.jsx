@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -41,28 +41,29 @@ export default function AdminOfficeStaffForm() {
   });
   const teamLeaders = teamLeadersData?.data || [];
 
-  const { isLoading: fetching } = useQuery({
+  const { isLoading: fetching, data: officeStaffFormData } = useQuery({
     queryKey: ['admin-office-staff-form', id],
     queryFn: () => api.get(`/admin/staff/office-staff/${id}`).then((r) => r.data),
     enabled: isEdit,
     staleTime: 5 * 60 * 1000,
-    onSuccess: (data) => {
-      if (data.success) {
-        const os = data.data;
-        setForm((prev) => ({
-          ...prev,
-          name: os.name || '',
-          phone: os.phone || '',
-          email: os.email || '',
-          team_leader_id: os.team_leader_id?._id || os.team_leader_id || '',
-          fixed_salary: os.fixed_salary || 8000,
-          calling_specialization: os.calling_specialization || 'lead_generation',
-          profile_image: os.profile_image || '',
-          address: os.address || { address_line: '', city: '', state: '', pincode: '' },
-        }));
-      }
-    },
   });
+
+  useEffect(() => {
+    if (officeStaffFormData?.success) {
+      const os = officeStaffFormData.data;
+      setForm((prev) => ({
+        ...prev,
+        name: os.name || '',
+        phone: os.phone || '',
+        email: os.email || '',
+        team_leader_id: os.team_leader_id?._id || os.team_leader_id || '',
+        fixed_salary: os.fixed_salary || 8000,
+        calling_specialization: os.calling_specialization || 'lead_generation',
+        profile_image: os.profile_image || '',
+        address: os.address || { address_line: '', city: '', state: '', pincode: '' },
+      }));
+    }
+  }, [officeStaffFormData]);
 
   const saveMutation = useMutation({
     mutationFn: (payload) => isEdit

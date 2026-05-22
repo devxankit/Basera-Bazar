@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import {
   Users, Search, Filter, Phone, Building2, Calendar,
@@ -53,13 +53,16 @@ function ExpiryBadge({ endsAt, status }) {
 
 function PartnerDetailModal({ partnerId, onClose }) {
   useScrollLock(true);
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: partnerDetailError } = useQuery({
     queryKey: ['executivePartnerDetail', partnerId],
     queryFn: () => api.get(`/executive/my-partners/${partnerId}`).then(r => r.data),
     staleTime: 5 * 60 * 1000,
     enabled: !!partnerId,
-    onError: () => toast.error('Failed to load partner details'),
   });
+
+  useEffect(() => {
+    if (partnerDetailError) toast.error('Failed to load partner details');
+  }, [partnerDetailError]);
 
   const partner = rawData?.success ? rawData.data : null;
 
@@ -247,12 +250,15 @@ export default function ExecutivePartners() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedPartnerId, setSelectedPartnerId] = useState(null);
 
-  const { data: rawData, isLoading: loading, refetch: fetchPartners } = useQuery({
+  const { data: rawData, isLoading: loading, refetch: fetchPartners, error: partnersListError } = useQuery({
     queryKey: ['executiveMyPartners'],
     queryFn: () => api.get('/executive/my-partners').then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load partners list'),
   });
+
+  useEffect(() => {
+    if (partnersListError) toast.error('Failed to load partners list');
+  }, [partnersListError]);
 
   const partners = rawData?.success ? rawData.data : [];
 

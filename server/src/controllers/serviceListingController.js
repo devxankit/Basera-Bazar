@@ -169,7 +169,7 @@ const createServiceListing = async (req, res) => {
       is_featured: !!is_featured
     });
 
-    if (is_featured) {
+    if (is_featured && req.user.active_subscription_id?._id) {
       await Subscription.findByIdAndUpdate(req.user.active_subscription_id._id, {
         $inc: { 'usage.featured_listings_used': 1 }
       });

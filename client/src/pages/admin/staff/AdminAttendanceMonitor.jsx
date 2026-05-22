@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, Download } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
@@ -26,7 +26,7 @@ export default function AdminAttendanceMonitor() {
   const [date, setDate] = useState(today);
   const [staffType, setStaffType] = useState('');
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: attendanceMonitorError } = useQuery({
     queryKey: ['admin-attendance-monitor', date, staffType],
     queryFn: () => {
       const params = new URLSearchParams({ date });
@@ -34,8 +34,11 @@ export default function AdminAttendanceMonitor() {
       return api.get(`/admin/staff/attendance?${params}`).then((r) => r.data);
     },
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load attendance.'),
   });
+
+  useEffect(() => {
+    if (attendanceMonitorError) toast.error('Failed to load attendance.');
+  }, [attendanceMonitorError]);
 
   const records = rawData?.data || [];
 

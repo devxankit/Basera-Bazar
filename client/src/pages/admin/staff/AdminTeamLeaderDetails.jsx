@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pencil, Power, BarChart3, CheckCircle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -23,12 +23,15 @@ export default function AdminTeamLeaderDetails() {
   const [tab, setTab] = useState('Overview');
   const [confirmModal, setConfirmModal] = useState(null);
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: teamLeaderDetailError } = useQuery({
     queryKey: ['admin-team-leader-detail', id],
     queryFn: () => api.get(`/admin/staff/team-leaders/${id}`).then((r) => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load.'),
   });
+
+  useEffect(() => {
+    if (teamLeaderDetailError) toast.error('Failed to load.');
+  }, [teamLeaderDetailError]);
 
   const tl = rawData?.data || null;
 

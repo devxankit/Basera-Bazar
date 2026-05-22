@@ -51,7 +51,7 @@ export default function Login() {
   const [showPrivacy, setShowPrivacy] = useState(false);
 
   // Timer Countdown Logic
-  React.useEffect(() => {
+  useEffect(() => {
     let interval;
     if (timer > 0) {
       interval = setInterval(() => setTimer(p => p - 1), 1000);
@@ -59,7 +59,7 @@ export default function Login() {
     return () => clearInterval(interval);
   }, [timer]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let interval;
     if (fpTimer > 0) {
       interval = setInterval(() => setFpTimer(p => p - 1), 1000);
@@ -457,7 +457,7 @@ export default function Login() {
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(v => !v)}
+                onClick={() => setShowPassword(prev => !prev)}
                 style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#3b52d4', display: 'flex', alignItems: 'center' }}
               >
                 {showPassword ? <EyeOff size={24} strokeWidth={2} /> : <Eye size={24} strokeWidth={2} />}

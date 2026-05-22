@@ -12,7 +12,7 @@ const activityLogSchema = new mongoose.Schema({
       'registered', 'subscribed', 'login', 'logout',
       'submitted_onboarding', 'onboarding',
       'withdrawn', 'credited', 'deactivated', 'activated',
-      'paid', 'verified', 'cancelled', 'payment_failed'
+      'paid', 'verified', 'cancelled', 'payment_failed', 'executive_commission_earned'
     ]
   },
   entity_type: {

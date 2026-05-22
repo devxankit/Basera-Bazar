@@ -412,7 +412,7 @@ export default function AdminUsers() {
                                   setIsActionLoading(true);
                                   try {
                                     await api.delete(`/admin/users/${row._id}`);
-                                    window.location.reload();
+                                    queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
                                   } catch (err) {
                                     toast.error(
                                       err.response?.data?.message ||

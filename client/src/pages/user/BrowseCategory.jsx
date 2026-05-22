@@ -25,7 +25,7 @@ function cn(...inputs) {
 
 const BrowseCategory = () => {
   const { category } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const subCategory = searchParams.get('sub');
   const category_id_param = searchParams.get('category_id');
   const navigate = useNavigate();
@@ -91,7 +91,7 @@ const BrowseCategory = () => {
     if (sub && sub !== activeSubCat) {
       setActiveSubCat(sub);
     }
-  }, [searchParams]);
+  }, [searchParams, activeFilters.featuredOnly, activeMandiCat, activeSubCat]);
 
   // Fetch mandi categories
   const { data: mandiCatsData } = useQuery({
@@ -104,7 +104,7 @@ const BrowseCategory = () => {
   // Fetch mandi subcategories when a parent cat is selected
   const { data: subCatsData } = useQuery({
     queryKey: ['categories', 'product', 'subs', activeMandiCat],
-    queryFn: () => db.getCategories('product', { parent_id: activeMandiCat }),
+    queryFn: () => db.getCategories('product', activeMandiCat),
     enabled: category === 'mandi' && !!activeMandiCat,
     staleTime: 5 * 60 * 1000,
   });

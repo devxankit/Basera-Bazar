@@ -25,7 +25,7 @@ const AgentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, login } = useAuth();
 
   const formatDate = (dateString) => {
     if (!dateString) return 'April 2024';
@@ -91,7 +91,8 @@ const AgentDetails = () => {
         }).then(r => r.data);
         if (authRes.success) {
           localStorage.setItem('baserabazar_token', authRes.token);
-          currentUserId = authRes.user.id;
+          login(authRes.user, authRes.token);
+          currentUserId = authRes.user.id || authRes.user._id;
           setIsVerified(true);
         }
       }
@@ -99,7 +100,6 @@ const AgentDetails = () => {
         name: payload.name,
         phone: payload.phone,
         email: payload.email,
-        message: payload.message,
         userId: currentUserId,
         category: 'property',
         message: `Inquiry regarding properties from ${agent?.name}. Message: ${payload.message}`

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Target, X, Eye, Trash2, Power } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
@@ -56,23 +56,29 @@ export default function AdminTargetManagement() {
   const [confirmModal, setConfirmModal] = useState(null);
   const [progressTarget, setProgressTarget] = useState(null);
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: targetsError } = useQuery({
     queryKey: ['admin-targets'],
     queryFn: () => api.get('/admin/staff/targets').then((r) => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load targets'),
   });
+
+  useEffect(() => {
+    if (targetsError) toast.error('Failed to load targets');
+  }, [targetsError]);
 
   const targets = rawData?.data || [];
 
-  const { data: progressRaw, isLoading: progressLoading } = useQuery({
+  const { data: progressRaw, isLoading: progressLoading, error: targetProgressError } = useQuery({
     queryKey: ['admin-target-progress', progressTarget?._id],
     queryFn: () =>
       api.get(`/admin/staff/targets/${progressTarget._id}/progress`).then((r) => r.data),
     enabled: Boolean(progressTarget),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load progress.'),
   });
+
+  useEffect(() => {
+    if (targetProgressError) toast.error('Failed to load progress.');
+  }, [targetProgressError]);
 
   const progressData = progressRaw?.data || [];
 

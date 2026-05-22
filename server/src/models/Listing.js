@@ -149,6 +149,7 @@ const mandiListingSchema = new mongoose.Schema({
   service_radius_km: { type: Number, required: true, default: 300 }, // Default 300km for mandi
   stock_quantity: { type: Number, default: 0, min: 0 },
   availability_status: { type: Boolean, default: true },
+  is_featured: { type: Boolean, default: false },
   status: {
     type: String,
     enum: ['pending_approval', 'active', 'inactive', 'suspended', 'rejected', 'deleted'],

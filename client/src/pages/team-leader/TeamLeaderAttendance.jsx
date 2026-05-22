@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
@@ -17,12 +17,15 @@ export default function TeamLeaderAttendance() {
   const [verifying, setVerifying] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: attendanceError } = useQuery({
     queryKey: ['teamLeaderAttendance', date],
     queryFn: () => api.get(`/team-leader/attendance?date=${date}`).then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load attendance.'),
   });
+
+  useEffect(() => {
+    if (attendanceError) toast.error('Failed to load attendance.');
+  }, [attendanceError]);
 
   const records = rawData?.success ? rawData.data : [];
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -65,35 +65,36 @@ export default function AdminServiceForm() {
   const subcategories = subcatData?.data || [];
 
   // Fetch existing listing for edit mode
-  const { isLoading: initLoading } = useQuery({
+  const { isLoading: initLoading, data: serviceDetailData } = useQuery({
     queryKey: ['adminServiceDetail', id],
     queryFn: () => api.get(`/admin/listings/detail/${id}`).then(r => r.data),
     enabled: isEdit,
     staleTime: 5 * 60 * 1000,
-    onSuccess: (data) => {
-      if (data?.success) {
-        const d = data.data;
-        setFormData({
-          partner_id: d.partner_id?._id || d.partner_id || '',
-          category_id: d.category_id?._id || d.category_id || '',
-          subcategory_id: d.subcategory_id?._id || d.subcategory_id || '',
-          title: d.title || '',
-          short_description: d.short_description || '',
-          full_description: d.full_description || '',
-          service_type: d.service_type || '',
-          years_of_experience: d.years_of_experience || '',
-          video_link: d.video_link || '',
-          location: { type: 'Point', coordinates: d.location?.coordinates || [77.1025, 28.7041] },
-          address: { full_address: d.address?.full_address || '', state: d.address?.state || '', district: d.address?.district || '', pincode: d.address?.pincode || '' },
-          portfolio_images: d.portfolio_images || [],
-          thumbnail: d.thumbnail || '',
-          service_radius_km: d.service_radius_km || 10,
-          status: d.status || 'pending_approval',
-          is_featured: d.is_featured || false
-        });
-      }
-    },
   });
+
+  useEffect(() => {
+    if (serviceDetailData?.success) {
+      const d = serviceDetailData.data;
+      setFormData({
+        partner_id: d.partner_id?._id || d.partner_id || '',
+        category_id: d.category_id?._id || d.category_id || '',
+        subcategory_id: d.subcategory_id?._id || d.subcategory_id || '',
+        title: d.title || '',
+        short_description: d.short_description || '',
+        full_description: d.full_description || '',
+        service_type: d.service_type || '',
+        years_of_experience: d.years_of_experience || '',
+        video_link: d.video_link || '',
+        location: { type: 'Point', coordinates: d.location?.coordinates || [77.1025, 28.7041] },
+        address: { full_address: d.address?.full_address || '', state: d.address?.state || '', district: d.address?.district || '', pincode: d.address?.pincode || '' },
+        portfolio_images: d.portfolio_images || [],
+        thumbnail: d.thumbnail || '',
+        service_radius_km: d.service_radius_km || 10,
+        status: d.status || 'pending_approval',
+        is_featured: d.is_featured || false
+      });
+    }
+  }, [serviceDetailData]);
 
   const submitMutation = useMutation({
     mutationFn: (payload) => isEdit

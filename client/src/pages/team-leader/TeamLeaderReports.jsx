@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
@@ -19,7 +19,7 @@ export default function TeamLeaderReports() {
   const [remarkInput, setRemarkInput] = useState('');
   const queryClient = useQueryClient();
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: reportsError } = useQuery({
     queryKey: ['teamLeaderReports', date, staffType],
     queryFn: () => {
       const params = new URLSearchParams({ date });
@@ -27,8 +27,11 @@ export default function TeamLeaderReports() {
       return api.get(`/team-leader/reports/daily?${params}`).then(r => r.data);
     },
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load reports.'),
   });
+
+  useEffect(() => {
+    if (reportsError) toast.error('Failed to load reports.');
+  }, [reportsError]);
 
   const reports = rawData?.success ? rawData.data : [];
 

@@ -27,7 +27,9 @@ const getLeads = async (req, res) => {
       enquiries = await Enquiry.find(query)
         .populate('user_id', 'name phone email createdAt')
         .populate('partner_id', 'name phone role profileImage')
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
     }
 
     let broadcastLeads = [];
@@ -65,13 +67,32 @@ const getLeads = async (req, res) => {
 
     allLeads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     const total = allLeads.length;
-    const paginated = allLeads.slice(skip, skip + limit);
+    const paginated = allLeads.slice(0, limit);
 
-    const enquiriesWithMetrics = await Promise.all(paginated.map(async (lead) => {
+    // Collect the user IDs present in this page, then fetch all their enquiry counts
+    // in a single aggregation — avoids one countDocuments call per lead (N+1).
+    const pageUserIds = paginated
+      .map(lead => lead.user_id?._id || lead.user_id)
+      .filter(Boolean);
+
+    const enquiryCounts = pageUserIds.length
+      ? await Enquiry.aggregate([
+          { $match: { user_id: { $in: pageUserIds } } },
+          { $group: { _id: '$user_id', count: { $sum: 1 } } }
+        ])
+      : [];
+
+    const enquiryCountMap = new Map(
+      enquiryCounts.map(e => [e._id.toString(), e.count])
+    );
+
+    const enquiriesWithMetrics = paginated.map((lead) => {
       const rawUserId = lead.user_id?._id || lead.user_id;
-      const total_user_inquiries = rawUserId ? await Enquiry.countDocuments({ user_id: rawUserId }) : 0;
+      const total_user_inquiries = rawUserId
+        ? (enquiryCountMap.get(rawUserId.toString()) || 0)
+        : 0;
       return { ...(lead.toObject ? lead.toObject() : lead), total_user_inquiries };
-    }));
+    });
 
     res.status(200).json({ success: true, count: enquiriesWithMetrics.length, total, page, totalPages: Math.ceil(total / limit), data: enquiriesWithMetrics });
   } catch (error) {

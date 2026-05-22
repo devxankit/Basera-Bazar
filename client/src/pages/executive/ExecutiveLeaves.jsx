@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
@@ -19,12 +19,15 @@ export default function ExecutiveLeaves() {
   const [form, setForm] = useState(EMPTY_FORM);
   const queryClient = useQueryClient();
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: leavesError } = useQuery({
     queryKey: ['executiveLeaves'],
     queryFn: () => api.get('/executive/leaves').then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load leaves.'),
   });
+
+  useEffect(() => {
+    if (leavesError) toast.error('Failed to load leaves.');
+  }, [leavesError]);
 
   const leaves = rawData?.success ? rawData.data : [];
 

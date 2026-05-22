@@ -250,10 +250,12 @@ export default function MandiCheckout() {
 
                   <button
                      onClick={() => {
-                        if (!address.receiver_name || !address.receiver_phone || !address.street || !address.city || !address.pincode) {
+                        if (!address.receiver_name?.trim() || !address.receiver_phone?.trim() || !address.street?.trim() || !address.city?.trim() || !address.pincode?.trim()) {
                            toast.error("Please fill all required fields marked with *");
-                        } else if (address.receiver_phone.length !== 10) {
+                        } else if (!/^\d{10}$/.test(address.receiver_phone.trim())) {
                            toast.error("Please enter a valid 10-digit phone number");
+                        } else if (!/^\d{6}$/.test(address.pincode.trim())) {
+                           toast.error("Please enter a valid 6-digit pincode");
                         }
                         else setStep(2);
                      }}
@@ -269,8 +271,8 @@ export default function MandiCheckout() {
                   <div className="bg-white rounded-[32px] p-8 shadow-sm border border-slate-50 space-y-6">
                      <h3 className="text-[18px] font-bold text-[#001b4e] border-b border-slate-50 pb-4">Order Summary</h3>
                      <div className="space-y-4">
-                        {Object.values(cart).map((c, i) => (
-                           <div key={i} className="flex justify-between items-start text-[14px]">
+                        {Object.values(cart).map((c) => (
+                           <div key={c.item._cartKey || c.item._id || c.item.id} className="flex justify-between items-start text-[14px]">
                               <div>
                                 <div className="text-slate-800 font-bold">{c.item.title} <span className="text-slate-400 font-medium">x {c.qty}</span></div>
                                 {(c.selectedType || c.selectedSubType || c.selectedBrand) && (

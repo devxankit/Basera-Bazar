@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Target } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
@@ -16,12 +16,15 @@ const TYPE_LABELS = {
 const PERIOD_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
 
 export default function TeamLeaderTargets() {
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: targetsError } = useQuery({
     queryKey: ['teamLeaderTargets'],
     queryFn: () => api.get('/team-leader/targets').then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load targets.'),
   });
+
+  useEffect(() => {
+    if (targetsError) toast.error('Failed to load targets.');
+  }, [targetsError]);
 
   const targets = rawData?.success ? rawData.data : [];
 

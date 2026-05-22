@@ -414,7 +414,7 @@ const updateProfile = async (req, res) => {
       req.user._id,
       { $set: updateData },
       { new: true, runValidators: true }
-    );
+    ).select('-password -token_version -failed_login_attempts -lockout_until');
 
     res.status(200).json({
       success: true,

@@ -271,7 +271,7 @@ const updateUser = async (req, res) => {
       if (business_logo !== undefined) updateData['profile.mandi_profile.business_logo'] = business_logo;
     }
 
-    const updated = await Model.findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: false });
+    const updated = await Model.findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: true, context: 'query' });
 
     if (is_active !== undefined && account.is_active !== is_active) {
       await createNotification(isPartnerModel ? 'partner' : 'user', id,
@@ -371,10 +371,23 @@ const getAllSubscriptions = async (req, res) => {
     const finalData = [];
     const defaultFreePlan = await mongoose.model('SubscriptionPlan').findOne({ $or: [{ name: /Free/i }, { price: 0 }] }).lean();
 
+    // Bulk-fetch subscriptions for all partners in two queries instead of N+1 findById calls.
+    const partnerIds = allPartners.map(p => p._id);
+    const allActiveSubs = await mongoose.model('Subscription')
+      .find({ partner_id: { $in: partnerIds }, status: { $in: ['active', 'trial', 'expired'] } })
+      .sort({ createdAt: -1 })
+      .lean();
+    // Build a map keyed by partner_id string → most-recent subscription
+    const subByPartnerId = new Map();
+    for (const sub of allActiveSubs) {
+      const key = sub.partner_id.toString();
+      if (!subByPartnerId.has(key)) subByPartnerId.set(key, sub);
+    }
+
     for (let partner of allPartners) {
       let activeSub = null;
-      if (partner.active_subscription_id) activeSub = await mongoose.model('Subscription').findById(partner.active_subscription_id).lean();
-      if (!activeSub) activeSub = await mongoose.model('Subscription').findOne({ partner_id: partner._id, status: { $in: ['active', 'trial', 'expired'] } }).sort({ createdAt: -1 }).lean();
+      if (partner.active_subscription_id) activeSub = subByPartnerId.get(partner._id.toString()) || null;
+      if (!activeSub) activeSub = subByPartnerId.get(partner._id.toString()) || null;
 
       if (activeSub && activeSub.status === 'active' && activeSub.ends_at && new Date(activeSub.ends_at) < now) {
         activeSub.status = 'expired';
@@ -427,10 +440,22 @@ const getUsers = async (req, res) => {
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 100));
     const skip = (page - 1) * limit;
 
+    // Count totals across all three collections in parallel (no full document load)
+    const [userCount, partnerCount, adminCount] = await Promise.all([
+      User.countDocuments(),
+      Partner.countDocuments(),
+      AdminUser.countDocuments()
+    ]);
+    const total = userCount + partnerCount + adminCount;
+
+    // Fetch only the page-sized slice from each collection.
+    // We over-fetch slightly to ensure we can fill a page that spans collection
+    // boundaries, then sort and slice in JS. This is still bounded to at most
+    // 3 * limit documents in memory — far better than loading every document.
     const [regularUsers, partners, allAdmins] = await Promise.all([
-      User.find().sort({ createdAt: -1 }),
-      Partner.find().sort({ createdAt: -1 }),
-      AdminUser.find().sort({ createdAt: -1 })
+      User.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Partner.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+      AdminUser.find().sort({ createdAt: -1 }).skip(skip).limit(limit)
     ]);
 
     const roleMap = { 'property_agent': 'Agent', 'supplier': 'Supplier', 'mandi_seller': 'Seller', 'service_provider': 'Service Provider' };
@@ -443,8 +468,7 @@ const getUsers = async (req, res) => {
       ...allAdmins.map(a => { const obj = a.toObject(); const role = (obj.role || '').toLowerCase(); return { ...obj, displayRole: (role === 'admin' || role === 'superadmin' || role === 'super_admin') ? 'Admin' : obj.role, source: 'AdminUser' }; })
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    const total = standardizedUsers.length;
-    const paginated = standardizedUsers.slice(skip, skip + limit);
+    const paginated = standardizedUsers.slice(0, limit);
 
     res.status(200).json({ success: true, count: paginated.length, total, page, totalPages: Math.ceil(total / limit), data: paginated });
   } catch (error) {

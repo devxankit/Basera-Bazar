@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Target, CheckCircle2, AlertCircle, RefreshCw,
@@ -23,13 +23,16 @@ export default function ExecutiveTaskHistory() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
 
-  const { data: rawData, isLoading: loading, refetch } = useQuery({
+  const { data: rawData, isLoading: loading, refetch, error: taskHistoryError } = useQuery({
     queryKey: ['executiveTaskHistory', page],
     queryFn: () => api.get(`/executive/task-history?page=${page}&limit=15`).then(r => r.data),
     staleTime: 5 * 60 * 1000,
     keepPreviousData: true,
-    onError: () => toast.error('Failed to load task history'),
   });
+
+  useEffect(() => {
+    if (taskHistoryError) toast.error('Failed to load task history');
+  }, [taskHistoryError]);
 
   const summary = rawData?.success ? rawData.summary : null;
   const history = rawData?.success ? rawData.data : [];

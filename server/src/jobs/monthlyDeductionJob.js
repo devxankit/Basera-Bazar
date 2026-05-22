@@ -14,6 +14,7 @@ const runMonthlyDeductionJob = async (targetMonthStr = null) => {
   }
   _jobRunning = true;
   logger.info('[SCHEDULER] Running monthly salary deduction check...');
+  try {
   const now = new Date();
   
   // Find previous month string YYYY-MM if targetMonthStr not provided
@@ -108,8 +109,12 @@ const runMonthlyDeductionJob = async (targetMonthStr = null) => {
       logger.error({ err }, `[SCHEDULER] Failed processing exec ${exec._id}`);
     }
   }
-  logger.info(`[SCHEDULER] Completed monthly processing for ${monthStr}.`);
-  _jobRunning = false;
+    logger.info(`[SCHEDULER] Completed monthly processing for ${monthStr}.`);
+  } catch (err) {
+    logger.error({ err }, '[SCHEDULER] Monthly deduction job failed unexpectedly');
+  } finally {
+    _jobRunning = false;
+  }
 };
 
 const scheduleMonthlyDeduction = () => {

@@ -141,7 +141,7 @@ const MyEnquiriesPage = () => {
           {filteredEnquiries.map((enquiry, idx) => (
             <motion.div 
               layout
-              key={enquiry.id || idx}
+              key={enquiry._id || enquiry.id || idx}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}

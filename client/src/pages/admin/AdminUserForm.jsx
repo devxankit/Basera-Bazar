@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -72,50 +72,54 @@ export default function AdminUserForm() {
   const supplierCategories = supCatData?.data || [];
 
   // Fetch existing user for edit mode
-  const { isLoading: initLoading } = useQuery({
+  const { isLoading: initLoading, data: userDetailData, error: userDetailError } = useQuery({
     queryKey: ['adminUserDetail', id],
     queryFn: () => api.get(`/admin/users/${id}`).then(r => r.data),
     enabled: isEdit,
     staleTime: 5 * 60 * 1000,
-    onSuccess: (response) => {
-      if (response?.success) {
-        const u = response.data;
-        const profile = u.partner_profile || {};
-        const partnerTypeToRole = {
-          'supplier': 'Supplier',
-          'service_provider': 'Service Provider',
-          'property_agent': 'Agent',
-          'mandi_seller': 'Mandi Seller',
-        };
-        const derivedRole = u.role || (u.partner_type ? partnerTypeToRole[u.partner_type] : null) || 'Customer';
-        const subId = u.active_subscription_id;
-        const resolvedSubId = subId ? (typeof subId === 'object' ? (subId._id || '') : subId) : '';
-        setFormData({
-          name: u.name || '', email: u.email || '', phone: u.phone || '', password: '',
-          role: derivedRole,
-          roles: u.roles || (u.partner_type ? [u.partner_type] : []),
-          is_active: u.is_active ?? true,
-          partner_type: u.partner_type || 'property_agent',
-          active_subscription_id: resolvedSubId,
-          state: profile.state || u.state || '',
-          district: profile.district || u.district || '',
-          address: profile.address || u.address || '',
-          material_categories: profile.supplier_profile?.material_categories || [],
-          service_category_id: profile.service_profile?.service_category_id || profile.service_profile?.category_id || '',
-          delivery_radius_km: profile.supplier_profile?.delivery_radius_km || 10,
-          business_name: profile.mandi_profile?.business_name || '',
-          business_description: profile.mandi_profile?.business_description || '',
-          image: u.image || u.profileImage || '',
-          business_logo: profile.mandi_profile?.business_logo || profile.business_logo || ''
-        });
-        setPreviews({
-          profile: u.image || u.profileImage || '',
-          logo: profile.mandi_profile?.business_logo || profile.business_logo || ''
-        });
-      }
-    },
-    onError: () => setError("Failed to sync database references."),
   });
+
+  useEffect(() => {
+    if (userDetailData?.success) {
+      const u = userDetailData.data;
+      const profile = u.partner_profile || {};
+      const partnerTypeToRole = {
+        'supplier': 'Supplier',
+        'service_provider': 'Service Provider',
+        'property_agent': 'Agent',
+        'mandi_seller': 'Mandi Seller',
+      };
+      const derivedRole = u.role || (u.partner_type ? partnerTypeToRole[u.partner_type] : null) || 'Customer';
+      const subId = u.active_subscription_id;
+      const resolvedSubId = subId ? (typeof subId === 'object' ? (subId._id || '') : subId) : '';
+      setFormData({
+        name: u.name || '', email: u.email || '', phone: u.phone || '', password: '',
+        role: derivedRole,
+        roles: u.roles || (u.partner_type ? [u.partner_type] : []),
+        is_active: u.is_active ?? true,
+        partner_type: u.partner_type || 'property_agent',
+        active_subscription_id: resolvedSubId,
+        state: profile.state || u.state || '',
+        district: profile.district || u.district || '',
+        address: profile.address || u.address || '',
+        material_categories: profile.supplier_profile?.material_categories || [],
+        service_category_id: profile.service_profile?.service_category_id || profile.service_profile?.category_id || '',
+        delivery_radius_km: profile.supplier_profile?.delivery_radius_km || 10,
+        business_name: profile.mandi_profile?.business_name || '',
+        business_description: profile.mandi_profile?.business_description || '',
+        image: u.image || u.profileImage || '',
+        business_logo: profile.mandi_profile?.business_logo || profile.business_logo || ''
+      });
+      setPreviews({
+        profile: u.image || u.profileImage || '',
+        logo: profile.mandi_profile?.business_logo || profile.business_logo || ''
+      });
+    }
+  }, [userDetailData]);
+
+  useEffect(() => {
+    if (userDetailError) setError("Failed to sync database references.");
+  }, [userDetailError]);
 
   const submitMutation = useMutation({
     mutationFn: (payload) => isEdit

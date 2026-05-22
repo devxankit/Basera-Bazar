@@ -320,7 +320,7 @@ export default function MandiMarketplace() {
                            </div>
                         </div>
                      ) : (
-                        <div className="relative w-full h-full" onClick={() => bannerList[currentSlide].link_url && (window.location.href = bannerList[currentSlide].link_url)}>
+                        <div className="relative w-full h-full" onClick={() => { const url = bannerList[currentSlide].link_url; if (url) { if (url.startsWith('http')) { window.open(url, '_blank', 'noopener,noreferrer'); } else { navigate(url); } } }}>
                            <img
                               src={bannerList[currentSlide].image_url}
                               alt={bannerList[currentSlide].title || "Banner"}

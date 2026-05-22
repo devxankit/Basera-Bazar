@@ -432,9 +432,13 @@ const getPublicPartners = async (req, res) => {
       ];
     }
 
+    const SAFE_FIELDS = '-password -token_version -failed_login_attempts -lockout_until -kyc.aadhar_number -kyc.pan_number -kyc.aadhar_front_image -kyc.aadhar_back_image -kyc.pan_image -bank_details';
+
     const partners = await Partner.find(query)
+      .select(SAFE_FIELDS)
       .populate('profile.service_profile.category_id')
-      .limit(50);
+      .limit(50)
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -453,7 +457,9 @@ const getPublicPartners = async (req, res) => {
  */
 const getPublicPartnerById = async (req, res) => {
   try {
-    const partner = await Partner.findById(req.params.id);
+    const SAFE_FIELDS = '-password -token_version -failed_login_attempts -lockout_until -kyc.aadhar_number -kyc.pan_number -kyc.aadhar_front_image -kyc.aadhar_back_image -kyc.pan_image -bank_details';
+
+    const partner = await Partner.findById(req.params.id).select(SAFE_FIELDS).lean();
     if (!partner || !partner.is_active) {
       return res.status(404).json({ success: false, message: 'Partner not found' });
     }

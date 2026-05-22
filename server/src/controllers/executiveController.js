@@ -705,21 +705,75 @@ exports.getMyTaskHistory = async (req, res) => {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
     const skip = (page - 1) * limit;
 
-    const total = await DailyTask.countDocuments();
-    const tasks = await DailyTask.find().sort({ date: -1 }).skip(skip).limit(limit).lean();
+    const now = new Date();
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    const history = await Promise.all(tasks.map(async (task) => {
-      const dayStart = new Date(`${task.date}T00:00:00.000Z`);
-      const dayEnd = new Date(`${task.date}T23:59:59.999Z`);
+    const [total, tasks, currentMonthTasks] = await Promise.all([
+      DailyTask.countDocuments(),
+      DailyTask.find().sort({ date: -1 }).skip(skip).limit(limit).lean(),
+      DailyTask.find({
+        date: { $gte: `${currentMonthStr}-01`, $lte: `${currentMonthStr}-31` }
+      }).lean()
+    ]);
 
-      const completed = executive.referral_code ? await Partner.countDocuments({
-        referral_code_used: executive.referral_code,
-        createdAt: { $gte: dayStart, $lte: dayEnd }
-      }) : 0;
+    if (!executive.referral_code) {
+      // No referral code — all completed counts are 0, skip DB queries entirely
+      const history = tasks.map((task) => ({
+        date: task.date,
+        target_count: task.target_count,
+        description: task.description,
+        completed: 0,
+        percentage: 0,
+        met: false
+      }));
 
+      return res.status(200).json({
+        success: true,
+        summary: {
+          month: currentMonthStr,
+          average_completion: 0,
+          days_met: 0,
+          total_days: currentMonthTasks.length
+        },
+        data: history,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
+      });
+    }
+
+    // Collect all unique dates we need counts for (paginated tasks + current-month tasks)
+    const pagedDates = tasks.map(t => t.date);
+    const monthDates = currentMonthTasks.map(t => t.date);
+    const allDates = [...new Set([...pagedDates, ...monthDates])].sort();
+
+    // Single aggregation: count partners per day for this executive across all needed dates
+    const rangeStart = new Date(`${allDates[0]}T00:00:00.000Z`);
+    const rangeEnd = new Date(`${allDates[allDates.length - 1]}T23:59:59.999Z`);
+
+    const partnerCounts = await Partner.aggregate([
+      {
+        $match: {
+          referral_code_used: executive.referral_code,
+          createdAt: { $gte: rangeStart, $lte: rangeEnd }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Build lookup map: countMap[date] = count
+    const countMap = {};
+    partnerCounts.forEach(pc => { countMap[pc._id] = pc.count; });
+
+    const history = tasks.map((task) => {
+      const completed = countMap[task.date] || 0;
       const percentage = task.target_count > 0 ? Math.round((completed / task.target_count) * 100) : 0;
       const met = percentage >= 50;
-
       return {
         date: task.date,
         target_count: task.target_count,
@@ -728,22 +782,11 @@ exports.getMyTaskHistory = async (req, res) => {
         percentage,
         met
       };
-    }));
-
-    const now = new Date();
-    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const currentMonthTasks = await DailyTask.find({
-      date: { $gte: `${currentMonthStr}-01`, $lte: `${currentMonthStr}-31` }
-    }).lean();
+    });
 
     let currentMonthMetDays = 0;
     for (const t of currentMonthTasks) {
-      const dStart = new Date(`${t.date}T00:00:00.000Z`);
-      const dEnd = new Date(`${t.date}T23:59:59.999Z`);
-      const cnt = executive.referral_code ? await Partner.countDocuments({
-        referral_code_used: executive.referral_code,
-        createdAt: { $gte: dStart, $lte: dEnd }
-      }) : 0;
+      const cnt = countMap[t.date] || 0;
       if (t.target_count > 0 && cnt / t.target_count >= 0.5) {
         currentMonthMetDays++;
       }

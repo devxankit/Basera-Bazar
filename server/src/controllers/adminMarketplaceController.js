@@ -119,7 +119,7 @@ const processWithdrawal = async (req, res) => {
 
     // If rejected, refund the balance to the seller's withdrawable_balance
     if (status === 'rejected') {
-      await Partner.findByIdAndUpdate(request.partner_id, {
+      await Partner.findByIdAndUpdate(request.user_id, {
         $inc: { 'wallet.withdrawable_balance': request.amount }
       });
     }

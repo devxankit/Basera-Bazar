@@ -31,11 +31,13 @@ router.get('/dashboard', cacheMiddleware(10, true), getOSDashboard);
 // ─── Attendance ─────────────────────────────────────────────────────────────
 router.post('/attendance/check-in', validate(officeCheckinSchema), officeStaffCheckIn);
 router.post('/attendance/check-out', officeStaffCheckOut);
-router.get('/attendance/today', cacheMiddleware(10, true), async (req, res) => {
-  const StaffAttendance = require('../models/StaffAttendance');
-  const today = new Date().toISOString().split('T')[0];
-  const record = await StaffAttendance.findOne({ staff_id: req.user.id, date: today }).lean();
-  res.json({ success: true, data: record || null });
+router.get('/attendance/today', cacheMiddleware(10, true), async (req, res, next) => {
+  try {
+    const StaffAttendance = require('../models/StaffAttendance');
+    const today = new Date().toISOString().split('T')[0];
+    const record = await StaffAttendance.findOne({ staff_id: req.user.id, date: today }).lean();
+    res.json({ success: true, data: record || null });
+  } catch (err) { next(err); }
 });
 router.get('/attendance/history', cacheMiddleware(10, true), getOfficeStaffAttendance);
 

@@ -22,7 +22,7 @@ function cn(...inputs) {
 
 const UserProfile = () => {
   const { user, logout, isAuthenticated } = useAuth();
-  const { currentLocation } = useLocationContext();
+  const { location } = useLocationContext();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -97,7 +97,7 @@ const UserProfile = () => {
               className="flex items-center gap-2 text-white/70 text-[12px] sm:text-[13px] font-bold"
             >
               <MapPin size={12} className="text-[#fa8639]" />
-              <span className="truncate">{currentLocation || 'Location not set'}</span>
+              <span className="truncate">{location?.formattedAddress || location?.city || location?.district || 'Location not set'}</span>
             </motion.div>
           </div>
         </div>

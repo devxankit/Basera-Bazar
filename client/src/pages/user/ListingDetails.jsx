@@ -22,7 +22,7 @@ function cn(...inputs) {
 const ListingDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const { cart, addToCart, removeFromCart } = useCart();
 
   // State Declarations
@@ -185,6 +185,7 @@ const ListingDetails = () => {
           }).then(r => r.data);
           if (authData.success) {
             localStorage.setItem('baserabazar_token', authData.token);
+            login(authData.user, authData.token);
             currentUserId = authData.user.id;
             setIsVerified(true);
             setVerificationSuccess(true);
@@ -210,7 +211,6 @@ const ListingDetails = () => {
     onSuccess: ({ wasGuest }) => {
       setShowSuccessModal(true);
       setIsModalOpen(false);
-      if (wasGuest) setTimeout(() => window.location.reload(), 2000);
     },
     onError: (error) => toast.error(error.message || "Failed to send enquiry. Please try again."),
     onSettled: () => { setIsVerifying(false); },
@@ -230,7 +230,7 @@ const ListingDetails = () => {
       setEnquiryData(prev => ({ ...prev, name: user.name, phone: user.phone || prev.phone, email: user.email || prev.email }));
       setQuotationData(prev => ({ ...prev, name: user.name, phone: user.phone || prev.phone, email: user.email || prev.email }));
     }
-  }, [user?.id]);
+  }, [user]);
 
 
 

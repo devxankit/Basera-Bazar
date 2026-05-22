@@ -52,7 +52,7 @@ const ServiceProfile = () => {
         message: prev.message || `Hi I am interested in your service "${service.title}". Please provide more details and pricing.`
       }));
     }
-  }, [service?.id]);
+  }, [service?._id || service?.id]);
 
   if (loading) {
     return (

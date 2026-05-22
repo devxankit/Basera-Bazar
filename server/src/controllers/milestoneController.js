@@ -32,18 +32,19 @@ const getCurrentMilestone = async (req, res) => {
     let nextMilestone = null;
     let successfulOrdersCount = 0;
 
-    const Order = require('../models/Order'); // Import Order model
+    const Order = require('../models/Order');
+    // Use the earliest config date to fetch the total count once per config boundary
+    const earliestDate = configs[0].createdAt;
+    const totalDelivered = await Order.countDocuments({
+      'items.seller_id': req.user.id,
+      'items.status': 'delivered',
+      'items.delivered_at': { $gte: earliestDate }
+    });
 
     for (const config of configs) {
-      const count = await Order.countDocuments({
-        'items.seller_id': req.user.id,
-        'items.status': 'delivered',
-        'items.delivered_at': { $gte: config.createdAt }
-      });
-
-      if (count < config.target_orders) {
+      if (totalDelivered < config.target_orders) {
         nextMilestone = config;
-        successfulOrdersCount = count;
+        successfulOrdersCount = totalDelivered;
         break;
       }
     }
@@ -83,7 +84,13 @@ const claimReward = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Invalid milestone or partner.' });
     }
 
-    if (partner.milestone_stats.successful_orders < config.target_orders) {
+    const Order = require('../models/Order');
+    const liveCount = await Order.countDocuments({
+      'items.seller_id': partnerId,
+      'items.status': 'delivered',
+      'items.delivered_at': { $gte: config.createdAt }
+    });
+    if (liveCount < config.target_orders) {
       return res.status(400).json({ success: false, message: 'Milestone target not yet reached.' });
     }
 

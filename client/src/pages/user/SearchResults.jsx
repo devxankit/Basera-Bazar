@@ -259,9 +259,9 @@ const SearchResults = () => {
 
   const handleItemClick = (item) => {
     if (item._type === 'supplier') {
-      navigate(`/profile/${item._id}`);
+      navigate(`/browse/supplier?partner_id=${item._id}`);
     } else {
-      navigate(`/listing/${item._id}`);
+      navigate(`/products/${item._id}`);
     }
   };
 

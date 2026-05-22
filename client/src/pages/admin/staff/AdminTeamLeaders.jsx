@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Eye, Pencil, Power } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -25,7 +25,7 @@ export default function AdminTeamLeaders() {
   const [confirmModal, setConfirmModal] = useState(null);
   const [page, setPage] = useState(1);
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: teamLeadersError } = useQuery({
     queryKey: ['admin-team-leaders', page, search, statusFilter],
     queryFn: () => {
       const params = new URLSearchParams({ page, limit: 20 });
@@ -34,8 +34,11 @@ export default function AdminTeamLeaders() {
       return api.get(`/admin/staff/team-leaders?${params}`).then((r) => r.data);
     },
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load Team Leaders'),
   });
+
+  useEffect(() => {
+    if (teamLeadersError) toast.error('Failed to load Team Leaders');
+  }, [teamLeadersError]);
 
   const teamLeaders = rawData?.data || [];
   const totalPages = rawData?.totalPages || 1;

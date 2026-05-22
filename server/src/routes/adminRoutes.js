@@ -91,17 +91,14 @@ router.get('/subscriptions/plans', getSubscriptionPlans);
 router.get('/system/offers', getOfferConfig);
 router.post('/system/validate-referral', validateReferralCode);
 
-// ALL Admin routes below this point must be protected
+// ALL Admin routes below this point must be protected and restricted to super_admin
 router.use(protect);
+router.use(authorizeRoles('super_admin'));
+
 // Dashboard Stats & Feeds
 router.get('/dashboard/stats', cacheMiddleware(2, true), getDashboardStats);
 router.get('/dashboard/activities', cacheMiddleware(1, true), getAdminActivities);
 router.get('/dashboard/pending/:type', cacheMiddleware(2, true), getPendingApprovals);
-
-
-
-// ALL routes below this point are restricted solely to 'super_admin' roles
-router.use(authorizeRoles('super_admin'));
 
 // Admin Profile Management
 router.get('/profile/me', getAdminProfile);

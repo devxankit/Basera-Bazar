@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Users, ClipboardCheck, Calendar, FileText, IndianRupee, Target } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -8,12 +8,15 @@ import { toast } from '../../mockToast';
 export default function TeamLeaderDashboard() {
   const navigate = useNavigate();
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: dashboardError } = useQuery({
     queryKey: ['teamLeaderDashboard'],
     queryFn: () => api.get('/team-leader/dashboard').then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load dashboard.'),
   });
+
+  useEffect(() => {
+    if (dashboardError) toast.error('Failed to load dashboard.');
+  }, [dashboardError]);
 
   const stats = rawData?.success ? rawData.data : null;
 

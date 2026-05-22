@@ -1,4 +1,5 @@
 const logger = require('../../utils/logger');
+const { escapeRegex } = require('../../utils/listingUtils');
 const { TeamLeader, OfficeStaff } = require('../../models/Staff');
 const Executive = require('../../models/Executive');
 const SalaryRecord = require('../../models/SalaryRecord');
@@ -163,7 +164,7 @@ const getAllOfficeStaff = async (req, res) => {
     if (req.query.status) filter.onboarding_status = req.query.status;
     if (req.query.specialization) filter.calling_specialization = req.query.specialization;
     if (req.query.search) {
-      const re = new RegExp(req.query.search, 'i');
+      const re = new RegExp(escapeRegex(req.query.search), 'i');
       filter.$or = [{ name: re }, { phone: re }, { email: re }];
     }
 

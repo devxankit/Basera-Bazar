@@ -28,7 +28,6 @@ class CacheService {
     } catch (error) {
       // If fetch fails but we have stale data, return it
       if (cached) {
-        console.warn(`Fetch failed for key ${key}, returning stale data.`, error);
         return cached.data;
       }
       throw error;

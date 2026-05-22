@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
 export default function TeamLeaderExecutives() {
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: executivesError } = useQuery({
     queryKey: ['teamLeaderExecutives'],
     queryFn: () => api.get('/team-leader/team/executives').then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load executives.'),
   });
+
+  useEffect(() => {
+    if (executivesError) toast.error('Failed to load executives.');
+  }, [executivesError]);
 
   const executives = rawData?.success ? rawData.data : [];
 

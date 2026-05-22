@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { MapPin, Camera, LogIn, LogOut, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
@@ -23,12 +23,15 @@ export default function ExecutiveAttendance() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: historyRaw, isLoading: historyLoading } = useQuery({
+  const { data: historyRaw, isLoading: historyLoading, error: historyError } = useQuery({
     queryKey: ['attendanceHistory', month],
     queryFn: () => api.get(`/executive/attendance/history?month=${month}`).then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load attendance.'),
   });
+
+  useEffect(() => {
+    if (historyError) toast.error('Failed to load attendance.');
+  }, [historyError]);
 
   const today = todayRaw?.success ? todayRaw.data : null;
   const history = historyRaw?.success ? historyRaw.data : [];

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, IndianRupee, RefreshCw, CheckCircle2, AlertCircle,
@@ -22,12 +22,15 @@ const itemVariants = {
 export default function ExecutiveSalary() {
   const navigate = useNavigate();
 
-  const { data: rawData, isLoading: loading, refetch } = useQuery({
+  const { data: rawData, isLoading: loading, refetch, error: salaryError } = useQuery({
     queryKey: ['executiveSalary'],
     queryFn: () => api.get('/executive/salary').then(r => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load salary details'),
   });
+
+  useEffect(() => {
+    if (salaryError) toast.error('Failed to load salary details');
+  }, [salaryError]);
 
   const current = rawData?.current_salary || 0;
   const base = rawData?.base_salary || 0;
@@ -50,7 +53,7 @@ export default function ExecutiveSalary() {
           <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Monthly Payroll Ledger</p>
         </div>
         <button
-          onClick={fetchSalary}
+          onClick={refetch}
           className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
         >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />

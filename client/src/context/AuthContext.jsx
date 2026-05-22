@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
     await logout(true);
     
     if (isPartnerRoute) window.location.href = '/partner/login';
-    else if (isExecutiveRoute) window.location.href = '/executive/login';
+    else if (isExecutiveRoute) window.location.href = '/staff/login?role=field_executive';
     else window.location.href = '/login';
   };
 

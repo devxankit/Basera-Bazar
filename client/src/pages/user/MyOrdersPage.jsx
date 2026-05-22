@@ -30,9 +30,6 @@ const MyOrdersPage = () => {
   const [ratingModal, setRatingModal] = useState({ isOpen: false, order: null, initialData: null });
   const [orderReviews, setOrderReviews] = useState({});
 
-  useEffect(() => {
-    if (!isAuthenticated) navigate('/login');
-  }, [isAuthenticated, navigate]);
 
   const { data: ordersRaw, isLoading: loading } = useQuery({
     queryKey: ['myOrders'],

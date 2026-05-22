@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IndianRupee, Play, Download, CheckCircle, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
@@ -22,7 +22,7 @@ export default function AdminStaffSalary() {
   const [payNotes, setPayNotes] = useState('');
   const [pendingPayId, setPendingPayId] = useState(null);
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: staffSalaryError } = useQuery({
     queryKey: ['admin-staff-salary', month, staffType],
     queryFn: () => {
       const params = new URLSearchParams({ month });
@@ -30,8 +30,11 @@ export default function AdminStaffSalary() {
       return api.get(`/admin/staff/salary?${params}`).then((r) => r.data);
     },
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load salary records.'),
   });
+
+  useEffect(() => {
+    if (staffSalaryError) toast.error('Failed to load salary records.');
+  }, [staffSalaryError]);
 
   const records = rawData?.data || [];
 

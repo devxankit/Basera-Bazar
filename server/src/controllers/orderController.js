@@ -225,16 +225,18 @@ const verifyMarketplacePayment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Marketplace order not found.' });
     }
 
-    // 3. Update Token Payment status and Order status to 'token_paid' (Active Lead)
-    order.token_payment.status = 'paid';
-    order.token_payment.paid_at = Date.now();
-    order.token_payment.razorpay_payment_id = rzOrder.razorpay_payment_id;
-    order.status = 'token_paid';
-
-    // 4. Reduce stock atomically inside a transaction — prevents overselling
+    // 3 & 4. Update Token Payment status and reduce stock atomically inside a session.
+    // Both operations are wrapped in a transaction so a stock failure rolls back the
+    // payment-status update and prevents the order from being permanently marked paid.
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
+      order.token_payment.status = 'paid';
+      order.token_payment.paid_at = Date.now();
+      order.token_payment.razorpay_payment_id = rzOrder.razorpay_payment_id;
+      order.status = 'token_paid';
+      await order.save({ session });
+
       for (const item of order.items) {
         const updated = await MandiListing.findOneAndUpdate(
           { _id: item.productId, stock_quantity: { $gte: item.qty } },

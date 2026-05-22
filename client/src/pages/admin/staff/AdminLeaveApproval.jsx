@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
@@ -29,13 +29,16 @@ export default function AdminLeaveApproval() {
 
   const statusMap = { Pending: 'pending,tl_approved', Approved: 'admin_approved', Rejected: 'admin_rejected,tl_rejected' };
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: leaveApprovalError } = useQuery({
     queryKey: ['admin-leave-approval', tab],
     queryFn: () =>
       api.get(`/admin/staff/leaves?status=${statusMap[tab]}`).then((r) => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load leaves.'),
   });
+
+  useEffect(() => {
+    if (leaveApprovalError) toast.error('Failed to load leaves.');
+  }, [leaveApprovalError]);
 
   const leaves = rawData?.data || [];
 

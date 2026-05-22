@@ -3,7 +3,7 @@ const logger = require('./logger');
 const { Transaction } = require('../models/Finance');
 const { AppConfig } = require('../models/System');
 const { logActivity } = require('./activityLogger');
-const { sendPushNotification } = require('./notificationHelper');
+const { createNotification } = require('./notificationHelper');
 
 /**
  * Credits commission to an executive when a referred partner buys or renews a subscription.
@@ -37,10 +37,10 @@ const creditExecutivePayout = async (referralCode, partnerId, partnerName, planP
       ? Math.max(1, Math.round((planPrice * commissionRate) / 100))
       : (executive.payout_rate || 100); // fallback for backward compat
 
-    // 1. Update Executive Balance
-    executive.wallet_balance += amount;
-    executive.total_earnings += amount;
-    await executive.save();
+    // 1. Update Executive Balance atomically
+    await Executive.findByIdAndUpdate(executive._id, {
+      $inc: { wallet_balance: amount, total_earnings: amount }
+    });
 
     // 2. Record Transaction
     await Transaction.create({
@@ -65,10 +65,10 @@ const creditExecutivePayout = async (referralCode, partnerId, partnerName, planP
     });
 
     // 4. Send Notification
-    await sendPushNotification(
+    await createNotification(
+      'executive',
       executive._id,
-      'Executive',
-      'Commission Credited! 💰',
+      'Commission Credited!',
       `₹${amount} has been added to your wallet for ${partnerName}'s subscription. Keep it up!`,
       { type: 'commission_credit', amount: amount.toString() }
     );

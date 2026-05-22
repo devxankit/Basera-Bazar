@@ -1,4 +1,5 @@
 const { MandiListing } = require('../models/Listing');
+const { escapeRegex } = require('../utils/listingUtils');
 const logger = require('../utils/logger');
 const Order = require('../models/Order');
 const { Partner } = require('../models/Partner');
@@ -89,9 +90,9 @@ const getMarketplaceHome = async (req, res) => {
     const { district, state } = req.query;
     const locationFilter = {};
     if (district) {
-      locationFilter['address.district'] = { $regex: new RegExp(district, 'i') };
+      locationFilter['address.district'] = { $regex: new RegExp(escapeRegex(district), 'i') };
     } else if (state) {
-      locationFilter['address.state'] = { $regex: new RegExp(state, 'i') };
+      locationFilter['address.state'] = { $regex: new RegExp(escapeRegex(state), 'i') };
     }
 
     // 2. Fetch "Best Deal" for each category to show on the main marketplace
@@ -146,9 +147,9 @@ const getCategoryListings = async (req, res) => {
     };
 
     if (district) {
-      query['address.district'] = { $regex: new RegExp(district, 'i') };
+      query['address.district'] = { $regex: new RegExp(escapeRegex(district), 'i') };
     } else if (state) {
-      query['address.state'] = { $regex: new RegExp(state, 'i') };
+      query['address.state'] = { $regex: new RegExp(escapeRegex(state), 'i') };
     }
     
     const [category, listings] = await Promise.all([

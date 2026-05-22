@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pencil, Power, CheckCircle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -19,12 +19,15 @@ export default function AdminOfficeStaffDetails() {
   const [tab, setTab] = useState('Overview');
   const [confirmModal, setConfirmModal] = useState(null);
 
-  const { data: rawData, isLoading: loading } = useQuery({
+  const { data: rawData, isLoading: loading, error: officeStaffDetailError } = useQuery({
     queryKey: ['admin-office-staff-detail', id],
     queryFn: () => api.get(`/admin/staff/office-staff/${id}`).then((r) => r.data),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error('Failed to load.'),
   });
+
+  useEffect(() => {
+    if (officeStaffDetailError) toast.error('Failed to load.');
+  }, [officeStaffDetailError]);
 
   const os = rawData?.data || null;
 

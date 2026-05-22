@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   UserCheck, UserX, Eye, Search, Filter, Clock, AlertCircle,
   CheckCircle2, Users, Trash2, ShieldCheck, Landmark, Phone, Mail,
@@ -32,12 +32,15 @@ export default function AdminExecutives({ filter = 'All' }) {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
   const [activeTab, setActiveTab] = useState('executives'); // 'executives' | 'tasks' | 'salary' | 'history'
 
-  const { data: rawExecutives, isLoading: loading } = useQuery({
+  const { data: rawExecutives, isLoading: loading, error: executivesError } = useQuery({
     queryKey: ['adminExecutives'],
     queryFn: () => getExecutives(),
     staleTime: 5 * 60 * 1000,
-    onError: () => toast.error("Failed to fetch executives"),
   });
+
+  useEffect(() => {
+    if (executivesError) toast.error("Failed to fetch executives");
+  }, [executivesError]);
 
   const executives = rawExecutives || [];
 

@@ -18,13 +18,18 @@ const Header = () => {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    api.get('/notifications')
-      .then(res => {
-        if (res.data.success) {
-          setUnreadCount(res.data.data.filter(n => !n.is_read).length);
-        }
-      })
-      .catch(() => {});
+    const fetchUnread = () => {
+      api.get('/notifications')
+        .then(res => {
+          if (res.data.success) {
+            setUnreadCount(res.data.data.filter(n => !n.is_read).length);
+          }
+        })
+        .catch(() => {});
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 60000); // refresh every 60s
+    return () => clearInterval(interval);
   }, [isAuthenticated]);
 
   useEffect(() => {

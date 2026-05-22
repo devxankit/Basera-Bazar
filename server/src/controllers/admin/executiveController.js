@@ -399,28 +399,57 @@ const getDailyTaskHistory = async (req, res) => {
     const activeExecsCount = await Executive.countDocuments({ is_active: true });
     const executives = await Executive.find({ is_active: true }, 'referral_code').lean();
 
-    const enrichedTasks = await Promise.all(tasks.map(async (task) => {
-      const dayStart = new Date(`${task.date}T00:00:00.000Z`);
-      const dayEnd = new Date(`${task.date}T23:59:59.999Z`);
-      
-      let metCount = 0;
-      for (const exec of executives) {
-        if (!exec.referral_code) continue;
-        const count = await Partner.countDocuments({
-          referral_code_used: exec.referral_code,
-          createdAt: { $gte: dayStart, $lte: dayEnd }
-        });
-        if (count / task.target_count >= 0.5) {
-          metCount++;
-        }
-      }
+    const referralCodes = executives.map(e => e.referral_code).filter(Boolean);
 
-      return {
-        ...task,
-        executives_met: metCount,
-        total_executives: activeExecsCount
-      };
-    }));
+    // Determine the widest date range covering all tasks on this page
+    const enrichedTasks = tasks.length === 0 ? [] : await (async () => {
+      const allDates = tasks.map(t => t.date).sort();
+      const rangeStart = new Date(`${allDates[0]}T00:00:00.000Z`);
+      const rangeEnd = new Date(`${allDates[allDates.length - 1]}T23:59:59.999Z`);
+
+      // Single aggregation: count partners grouped by (referral_code_used, day) for the whole page range
+      const partnerCounts = referralCodes.length > 0 ? await Partner.aggregate([
+        {
+          $match: {
+            referral_code_used: { $in: referralCodes },
+            createdAt: { $gte: rangeStart, $lte: rangeEnd }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              referral_code: '$referral_code_used',
+              date: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }
+            },
+            count: { $sum: 1 }
+          }
+        }
+      ]) : [];
+
+      // Build lookup map: countMap[date][referral_code] = count
+      const countMap = {};
+      partnerCounts.forEach(pc => {
+        if (!countMap[pc._id.date]) countMap[pc._id.date] = {};
+        countMap[pc._id.date][pc._id.referral_code] = pc.count;
+      });
+
+      return tasks.map((task) => {
+        const dayMap = countMap[task.date] || {};
+        let metCount = 0;
+        for (const exec of executives) {
+          if (!exec.referral_code) continue;
+          const count = dayMap[exec.referral_code] || 0;
+          if (count / task.target_count >= 0.5) {
+            metCount++;
+          }
+        }
+        return {
+          ...task,
+          executives_met: metCount,
+          total_executives: activeExecsCount
+        };
+      });
+    })();
 
     res.status(200).json({ success: true, data: enrichedTasks, total, page, totalPages: Math.ceil(total / limit) });
   } catch (error) {
@@ -442,12 +471,30 @@ const getTodayTaskProgress = async (req, res) => {
     const dayStart = new Date(`${targetDateStr}T00:00:00.000Z`);
     const dayEnd = new Date(`${targetDateStr}T23:59:59.999Z`);
 
-    const progressList = await Promise.all(executives.map(async (exec) => {
-      const completed = exec.referral_code ? await Partner.countDocuments({
-        referral_code_used: exec.referral_code,
-        createdAt: { $gte: dayStart, $lte: dayEnd }
-      }) : 0;
+    const referralCodes = executives.map(e => e.referral_code).filter(Boolean);
 
+    // Single aggregation: count partners per referral_code for the target date
+    const partnerCounts = referralCodes.length > 0 ? await Partner.aggregate([
+      {
+        $match: {
+          referral_code_used: { $in: referralCodes },
+          createdAt: { $gte: dayStart, $lte: dayEnd }
+        }
+      },
+      {
+        $group: {
+          _id: '$referral_code_used',
+          count: { $sum: 1 }
+        }
+      }
+    ]) : [];
+
+    // Build lookup map: countMap[referral_code] = count
+    const countMap = {};
+    partnerCounts.forEach(pc => { countMap[pc._id] = pc.count; });
+
+    const progressList = executives.map((exec) => {
+      const completed = exec.referral_code ? (countMap[exec.referral_code] || 0) : 0;
       const target = task ? task.target_count : 0;
       const percentage = target > 0 ? Math.round((completed / target) * 100) : 0;
 
@@ -468,7 +515,7 @@ const getTodayTaskProgress = async (req, res) => {
         status,
         salary_effective: exec.salary?.effective || exec.salary?.base || 0
       };
-    }));
+    });
 
     res.status(200).json({ success: true, task, data: progressList });
   } catch (error) {
