@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { MapPin, Camera, LogIn, LogOut, CheckCircle, AlertTriangle, X, RefreshCw } from 'lucide-react';
+import { MapPin, Camera, LogIn, LogOut, CheckCircle, AlertTriangle, X } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
@@ -21,6 +21,7 @@ export default function ExecutiveAttendance() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const fallbackInputRef = useRef(null);
   const queryClient = useQueryClient();
 
   const { data: todayRaw, isLoading: todayLoading } = useQuery({
@@ -53,6 +54,13 @@ export default function ExecutiveAttendance() {
   });
 
   const startCamera = useCallback(async () => {
+    // Check if getUserMedia is available (not available in iOS PWA standalone mode < iOS 16.4)
+    const hasGetUserMedia = !!(navigator.mediaDevices?.getUserMedia);
+    if (!hasGetUserMedia) {
+      // Fallback: use native file input with capture="user" which opens camera on iOS PWA
+      fallbackInputRef.current?.click();
+      return;
+    }
     setCameraOpen(true);
     setCameraReady(false);
     setCapturedFrame(null);
@@ -67,11 +75,13 @@ export default function ExecutiveAttendance() {
         videoRef.current.onloadedmetadata = () => setCameraReady(true);
       }
     } catch (err) {
-      const msg = err.name === 'NotAllowedError'
-        ? 'Camera permission denied. Please allow camera access in browser settings.'
-        : 'Could not open camera. Please try again.';
-      toast.error(msg);
       setCameraOpen(false);
+      if (err.name === 'NotAllowedError') {
+        toast.error('Camera permission denied. Please allow camera access in settings.');
+      } else {
+        // getUserMedia failed at runtime — fall back to file input
+        fallbackInputRef.current?.click();
+      }
     }
   }, []);
 
@@ -83,52 +93,66 @@ export default function ExecutiveAttendance() {
     setCameraReady(false);
   }, []);
 
-  const capturePhoto = useCallback(() => {
+  // Single-tap: capture frame → upload → close
+  const captureAndUpload = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
-    // Mirror horizontally (selfie effect)
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-    setCapturedFrame(dataUrl);
     stopCamera();
-  }, [stopCamera]);
-
-  const retakePhoto = useCallback(async () => {
-    setCapturedFrame(null);
-    await startCamera();
-  }, [startCamera]);
-
-  const confirmPhoto = useCallback(async () => {
-    if (!capturedFrame) return;
+    setCapturedFrame(dataUrl);
     setUploadingPhoto(true);
     try {
-      const blob = await (await fetch(capturedFrame)).blob();
+      const blob = await (await fetch(dataUrl)).blob();
       const formData = new FormData();
       formData.append('image', new File([blob], 'selfie.jpg', { type: 'image/jpeg' }));
-      const { data } = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const { data } = await api.post('/upload', formData);
       setSelfieUrl(data.url);
-      setSelfiePreview(capturedFrame);
+      setSelfiePreview(dataUrl);
       setCameraOpen(false);
       setCapturedFrame(null);
-      toast.success('Selfie captured.');
+      toast.success('Selfie saved!');
     } catch {
-      toast.error('Photo upload failed. Please try again.');
+      toast.error('Upload failed. Please try again.');
+      setCapturedFrame(null);
+      await startCamera(); // re-open camera so they can retry
     } finally {
       setUploadingPhoto(false);
     }
-  }, [capturedFrame]);
+  }, [stopCamera, startCamera]);
 
   const closeCameraModal = useCallback(() => {
     stopCamera();
     setCameraOpen(false);
     setCapturedFrame(null);
   }, [stopCamera]);
+
+  // Fallback for iOS PWA: file input with capture="user"
+  const handleFallbackCapture = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset so the same file can be re-selected if retaken
+    e.target.value = '';
+    setUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const { data } = await api.post('/upload', formData);
+      setSelfieUrl(data.url);
+      setSelfiePreview(URL.createObjectURL(file));
+      toast.success('Selfie captured.');
+    } catch {
+      toast.error('Photo upload failed. Please try again.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }, []);
 
   const handleCheckIn = async () => {
     if (!selfieUrl) {
@@ -244,72 +268,82 @@ export default function ExecutiveAttendance() {
           </div>
         )}
 
-        {/* Camera Modal */}
-        {cameraOpen && (
-          <div className="fixed inset-0 z-50 bg-black flex flex-col">
-            <div className="flex items-center justify-between px-4 pt-4 pb-2">
-              <p className="text-white font-bold text-sm">Take Selfie</p>
-              <button onClick={closeCameraModal} className="text-white p-1"><X size={20} /></button>
-            </div>
+        {/* Hidden fallback input for iOS PWA where getUserMedia is unavailable */}
+        <input
+          ref={fallbackInputRef}
+          type="file"
+          accept="image/*"
+          capture="user"
+          className="hidden"
+          onChange={handleFallbackCapture}
+        />
 
-            <div className="flex-1 relative overflow-hidden">
-              {!capturedFrame ? (
+        {/* Camera Modal — mobile-centric portrait overlay */}
+        {cameraOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+            {/* Phone-sized container, portrait */}
+            <div className="relative w-full max-w-sm bg-black flex flex-col rounded-2xl overflow-hidden shadow-2xl"
+                 style={{ height: 'min(92vh, 680px)' }}>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 bg-black/90 shrink-0">
+                <p className="text-white font-bold text-sm tracking-wide">Take Selfie</p>
+                <button onClick={closeCameraModal} className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Camera viewport — fills remaining height */}
+              <div className="relative flex-1 overflow-hidden bg-black">
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover"
                   style={{ transform: 'scaleX(-1)' }}
                 />
-              ) : (
-                <img src={capturedFrame} alt="captured" className="w-full h-full object-cover" />
-              )}
-              {!cameraReady && !capturedFrame && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                  <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-              {/* Selfie oval guide */}
-              {!capturedFrame && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-48 h-60 rounded-full border-2 border-white/50" />
-                </div>
-              )}
-            </div>
 
-            <canvas ref={canvasRef} className="hidden" />
+                {/* Spinner while camera loads */}
+                {!cameraReady && !capturedFrame && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                    <div className="w-9 h-9 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  </div>
+                )}
 
-            <div className="px-6 py-6 flex gap-4 bg-black">
-              {!capturedFrame ? (
-                <button
-                  onClick={capturePhoto}
-                  disabled={!cameraReady}
-                  className="flex-1 py-3 bg-white text-slate-900 rounded-xl font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
-                >
-                  <Camera size={16} /> Capture
-                </button>
-              ) : (
-                <>
+                {/* Face guide oval */}
+                {cameraReady && (
+                  <div className="absolute inset-0 flex items-start justify-center pt-8 pointer-events-none">
+                    <div className="w-40 h-52 rounded-full border-2 border-white/60 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+                  </div>
+                )}
+              </div>
+
+              <canvas ref={canvasRef} className="hidden" />
+
+              {/* Controls */}
+              <div className="px-5 py-5 bg-black shrink-0 flex flex-col items-center gap-2">
+                {uploadingPhoto ? (
+                  /* Uploading state */
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-16 h-16 rounded-full border-4 border-orange-500/30 border-t-orange-500 animate-spin" />
+                    <p className="text-white/60 text-xs">Uploading selfie…</p>
+                  </div>
+                ) : (
+                  /* Shutter button */
                   <button
-                    onClick={retakePhoto}
-                    className="flex-1 py-3 border border-white/30 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+                    onClick={captureAndUpload}
+                    disabled={!cameraReady}
+                    className="w-18 h-18 rounded-full bg-white disabled:opacity-30 flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+                    style={{ width: 72, height: 72 }}
                   >
-                    <RefreshCw size={15} /> Retake
+                    <div className="w-14 h-14 rounded-full border-[3px] border-slate-300" />
                   </button>
-                  <button
-                    onClick={confirmPhoto}
-                    disabled={uploadingPhoto}
-                    className="flex-1 py-3 bg-orange-500 text-white rounded-xl font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {uploadingPhoto ? (
-                      <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Uploading...</>
-                    ) : (
-                      <><CheckCircle size={15} /> Use Photo</>
-                    )}
-                  </button>
-                </>
-              )}
+                )}
+                <p className="text-white/40 text-[11px] mt-1">
+                  {cameraReady ? 'Tap to capture & upload' : 'Starting camera…'}
+                </p>
+              </div>
             </div>
           </div>
         )}
