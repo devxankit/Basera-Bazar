@@ -2,6 +2,7 @@ const logger = require('../../utils/logger');
 const Executive = require('../../models/Executive');
 const DailyReport = require('../../models/DailyReport');
 const StaffTarget = require('../../models/StaffTarget');
+const invalidate = require('../../utils/cacheInvalidator');
 
 const submitExecutiveDailyReport = async (req, res) => {
   try {
@@ -25,6 +26,8 @@ const submitExecutiveDailyReport = async (req, res) => {
       },
       { upsert: true, new: true }
     );
+
+    await invalidate.executiveProfile(req.user.id);
 
     res.status(200).json({ success: true, data: report, message: 'Daily report submitted.' });
   } catch (err) {

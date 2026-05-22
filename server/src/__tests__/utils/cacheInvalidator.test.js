@@ -66,4 +66,25 @@ describe('cacheInvalidator', () => {
     await cacheInvalidator.partnerProfile(undefined);
     expect(CacheManager.clearByPrefix).not.toHaveBeenCalled();
   });
+
+  test('staffLeaves clears executive, office-staff, and team-leader leaves prefixes', async () => {
+    await cacheInvalidator.staffLeaves('staff123');
+    expect(CacheManager.clearByPrefix).toHaveBeenCalledWith(expect.stringContaining('staff123:/api/executive/leaves'));
+    expect(CacheManager.clearByPrefix).toHaveBeenCalledWith(expect.stringContaining('staff123:/api/office-staff/leaves'));
+    expect(CacheManager.clearByPrefix).toHaveBeenCalledWith(expect.stringContaining('staff123:/api/team-leader/leaves'));
+  });
+
+  test('officeStaffProfile clears office-staff-scoped prefix', async () => {
+    await cacheInvalidator.officeStaffProfile('os123');
+    expect(CacheManager.clearByPrefix).toHaveBeenCalledWith(expect.stringContaining('os123:/api/office-staff'));
+  });
+
+  test('staffProfile clears based on staff type', async () => {
+    await cacheInvalidator.staffProfile('staff789', 'field_executive');
+    expect(CacheManager.clearByPrefix).toHaveBeenCalledWith(expect.stringContaining('staff789:/api/executive'));
+
+    jest.clearAllMocks();
+    await cacheInvalidator.staffProfile('staff789', 'office_staff');
+    expect(CacheManager.clearByPrefix).toHaveBeenCalledWith(expect.stringContaining('staff789:/api/office-staff'));
+  });
 });

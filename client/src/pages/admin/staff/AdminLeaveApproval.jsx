@@ -33,7 +33,7 @@ export default function AdminLeaveApproval() {
     queryKey: ['admin-leave-approval', tab],
     queryFn: () =>
       api.get(`/admin/staff/leaves?status=${statusMap[tab]}`).then((r) => r.data),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
   useEffect(() => {
@@ -49,6 +49,8 @@ export default function AdminLeaveApproval() {
       queryClient.invalidateQueries({ queryKey: ['admin-leave-approval'] });
       toast.success(action === 'approve' ? 'Leave approved.' : 'Leave rejected.');
       setConfirmModal(null);
+      // Switch to the relevant tab so the result is immediately visible
+      setTab(action === 'approve' ? 'Approved' : 'Rejected');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Action failed.'),
   });

@@ -7,6 +7,7 @@ const StaffTarget = require('../../models/StaffTarget');
 const StaffPerformance = require('../../models/StaffPerformance');
 const DailyReport = require('../../models/DailyReport');
 const AuditLog = require('../../models/AuditLog');
+const invalidate = require('../../utils/cacheInvalidator');
 
 const getTLDashboard = async (req, res) => {
   try {
@@ -195,6 +196,9 @@ const tlVerifyDailyReport = async (req, res) => {
       { new: true }
     );
     if (!report) return res.status(404).json({ success: false, message: 'Report not found.' });
+    
+    await invalidate.staffProfile(report.staff_id, report.staff_type);
+
     res.status(200).json({ success: true, message: `Report ${action}d.` });
   } catch (err) {
     logger.error({ err }, 'tlVerifyDailyReport Error');

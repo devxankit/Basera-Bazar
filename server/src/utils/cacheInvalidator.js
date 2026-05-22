@@ -58,6 +58,32 @@ const cacheInvalidator = {
   partnerProfile: async (partnerId) => {
     if (!partnerId) return;
     await CacheManager.clearByPrefix(`__express__user:${partnerId}:/api/partners`);
+  },
+
+  // Clears the leave list cache for a specific staff member (any role)
+  staffLeaves: async (staffId) => {
+    if (!staffId) return;
+    const id = staffId.toString();
+    await Promise.all([
+      CacheManager.clearByPrefix(`__express__user:${id}:/api/executive/leaves`),
+      CacheManager.clearByPrefix(`__express__user:${id}:/api/office-staff/leaves`),
+      CacheManager.clearByPrefix(`__express__user:${id}:/api/team-leader/leaves`),
+    ]);
+  },
+
+  officeStaffProfile: async (officeStaffId) => {
+    if (!officeStaffId) return;
+    await CacheManager.clearByPrefix(`__express__user:${officeStaffId}:/api/office-staff`);
+  },
+
+  staffProfile: async (staffId, staffType) => {
+    if (!staffId) return;
+    const id = staffId.toString();
+    if (staffType === 'field_executive') {
+      await CacheManager.clearByPrefix(`__express__user:${id}:/api/executive`);
+    } else if (staffType === 'office_staff') {
+      await CacheManager.clearByPrefix(`__express__user:${id}:/api/office-staff`);
+    }
   }
 };
 

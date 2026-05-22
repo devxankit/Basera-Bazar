@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Save, ArrowLeft } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
@@ -9,6 +10,7 @@ const labelCls = 'block text-xs font-bold text-slate-600 mb-1';
 
 export default function ExecutiveReportForm() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
     partners_visited: 0, partners_registered: 0, subscriptions_sold: 0, leads_uploaded: 0, notes: '',
@@ -23,6 +25,7 @@ export default function ExecutiveReportForm() {
     try {
       await api.post('/executive/reports/daily', { ...form, date: today });
       toast.success('Daily report submitted.');
+      queryClient.invalidateQueries({ queryKey: ['executiveReportsHistory'] });
       navigate('/executive/reports');
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to submit report.'); }
     finally { setSubmitting(false); }

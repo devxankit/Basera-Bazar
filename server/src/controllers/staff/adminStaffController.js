@@ -914,6 +914,10 @@ const adminApproveLeave = async (req, res) => {
     }], { session });
 
     await session.commitTransaction();
+
+    // Invalidate the staff member's cached leaves so they see the updated status immediately
+    await invalidate.staffLeaves(leave.staff_id);
+
     res.status(200).json({ success: true, message: `Leave ${action}d successfully.` });
   } catch (err) {
     await session.abortTransaction();
@@ -1265,6 +1269,8 @@ const adminVerifyDailyReport = async (req, res) => {
     );
     if (!report) return res.status(404).json({ success: false, message: 'Report not found.' });
     
+    await invalidate.staffProfile(report.staff_id, report.staff_type);
+
     await AuditLog.create({
       admin_id: req.user.id,
       action: 'VERIFY_REPORT',

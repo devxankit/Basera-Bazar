@@ -8,6 +8,7 @@ const StaffPerformance = require('../../models/StaffPerformance');
 const DailyReport = require('../../models/DailyReport');
 const StaffAttendance = require('../../models/StaffAttendance');
 const AuditLog = require('../../models/AuditLog');
+const invalidate = require('../../utils/cacheInvalidator');
 
 const getOSDashboard = async (req, res) => {
   try {
@@ -88,6 +89,8 @@ const submitOSDailyReport = async (req, res) => {
       },
       { upsert: true, new: true }
     );
+
+    await invalidate.officeStaffProfile(req.user.id);
 
     res.status(200).json({ success: true, data: report, message: 'Daily report submitted.' });
   } catch (err) {

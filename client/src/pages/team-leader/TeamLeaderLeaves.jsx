@@ -32,13 +32,13 @@ export default function TeamLeaderLeaves() {
   const { data: teamRaw, isLoading: teamLoading, error: teamLeavesError } = useQuery({
     queryKey: ['teamLeaderTeamLeaves'],
     queryFn: () => api.get('/team-leader/leaves/team').then(r => r.data),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
   const { data: myRaw, isLoading: myLoading, error: myLeavesError } = useQuery({
     queryKey: ['teamLeaderMyLeaves'],
     queryFn: () => api.get('/team-leader/leaves/my').then(r => r.data),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
   useEffect(() => {
@@ -207,7 +207,12 @@ export default function TeamLeaderLeaves() {
             </span>
           </div>
           <p className="text-xs text-slate-500">{leave.reason}</p>
-          {leave.admin_note && <p className="text-xs text-indigo-600 mt-1">Admin: {leave.admin_note}</p>}
+          {leave.tl_note && <p className="text-xs text-blue-600 mt-1">TL: {leave.tl_note}</p>}
+          {leave.admin_note && (
+            <p className={`text-xs mt-1 font-semibold ${
+              leave.status === 'admin_approved' ? 'text-green-700' : 'text-red-600'
+            }`}>Admin: {leave.admin_note}</p>
+          )}
         </div>
       ))}
 

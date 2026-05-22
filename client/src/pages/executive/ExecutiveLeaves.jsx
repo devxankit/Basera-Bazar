@@ -1,35 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, CalendarDays, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
-const STATUS_BADGE = {
-  pending: 'bg-amber-100 text-amber-700',
-  tl_approved: 'bg-blue-100 text-blue-700',
-  tl_rejected: 'bg-red-100 text-red-700',
-  admin_approved: 'bg-green-100 text-green-700',
-  admin_rejected: 'bg-red-100 text-red-700',
+const STATUS_CONFIG = {
+  pending:        { label: 'Pending',        badge: 'bg-amber-100 text-amber-700',  icon: Clock },
+  tl_approved:   { label: 'TL Approved',     badge: 'bg-blue-100 text-blue-700',   icon: Clock },
+  tl_rejected:   { label: 'TL Rejected',     badge: 'bg-red-100 text-red-700',     icon: XCircle },
+  admin_approved:{ label: 'Approved',        badge: 'bg-green-100 text-green-700', icon: CheckCircle2 },
+  admin_rejected:{ label: 'Rejected',        badge: 'bg-red-100 text-red-700',     icon: XCircle },
 };
+
+const LEAVE_TYPE_COLOR = {
+  casual: 'bg-blue-50 text-blue-700 border-blue-100',
+  sick:   'bg-red-50 text-red-700 border-red-100',
+  earned: 'bg-green-50 text-green-700 border-green-100',
+};
+
+const TABS = ['All', 'Pending', 'Approved', 'Rejected'];
 
 const EMPTY_FORM = { leave_type: 'casual', start_date: '', end_date: '', reason: '' };
 
 export default function ExecutiveLeaves() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [activeTab, setActiveTab] = useState('All');
   const queryClient = useQueryClient();
 
+  // staleTime: 0 ensures the staff always sees the latest status from admin
   const { data: rawData, isLoading: loading, error: leavesError } = useQuery({
     queryKey: ['executiveLeaves'],
     queryFn: () => api.get('/executive/leaves').then(r => r.data),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
   useEffect(() => {
     if (leavesError) toast.error('Failed to load leaves.');
   }, [leavesError]);
 
-  const leaves = rawData?.success ? rawData.data : [];
+  const allLeaves = rawData?.success ? rawData.data : [];
+
+  // Filter leaves based on tab
+  const leaves = allLeaves.filter(leave => {
+    if (activeTab === 'All') return true;
+    if (activeTab === 'Pending') return leave.status === 'pending' || leave.status === 'tl_approved';
+    if (activeTab === 'Approved') return leave.status === 'admin_approved';
+    if (activeTab === 'Rejected') return leave.status === 'admin_rejected' || leave.status === 'tl_rejected';
+    return true;
+  });
+
+  // Tab counts
+  const counts = {
+    All: allLeaves.length,
+    Pending: allLeaves.filter(l => l.status === 'pending' || l.status === 'tl_approved').length,
+    Approved: allLeaves.filter(l => l.status === 'admin_approved').length,
+    Rejected: allLeaves.filter(l => l.status === 'admin_rejected' || l.status === 'tl_rejected').length,
+  };
 
   const submitMutation = useMutation({
     mutationFn: (payload) => api.post('/executive/leaves', payload).then(r => r.data),
@@ -37,12 +64,13 @@ export default function ExecutiveLeaves() {
       toast.success('Leave request submitted.');
       setShowForm(false);
       setForm(EMPTY_FORM);
+      setActiveTab('Pending');
       queryClient.invalidateQueries({ queryKey: ['executiveLeaves'] });
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to submit.'),
   });
 
-  const submitting = submitMutation.isLoading;
+  const submitting = submitMutation.isPending ?? submitMutation.isLoading;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -63,16 +91,21 @@ export default function ExecutiveLeaves() {
 
   return (
     <div className="p-4 max-w-lg mx-auto space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-black text-slate-900">Leave Requests</h1>
           <p className="text-sm text-slate-500">Apply and track your leave requests</p>
         </div>
-        <button onClick={() => { setShowForm(true); setForm(EMPTY_FORM); }} className="flex items-center gap-1 px-3 py-2 bg-orange-600 text-white rounded-lg text-xs font-bold hover:bg-orange-700">
+        <button
+          onClick={() => { setShowForm(true); setForm(EMPTY_FORM); }}
+          className="flex items-center gap-1 px-3 py-2 bg-orange-600 text-white rounded-lg text-xs font-bold hover:bg-orange-700"
+        >
           <Plus size={13} /> Apply
         </button>
       </div>
 
+      {/* Apply Form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg p-4 space-y-3 shadow-sm">
           <div className="flex items-center justify-between mb-1">
@@ -117,28 +150,81 @@ export default function ExecutiveLeaves() {
         </form>
       )}
 
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 gap-1">
+        {TABS.map((t) => (
+          <button
+            key={t}
+            onClick={() => setActiveTab(t)}
+            className={`px-3 py-2 text-xs font-bold border-b-2 transition-colors flex items-center gap-1 ${activeTab === t ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+          >
+            {t}
+            {counts[t] > 0 && (
+              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${activeTab === t ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'}`}>
+                {counts[t]}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Loading */}
       {loading && <div className="text-center text-slate-400 py-8">Loading...</div>}
 
+      {/* Empty State */}
       {!loading && leaves.length === 0 && (
-        <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-slate-400 text-sm">No leave requests yet.</div>
+        <div className="bg-white border border-slate-200 rounded-lg p-8 text-center">
+          <CalendarDays size={32} className="mx-auto text-slate-200 mb-3" />
+          <p className="text-sm text-slate-400 font-medium">
+            {activeTab === 'All' ? 'No leave requests yet.' : `No ${activeTab.toLowerCase()} requests.`}
+          </p>
+        </div>
       )}
 
-      {leaves.map((leave) => (
-        <div key={leave._id} className="bg-white border border-slate-200 rounded-lg p-4">
-          <div className="flex items-start justify-between mb-2">
-            <div>
-              <p className="text-sm font-bold text-slate-800">{leave.leave_type?.toUpperCase()} Leave</p>
-              <p className="text-xs text-slate-500">{leave.start_date} → {leave.end_date} · {leave.total_days} day(s)</p>
+      {/* Leave Cards */}
+      {leaves.map((leave) => {
+        const cfg = STATUS_CONFIG[leave.status] || { label: leave.status, badge: 'bg-slate-100 text-slate-500' };
+        const StatusIcon = cfg.icon || Clock;
+        const isApproved = leave.status === 'admin_approved';
+        const isRejected = leave.status === 'admin_rejected' || leave.status === 'tl_rejected';
+        return (
+          <div
+            key={leave._id}
+            className={`bg-white border rounded-lg p-4 ${isApproved ? 'border-green-200' : isRejected ? 'border-red-200' : 'border-slate-200'}`}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${LEAVE_TYPE_COLOR[leave.leave_type] || 'bg-slate-50 text-slate-600 border-slate-100'}`}>
+                  {leave.leave_type?.toUpperCase()}
+                </span>
+                <p className="text-xs text-slate-500">{leave.total_days} day(s)</p>
+              </div>
+              <span className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${cfg.badge}`}>
+                <StatusIcon size={10} />
+                {cfg.label}
+              </span>
             </div>
-            <span className={`px-2 py-0.5 rounded text-xs font-bold ${STATUS_BADGE[leave.status] || 'bg-slate-100 text-slate-500'}`}>
-              {leave.status?.replace('_', ' ').toUpperCase()}
-            </span>
+            <p className="text-sm font-bold text-slate-800 mb-0.5">
+              {leave.start_date} → {leave.end_date}
+            </p>
+            <p className="text-xs text-slate-500 mb-2">{leave.reason}</p>
+
+            {/* Notes from TL / Admin */}
+            {leave.tl_note && (
+              <div className="mt-2 px-2 py-1.5 bg-blue-50 border border-blue-100 rounded text-xs text-blue-700">
+                <span className="font-black uppercase tracking-wide text-[9px]">Team Leader</span>
+                <p>{leave.tl_note}</p>
+              </div>
+            )}
+            {leave.admin_note && (
+              <div className={`mt-2 px-2 py-1.5 rounded text-xs border ${isApproved ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'}`}>
+                <span className="font-black uppercase tracking-wide text-[9px]">Admin</span>
+                <p>{leave.admin_note}</p>
+              </div>
+            )}
           </div>
-          <p className="text-xs text-slate-500">{leave.reason}</p>
-          {leave.tl_note && <p className="text-xs text-blue-600 mt-1">TL: {leave.tl_note}</p>}
-          {leave.admin_note && <p className="text-xs text-indigo-600 mt-1">Admin: {leave.admin_note}</p>}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

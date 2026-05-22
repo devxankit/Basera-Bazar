@@ -662,6 +662,8 @@ const adminVerifyDailyReport = async (req, res) => {
       { new: true }
     );
     if (!report) return res.status(404).json({ success: false, message: 'Report not found.' });
+    
+    await invalidate.staffProfile(report.staff_id, report.staff_type);
 
     await AuditLog.create({
       admin_id: req.user.id,
