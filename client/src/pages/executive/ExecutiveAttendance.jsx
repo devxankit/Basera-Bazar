@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { MapPin, Camera, LogIn, LogOut, CheckCircle, AlertTriangle } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { MapPin, Camera, LogIn, LogOut, CheckCircle, AlertTriangle, X, RefreshCw } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
@@ -13,8 +13,14 @@ export default function ExecutiveAttendance() {
   const [checkingIn, setCheckingIn] = useState(false);
   const [gpsStatus, setGpsStatus] = useState(null);
   const [selfieUrl, setSelfieUrl] = useState('');
+  const [selfiePreview, setSelfiePreview] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const fileInputRef = useRef(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [capturedFrame, setCapturedFrame] = useState(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
   const queryClient = useQueryClient();
 
   const { data: todayRaw, isLoading: todayLoading } = useQuery({
@@ -46,19 +52,83 @@ export default function ExecutiveAttendance() {
     );
   });
 
-  const handlePhotoCapture = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const startCamera = useCallback(async () => {
+    setCameraOpen(true);
+    setCameraReady(false);
+    setCapturedFrame(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => setCameraReady(true);
+      }
+    } catch (err) {
+      const msg = err.name === 'NotAllowedError'
+        ? 'Camera permission denied. Please allow camera access in browser settings.'
+        : 'Could not open camera. Please try again.';
+      toast.error(msg);
+      setCameraOpen(false);
+    }
+  }, []);
+
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setCameraReady(false);
+  }, []);
+
+  const capturePhoto = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    // Mirror horizontally (selfie effect)
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    setCapturedFrame(dataUrl);
+    stopCamera();
+  }, [stopCamera]);
+
+  const retakePhoto = useCallback(async () => {
+    setCapturedFrame(null);
+    await startCamera();
+  }, [startCamera]);
+
+  const confirmPhoto = useCallback(async () => {
+    if (!capturedFrame) return;
     setUploadingPhoto(true);
     try {
+      const blob = await (await fetch(capturedFrame)).blob();
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('image', new File([blob], 'selfie.jpg', { type: 'image/jpeg' }));
       const { data } = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setSelfieUrl(data.url);
+      setSelfiePreview(capturedFrame);
+      setCameraOpen(false);
+      setCapturedFrame(null);
       toast.success('Selfie captured.');
-    } catch { toast.error('Photo upload failed.'); }
-    finally { setUploadingPhoto(false); }
-  };
+    } catch {
+      toast.error('Photo upload failed. Please try again.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }, [capturedFrame]);
+
+  const closeCameraModal = useCallback(() => {
+    stopCamera();
+    setCameraOpen(false);
+    setCapturedFrame(null);
+  }, [stopCamera]);
 
   const handleCheckIn = async () => {
     if (!selfieUrl) {
@@ -77,6 +147,7 @@ export default function ExecutiveAttendance() {
       });
       toast.success('Checked in successfully.');
       setSelfieUrl('');
+      setSelfiePreview('');
       queryClient.invalidateQueries({ queryKey: ['attendanceToday'] });
       queryClient.invalidateQueries({ queryKey: ['attendanceHistory', month] });
     } catch (err) {
@@ -152,16 +223,15 @@ export default function ExecutiveAttendance() {
               <p className="text-xs font-bold text-slate-600 mb-1.5">Step 1: Take Selfie</p>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={startCamera}
                   disabled={uploadingPhoto}
                   className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                 >
-                  <Camera size={15} /> {uploadingPhoto ? 'Uploading...' : 'Take Selfie'}
+                  <Camera size={15} /> {uploadingPhoto ? 'Uploading...' : selfieUrl ? 'Retake Selfie' : 'Take Selfie'}
                 </button>
                 {selfieUrl && <CheckCircle size={18} className="text-green-500" />}
-                <input ref={fileInputRef} type="file" accept="image/*" capture="user" onChange={handlePhotoCapture} className="hidden" />
               </div>
-              {selfieUrl && <img src={selfieUrl} alt="selfie" className="w-16 h-16 rounded-lg object-cover mt-2" />}
+              {selfiePreview && <img src={selfiePreview} alt="selfie preview" className="w-16 h-16 rounded-lg object-cover mt-2 border-2 border-green-200" />}
             </div>
             <div>
               <p className="text-xs font-bold text-slate-600 mb-1.5">Step 2: Check In with GPS</p>
@@ -169,6 +239,76 @@ export default function ExecutiveAttendance() {
                 <div className="flex items-center gap-2 text-xs text-green-600 mb-2">
                   <MapPin size={12} /> Location captured
                 </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Camera Modal */}
+        {cameraOpen && (
+          <div className="fixed inset-0 z-50 bg-black flex flex-col">
+            <div className="flex items-center justify-between px-4 pt-4 pb-2">
+              <p className="text-white font-bold text-sm">Take Selfie</p>
+              <button onClick={closeCameraModal} className="text-white p-1"><X size={20} /></button>
+            </div>
+
+            <div className="flex-1 relative overflow-hidden">
+              {!capturedFrame ? (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                  style={{ transform: 'scaleX(-1)' }}
+                />
+              ) : (
+                <img src={capturedFrame} alt="captured" className="w-full h-full object-cover" />
+              )}
+              {!cameraReady && !capturedFrame && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                  <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              {/* Selfie oval guide */}
+              {!capturedFrame && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-48 h-60 rounded-full border-2 border-white/50" />
+                </div>
+              )}
+            </div>
+
+            <canvas ref={canvasRef} className="hidden" />
+
+            <div className="px-6 py-6 flex gap-4 bg-black">
+              {!capturedFrame ? (
+                <button
+                  onClick={capturePhoto}
+                  disabled={!cameraReady}
+                  className="flex-1 py-3 bg-white text-slate-900 rounded-xl font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  <Camera size={16} /> Capture
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={retakePhoto}
+                    className="flex-1 py-3 border border-white/30 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw size={15} /> Retake
+                  </button>
+                  <button
+                    onClick={confirmPhoto}
+                    disabled={uploadingPhoto}
+                    className="flex-1 py-3 bg-orange-500 text-white rounded-xl font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {uploadingPhoto ? (
+                      <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Uploading...</>
+                    ) : (
+                      <><CheckCircle size={15} /> Use Photo</>
+                    )}
+                  </button>
+                </>
               )}
             </div>
           </div>
