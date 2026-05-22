@@ -202,153 +202,175 @@ export default function ExecutiveAttendance() {
     <div className="p-4 max-w-lg mx-auto space-y-5">
       <h1 className="text-xl font-black text-slate-900">GPS Attendance</h1>
 
-      {/* Today's check-in card */}
-      <div className={`rounded-lg p-5 border ${isIn ? 'bg-orange-50 border-orange-200' : 'bg-white border-slate-200'}`}>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Today</p>
-            <p className={`text-base font-black mt-0.5 ${isIn ? 'text-orange-700' : isOut ? 'text-slate-700' : 'text-amber-600'}`}>
-              {isIn ? 'On Duty' : isOut ? 'Done for Today' : 'Not Checked In'}
-            </p>
-          </div>
-          <MapPin size={20} className={isIn ? 'text-orange-500' : 'text-slate-400'} />
-        </div>
-
-        {today?.check_in_time && (
-          <div className="flex gap-6 text-sm mb-3">
-            <div>
-              <p className="text-xs text-slate-500">Check In</p>
-              <p className="font-bold text-slate-800">{formatTime(today.check_in_time)}</p>
+      {/* Today's card */}
+      {isOut ? (
+        /* ── Checked-out completion card ── */
+        <div className="rounded-lg p-5 border bg-green-50 border-green-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-11 h-11 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+              <CheckCircle size={24} className="text-green-600" />
             </div>
-            {today.check_out_time && (
-              <div>
-                <p className="text-xs text-slate-500">Check Out</p>
-                <p className="font-bold text-slate-800">{formatTime(today.check_out_time)}</p>
-              </div>
-            )}
-            {today.working_hours && (
-              <div>
-                <p className="text-xs text-slate-500">Hours</p>
-                <p className="font-bold text-slate-800">{today.working_hours.toFixed(1)}h</p>
-              </div>
-            )}
             <div>
-              <p className="text-xs text-slate-500">GPS</p>
-              <p className={`font-bold text-sm ${today.geo_fence_valid ? 'text-green-600' : 'text-red-500'}`}>
-                {today.geo_fence_valid ? '✓ Valid' : `✗ ${today.geo_fence_distance_m ? `${Math.round(today.geo_fence_distance_m)}m` : 'Out'}`}
+              <p className="text-xs font-black text-green-600 uppercase tracking-widest">Today</p>
+              <p className="text-base font-black text-green-800">Checked Out</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="bg-white rounded-lg p-3 text-center border border-green-100">
+              <p className="text-[10px] text-slate-500 mb-0.5 font-semibold uppercase tracking-wide">In</p>
+              <p className="font-bold text-slate-800 text-sm">{formatTime(today.check_in_time)}</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 text-center border border-green-100">
+              <p className="text-[10px] text-slate-500 mb-0.5 font-semibold uppercase tracking-wide">Out</p>
+              <p className="font-bold text-slate-800 text-sm">{formatTime(today.check_out_time)}</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 text-center border border-green-100">
+              <p className="text-[10px] text-slate-500 mb-0.5 font-semibold uppercase tracking-wide">Hours</p>
+              <p className="font-bold text-green-700 text-sm">{today.working_hours ? `${today.working_hours.toFixed(1)}h` : '—'}</p>
+            </div>
+          </div>
+
+          <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${today.geo_fence_valid ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}>
+            <MapPin size={12} className="shrink-0" />
+            GPS: {today.geo_fence_valid ? 'Location verified' : `Out of range${today.geo_fence_distance_m ? ` (${Math.round(today.geo_fence_distance_m)}m)` : ''}`}
+          </div>
+
+          <p className="text-center text-xs text-slate-400 mt-4 font-medium">Your attendance for today is complete. See you tomorrow!</p>
+        </div>
+      ) : (
+        /* ── Active / not-checked-in card ── */
+        <div className={`rounded-lg p-5 border ${isIn ? 'bg-orange-50 border-orange-200' : 'bg-white border-slate-200'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Today</p>
+              <p className={`text-base font-black mt-0.5 ${isIn ? 'text-orange-700' : 'text-amber-600'}`}>
+                {isIn ? 'On Duty' : 'Not Checked In'}
               </p>
             </div>
+            <MapPin size={20} className={isIn ? 'text-orange-500' : 'text-slate-400'} />
           </div>
-        )}
 
-        {!isOut && !isIn && (
-          <div className="space-y-3 mb-3">
-            <div>
-              <p className="text-xs font-bold text-slate-600 mb-1.5">Step 1: Take Selfie</p>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={startCamera}
-                  disabled={uploadingPhoto}
-                  className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                >
-                  <Camera size={15} /> {uploadingPhoto ? 'Uploading...' : selfieUrl ? 'Retake Selfie' : 'Take Selfie'}
-                </button>
-                {selfieUrl && <CheckCircle size={18} className="text-green-500" />}
+          {today?.check_in_time && (
+            <div className="flex gap-6 text-sm mb-3">
+              <div>
+                <p className="text-xs text-slate-500">Check In</p>
+                <p className="font-bold text-slate-800">{formatTime(today.check_in_time)}</p>
               </div>
-              {selfiePreview && <img src={selfiePreview} alt="selfie preview" className="w-16 h-16 rounded-lg object-cover mt-2 border-2 border-green-200" />}
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-600 mb-1.5">Step 2: Check In with GPS</p>
-              {gpsStatus && (
-                <div className="flex items-center gap-2 text-xs text-green-600 mb-2">
-                  <MapPin size={12} /> Location captured
+              {today.working_hours && (
+                <div>
+                  <p className="text-xs text-slate-500">Hours</p>
+                  <p className="font-bold text-slate-800">{today.working_hours.toFixed(1)}h</p>
                 </div>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* Hidden fallback input for iOS PWA where getUserMedia is unavailable */}
-        <input
-          ref={fallbackInputRef}
-          type="file"
-          accept="image/*"
-          capture="user"
-          className="hidden"
-          onChange={handleFallbackCapture}
-        />
-
-        {/* Camera Modal — mobile-centric portrait overlay */}
-        {cameraOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-            {/* Phone-sized container, portrait */}
-            <div className="relative w-full max-w-sm bg-black flex flex-col rounded-2xl overflow-hidden shadow-2xl"
-                 style={{ height: 'min(92vh, 680px)' }}>
-
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 bg-black/90 shrink-0">
-                <p className="text-white font-bold text-sm tracking-wide">Take Selfie</p>
-                <button onClick={closeCameraModal} className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Camera viewport — fills remaining height */}
-              <div className="relative flex-1 overflow-hidden bg-black">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={{ transform: 'scaleX(-1)' }}
-                />
-
-                {/* Spinner while camera loads */}
-                {!cameraReady && !capturedFrame && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/70">
-                    <div className="w-9 h-9 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  </div>
-                )}
-
-                {/* Face guide oval */}
-                {cameraReady && (
-                  <div className="absolute inset-0 flex items-start justify-center pt-8 pointer-events-none">
-                    <div className="w-40 h-52 rounded-full border-2 border-white/60 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
-                  </div>
-                )}
-              </div>
-
-              <canvas ref={canvasRef} className="hidden" />
-
-              {/* Controls */}
-              <div className="px-5 py-5 bg-black shrink-0 flex flex-col items-center gap-2">
-                {uploadingPhoto ? (
-                  /* Uploading state */
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-16 h-16 rounded-full border-4 border-orange-500/30 border-t-orange-500 animate-spin" />
-                    <p className="text-white/60 text-xs">Uploading selfie…</p>
-                  </div>
-                ) : (
-                  /* Shutter button */
-                  <button
-                    onClick={captureAndUpload}
-                    disabled={!cameraReady}
-                    className="w-18 h-18 rounded-full bg-white disabled:opacity-30 flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-                    style={{ width: 72, height: 72 }}
-                  >
-                    <div className="w-14 h-14 rounded-full border-[3px] border-slate-300" />
-                  </button>
-                )}
-                <p className="text-white/40 text-[11px] mt-1">
-                  {cameraReady ? 'Tap to capture & upload' : 'Starting camera…'}
+              <div>
+                <p className="text-xs text-slate-500">GPS</p>
+                <p className={`font-bold text-sm ${today.geo_fence_valid ? 'text-green-600' : 'text-red-500'}`}>
+                  {today.geo_fence_valid ? '✓ Valid' : `✗ ${today.geo_fence_distance_m ? `${Math.round(today.geo_fence_distance_m)}m` : 'Out'}`}
                 </p>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {!isOut && (
+          {!isIn && (
+            <div className="space-y-3 mb-3">
+              <div>
+                <p className="text-xs font-bold text-slate-600 mb-1.5">Step 1: Take Selfie</p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={startCamera}
+                    disabled={uploadingPhoto}
+                    className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                  >
+                    <Camera size={15} /> {uploadingPhoto ? 'Uploading...' : selfieUrl ? 'Retake Selfie' : 'Take Selfie'}
+                  </button>
+                  {selfieUrl && <CheckCircle size={18} className="text-green-500" />}
+                </div>
+                {selfiePreview && <img src={selfiePreview} alt="selfie preview" className="w-16 h-16 rounded-lg object-cover mt-2 border-2 border-green-200" />}
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-600 mb-1.5">Step 2: Check In with GPS</p>
+                {gpsStatus && (
+                  <div className="flex items-center gap-2 text-xs text-green-600 mb-2">
+                    <MapPin size={12} /> Location captured
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Hidden fallback input for iOS PWA where getUserMedia is unavailable */}
+          <input
+            ref={fallbackInputRef}
+            type="file"
+            accept="image/*"
+            capture="user"
+            className="hidden"
+            onChange={handleFallbackCapture}
+          />
+
+          {/* Camera Modal — mobile-centric portrait overlay */}
+          {cameraOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+              <div className="relative w-full max-w-sm bg-black flex flex-col rounded-2xl overflow-hidden shadow-2xl"
+                   style={{ height: 'min(92vh, 680px)' }}>
+
+                <div className="flex items-center justify-between px-4 py-3 bg-black/90 shrink-0">
+                  <p className="text-white font-bold text-sm tracking-wide">Take Selfie</p>
+                  <button onClick={closeCameraModal} className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="relative flex-1 overflow-hidden bg-black">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ transform: 'scaleX(-1)' }}
+                  />
+
+                  {!cameraReady && !capturedFrame && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                      <div className="w-9 h-9 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    </div>
+                  )}
+
+                  {cameraReady && (
+                    <div className="absolute inset-0 flex items-start justify-center pt-8 pointer-events-none">
+                      <div className="w-40 h-52 rounded-full border-2 border-white/60 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+                    </div>
+                  )}
+                </div>
+
+                <canvas ref={canvasRef} className="hidden" />
+
+                <div className="px-5 py-5 bg-black shrink-0 flex flex-col items-center gap-2">
+                  {uploadingPhoto ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-16 h-16 rounded-full border-4 border-orange-500/30 border-t-orange-500 animate-spin" />
+                      <p className="text-white/60 text-xs">Uploading selfie…</p>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={captureAndUpload}
+                      disabled={!cameraReady}
+                      className="rounded-full bg-white disabled:opacity-30 flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+                      style={{ width: 72, height: 72 }}
+                    >
+                      <div className="w-14 h-14 rounded-full border-[3px] border-slate-300" />
+                    </button>
+                  )}
+                  <p className="text-white/40 text-[11px] mt-1">
+                    {cameraReady ? 'Tap to capture & upload' : 'Starting camera…'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <button
             onClick={isIn ? handleCheckOut : handleCheckIn}
             disabled={checkingIn}
@@ -358,8 +380,8 @@ export default function ExecutiveAttendance() {
           >
             {isIn ? <><LogOut size={16} /> Check Out</> : <><LogIn size={16} /> Check In with GPS</>}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* GPS notice */}
       {!isIn && !isOut && (
