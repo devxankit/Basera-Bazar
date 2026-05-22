@@ -377,8 +377,11 @@ const PartnerAddSwitcher = () => {
 // --- ROUTE GUARDS ---
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <PageSpinner />;
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  return isAuthenticated
+    ? children
+    : <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
 };
 
 const AdminRoute = ({ children }) => {

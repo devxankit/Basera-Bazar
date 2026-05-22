@@ -28,6 +28,8 @@ export default function ExecutiveSignUp() {
   const streamRef = useRef(null);
 
   const [otp, setOtp] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
   const [ifscError, setIfscError] = useState('');
   const [errors, setErrors] = useState({});
 
@@ -146,6 +148,12 @@ export default function ExecutiveSignUp() {
     }
   }, [isCameraOpen]);
 
+  useEffect(() => {
+    if (resendTimer <= 0) return;
+    const id = setTimeout(() => setResendTimer(t => t - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendTimer]);
+
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -204,6 +212,7 @@ export default function ExecutiveSignUp() {
       });
       toast.success('OTP sent to ' + formData.phone);
       setStep(2);
+      setResendTimer(30);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Signup failed');
     } finally {
@@ -211,8 +220,29 @@ export default function ExecutiveSignUp() {
     }
   };
 
+  const resendOtp = async () => {
+    setIsSubmitting(true);
+    setOtpError('');
+    setOtp('');
+    try {
+      await api.post('/executive/register/step1', {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password
+      });
+      toast.success('OTP resent to ' + formData.phone);
+      setResendTimer(30);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to resend OTP');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const verifyOtp = async () => {
     setIsSubmitting(true);
+    setOtpError('');
     try {
       const res = await api.post('/executive/register/verify', {
         phone: formData.phone,
@@ -225,7 +255,8 @@ export default function ExecutiveSignUp() {
       setStep(3);
       toast.success('Phone verified!');
     } catch (error) {
-      toast.error('Invalid OTP');
+      setOtpError('Incorrect OTP. Please try again.');
+      setOtp('');
     } finally {
       setIsSubmitting(false);
     }
@@ -353,18 +384,36 @@ export default function ExecutiveSignUp() {
               <div className="space-y-2">
                 <h2 className="text-2xl font-medium text-slate-900">Verify Phone</h2>
                 <p className="text-slate-500 font-normal">Enter the 6-digit code sent to<br/><span className="text-slate-900 font-medium">+91 {formData.phone}</span></p>
-                <p className="text-[10px] font-medium text-indigo-600/50 uppercase tracking-[0.2em] mt-4">Demo Code: 123456</p>
               </div>
-              <input 
-                type="text" 
-                maxLength="6" 
-                value={otp} 
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} 
-                className="w-full bg-white border-2 border-slate-100 text-center text-4xl font-medium tracking-[0.8em] py-5 rounded-[1.5rem] focus:outline-none focus:border-indigo-600 focus:ring-8 focus:ring-indigo-600/5 transition-all" 
-                placeholder="000000"
-              />
-              <button 
-                onClick={verifyOtp} 
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  maxLength="6"
+                  value={otp}
+                  onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '')); setOtpError(''); }}
+                  className={`w-full bg-white border-2 text-center text-4xl font-medium tracking-[0.8em] py-5 rounded-[1.5rem] focus:outline-none focus:ring-8 transition-all ${otpError ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-slate-100 focus:border-indigo-600 focus:ring-indigo-600/5'}`}
+                  placeholder="000000"
+                />
+                {otpError && (
+                  <p className="text-sm font-medium text-red-500">{otpError}</p>
+                )}
+                <div className="flex justify-center pt-1">
+                  {resendTimer > 0 ? (
+                    <p className="text-xs text-slate-400 font-medium">Resend OTP in <span className="text-indigo-600 font-semibold">{resendTimer}s</span></p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={resendOtp}
+                      disabled={isSubmitting}
+                      className="text-xs font-semibold text-indigo-600 underline underline-offset-2 disabled:opacity-50"
+                    >
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={verifyOtp}
                 disabled={isSubmitting || otp.length < 6}
                 className="w-full py-5 bg-indigo-600 text-white font-medium rounded-2xl shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] disabled:opacity-50 uppercase tracking-widest text-xs"
               >

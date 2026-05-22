@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import {
    ShoppingCart, Search, MapPin, ArrowRight, ChevronDown,
@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocationContext } from '../../context/LocationContext';
 import LocationPicker from '../../components/common/LocationPicker';
 import Skeleton from '../../components/common/Skeleton';
@@ -48,13 +49,25 @@ const getCategoryImage = (cat) => {
 export default function MandiMarketplace() {
    const navigate = useNavigate();
    const { cart, cartCount, addToCart, removeFromCart } = useCart();
+   const { isAuthenticated } = useAuth();
    const { location, setLocation } = useLocationContext();
 
    const [searchQuery, setSearchQuery] = useState('');
    const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
    const [currentSlide, setCurrentSlide] = useState(0);
+   const [unreadCount, setUnreadCount] = useState(0);
 
    useScrollLock(isLocationModalOpen);
+
+   useEffect(() => {
+      if (!isAuthenticated) return;
+      api.get('/notifications')
+         .then(res => {
+            if (res.data.success)
+               setUnreadCount(res.data.data.filter(n => !n.is_read).length);
+         })
+         .catch(() => {});
+   }, [isAuthenticated]);
 
    const { data: mandiData, isLoading: loadingCategories } = useQuery({
       queryKey: ['mandiMarketplace', location?.district, location?.state],
@@ -209,7 +222,9 @@ export default function MandiMarketplace() {
                   className="relative w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355] active:scale-95 transition-all"
                >
                   <Bell size={16} />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
+                  {unreadCount > 0 && (
+                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
+                  )}
                </button>
                <button className="relative w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center text-[#1f2355]" onClick={() => navigate('/cart')}>
                   <ShoppingCart size={16} />

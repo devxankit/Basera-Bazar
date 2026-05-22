@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Building2, Wrench, Store, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -9,7 +9,30 @@ function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
+const INPUT_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
+
 const BottomNav = () => {
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const onFocusIn = (e) => {
+      if (INPUT_TAGS.has(e.target.tagName)) setKeyboardOpen(true);
+    };
+    const onFocusOut = () => {
+      // Small delay so switching between inputs doesn't flicker
+      setTimeout(() => {
+        if (!INPUT_TAGS.has(document.activeElement?.tagName)) setKeyboardOpen(false);
+      }, 100);
+    };
+    document.addEventListener('focusin', onFocusIn);
+    document.addEventListener('focusout', onFocusOut);
+    return () => {
+      document.removeEventListener('focusin', onFocusIn);
+      document.removeEventListener('focusout', onFocusOut);
+    };
+  }, []);
+
+  if (keyboardOpen) return null;
   const navItems = [
     { icon: Home, label: 'HOME', path: '/' },
     { icon: Building2, label: 'PROPERTIES', path: '/browse/property' },

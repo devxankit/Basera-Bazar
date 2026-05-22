@@ -289,21 +289,23 @@ export default function SignUp() {
             </motion.div>
 
             {/* Password */}
-            <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '18px' }}>
-              <span style={iconStyle}><Lock size={22} strokeWidth={1.8} /></span>
-              <input
-                type={showPassword ? 'text' : 'password'} placeholder="Password (uppercase, lowercase, digit, special char)" required
-                value={form.password}
-                onChange={e => { setForm({ ...form, password: e.target.value }); clearError('password'); }}
-                style={{ ...inputStyle, paddingRight: '54px', borderColor: errors.password ? '#f87171' : '#dde1f0' }}
-              />
+            <motion.div variants={fadeInUp} style={{ marginBottom: '18px' }}>
+              <div style={{ position: 'relative' }}>
+                <span style={iconStyle}><Lock size={22} strokeWidth={1.8} /></span>
+                <input
+                  type={showPassword ? 'text' : 'password'} placeholder="Password (uppercase, lowercase, digit, special char)" required
+                  value={form.password}
+                  onChange={e => { setForm({ ...form, password: e.target.value }); clearError('password'); }}
+                  style={{ ...inputStyle, paddingRight: '54px', borderColor: errors.password ? '#f87171' : '#dde1f0' }}
+                />
+                <button
+                  type="button" onClick={() => setShowPassword(v => !v)}
+                  style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#3b52d4', display: 'flex', alignItems: 'center' }}
+                >
+                  {showPassword ? <EyeOff size={24} strokeWidth={2} /> : <Eye size={24} strokeWidth={2} />}
+                </button>
+              </div>
               {errors.password && <p style={{ fontSize: '12px', color: '#e11d48', marginTop: '4px', fontWeight: '500' }}>{errors.password}</p>}
-              <button
-                type="button" onClick={() => setShowPassword(v => !v)}
-                style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#3b52d4', display: 'flex', alignItems: 'center' }}
-              >
-                {showPassword ? <EyeOff size={24} strokeWidth={2} /> : <Eye size={24} strokeWidth={2} />}
-              </button>
             </motion.div>
 
             {/* Location */}

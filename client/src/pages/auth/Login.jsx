@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2, Phone, User, CheckCircle2, X, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -10,13 +10,14 @@ import toast from '../../mockToast';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const onLoginSuccess = async (user, token) => {
     login(user, token);
-    // Explicitly trigger FCM registration after login
     registerFCMToken(true);
-    navigate('/');
+    const from = location.state?.from;
+    navigate(from && from !== '/login' ? from : '/');
   };
   const handleBack = () => { window.history.length > 2 ? navigate(-1) : navigate('/'); };
   const [showPassword, setShowPassword] = useState(false);
