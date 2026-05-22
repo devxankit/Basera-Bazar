@@ -21,7 +21,7 @@ const {
 const { protect, verifyApproved } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
 const validate = require('../middlewares/validateMiddleware');
-const { executiveBankDetailsSchema, executiveProfileUpdateSchema, withdrawalRequestSchema, gpsCheckinSchema, leaveRequestSchema, dailyReportSchema } = require('../utils/validators');
+const { executiveBankDetailsSchema, executiveRegisterStep2Schema, executiveProfileUpdateSchema, withdrawalRequestSchema, gpsCheckinSchema, leaveRequestSchema, dailyReportSchema } = require('../utils/validators');
 const {
   fieldExecutiveCheckIn,
   fieldExecutiveCheckOut,
@@ -53,7 +53,7 @@ router.post('/login', login);
 router.use(protect);
 
 // Registration completion: needs auth but not approval (onboarding_status is 'incomplete')
-router.put('/register/step2', validate(executiveBankDetailsSchema), updateStep2);
+router.put('/register/step2', validate(executiveRegisterStep2Schema), updateStep2);
 router.put('/register/step3', updateStep3);
 
 router.use(verifyApproved);

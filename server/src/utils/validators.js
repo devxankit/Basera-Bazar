@@ -33,11 +33,28 @@ const partnerRegistrationSchema = z.object({
 // EXECUTIVE SCHEMAS
 // ---------------------------------------------------------
 
+// Used for PUT /executive/register/step2 (nested structure from signup flow)
+const executiveRegisterStep2Schema = z.object({
+  address: z.object({
+    address_line: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    pincode: z.union([z.literal(''), z.string().regex(/^\d{6}$/, "Pincode must be exactly 6 digits")]).optional(),
+  }).optional(),
+  bank_details: z.object({
+    account_number: z.string().min(9, "Account number too short").max(18, "Account number too long"),
+    ifsc_code: z.string().regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, "Invalid IFSC code format"),
+    bank_name: z.string().min(2, "Bank name is required"),
+    account_holder_name: z.string().min(2, "Account holder name is required"),
+  }),
+});
+
+// Used for PUT /executive/bank-details (flat structure from profile update)
 const executiveBankDetailsSchema = z.object({
   account_number: z.string().min(9, "Account number too short").max(18, "Account number too long"),
   ifsc_code: z.string().regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, "Invalid IFSC code format"),
   bank_name: z.string().min(2, "Bank name is required"),
-  account_holder_name: z.string().min(2, "Account holder name is required")
+  account_holder_name: z.string().min(2, "Account holder name is required"),
 });
 
 const executiveProfileUpdateSchema = z.object({
@@ -467,6 +484,7 @@ module.exports = {
   partnerDeleteRoleSchema,
   partnerSwitchRoleSchema,
   executiveBankDetailsSchema,
+  executiveRegisterStep2Schema,
   executiveProfileUpdateSchema,
   withdrawalRequestSchema,
   loginSchema,
