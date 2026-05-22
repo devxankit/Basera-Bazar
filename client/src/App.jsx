@@ -389,6 +389,14 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
+const PartnerRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return <PageSpinner />;
+  if (!isAuthenticated || user?.role !== "partner")
+    return <Navigate to="/partner/login" replace />;
+  return children;
+};
+
 const VerifiedPartnerRoute = ({ children }) => {
   const { user, isAuthenticated, loading } = useAuth();
   if (loading) return <PageSpinner />;
@@ -893,21 +901,29 @@ function App() {
                         <Route
                           path="/partner/home"
                           element={
-                            <PartnerLayout>
-                              <PartnerHome />
-                            </PartnerLayout>
+                            <PartnerRoute>
+                              <PartnerLayout>
+                                <PartnerHome />
+                              </PartnerLayout>
+                            </PartnerRoute>
                           }
                         />
                         <Route
                           path="/partner/onboarding"
-                          element={<PartnerOnboarding />}
+                          element={
+                            <PartnerRoute>
+                              <PartnerOnboarding />
+                            </PartnerRoute>
+                          }
                         />
                         <Route
                           path="/partner/inventory"
                           element={
-                            <PartnerLayout>
-                              <PartnerInventorySwitcher />
-                            </PartnerLayout>
+                            <PartnerRoute>
+                              <PartnerLayout>
+                                <PartnerInventorySwitcher />
+                              </PartnerLayout>
+                            </PartnerRoute>
                           }
                         />
                         <Route
@@ -921,9 +937,11 @@ function App() {
                         <Route
                           path="/partner/leads"
                           element={
-                            <PartnerLayout>
-                              <PartnerInquiries />
-                            </PartnerLayout>
+                            <PartnerRoute>
+                              <PartnerLayout>
+                                <PartnerInquiries />
+                              </PartnerLayout>
+                            </PartnerRoute>
                           }
                         />
                         <Route
@@ -933,17 +951,21 @@ function App() {
                         <Route
                           path="/partner/profile"
                           element={
-                            <PartnerLayout>
-                              <PartnerProfile />
-                            </PartnerLayout>
+                            <PartnerRoute>
+                              <PartnerLayout>
+                                <PartnerProfile />
+                              </PartnerLayout>
+                            </PartnerRoute>
                           }
                         />
                         <Route
                           path="/partner/subscription"
                           element={
-                            <PartnerLayout>
-                              <PartnerSubscription />
-                            </PartnerLayout>
+                            <PartnerRoute>
+                              <PartnerLayout>
+                                <PartnerSubscription />
+                              </PartnerLayout>
+                            </PartnerRoute>
                           }
                         />
                         <Route
@@ -964,31 +986,60 @@ function App() {
                         />
                         <Route
                           path="/partner/service-details/:id"
-                          element={<PartnerServiceDetails />}
+                          element={
+                            <PartnerRoute>
+                              <PartnerServiceDetails />
+                            </PartnerRoute>
+                          }
                         />
                         <Route
                           path="/partner/lead-details/:id"
-                          element={<PartnerLeadDetails />}
+                          element={
+                            <PartnerRoute>
+                              <PartnerLeadDetails />
+                            </PartnerRoute>
+                          }
                         />
-                        <Route path="/partner/help" element={<PartnerHelp />} />
+                        <Route
+                          path="/partner/help"
+                          element={
+                            <PartnerRoute>
+                              <PartnerHelp />
+                            </PartnerRoute>
+                          }
+                        />
                         <Route
                           path="/partner/about"
-                          element={<PartnerAbout />}
+                          element={
+                            <PartnerRoute>
+                              <PartnerAbout />
+                            </PartnerRoute>
+                          }
                         />
                         <Route
                           path="/partner/edit-profile"
-                          element={<PartnerEditProfile />}
+                          element={
+                            <PartnerRoute>
+                              <PartnerEditProfile />
+                            </PartnerRoute>
+                          }
                         />
                         <Route
                           path="/partner/add-role"
-                          element={<AddRolePage />}
+                          element={
+                            <PartnerRoute>
+                              <AddRolePage />
+                            </PartnerRoute>
+                          }
                         />
                         <Route
                           path="/partner/notifications"
                           element={
-                            <PartnerLayout>
-                              <PartnerNotifications />
-                            </PartnerLayout>
+                            <PartnerRoute>
+                              <PartnerLayout>
+                                <PartnerNotifications />
+                              </PartnerLayout>
+                            </PartnerRoute>
                           }
                         />
                         <Route
@@ -1018,9 +1069,11 @@ function App() {
                         <Route
                           path="/partner/orders"
                           element={
-                            <PartnerLayout>
-                              <MandiOrders />
-                            </PartnerLayout>
+                            <PartnerRoute>
+                              <PartnerLayout>
+                                <MandiOrders />
+                              </PartnerLayout>
+                            </PartnerRoute>
                           }
                         />
                         <Route
@@ -1030,9 +1083,11 @@ function App() {
                         <Route
                           path="/partner/marketplace/orders/:id"
                           element={
-                            <PartnerLayout>
-                              <MandiOrderDetails />
-                            </PartnerLayout>
+                            <PartnerRoute>
+                              <PartnerLayout>
+                                <MandiOrderDetails />
+                              </PartnerLayout>
+                            </PartnerRoute>
                           }
                         />
                         <Route
@@ -1042,25 +1097,31 @@ function App() {
                         <Route
                           path="/partner/mandi/orders-history"
                           element={
-                            <PartnerLayout>
-                              <PartnerOrderHistory />
-                            </PartnerLayout>
+                            <PartnerRoute>
+                              <PartnerLayout>
+                                <PartnerOrderHistory />
+                              </PartnerLayout>
+                            </PartnerRoute>
                           }
                         />
                         <Route
                           path="/partner/mandi/penalties"
                           element={
-                            <PartnerLayout>
-                              <MandiPenalties />
-                            </PartnerLayout>
+                            <PartnerRoute>
+                              <PartnerLayout>
+                                <MandiPenalties />
+                              </PartnerLayout>
+                            </PartnerRoute>
                           }
                         />
                         <Route
                           path="/partner/milestones"
                           element={
-                            <PartnerLayout>
-                              <PartnerMilestones />
-                            </PartnerLayout>
+                            <PartnerRoute>
+                              <PartnerLayout>
+                                <PartnerMilestones />
+                              </PartnerLayout>
+                            </PartnerRoute>
                           }
                         />
                       </Route>
