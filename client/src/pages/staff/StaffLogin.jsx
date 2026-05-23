@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Phone, Lock, Eye, EyeOff, MapPin, Headphones, ArrowRight, Shield, TrendingUp, Clock, UserX, AlertTriangle } from 'lucide-react';
+import { Users, Phone, Lock, Eye, EyeOff, MapPin, Headphones, ArrowRight, Shield, TrendingUp, Clock, UserX, AlertTriangle, MessageCircle } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from '../../mockToast';
@@ -394,6 +394,21 @@ export default function StaffLogin() {
                           Sign up here
                         </button>
                       </p>
+                    )}
+
+                    {/* Contact support — shown for team leader & office staff */}
+                    {(selectedRole.id === 'team_leader' || selectedRole.id === 'office_staff') && (
+                      <div className="mt-2 flex items-center justify-center gap-1.5 text-slate-400 text-[11px]">
+                        <MessageCircle size={12} />
+                        <span>Need help?</span>
+                        <a
+                          href="tel:+919999999999"
+                          className="font-bold hover:underline"
+                          style={{ color: selectedRole.accent }}
+                        >
+                          Contact Admin
+                        </a>
+                      </div>
                     )}
                   </form>
                 </div>

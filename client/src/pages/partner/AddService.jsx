@@ -68,6 +68,8 @@ export default function AddService() {
   useScrollLock(showSuccessModal);
   const editId = searchParams.get('edit');
 
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+
   // --- React Query: top-level service categories ---
   const { data: topCatsData } = useQuery({
     queryKey: ['serviceTopCategories'],

@@ -5,6 +5,7 @@ const idempotency = require('../middlewares/idempotencyMiddleware');
 const {
   registerStep1,
   verifyRegistrationOtp,
+  createExecutive,
   updateStep2,
   updateStep3,
   login,
@@ -48,6 +49,7 @@ const otpLimiter = rateLimit({
 
 router.post('/register/step1', otpLimiter, registerStep1);
 router.post('/register/verify', otpLimiter, verifyRegistrationOtp);
+router.post('/register/create', createExecutive);
 router.post('/login', login);
 
 // Protected routes — no OTP limiter here

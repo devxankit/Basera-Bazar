@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ArrowLeft, Loader2 } from 'lucide-react';
 import api from '../../services/api';
@@ -22,6 +22,8 @@ const localImages = {
 const PropertyCategories = () => {
   const navigate = useNavigate();
   const { location } = useLocationContext();
+
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   const { data: rawData, isLoading: loading } = useQuery({
     queryKey: ['propertyCategories', location?.district, location?.state],

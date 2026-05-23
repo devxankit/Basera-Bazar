@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { ShieldCheck, Camera, CheckCircle2, ChevronRight, FileText, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { v, sanitize } from '../../utils/validators';
+import toast from '../../mockToast';
 
 export default function KYCStep({ formData, setFormData, onBack, onComplete, role }) {
   const panInputRef = useRef(null);
@@ -40,7 +41,11 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
     }
     if (!formData.aadharFront) errs.aadharFront = 'Aadhaar front image is required';
     if (isMandiOrSupplier && formData.gst) { const e = v.gstOptional(formData.gst); if (e) errs.gst = e; }
-    if (Object.keys(errs).length > 0) { setKycErrors(errs); return; }
+    if (Object.keys(errs).length > 0) {
+      setKycErrors(errs);
+      toast.error('Please fill all required KYC documents before continuing.');
+      return;
+    }
     setKycErrors({});
     onComplete();
   };

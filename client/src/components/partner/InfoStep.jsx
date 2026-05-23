@@ -258,6 +258,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
 
   const handleSendOtp = async () => {
     if (!validateForm()) {
+      toast.error('Please fill all required fields before continuing.');
       return;
     }
     try {
@@ -548,7 +549,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
               inputMode="numeric"
               min={1}
               max={500}
-              value={formData.service_radius_km || 100}
+              value={formData.service_radius_km ?? ''}
               onChange={handleChange}
               placeholder="e.g. 50"
               error={errors.service_radius_km}

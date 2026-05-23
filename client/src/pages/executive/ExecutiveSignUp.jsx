@@ -32,6 +32,7 @@ export default function ExecutiveSignUp() {
   const [resendTimer, setResendTimer] = useState(0);
   const [ifscError, setIfscError] = useState('');
   const [errors, setErrors] = useState({});
+  const [phoneVerifiedToken, setPhoneVerifiedToken] = useState(null);
 
   // Field-level validators — schema-like for clarity and reuse
   const VALIDATORS = {
@@ -39,22 +40,24 @@ export default function ExecutiveSignUp() {
     email: (v) => !v?.trim() ? 'Email is required' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? 'Invalid email format' : '',
     phone: (v) => !v ? 'Phone is required' : !/^[6-9]\d{9}$/.test(v) ? 'Enter a valid 10-digit Indian number' : '',
     password: (v) => !v ? 'Password is required' : v.length < 8 ? 'Min 8 characters' : !/\d/.test(v) ? 'Must include a number' : '',
+    confirmPassword: (v, fd) => !v ? 'Please confirm your password' : v !== fd.password ? 'Passwords do not match' : '',
     pincode: (v) => !v ? 'Pincode is required' : !/^\d{6}$/.test(v) ? 'Must be exactly 6 digits' : '',
     account_number: (v) => !v ? 'Account number is required' : !/^\d{9,18}$/.test(v) ? 'Must be 9–18 digits' : '',
     ifsc_code: (v) => !v ? 'IFSC is required' : !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(v) ? 'Invalid IFSC (e.g. BARB0STAKOT)' : '',
-    aadhar_number: (v) => v && !/^\d{12}$/.test(v) ? 'Must be exactly 12 digits' : '',
-    pan_number: (v) => v && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(v) ? 'Invalid PAN (e.g. ABCDE1234F)' : '',
+    aadhar_number: (v) => !v ? 'Aadhaar number is required' : !/^\d{12}$/.test(v) ? 'Must be exactly 12 digits' : '',
+    pan_number: (v) => !v ? 'PAN number is required' : !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(v) ? 'Invalid PAN (e.g. ABCDE1234F)' : '',
   };
 
   const validateField = (name, value) => {
     const fn = VALIDATORS[name];
-    return fn ? fn(value) : '';
+    return fn ? fn(value, formData) : '';
   };
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     password: '',
+    confirmPassword: '',
     address: {
       address_line: '',
       city: '',
@@ -198,7 +201,7 @@ export default function ExecutiveSignUp() {
 
   // Actions
   const sendOtp = async () => {
-    if (!validateStep(['name', 'email', 'phone', 'password'])) {
+    if (!validateStep(['name', 'email', 'phone', 'password', 'confirmPassword'])) {
       toast.error('Please fix the highlighted errors');
       return;
     }
@@ -247,11 +250,9 @@ export default function ExecutiveSignUp() {
       const res = await api.post('/executive/register/verify', {
         phone: formData.phone,
         otp,
-        name: formData.name,
-        email: formData.email,
-        password: formData.password
       });
-      login(res.data.executive, res.data.token);
+      // Store token only — no DB write yet, don't log in
+      setPhoneVerifiedToken(res.data.phone_verified_token);
       setStep(3);
       toast.success('Phone verified!');
     } catch (error) {
@@ -267,12 +268,23 @@ export default function ExecutiveSignUp() {
       toast.error('Please fix the highlighted errors');
       return;
     }
+    if (!phoneVerifiedToken) {
+      toast.error('Session expired. Please restart registration.');
+      setStep(1);
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await api.put('/executive/register/step2', {
+      // Create executive account now — first DB write
+      const res = await api.post('/executive/register/create', {
+        phone_verified_token: phoneVerifiedToken,
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
         address: formData.address,
-        bank_details: formData.bank_details
+        bank_details: formData.bank_details,
       });
+      login(res.data.executive, res.data.token);
       setStep(4);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to save details');
@@ -293,8 +305,16 @@ export default function ExecutiveSignUp() {
   };
 
   const finalize = async () => {
-    if (!validateStep(['aadhar_number', 'pan_number'])) {
-      toast.error('Please fix the highlighted errors in KYC documents');
+    const kycErrors = {};
+    if (!formData.kyc.aadhar_number) kycErrors.aadhar_number = 'Aadhaar number is required';
+    else if (!/^\d{12}$/.test(formData.kyc.aadhar_number)) kycErrors.aadhar_number = 'Must be exactly 12 digits';
+    if (!formData.kyc.pan_number) kycErrors.pan_number = 'PAN number is required';
+    else if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.kyc.pan_number)) kycErrors.pan_number = 'Invalid PAN (e.g. ABCDE1234F)';
+    if (!formData.kyc.aadhar_image) kycErrors.aadhar_image = 'Aadhaar image is required';
+    if (!formData.kyc.pan_image) kycErrors.pan_image = 'PAN card image is required';
+    if (Object.keys(kycErrors).length > 0) {
+      setErrors(prev => ({ ...prev, ...kycErrors }));
+      toast.error('Please fill all required KYC fields');
       return;
     }
     setIsSubmitting(true);
@@ -364,10 +384,11 @@ export default function ExecutiveSignUp() {
                 <InputField label="Email Address" name="email" icon={Mail} type="email" value={formData.email} onChange={handleInputChange} placeholder="For notifications" autoComplete="email" maxLength={100} error={errors.email} />
                 <InputField label="Phone Number" name="phone" icon={Phone} type="tel" inputMode="numeric" maxLength={10} autoComplete="tel-national" prefix="+91" value={formData.phone} onChange={handleInputChange} placeholder="10 digits" error={errors.phone} />
                 <InputField label="Security Password" name="password" icon={Lock} type="password" autoComplete="new-password" value={formData.password} onChange={handleInputChange} placeholder="Min 8 chars, include a number" error={errors.password} />
+                <InputField label="Confirm Password" name="confirmPassword" icon={Lock} type="password" autoComplete="new-password" value={formData.confirmPassword} onChange={handleInputChange} placeholder="Re-enter your password" error={errors.confirmPassword} />
               </div>
-              <button 
-                onClick={sendOtp} 
-                disabled={isSubmitting || !formData.name || !formData.phone || !formData.password}
+              <button
+                onClick={sendOtp}
+                disabled={isSubmitting || !formData.name || !formData.phone || !formData.password || !formData.confirmPassword}
                 className="w-full py-4 bg-slate-900 text-white font-medium rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50 uppercase tracking-widest text-xs"
               >
                 <span>{isSubmitting ? 'Sending...' : 'Continue'}</span>
@@ -517,9 +538,9 @@ export default function ExecutiveSignUp() {
                 </div>
               </div>
 
-              <button 
-                onClick={finalize} 
-                disabled={isSubmitting || !formData.kyc.live_photo || !formData.kyc.aadhar_image || !formData.kyc.pan_image}
+              <button
+                onClick={finalize}
+                disabled={isSubmitting || !formData.kyc.live_photo || !formData.kyc.aadhar_number || !formData.kyc.aadhar_image || !formData.kyc.pan_number || !formData.kyc.pan_image}
                 className="w-full py-5 bg-slate-900 text-white font-medium rounded-2xl shadow-xl transition-all active:scale-[0.98] disabled:opacity-30 uppercase tracking-widest text-xs"
               >
                 {isSubmitting ? 'PROCESSING APPLICATION...' : 'FINALIZE REGISTRATION'}

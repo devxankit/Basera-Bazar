@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from '../../mockToast';
 import {
   Bell, Trash2, CheckCircle2, XCircle,
@@ -12,6 +12,8 @@ import { useNavigate } from 'react-router-dom';
 export default function PartnerNotifications() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   const { data: rawData, isLoading: loading } = useQuery({
     queryKey: ['partnerNotifications'],

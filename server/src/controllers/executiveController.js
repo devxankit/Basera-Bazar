@@ -79,14 +79,13 @@ exports.registerStep1 = async (req, res) => {
 };
 
 /**
- * @desc    Verify OTP and create initial account
+ * @desc    Verify OTP — returns a short-lived phone_verified_token; no DB write
  * @route   POST /api/executive/register/verify
  */
 exports.verifyRegistrationOtp = async (req, res) => {
   try {
-    let { phone, otp, name, email, password } = req.body;
+    let { phone, otp } = req.body;
     if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
-    // Normalize phone
     phone = phone.replace(/\s+/g, '').replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
 
     const otpRecord = await Otp.findOne({ phone }).sort({ createdAt: -1 });
@@ -100,46 +99,101 @@ exports.verifyRegistrationOtp = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(otp.toString(), otpRecord.otp_hash);
-
     if (!isMatch) {
       return res.status(400).json({ success: false, message: 'Invalid OTP.' });
     }
 
     await Otp.deleteOne({ _id: otpRecord._id });
 
-    // Unified lookup to avoid duplicate key errors
+    // Return a short-lived token — no DB write yet
+    const phoneVerifiedToken = jwt.sign(
+      { phone, type: 'exec_phone_verified' },
+      process.env.JWT_SECRET,
+      { expiresIn: '30m' }
+    );
+
+    res.status(200).json({ success: true, phone_verified_token: phoneVerifiedToken });
+  } catch (error) {
+    logger.error({ err: error }, 'Executive OTP Verify Error:');
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+/**
+ * @desc    Create executive account (deferred write — after OTP verified)
+ * @route   POST /api/executive/register/create
+ */
+exports.createExecutive = async (req, res) => {
+  try {
+    const { phone_verified_token, name, email, password, address, bank_details } = req.body;
+
+    if (!phone_verified_token) {
+      return res.status(400).json({ success: false, message: 'Phone verification token is required.' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(phone_verified_token, process.env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ success: false, message: 'Phone verification expired. Please restart registration.' });
+    }
+
+    if (decoded.type !== 'exec_phone_verified') {
+      return res.status(401).json({ success: false, message: 'Invalid verification token.' });
+    }
+
+    const phone = decoded.phone;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
+    }
+
+    // Check for conflicts with fully registered executives
+    const conflict = await Executive.findOne({
+      $or: [{ phone }, { email }],
+      onboarding_status: { $ne: 'incomplete' }
+    });
+    if (conflict) {
+      return res.status(409).json({ success: false, message: 'An executive account already exists with this phone or email.' });
+    }
+
+    // Upsert: update incomplete record or create fresh
     let executive = await Executive.findOne({ $or: [{ phone }, { email }] });
-    
     if (executive) {
       executive.name = name;
       executive.email = email;
       executive.phone = phone;
-      executive.password = password; // Hashing handled by model pre-save hook
+      executive.password = password;
+      if (address) executive.address = address;
+      if (bank_details) executive.bank_details = bank_details;
       await executive.save();
     } else {
       executive = await Executive.create({
-        name,
-        email,
-        phone,
-        password, // Hashing handled by model pre-save hook
-        onboarding_status: 'incomplete'
+        name, email, phone, password,
+        address: address || undefined,
+        bank_details: bank_details || undefined,
+        onboarding_status: 'incomplete',
       });
     }
 
-    const token = generateToken(executive._id, 'executive', executive.email, executive.token_version || 0);
+    const accessToken = signAccessToken(executive._id, 'executive', executive.email, executive.token_version || 0);
+    const refreshTokenVal = signRefreshToken(executive._id, 'executive', executive.token_version || 0);
+    setAuthCookies(res, accessToken, refreshTokenVal);
 
-    res.status(200).json({
+    res.status(201).json({
       success: true,
-      token,
+      token: accessToken,
       executive: {
         id: executive._id,
         name: executive.name,
+        email: executive.email,
+        phone: executive.phone,
         role: 'executive',
-        onboarding_status: executive.onboarding_status
+        onboarding_status: executive.onboarding_status,
       }
     });
   } catch (error) {
-    logger.error({ err: error }, 'Executive OTP Verify Error:')
+    logger.error({ err: error }, 'Executive Create Error:');
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };

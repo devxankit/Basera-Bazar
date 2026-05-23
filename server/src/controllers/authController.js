@@ -94,15 +94,8 @@ const requestOtp = async (req, res) => {
           notExists: true,
         });
       }
-
-      const account = user || partner;
-      if (account && account.is_active === false) {
-        return res.status(403).json({
-          success: false,
-          code: 'ACCOUNT_INACTIVE',
-          message: 'Account is inactive. Please contact the administrator.'
-        });
-      }
+      // Note: is_active check is intentionally deferred to verifyOtp so the
+      // user can always receive the OTP regardless of account status.
     }
 
     // Cryptographically secure 6-digit OTP
