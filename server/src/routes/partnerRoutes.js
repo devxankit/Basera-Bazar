@@ -1,19 +1,20 @@
 const express = require('express');
 const router = express.Router();
 
-const { 
-  onboardPartner, 
-  getMyPartnerProfile, 
-  getPartnerStats, 
-  addRole, 
-  switchRole, 
+const {
+  onboardPartner,
+  getMyPartnerProfile,
+  getPartnerStats,
+  addRole,
+  switchRole,
   deleteRole,
   getPublicPartners,
   getPublicPartnerById,
   getPartnerSubscriptionPlans,
   toggleFeature,
   getActivities,
-  getPartnerSubscriptionLimits
+  getPartnerSubscriptionLimits,
+  updatePartnerMedia,
 } = require('../controllers/partnerController');
 
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
@@ -38,11 +39,18 @@ router.get('/public/:id', cacheMiddleware(10, false), getPublicPartnerById);
 // -------------------------------------------------------------------------
 
 router.post(
-  '/onboard', 
+  '/onboard',
   protect,
   authorizeRoles('partner'),
   validate(partnerRegistrationSchema),
   onboardPartner
+);
+
+router.patch(
+  '/onboard-media',
+  protect,
+  authorizeRoles('partner'),
+  updatePartnerMedia
 );
 
 router.get(

@@ -207,6 +207,9 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   const handleTogglePassword = () => setShowPassword(!showPassword);
   const handleToggleConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
 
+  // Priority order for scrolling/toasting — first field with an error wins
+  const FIELD_ORDER = ['fullName', 'email', 'phone', 'password', 'confirmPassword', 'location', 'service_radius_km', 'category'];
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -226,39 +229,49 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
     if (cfmErr) newErrors.confirmPassword = cfmErr;
 
     if (!formData.state || !(formData.city || formData.district)) {
-      newErrors.location = "Please set your state and city/district";
+      newErrors.location = "Please set your service location (state and city)";
     }
 
     const radiusErr = v.radius(formData.service_radius_km);
     if (radiusErr) newErrors.service_radius_km = radiusErr;
 
     if (role === 'supplier' && (!formData.category || formData.category.length === 0)) {
-      newErrors.category = "Please select at least one category";
+      newErrors.category = "Please select at least one supplier category";
     }
 
-    // Required fields in the "additional info" section
-    if (!formData.address?.trim()) newErrors.address = "Address is required";
-    if (!formData.pincode?.trim() || !/^\d{6}$/.test(formData.pincode.trim())) {
-      newErrors.pincode = "Enter a valid 6-digit pincode";
+    // Pincode — only validate format if something is entered (optional field)
+    if (formData.pincode?.trim() && !/^\d{6}$/.test(formData.pincode.trim())) {
+      newErrors.pincode = "Pincode must be exactly 6 digits";
     }
-
-    // Mandi sellers must provide business details
-    if (role === 'mandi') {
-      if (!formData.businessName?.trim()) newErrors.businessName = "Business name is required";
-      if (!formData.businessDescription?.trim()) newErrors.businessDescription = "Business description is required";
-    }
-
-    // Auto-expand the optional section if it contains errors
-    const optionalFields = ['address', 'pincode', 'businessName', 'businessDescription'];
-    if (optionalFields.some(f => newErrors[f])) setIsOptionalOpen(true);
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
+  };
+
+  const scrollToFirstError = (errs) => {
+    const firstKey = FIELD_ORDER.find(k => errs[k]);
+    if (!firstKey) return;
+
+    // Show specific toast for this field
+    toast.error(errs[firstKey]);
+
+    setTimeout(() => {
+      let el;
+      if (firstKey === 'location') {
+        el = document.querySelector('[data-field="location"]');
+      } else {
+        el = document.querySelector(`[name="${firstKey}"]`);
+      }
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (typeof el.focus === 'function') el.focus();
+    }, 100);
   };
 
   const handleSendOtp = async () => {
-    if (!validateForm()) {
-      toast.error('Please fill all required fields before continuing.');
+    const errs = validateForm();
+    if (Object.keys(errs).length > 0) {
+      scrollToFirstError(errs);
       return;
     }
     try {
@@ -508,6 +521,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
           
           <button
             type="button"
+            data-field="location"
             onClick={() => setIsLocationModalOpen(true)}
             className={`w-full p-6 rounded-2xl flex flex-col items-center gap-3 text-white mb-6 shadow-xl active:scale-[0.98] transition-all ${
               formData.city
@@ -664,7 +678,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                 <span className="text-[18px] font-bold">{isOptionalOpen ? '-' : '+'}</span>
               </div>
               <span className="text-[15px] font-bold">
-                {role === 'mandi' ? 'Business & Address Details *' : 'Additional Information'}
+                {role === 'mandi' ? 'Business & Address Details' : 'Additional Information'}
               </span>
             </div>
             <ChevronDown size={20} className={`text-slate-400 transition-transform duration-300 ${isOptionalOpen ? 'rotate-180' : ''}`} />
@@ -706,7 +720,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
 
                   <InputField
                     icon={<Building2 size={18} />}
-                    label={role === 'mandi' ? 'Business Name *' : 'Business Name'}
+                    label="Business Name"
                     name="businessName"
                     value={formData.businessName}
                     onChange={handleChange}
@@ -719,7 +733,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                       <FileText size={18} />
                     </div>
                     <label className="absolute -top-2 left-4 px-2 bg-white text-[10px] font-bold text-[#001b4e] uppercase tracking-wider">
-                      Business Description{role === 'mandi' ? ' *' : ''}
+                      Business Description
                     </label>
                     <textarea
                       name="businessDescription"
@@ -737,7 +751,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                       <MapPin size={18} />
                     </div>
                     <label className="absolute -top-2 left-4 px-2 bg-white text-[10px] font-bold text-[#001b4e] uppercase tracking-wider">
-                      Full Address *
+                      Full Address
                     </label>
                     <textarea
                       name="address"
@@ -752,7 +766,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
 
                   <InputField
                     icon={<Map size={18} />}
-                    label="Pincode *"
+                    label="Pincode"
                     name="pincode"
                     value={formData.pincode}
                     onChange={handleChange}

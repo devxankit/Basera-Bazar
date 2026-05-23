@@ -110,29 +110,39 @@ export default function PartnerRegistration() {
     nextStep();
   };
 
-  const handleConfirmRegistration = async () => {
-    if (!authState?.phoneVerifiedToken) {
-      toast.error("Please verify your phone number first.");
-      return;
-    }
+  // Shared registration payload (no images — uploaded separately after auth)
+  const buildRegisterPayload = (backendRole) => ({
+    phone_verified_token: authState.phoneVerifiedToken,
+    name: formData.fullName,
+    email: formData.email,
+    password: formData.password,
+    partner_type: backendRole,
+    coords: formData.coords || [85.3647, 26.1209],
+    state: formData.state,
+    district: formData.district,
+    city: formData.city,
+    address: formData.address,
+    pincode: formData.pincode,
+    service_radius_km: formData.service_radius_km,
+    referral_code: formData.referral_code || undefined,
+    pan_number: formData.pan,
+    aadhar_number: formData.aadhar,
+    gst_number: formData.gst,
+    business_name: formData.businessName,
+    business_description: formData.businessDescription,
+  });
 
-    setIsSubmitting(true);
+  // Upload images using the auth token that was just set, then PATCH the partner record.
+  // Non-blocking: a failure here does not abort registration — images can be updated later.
+  const uploadAndPatchMedia = async () => {
     try {
-      const roleMapping = {
-        'agent': 'property_agent',
-        'service': 'service_provider',
-        'supplier': 'supplier',
-        'mandi': 'mandi_seller'
-      };
-      const backendRole = roleMapping[selectedRole] || 'service_provider';
-
-      // Upload images (still base64 data URIs at this point)
       const uploadIfNeeded = async (dataUri) => {
-        if (dataUri && dataUri.startsWith('data:')) {
-          const res = await db.uploadFile(await fetch(dataUri).then(r => r.blob()));
+        if (!dataUri || !dataUri.startsWith('data:')) return dataUri || null;
+        try {
+          const blob = await fetch(dataUri).then(r => r.blob());
+          const res = await db.uploadFile(blob);
           return res.url;
-        }
-        return dataUri || null;
+        } catch { return null; }
       };
 
       const [profileUrl, logoUrl, panUrl, aadharFrontUrl, aadharBackUrl, gstUrl] = await Promise.all([
@@ -144,38 +154,41 @@ export default function PartnerRegistration() {
         uploadIfNeeded(formData.gstImage),
       ]);
 
-      // Create the partner account in one shot at the final step
-      const res = await api.post('/auth/partner/register', {
-        phone_verified_token: authState.phoneVerifiedToken,
-        name: formData.fullName,
-        email: formData.email,
-        password: formData.password,
-        partner_type: backendRole,
-        coords: formData.coords || [85.3647, 26.1209],
-        state: formData.state,
-        district: formData.district,
-        city: formData.city,
-        address: formData.address,
-        pincode: formData.pincode,
-        service_radius_km: formData.service_radius_km,
-        referral_code: formData.referral_code || undefined,
-        profile_image: profileUrl,
-        pan_number: formData.pan,
-        pan_image: panUrl,
-        aadhar_number: formData.aadhar,
-        aadhar_front_image: aadharFrontUrl,
-        aadhar_back_image: aadharBackUrl,
-        gst_number: formData.gst,
-        gst_image: gstUrl,
-        business_name: formData.businessName,
-        business_logo: logoUrl,
-        business_description: formData.businessDescription,
-      });
+      if (profileUrl || logoUrl || panUrl || aadharFrontUrl || aadharBackUrl || gstUrl) {
+        await api.patch('/partner/onboard-media', {
+          image: profileUrl,
+          business_logo: logoUrl,
+          pan_image: panUrl,
+          aadhar_front_image: aadharFrontUrl,
+          aadhar_back_image: aadharBackUrl,
+          gst_image: gstUrl,
+        });
+      }
+    } catch (err) {
+      console.warn('Media upload during registration failed — images can be updated in profile:', err);
+    }
+  };
 
+  const handleConfirmRegistration = async () => {
+    if (!authState?.phoneVerifiedToken) {
+      toast.error("Please verify your phone number first.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const roleMapping = { 'agent': 'property_agent', 'service': 'service_provider', 'supplier': 'supplier', 'mandi': 'mandi_seller' };
+      const backendRole = roleMapping[selectedRole] || 'service_provider';
+
+      // Step 1: Register partner (no images)
+      const res = await api.post('/auth/partner/register', buildRegisterPayload(backendRole));
       const { user: userData, token } = res.data;
 
-      // Set the token immediately for the Razorpay/subscription step that may follow
+      // Step 2: Set auth token so subsequent requests are authenticated
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // Step 3: Upload images and patch partner record (non-blocking)
+      await uploadAndPatchMedia();
 
       const activity = {
         title: `Account Registered as ${selectedRole}`,
@@ -206,64 +219,21 @@ export default function PartnerRegistration() {
 
     setIsSubmitting(true);
     try {
-      // 1. Create the partner account first (sets token on api instance inside handleConfirmRegistration)
-      // For paid plans we need to register first to get an auth token, then initiate subscription.
-      // We call the register endpoint directly here to get the token before Razorpay.
       const roleMapping = { 'agent': 'property_agent', 'service': 'service_provider', 'supplier': 'supplier', 'mandi': 'mandi_seller' };
       const backendRole = roleMapping[selectedRole] || 'service_provider';
 
-      const uploadIfNeeded = async (dataUri) => {
-        if (dataUri && dataUri.startsWith('data:')) {
-          const res = await db.uploadFile(await fetch(dataUri).then(r => r.blob()));
-          return res.url;
-        }
-        return dataUri || null;
-      };
-
-      const [profileUrl, logoUrl, panUrl, aadharFrontUrl, aadharBackUrl, gstUrl] = await Promise.all([
-        uploadIfNeeded(formData.profileImage),
-        uploadIfNeeded(formData.businessLogo),
-        uploadIfNeeded(formData.panImage),
-        uploadIfNeeded(formData.aadharFront),
-        uploadIfNeeded(formData.aadharBack),
-        uploadIfNeeded(formData.gstImage),
-      ]);
-
-      const regRes = await api.post('/auth/partner/register', {
-        phone_verified_token: authState.phoneVerifiedToken,
-        name: formData.fullName,
-        email: formData.email,
-        password: formData.password,
-        partner_type: backendRole,
-        coords: formData.coords || [85.3647, 26.1209],
-        state: formData.state,
-        district: formData.district,
-        city: formData.city,
-        address: formData.address,
-        pincode: formData.pincode,
-        service_radius_km: formData.service_radius_km,
-        referral_code: formData.referral_code || undefined,
-        profile_image: profileUrl,
-        pan_number: formData.pan,
-        pan_image: panUrl,
-        aadhar_number: formData.aadhar,
-        aadhar_front_image: aadharFrontUrl,
-        aadhar_back_image: aadharBackUrl,
-        gst_number: formData.gst,
-        gst_image: gstUrl,
-        business_name: formData.businessName,
-        business_logo: logoUrl,
-        business_description: formData.businessDescription,
-      });
-
+      // Step 1: Register partner (no images)
+      const regRes = await api.post('/auth/partner/register', buildRegisterPayload(backendRole));
       const { user: userData, token } = regRes.data;
+
+      // Step 2: Set auth token so upload and subscription requests are authenticated
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      // 2. Initiate Subscription
-      const initRes = await api.post('/finance/subscription/initiate', {
-        plan_id: selectedPlan
-      });
+      // Step 3: Upload images and patch partner record (non-blocking)
+      await uploadAndPatchMedia();
 
+      // Step 4: Initiate Subscription
+      const initRes = await api.post('/finance/subscription/initiate', { plan_id: selectedPlan });
       const { order_id, amount, key, plan_name } = initRes.data;
 
       const options = {
@@ -281,7 +251,6 @@ export default function PartnerRegistration() {
               razorpay_signature: rzpResponse.razorpay_signature,
               plan_id: selectedPlan
             });
-            // Account already created above — just finalise session
             const activity = {
               title: `Account Registered as ${selectedRole}`,
               time: new Date().toLocaleTimeString(),
@@ -308,7 +277,6 @@ export default function PartnerRegistration() {
         modal: {
           ondismiss: () => setIsSubmitting(false)
         },
-        // Pass referral code to verify if needed, but it's already in formData
       };
 
       const rzp = new window.Razorpay(options);

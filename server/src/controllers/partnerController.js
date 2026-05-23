@@ -649,6 +649,33 @@ const getPartnerSubscriptionLimits = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Update partner media (images/logos) after registration
+ * @route   PATCH /api/partner/onboard-media
+ * @access  Private (Partner)
+ */
+const updatePartnerMedia = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    const { image, business_logo, pan_image, aadhar_front_image, aadhar_back_image, gst_image } = req.body;
+
+    const update = {};
+    if (image)                update.image = image;
+    if (pan_image)            update['kyc.pan_image'] = pan_image;
+    if (aadhar_front_image)   update['kyc.aadhar_front_image'] = aadhar_front_image;
+    if (aadhar_back_image)    update['kyc.aadhar_back_image'] = aadhar_back_image;
+    if (gst_image)            update['kyc.gst_image'] = gst_image;
+    if (business_logo)        update['profile.mandi_profile.business_logo'] = business_logo;
+
+    await Partner.findByIdAndUpdate(partnerId, { $set: update });
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error({ err: error }, 'updatePartnerMedia error:');
+    res.status(500).json({ success: false, message: 'Failed to update media.' });
+  }
+};
+
 module.exports = {
   onboardPartner,
   getMyPartnerProfile,
@@ -661,5 +688,6 @@ module.exports = {
   getPublicPartnerById,
   getPartnerSubscriptionPlans,
   toggleFeature,
-  getPartnerSubscriptionLimits
+  getPartnerSubscriptionLimits,
+  updatePartnerMedia,
 };
