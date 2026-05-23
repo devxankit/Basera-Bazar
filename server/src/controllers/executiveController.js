@@ -61,11 +61,14 @@ exports.registerStep1 = async (req, res) => {
       logger.info(`[DEV] OTP for ${phone}: ${otpCode}`);
     }
 
-    try {
-      await sendOTP(phone, otpCode);
-    } catch (smsErr) {
-      logger.error({ err: smsErr }, '[SMS] Failed to send executive OTP');
-      return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
+    // In demo mode skip real SMS — 123456 is accepted at verify step
+    if (process.env.DEMO_OTP_ENABLED !== 'true') {
+      try {
+        await sendOTP(phone, otpCode);
+      } catch (smsErr) {
+        logger.error({ err: smsErr }, '[SMS] Failed to send executive OTP');
+        return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
+      }
     }
 
     res.status(200).json({

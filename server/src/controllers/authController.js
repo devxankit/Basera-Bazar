@@ -115,12 +115,14 @@ const requestOtp = async (req, res) => {
       expires_at: expirationDate,
     });
 
-    // Await SMS delivery — return 502 if it fails so the client knows to retry
-    try {
-      await sendOTP(phone, otpCode);
-    } catch (smsErr) {
-      logger.error({ err: smsErr }, '[SMS] Failed to send OTP');
-      return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
+    // In demo mode skip real SMS — 123456 is accepted at verify step
+    if (process.env.DEMO_OTP_ENABLED !== 'true') {
+      try {
+        await sendOTP(phone, otpCode);
+      } catch (smsErr) {
+        logger.error({ err: smsErr }, '[SMS] Failed to send OTP');
+        return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
+      }
     }
 
     res.status(200).json({
