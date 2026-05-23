@@ -54,62 +54,49 @@ export default function PartnerSubscription() {
   const partner = user;
   const sub = partner.active_subscription_id;
 
-  const dbFreePlan = plans.find(p => p.price === 0 || p.name?.toLowerCase().includes('free'));
-  const currentPlanName = sub?.plan_snapshot?.name || dbFreePlan?.name || 'Free Trial';
-  const isActivePro = !!sub && sub.plan_snapshot?.price > 0;
+  // Whether this is a paid (non-trial, non-free) plan
+  const isActivePro = !!sub && sub.status === 'active' && (sub.plan_snapshot?.price ?? 0) > 0;
+  // Whether this is a free trial (status 'trial' or price 0)
+  const isTrialPlan = !!sub && (sub.status === 'trial' || (sub.plan_snapshot?.price ?? 0) === 0);
 
-  const getPlanTheme = (planName) => {
-    if (planName?.toLowerCase().includes('pro') || planName?.toLowerCase().includes('gold') || planName?.toLowerCase().includes('premium')) {
-      return {
-        mainColor: 'bg-[#001b4e]',
-        accentColor: 'text-blue-500',
-        lightBg: 'bg-blue-50',
-        shadow: 'shadow-blue-900/20'
-      };
+  const currentPlanName = sub?.plan_snapshot?.name || 'Free Trial';
+
+  const getPlanTheme = () => {
+    if (isActivePro) {
+      return { mainColor: 'bg-[#001b4e]', accentColor: 'text-blue-400', lightBg: 'bg-blue-50', shadow: 'shadow-blue-900/20' };
     }
-    return {
-      mainColor: 'bg-[#001b4e]',
-      accentColor: 'text-emerald-500',
-      lightBg: 'bg-emerald-50',
-      shadow: 'shadow-slate-900/10'
-    };
+    if (isTrialPlan) {
+      return { mainColor: 'bg-emerald-700', accentColor: 'text-emerald-300', lightBg: 'bg-emerald-50', shadow: 'shadow-emerald-900/20' };
+    }
+    // No subscription — pending state
+    return { mainColor: 'bg-slate-600', accentColor: 'text-slate-300', lightBg: 'bg-slate-50', shadow: 'shadow-slate-900/10' };
   };
 
-  const currentTheme = getPlanTheme(currentPlanName);
+  const currentTheme = getPlanTheme();
 
   const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   const MS_PER_DAY = 1000 * 60 * 60 * 24;
-  const freePlanDays = dbFreePlan?.duration_days || 30;
 
-  // Resolve start date: use subscription start, fallback to account creation date
-  const computedStart = sub?.starts_at
-    ? new Date(sub.starts_at)
-    : partner.createdAt
-      ? new Date(partner.createdAt)
-      : new Date();
-
-  // Resolve end date:
-  //   1. Real subscription with ends_at → use directly
-  //   2. Real subscription with duration_days but no ends_at → start + duration
-  //   3. Free trial → account creation + free plan validity
+  const computedStart = sub?.starts_at ? new Date(sub.starts_at) : new Date();
   const computedEnd = sub?.ends_at
     ? new Date(sub.ends_at)
     : sub?.plan_snapshot?.duration_days
       ? new Date(computedStart.getTime() + sub.plan_snapshot.duration_days * MS_PER_DAY)
-      : new Date(computedStart.getTime() + freePlanDays * MS_PER_DAY);
+      : new Date(computedStart.getTime() + 30 * MS_PER_DAY);
 
-  const daysLeft = Math.max(0, Math.ceil((computedEnd - new Date()) / MS_PER_DAY));
+  const daysLeft = sub ? Math.max(0, Math.ceil((computedEnd - new Date()) / MS_PER_DAY)) : 0;
+
   const planInfo = {
-    name: currentPlanName,
-    startDate: fmt(computedStart),
-    endDate: fmt(computedEnd),
+    name: sub ? currentPlanName : 'No Active Plan',
+    startDate: sub ? fmt(computedStart) : '—',
+    endDate: sub ? fmt(computedEnd) : '—',
     daysLeft,
-    status: sub?.status || 'active',
+    status: sub?.status || 'none',
     limits: {
-      listings: sub?.plan_snapshot?.listings_limit === -1 ? '∞' : (sub?.plan_snapshot?.listings_limit ?? 1),
+      listings: sub?.plan_snapshot?.listings_limit === -1 ? '∞' : (sub?.plan_snapshot?.listings_limit ?? 0),
       featured: sub?.plan_snapshot?.featured_listings_limit === -1 ? '∞' : (sub?.plan_snapshot?.featured_listings_limit ?? 0),
-      leads: sub?.plan_snapshot?.leads_limit === -1 ? '∞' : (sub?.plan_snapshot?.leads_limit ?? 5)
-    }
+      leads: sub?.plan_snapshot?.leads_limit === -1 ? '∞' : (sub?.plan_snapshot?.leads_limit ?? 0),
+    },
   };
 
   const handleSubscribe = async (plan) => {

@@ -774,6 +774,7 @@ const registerPartner = async (req, res) => {
       gst_number, gst_image,
       profile_image,
       business_name, business_logo, business_description,
+      plan_type, // 'free_trial' → auto-grant trial subscription at registration
     } = req.body;
 
     // Verify the short-lived phone token issued after OTP verification
@@ -868,6 +869,12 @@ const registerPartner = async (req, res) => {
       entity_id: partner._id,
       description: `New ${finalPartnerType} registered: ${partner.name}`,
     });
+
+    // Auto-grant free trial when partner selects it during registration
+    if (plan_type === 'free_trial') {
+      const { grantFreeTrial } = require('../utils/trialHelper');
+      await grantFreeTrial(partner._id).catch(() => {});
+    }
 
     const accessToken  = signAccessToken(partner._id, 'partner', partner.email, partner.token_version || 0);
     const refreshToken = signRefreshToken(partner._id, 'partner', partner.token_version || 0);

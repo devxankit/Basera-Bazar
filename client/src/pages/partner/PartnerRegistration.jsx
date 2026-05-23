@@ -111,7 +111,7 @@ export default function PartnerRegistration() {
   };
 
   // Shared registration payload (no images — uploaded separately after auth)
-  const buildRegisterPayload = (backendRole) => ({
+  const buildRegisterPayload = (backendRole, planType = null) => ({
     phone_verified_token: authState.phoneVerifiedToken,
     name: formData.fullName,
     email: formData.email,
@@ -130,6 +130,7 @@ export default function PartnerRegistration() {
     gst_number: formData.gst,
     business_name: formData.businessName,
     business_description: formData.businessDescription,
+    ...(planType && { plan_type: planType }),
   });
 
   // Upload images using the auth token that was just set, then PATCH the partner record.
@@ -180,8 +181,8 @@ export default function PartnerRegistration() {
       const roleMapping = { 'agent': 'property_agent', 'service': 'service_provider', 'supplier': 'supplier', 'mandi': 'mandi_seller' };
       const backendRole = roleMapping[selectedRole] || 'service_provider';
 
-      // Step 1: Register partner (no images)
-      const res = await api.post('/auth/partner/register', buildRegisterPayload(backendRole));
+      // Step 1: Register partner (no images) — pass 'free_trial' so server grants trial subscription
+      const res = await api.post('/auth/partner/register', buildRegisterPayload(backendRole, 'free_trial'));
       const { user: userData, token } = res.data;
 
       // Step 2: Set auth token so subsequent requests are authenticated
