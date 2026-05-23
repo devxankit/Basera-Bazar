@@ -667,7 +667,20 @@ const updatePartnerMedia = async (req, res) => {
     if (gst_image)            update['kyc.gst_image'] = gst_image;
     if (business_logo)        update['profile.mandi_profile.business_logo'] = business_logo;
 
-    await Partner.findByIdAndUpdate(partnerId, { $set: update });
+    if (pan_image || aadhar_front_image) {
+      // Promote to pending_approval if still incomplete (first-time KYC image upload)
+      await Partner.updateOne(
+        { _id: partnerId, onboarding_status: 'incomplete' },
+        { $set: { ...update, onboarding_status: 'pending_approval' } }
+      );
+      // For partners already past incomplete, just update the media fields
+      await Partner.updateOne(
+        { _id: partnerId, onboarding_status: { $ne: 'incomplete' } },
+        { $set: update }
+      );
+    } else {
+      await Partner.findByIdAndUpdate(partnerId, { $set: update });
+    }
 
     res.status(200).json({ success: true });
   } catch (error) {

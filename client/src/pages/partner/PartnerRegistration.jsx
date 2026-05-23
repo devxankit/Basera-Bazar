@@ -255,7 +255,9 @@ export default function PartnerRegistration() {
         localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs.filter(l => l.title !== activity.title)]));
         login(userData, token);
         sessionStorage.removeItem(STORAGE_KEY);
-        navigate('/partner/home');
+        // Hard redirect so auth context re-initialises cleanly from localStorage
+        // after Razorpay handler callback (avoids PartnerRoute flash-redirect to login)
+        window.location.replace('/partner/home');
       };
 
       // Demo mode: skip Razorpay modal and auto-verify

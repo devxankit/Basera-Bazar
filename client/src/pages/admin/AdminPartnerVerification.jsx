@@ -330,17 +330,28 @@ export default function AdminPartnerVerification() {
 
                     <div className="bg-indigo-50/50 rounded-3xl p-6 border border-indigo-100/50">
                       <h4 className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4">Onboarding Status</h4>
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className={`w-3 h-3 rounded-full ${selectedPartner.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                        <span className="font-black text-slate-900 uppercase text-[12px] tracking-widest">
-                          {selectedPartner.is_active ? 'Account Active' : 'Account Disabled'}
-                        </span>
-                      </div>
-                      <p className="text-slate-500 text-[13px] font-medium leading-relaxed">
-                        {selectedPartner.onboarding_status === 'approved'
-                          ? 'This partner has been verified and can list items.'
-                          : 'Verification pending. Review documents below to activate.'}
-                      </p>
+                      {(() => {
+                        const disabled = !selectedPartner.is_active;
+                        const statusMap = {
+                          approved: { dot: 'bg-emerald-500', text: 'Account Verified', desc: 'This partner has been verified and can list items.' },
+                          pending_approval: { dot: 'bg-amber-500', text: 'Pending Approval', desc: 'Documents submitted. Awaiting admin review.' },
+                          incomplete: { dot: 'bg-slate-300', text: 'Incomplete', desc: 'Partner has not yet submitted all required documents.' },
+                          rejected: { dot: 'bg-rose-500', text: 'Application Rejected', desc: 'This application was rejected. Partner must re-submit.' },
+                          suspended: { dot: 'bg-slate-700', text: 'Account Suspended', desc: 'This account has been suspended by admin.' },
+                        };
+                        const s = disabled
+                          ? { dot: 'bg-slate-300', text: 'Account Disabled', desc: 'This account has been deactivated by admin.' }
+                          : (statusMap[selectedPartner.onboarding_status] || statusMap.incomplete);
+                        return (
+                          <>
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className={`w-3 h-3 rounded-full ${s.dot}`} />
+                              <span className="font-black text-slate-900 uppercase text-[12px] tracking-widest">{s.text}</span>
+                            </div>
+                            <p className="text-slate-500 text-[13px] font-medium leading-relaxed">{s.desc}</p>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
 
