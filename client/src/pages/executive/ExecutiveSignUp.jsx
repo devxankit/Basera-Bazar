@@ -346,204 +346,236 @@ export default function ExecutiveSignUp() {
 
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col max-w-md mx-auto relative overflow-x-hidden">
-      
-      {/* Clean Header */}
-      <div className="bg-white px-6 pt-10 pb-6 sticky top-0 z-30 border-b border-slate-100">
-        <div className="flex items-center justify-between mb-8">
-          <button 
+    <div className="min-h-screen bg-slate-100 flex flex-col max-w-md mx-auto relative overflow-x-hidden">
+
+      {/* Header */}
+      <div className="bg-[#001b4e] px-6 pt-10 pb-7 sticky top-0 z-30">
+        <div className="flex items-center justify-between mb-6">
+          <button
             onClick={() => step > 1 ? setStep(step - 1) : navigate('/executive/login')}
-            className="p-2 bg-slate-50 rounded-lg text-slate-600"
+            className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-white"
           >
             <ArrowLeft size={18} />
           </button>
-          <div className="flex gap-1">
-            {steps.map(s => (
-              <div key={s.id} className={`w-6 h-1 rounded-full transition-colors duration-500 ${step >= s.id ? 'bg-[#fa8639]' : 'bg-slate-100'}`} />
-            ))}
+          <span className="text-white/60 text-xs font-semibold uppercase tracking-widest">Step {step} of {steps.length}</span>
+          <div className="w-9" />
+        </div>
+
+        {/* Step name + progress */}
+        <div className="flex items-center gap-4 mb-5">
+          <div className="w-12 h-12 rounded-2xl bg-[#fa8639] flex items-center justify-center shadow-lg shadow-orange-900/30">
+            {React.createElement(steps[step - 1].icon, { size: 22, className: 'text-white' })}
+          </div>
+          <div>
+            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-widest leading-none mb-1">Field Executive</p>
+            <h1 className="text-white text-[22px] font-bold leading-tight">{steps[step - 1].title}</h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center">
-            {React.createElement(steps[step-1].icon, { size: 20 })}
-          </div>
-          <div>
-            <h1 className="text-xl font-medium text-slate-900">{steps[step-1].title}</h1>
-            <p className="text-slate-400 font-medium text-[10px] uppercase tracking-wider">Step {step} of 4</p>
-          </div>
+        {/* Step progress dots */}
+        <div className="flex gap-2">
+          {steps.map(s => (
+            <div key={s.id} className="flex-1">
+              <div className={`h-1.5 rounded-full transition-all duration-500 ${step > s.id ? 'bg-[#fa8639]' : step === s.id ? 'bg-white' : 'bg-white/20'}`} />
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="flex-grow p-6 sm:p-8">
+      <div className="flex-grow p-5">
         <AnimatePresence mode="wait">
           {step === 1 && (
-            <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6 sm:space-y-8">
-              <div className="space-y-4 sm:space-y-6">
-                <InputField label="Full Name" name="name" icon={UserCircle} value={formData.name} onChange={handleInputChange} placeholder="As per documents" inputMode="text" autoComplete="name" maxLength={60} error={errors.name} />
-                <InputField label="Email Address" name="email" icon={Mail} type="email" value={formData.email} onChange={handleInputChange} placeholder="For notifications" autoComplete="email" maxLength={100} error={errors.email} />
-                <InputField label="Phone Number" name="phone" icon={Phone} type="tel" inputMode="numeric" maxLength={10} autoComplete="tel-national" prefix="+91" value={formData.phone} onChange={handleInputChange} placeholder="10 digits" error={errors.phone} />
-                <InputField label="Security Password" name="password" icon={Lock} type="password" autoComplete="new-password" value={formData.password} onChange={handleInputChange} placeholder="Min 8 chars, include a number" error={errors.password} />
-                <InputField label="Confirm Password" name="confirmPassword" icon={Lock} type="password" autoComplete="new-password" value={formData.confirmPassword} onChange={handleInputChange} placeholder="Re-enter your password" error={errors.confirmPassword} />
-              </div>
+            <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5 pt-2">
+              <p className="text-slate-500 text-sm font-medium mb-2">Fill in your basic information to get started.</p>
+              <InputField label="Full Name" name="name" icon={UserCircle} value={formData.name} onChange={handleInputChange} placeholder="As per documents" inputMode="text" autoComplete="name" maxLength={60} error={errors.name} />
+              <InputField label="Email Address" name="email" icon={Mail} type="email" value={formData.email} onChange={handleInputChange} placeholder="you@example.com" autoComplete="email" maxLength={100} error={errors.email} />
+              <InputField label="Phone Number" name="phone" icon={Phone} type="tel" inputMode="numeric" maxLength={10} autoComplete="tel-national" prefix="+91" value={formData.phone} onChange={handleInputChange} placeholder="10-digit number" error={errors.phone} />
+              <InputField label="Password" name="password" icon={Lock} type="password" autoComplete="new-password" value={formData.password} onChange={handleInputChange} placeholder="Min 8 chars, include a number" error={errors.password} />
+              <InputField label="Confirm Password" name="confirmPassword" icon={Lock} type="password" autoComplete="new-password" value={formData.confirmPassword} onChange={handleInputChange} placeholder="Re-enter your password" error={errors.confirmPassword} />
+
               <button
                 onClick={sendOtp}
                 disabled={isSubmitting || !formData.name || !formData.phone || !formData.password || !formData.confirmPassword}
-                className="w-full py-4 bg-slate-900 text-white font-medium rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50 uppercase tracking-widest text-xs"
+                className="w-full py-4 bg-[#001b4e] text-white font-bold rounded-2xl shadow-lg shadow-slate-900/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-40 mt-2"
               >
-                <span>{isSubmitting ? 'Sending...' : 'Continue'}</span>
-                {!isSubmitting && <ChevronRight size={18} />}
+                <span className="text-[15px]">{isSubmitting ? 'Sending OTP…' : 'Send OTP & Continue'}</span>
+                {!isSubmitting && <ChevronRight size={20} />}
               </button>
             </motion.div>
           )}
 
           {step === 2 && (
-            <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8 text-center pt-10">
-              <div className="w-24 h-24 bg-indigo-50 text-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                <ShieldCheck size={48} strokeWidth={2.5} />
+            <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6 text-center pt-8">
+              <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-indigo-200">
+                <ShieldCheck size={40} className="text-white" />
               </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-medium text-slate-900">Verify Phone</h2>
-                <p className="text-slate-500 font-normal">Enter the 6-digit code sent to<br/><span className="text-slate-900 font-medium">+91 {formData.phone}</span></p>
+              <div>
+                <h2 className="text-[22px] font-bold text-slate-900">Verify Your Phone</h2>
+                <p className="text-slate-500 text-sm mt-1">6-digit code sent to<br /><span className="text-[#001b4e] font-bold text-base">+91 {formData.phone}</span></p>
               </div>
-              <div className="space-y-3">
+
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 space-y-4">
                 <input
                   type="text"
                   maxLength="6"
                   value={otp}
                   onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '')); setOtpError(''); }}
-                  className={`w-full bg-white border-2 text-center text-4xl font-medium tracking-[0.8em] py-5 rounded-[1.5rem] focus:outline-none focus:ring-8 transition-all ${otpError ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-slate-100 focus:border-indigo-600 focus:ring-indigo-600/5'}`}
-                  placeholder="000000"
+                  className={`w-full bg-slate-50 border-2 text-center text-4xl font-bold tracking-[0.6em] py-5 rounded-2xl focus:outline-none transition-all ${otpError ? 'border-red-400 bg-red-50 text-red-600' : 'border-slate-200 focus:border-indigo-500 focus:bg-white text-slate-900'}`}
+                  placeholder="••••••"
                 />
-                {otpError && (
-                  <p className="text-sm font-medium text-red-500">{otpError}</p>
-                )}
-                <div className="flex justify-center pt-1">
+                {otpError && <p className="text-sm font-semibold text-red-500">{otpError}</p>}
+                <div className="flex justify-center">
                   {resendTimer > 0 ? (
-                    <p className="text-xs text-slate-400 font-medium">Resend OTP in <span className="text-indigo-600 font-semibold">{resendTimer}s</span></p>
+                    <p className="text-xs text-slate-400 font-medium">Resend in <span className="text-indigo-600 font-bold">{resendTimer}s</span></p>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={resendOtp}
-                      disabled={isSubmitting}
-                      className="text-xs font-semibold text-indigo-600 underline underline-offset-2 disabled:opacity-50"
-                    >
+                    <button type="button" onClick={resendOtp} disabled={isSubmitting} className="text-sm font-bold text-indigo-600 underline underline-offset-2 disabled:opacity-50">
                       Resend OTP
                     </button>
                   )}
                 </div>
               </div>
+
               <button
                 onClick={verifyOtp}
                 disabled={isSubmitting || otp.length < 6}
-                className="w-full py-5 bg-indigo-600 text-white font-medium rounded-2xl shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] disabled:opacity-50 uppercase tracking-widest text-xs"
+                className="w-full py-4 bg-indigo-600 text-white font-bold text-[15px] rounded-2xl shadow-xl shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-40"
               >
-                {isSubmitting ? 'VERIFYING...' : 'VERIFY & CONTINUE'}
+                {isSubmitting ? 'Verifying…' : 'Verify & Continue'}
               </button>
             </motion.div>
           )}
 
           {step === 3 && (
-            <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-10">
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin size={18} className="text-indigo-600" />
-                  <h3 className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Residential Address</h3>
+            <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5 pt-2">
+              {/* Address Section */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-slate-50">
+                  <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <MapPin size={16} className="text-blue-600" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">Residential Address</span>
                 </div>
-                <InputField label="Street Address" name="address_line" value={formData.address.address_line} onChange={(e) => handleInputChange(e, 'address')} placeholder="Building, Street" autoComplete="address-line1" />
-                <div className="grid grid-cols-2 gap-4">
-                  <InputField label="City" name="city" value={formData.address.city} onChange={(e) => handleInputChange(e, 'address')} placeholder="Delhi" autoComplete="address-level2" />
-                  <InputField label="Pincode" name="pincode" inputMode="numeric" maxLength={6} autoComplete="postal-code" value={formData.address.pincode} onChange={(e) => handleInputChange(e, 'address')} placeholder="110001" error={errors.pincode} />
+                <div className="p-5 space-y-4">
+                  <InputField label="Street Address" name="address_line" value={formData.address.address_line} onChange={(e) => handleInputChange(e, 'address')} placeholder="Building, Street, Area" autoComplete="address-line1" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <InputField label="City" name="city" value={formData.address.city} onChange={(e) => handleInputChange(e, 'address')} placeholder="Delhi" autoComplete="address-level2" />
+                    <InputField label="Pincode" name="pincode" inputMode="numeric" maxLength={6} autoComplete="postal-code" value={formData.address.pincode} onChange={(e) => handleInputChange(e, 'address')} placeholder="110001" error={errors.pincode} />
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <CreditCard size={18} className="text-indigo-600" />
-                  <h3 className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Bank Payout Details</h3>
+              {/* Bank Details Section */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-slate-50">
+                  <div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center">
+                    <CreditCard size={16} className="text-green-600" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">Bank Payout Details</span>
                 </div>
-                <InputField label="Bank Name" name="bank_name" icon={Building2} value={formData.bank_details.bank_name} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="HDFC, SBI, etc." />
-                <InputField label="Account Number" name="account_number" inputMode="numeric" maxLength={18} value={formData.bank_details.account_number} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="9–18 digits" error={errors.account_number} />
-                <div className="grid grid-cols-2 gap-4">
-                  <InputField label="IFSC Code" name="ifsc_code" maxLength={11} value={formData.bank_details.ifsc_code} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="BARB0STAKOT" error={ifscError || errors.ifsc_code} />
-                  <InputField label="Holder Name" name="account_holder_name" value={formData.bank_details.account_holder_name} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="John Doe" />
+                <div className="p-5 space-y-4">
+                  <InputField label="Bank Name" name="bank_name" icon={Building2} value={formData.bank_details.bank_name} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="e.g. HDFC, SBI" />
+                  <InputField label="Account Number" name="account_number" inputMode="numeric" maxLength={18} value={formData.bank_details.account_number} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="9–18 digits" error={errors.account_number} />
+                  <div className="grid grid-cols-2 gap-4">
+                    <InputField label="IFSC Code" name="ifsc_code" maxLength={11} value={formData.bank_details.ifsc_code} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="BARB0STAKOT" error={ifscError || errors.ifsc_code} />
+                    <InputField label="Account Holder" name="account_holder_name" value={formData.bank_details.account_holder_name} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="Full name" />
+                  </div>
                 </div>
               </div>
 
               <button
                 onClick={submitDetails}
                 disabled={
-                  isSubmitting ||
-                  !!ifscError ||
-                  !formData.address.address_line ||
-                  !formData.address.city ||
-                  !formData.address.pincode ||
-                  !formData.bank_details.bank_name ||
-                  !formData.bank_details.account_number ||
-                  !formData.bank_details.ifsc_code ||
-                  !formData.bank_details.account_holder_name
-                } 
-                className="w-full py-5 bg-indigo-600 text-white font-medium rounded-2xl shadow-xl active:scale-[0.98] transition-all uppercase tracking-widest text-xs disabled:opacity-30 disabled:pointer-events-none"
+                  isSubmitting || !!ifscError ||
+                  !formData.address.address_line || !formData.address.city || !formData.address.pincode ||
+                  !formData.bank_details.bank_name || !formData.bank_details.account_number ||
+                  !formData.bank_details.ifsc_code || !formData.bank_details.account_holder_name
+                }
+                className="w-full py-4 bg-[#001b4e] text-white font-bold text-[15px] rounded-2xl shadow-lg shadow-slate-900/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-40"
               >
-                CONTINUE TO KYC
+                <span>Continue to KYC</span>
+                <ChevronRight size={20} />
               </button>
             </motion.div>
           )}
 
           {step === 4 && (
-            <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-10">
-              {/* Live Photo Section */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-medium text-slate-400 uppercase tracking-widest ml-1">Identity Selfie</label>
-                  {formData.kyc.live_photo && <CheckCircle2 size={16} className="text-green-500" />}
+            <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5 pt-2">
+              <p className="text-slate-500 text-sm font-medium">Upload your identity documents clearly for fast verification.</p>
+
+              {/* Live Photo */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-purple-100 rounded-xl flex items-center justify-center">
+                      <Camera size={16} className="text-purple-600" />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">Identity Selfie</span>
+                  </div>
+                  {formData.kyc.live_photo && <CheckCircle2 size={18} className="text-green-500" />}
                 </div>
-                
-                <div className={`relative h-64 rounded-[2.5rem] border-2 border-dashed overflow-hidden transition-all ${formData.kyc.live_photo || isCameraOpen ? 'border-indigo-600 bg-black shadow-lg shadow-indigo-100' : 'border-slate-200 bg-white hover:border-indigo-300'}`}>
-                  {isCameraOpen ? (
-                    <div className="relative w-full h-full">
-                      <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
-                      <canvas ref={canvasRef} className="hidden" />
-                      <div className="absolute bottom-6 inset-x-0 flex justify-center gap-4">
-                        <button onClick={stopCamera} className="px-6 py-3 bg-white/10 backdrop-blur-xl text-white text-[10px] font-medium rounded-xl border border-white/20 uppercase tracking-widest">Cancel</button>
-                        <button onClick={capturePhoto} className="px-8 py-3 bg-white text-slate-900 text-[10px] font-medium rounded-xl shadow-2xl uppercase tracking-widest">Capture</button>
+                <div className="p-4">
+                  <div className={`relative h-56 rounded-2xl border-2 border-dashed overflow-hidden transition-all ${formData.kyc.live_photo || isCameraOpen ? 'border-indigo-400 bg-black' : 'border-slate-200 bg-slate-50 hover:border-indigo-300'}`}>
+                    {isCameraOpen ? (
+                      <div className="relative w-full h-full">
+                        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
+                        <canvas ref={canvasRef} className="hidden" />
+                        <div className="absolute bottom-4 inset-x-0 flex justify-center gap-3">
+                          <button onClick={stopCamera} className="px-5 py-2.5 bg-white/15 backdrop-blur text-white text-xs font-bold rounded-xl border border-white/20 uppercase tracking-wider">Cancel</button>
+                          <button onClick={capturePhoto} className="px-7 py-2.5 bg-white text-slate-900 text-xs font-bold rounded-xl shadow-xl uppercase tracking-wider">Capture</button>
+                        </div>
                       </div>
-                    </div>
-                  ) : formData.kyc.live_photo ? (
-                    <div className="relative w-full h-full">
-                      <img src={formData.kyc.live_photo} alt="Selfie" className="w-full h-full object-cover" />
-                      <button onClick={() => setIsCameraOpen(true)} className="absolute bottom-4 right-4 p-4 bg-indigo-600 text-white rounded-[1.25rem] shadow-xl hover:bg-indigo-700 transition-all"><Camera size={20} /></button>
-                    </div>
-                  ) : (
-                    <div onClick={() => setIsCameraOpen(true)} className="w-full h-full flex flex-col items-center justify-center gap-4 cursor-pointer">
-                      <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-[1.5rem] flex items-center justify-center"><Camera size={32} /></div>
-                      <div className="text-center">
-                        <p className="text-sm font-medium text-slate-900 uppercase">Take Live Photo</p>
-                        <p className="text-[10px] font-normal text-slate-400 mt-1">Tap to open camera</p>
+                    ) : formData.kyc.live_photo ? (
+                      <div className="relative w-full h-full">
+                        <img src={formData.kyc.live_photo} alt="Selfie" className="w-full h-full object-cover" />
+                        <button onClick={() => setIsCameraOpen(true)} className="absolute bottom-3 right-3 p-3 bg-indigo-600 text-white rounded-2xl shadow-xl"><Camera size={18} /></button>
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <button type="button" onClick={() => setIsCameraOpen(true)} className="w-full h-full flex flex-col items-center justify-center gap-3">
+                        <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center"><Camera size={28} /></div>
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-slate-700">Take Live Photo</p>
+                          <p className="text-xs text-slate-400 mt-0.5">Tap to open camera</p>
+                        </div>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Document Uploads */}
-              <div className="space-y-8">
-                <div className="space-y-4">
-                  <InputField label="Aadhar Card Number" name="aadhar_number" inputMode="numeric" maxLength={12} value={formData.kyc.aadhar_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="12-digit UIDAI number" error={errors.aadhar_number} />
-                  <DocUpload label="Aadhar Front Side" value={formData.kyc.aadhar_image} onChange={(e) => handleFileUpload(e, 'aadhar_image')} />
+              {/* Aadhaar */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-slate-50">
+                  <div className="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center">
+                    <MapPinned size={16} className="text-orange-600" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">Aadhaar Card</span>
                 </div>
-                <div className="space-y-4 pt-4 border-t border-slate-100">
-                  <InputField label="PAN Card Number" name="pan_number" maxLength={10} value={formData.kyc.pan_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="ABCDE1234F" error={errors.pan_number} />
-                  <DocUpload label="PAN Card Photo" value={formData.kyc.pan_image} onChange={(e) => handleFileUpload(e, 'pan_image')} />
+                <div className="p-5 space-y-4">
+                  <InputField label="Aadhaar Number" name="aadhar_number" inputMode="numeric" maxLength={12} value={formData.kyc.aadhar_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="12-digit UIDAI number" error={errors.aadhar_number} />
+                  <DocUpload label="Aadhaar Front Side" value={formData.kyc.aadhar_image} onChange={(e) => handleFileUpload(e, 'aadhar_image')} error={errors.aadhar_image} />
+                </div>
+              </div>
+
+              {/* PAN */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-slate-50">
+                  <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <CreditCard size={16} className="text-blue-600" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">PAN Card</span>
+                </div>
+                <div className="p-5 space-y-4">
+                  <InputField label="PAN Number" name="pan_number" maxLength={10} value={formData.kyc.pan_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="ABCDE1234F" error={errors.pan_number} />
+                  <DocUpload label="PAN Card Photo" value={formData.kyc.pan_image} onChange={(e) => handleFileUpload(e, 'pan_image')} error={errors.pan_image} />
                 </div>
               </div>
 
               <button
                 onClick={finalize}
                 disabled={isSubmitting || !formData.kyc.live_photo || !formData.kyc.aadhar_number || !formData.kyc.aadhar_image || !formData.kyc.pan_number || !formData.kyc.pan_image}
-                className="w-full py-5 bg-slate-900 text-white font-medium rounded-2xl shadow-xl transition-all active:scale-[0.98] disabled:opacity-30 uppercase tracking-widest text-xs"
+                className="w-full py-4 bg-[#001b4e] text-white font-bold text-[15px] rounded-2xl shadow-lg shadow-slate-900/20 transition-all active:scale-[0.98] disabled:opacity-40"
               >
-                {isSubmitting ? 'PROCESSING APPLICATION...' : 'FINALIZE REGISTRATION'}
+                {isSubmitting ? 'Processing…' : 'Finalize Registration'}
               </button>
             </motion.div>
           )}
@@ -563,36 +595,39 @@ export default function ExecutiveSignUp() {
 }
 
 const InputField = ({ label, icon: Icon, prefix, error, ...props }) => (
-  <div className="space-y-1.5 sm:space-y-2 group">
-    <label className="text-[9px] sm:text-[11px] font-medium text-slate-400 uppercase tracking-widest ml-1 leading-none">{label}</label>
+  <div className="space-y-1.5">
+    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-0.5">{label}</label>
     <div className="relative">
       <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-3">
-        {Icon && <Icon size={18} className="text-slate-300" />}
-        {prefix && <span className="text-slate-900 font-medium text-[15px] border-r border-slate-100 pr-3">{prefix}</span>}
+        {Icon && <Icon size={18} className="text-slate-400" />}
+        {prefix && <span className="text-slate-700 font-bold text-[15px] border-r border-slate-200 pr-3">{prefix}</span>}
       </div>
       <input
         {...props}
-        className={`w-full bg-slate-50 border ${error ? 'border-red-400' : 'border-slate-100'} py-4 ${Icon ? (prefix ? 'pl-28' : 'pl-14') : (prefix ? 'pl-20' : 'px-5')} pr-6 rounded-xl text-[15px] font-medium text-slate-900 placeholder:text-slate-300 focus:outline-none focus:bg-white focus:border-slate-200 transition-all`}
+        className={`w-full bg-white border-2 ${error ? 'border-red-400 bg-red-50' : 'border-slate-200 focus:border-[#001b4e]'} py-3.5 ${Icon ? (prefix ? 'pl-28' : 'pl-12') : (prefix ? 'pl-20' : 'px-4')} pr-4 rounded-xl text-[15px] font-semibold text-slate-900 placeholder:text-slate-300 placeholder:font-normal focus:outline-none transition-all`}
       />
     </div>
-    {error && <p className="text-[11px] text-red-500 font-medium ml-1">{error}</p>}
+    {error && <p className="text-xs text-red-500 font-semibold ml-0.5">{error}</p>}
   </div>
 );
 
-const DocUpload = ({ label, value, onChange }) => (
-  <div className="relative group">
-    <input type="file" accept="image/*" onChange={onChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-    <div className={`w-full py-5 px-6 rounded-2xl border-2 border-dashed flex items-center justify-between transition-all ${value ? 'border-indigo-600 bg-indigo-50' : 'border-slate-100 bg-white hover:border-indigo-200'}`}>
-      <div className="flex items-center gap-4">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${value ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400'}`}>
-          <Camera size={20} />
+const DocUpload = ({ label, value, onChange, error }) => (
+  <div className="space-y-1.5">
+    <div className="relative">
+      <input type="file" accept="image/*" onChange={onChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+      <div className={`w-full py-4 px-5 rounded-2xl border-2 border-dashed flex items-center justify-between transition-all ${value ? 'border-green-400 bg-green-50' : error ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50 hover:border-[#001b4e] hover:bg-blue-50'}`}>
+        <div className="flex items-center gap-4">
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${value ? 'bg-green-500 text-white' : error ? 'bg-red-100 text-red-500' : 'bg-white text-slate-400 border border-slate-200'}`}>
+            <Camera size={20} />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-slate-700">{label}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{value ? 'Tap to replace' : 'Tap to upload photo'}</p>
+          </div>
         </div>
-        <div className="text-left">
-          <p className="text-[11px] font-medium text-slate-900 uppercase tracking-wider">{label}</p>
-          <p className="text-[10px] font-normal text-slate-400">{value ? 'Click to replace photo' : 'Upload clear photo'}</p>
-        </div>
+        {value ? <CheckCircle2 size={22} className="text-green-500" /> : <span className="text-xs font-bold text-slate-400 bg-white border border-slate-200 px-3 py-1.5 rounded-lg">Upload</span>}
       </div>
-      {value && <CheckCircle2 size={20} className="text-indigo-600" />}
     </div>
+    {error && <p className="text-xs text-red-500 font-semibold ml-0.5">{error}</p>}
   </div>
 );

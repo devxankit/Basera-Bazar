@@ -476,7 +476,7 @@ export default function AdminUserDetails() {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-8 py-4 bg-slate-50 border-b border-slate-200">
                 <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                  Office / Residential Address
+                  {isPartner ? 'Office / Residential Address' : 'Address'}
                 </h3>
               </div>
               <div className="p-8">

@@ -110,7 +110,8 @@ export default function SignUp() {
       phone:    v.phone(form.phone),
       email:    v.email(form.email),
       password: v.password(form.password),
-      address:  v.address(form.address),
+      // address is only visible after city is selected — only validate when visible
+      address:  form.city ? v.address(form.address) : null,
       pincode:  form.pincode ? v.pincode(form.pincode) : null,
       location: (!form.city || !form.state || !form.district) ? 'Please select your location (city, state, district).' : null,
     });
