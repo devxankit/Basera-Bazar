@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export default function AdminPendingProperties() {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ export default function AdminPendingProperties() {
   const [searchTerm, setSearchTerm] = useState('');
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+
+  useScrollLock(!!rejectingId);
 
   const { data: rawData, isLoading: loading, error: queryError } = useQuery({
     queryKey: ['adminPendingProperties'],

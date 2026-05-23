@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 import AdminTable from '../../../components/common/AdminTable';
+import { useScrollLock } from '../../../hooks/useScrollLock';
 
 const TABS = ['Pending', 'Approved', 'Rejected'];
 
@@ -26,6 +27,8 @@ export default function AdminLeaveApproval() {
   const [tab, setTab] = useState('Pending');
   const [confirmModal, setConfirmModal] = useState(null);
   const [actionNote, setActionNote] = useState('');
+
+  useScrollLock(!!confirmModal);
 
   const statusMap = { Pending: 'pending,tl_approved', Approved: 'admin_approved', Rejected: 'admin_rejected,tl_rejected' };
 

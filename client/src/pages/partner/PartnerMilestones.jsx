@@ -16,11 +16,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from '../../mockToast';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export default function PartnerMilestones() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [showRewardForm, setShowRewardForm] = useState(false);
+
+  useScrollLock(showRewardForm);
   const [claimed, setClaimed] = useState(false);
 
   const [address, setAddress] = useState({

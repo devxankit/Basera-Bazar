@@ -23,6 +23,7 @@ import { getAdminUsers } from "../../services/AdminService";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import Skeleton from "../../components/common/Skeleton";
+import { useScrollLock } from "../../hooks/useScrollLock";
 
 export default function AdminUsers() {
   const navigate = useNavigate();
@@ -31,6 +32,8 @@ export default function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeMenu, setActiveMenu] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useScrollLock(isModalOpen);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [modalConfig, setModalConfig] = useState({
     title: "",

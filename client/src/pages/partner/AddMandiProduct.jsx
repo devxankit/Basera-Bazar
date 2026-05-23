@@ -12,6 +12,7 @@ import api from '../../services/api';
 import { db } from '../../services/DataEngine';
 import { v } from '../../utils/validators';
 import toast from '../../mockToast';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export default function AddMandiProduct() {
   const navigate = useNavigate();
@@ -49,6 +50,8 @@ export default function AddMandiProduct() {
   });
 
   const [showLimitModal, setShowLimitModal] = useState(false);
+
+  useScrollLock(showLimitModal);
 
   // --- React Query: subscription limits ---
   const { data: limitsData } = useQuery({

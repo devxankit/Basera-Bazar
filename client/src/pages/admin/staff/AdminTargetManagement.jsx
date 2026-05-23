@@ -5,6 +5,7 @@ import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 import AdminTable from '../../../components/common/AdminTable';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
+import { useScrollLock } from '../../../hooks/useScrollLock';
 
 const inputCls = 'w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white';
 const labelCls = 'block text-xs font-bold text-slate-600 mb-1';
@@ -55,6 +56,8 @@ export default function AdminTargetManagement() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [confirmModal, setConfirmModal] = useState(null);
   const [progressTarget, setProgressTarget] = useState(null);
+
+  useScrollLock(showForm || !!confirmModal || !!progressTarget);
 
   const { data: rawData, isLoading: loading, error: targetsError } = useQuery({
     queryKey: ['admin-targets'],

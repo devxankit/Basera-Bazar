@@ -18,6 +18,7 @@ import Skeleton from '../../components/common/Skeleton';
 import AdminDailyTaskTab from '../../components/executive/AdminDailyTaskTab';
 import AdminSalaryTab from '../../components/executive/AdminSalaryTab';
 import AdminTaskHistoryTab from '../../components/executive/AdminTaskHistoryTab';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 
 export default function AdminExecutives({ filter = 'All' }) {
@@ -30,6 +31,8 @@ export default function AdminExecutives({ filter = 'All' }) {
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
+
+  useScrollLock(showDetailModal || confirmModal.isOpen);
   const [activeTab, setActiveTab] = useState('executives'); // 'executives' | 'tasks' | 'salary' | 'history'
 
   const { data: rawExecutives, isLoading: loading, error: executivesError } = useQuery({

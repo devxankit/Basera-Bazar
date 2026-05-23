@@ -10,6 +10,7 @@ import api from '../../services/api';
 import { toast } from '../../mockToast';
 
 import Skeleton from '../../components/common/Skeleton';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 const roleMeta = {
   property_agent: { label: 'Property Agent', icon: <Building2 size={16} />, color: 'blue' },
@@ -24,6 +25,8 @@ export default function AdminRoleRequests() {
   const [filter, setFilter] = useState('pending');
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
+
+  useScrollLock(!!selectedRequest || showRejectModal);
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectingReq, setRejectingReq] = useState(null);
 

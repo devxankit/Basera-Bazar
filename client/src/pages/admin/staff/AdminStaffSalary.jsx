@@ -5,6 +5,7 @@ import api from '../../../services/api';
 import { toast } from '../../../mockToast';
 import AdminTable from '../../../components/common/AdminTable';
 import FilterBar, { FilterField } from '../../../components/admin/FilterBar';
+import { useScrollLock } from '../../../hooks/useScrollLock';
 
 const STAFF_TYPES = [
   { value: '', label: 'All Staff' },
@@ -21,6 +22,8 @@ export default function AdminStaffSalary() {
   const [confirmModal, setConfirmModal] = useState(null);
   const [payNotes, setPayNotes] = useState('');
   const [pendingPayId, setPendingPayId] = useState(null);
+
+  useScrollLock(!!confirmModal);
 
   const { data: rawData, isLoading: loading, error: staffSalaryError } = useQuery({
     queryKey: ['admin-staff-salary', month, staffType],

@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -26,6 +27,8 @@ export default function AdminPropertyDetails() {
    const [activeImage, setActiveImage] = useState(0);
    const [showOptions, setShowOptions] = useState(false);
    const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false, type: 'danger' });
+
+   useScrollLock(confirmModal.isOpen);
 
    // Rejection Modal State
    const [isRejecting, setIsRejecting] = useState(false);

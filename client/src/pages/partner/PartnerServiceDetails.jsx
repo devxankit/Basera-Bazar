@@ -11,12 +11,15 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/DataEngine';
 import api from '../../services/api';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export default function PartnerServiceDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useScrollLock(showDeleteConfirm);
 
   useEffect(() => {
     if (!user) {

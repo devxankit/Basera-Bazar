@@ -36,6 +36,7 @@ import api from '../../services/api';
 import { toast } from '../../mockToast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import Skeleton from '../../components/common/Skeleton';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block";
@@ -53,6 +54,8 @@ export default function AdminMandiBazar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [milestoneConfigs, setMilestoneConfigs] = useState([]);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null, loading: false });
+
+  useScrollLock(isModalOpen || confirmModal.isOpen);
   const [newMilestone, setNewMilestone] = useState({
     target_orders: '',
     prize_name: '',

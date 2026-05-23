@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import toast from '../../mockToast';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import { 
   ArrowLeft, Building2, Package, MapPin, CheckCircle2,
   Trash2, UploadCloud, Info, Check, Plus, Camera, Navigation, Hash, 
@@ -35,6 +36,8 @@ export default function AddProduct() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [partnerCategories, setPartnerCategories] = useState([]);
+
+  useScrollLock(showConfirmModal);
   
   const [formData, setFormData] = useState({
     // Step 1: Basic details and location

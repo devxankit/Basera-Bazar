@@ -7,6 +7,7 @@ import {
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 const inputClass =
   'w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300';
@@ -20,6 +21,8 @@ export default function AdminProductSubcategories() {
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
+
+  useScrollLock(showModal || deleteModal.isOpen);
   const [editTarget, setEditTarget] = useState(null);
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');

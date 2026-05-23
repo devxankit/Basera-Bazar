@@ -10,12 +10,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../../services/DataEngine';
 import api from '../../services/api';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export default function PartnerLeadDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useScrollLock(showDeleteConfirm);
   const [updating, setUpdating] = useState(false);
 
   const { data: rawData, isLoading: loading } = useQuery({

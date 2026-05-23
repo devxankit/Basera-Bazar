@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -24,6 +25,8 @@ const ServiceProfile = () => {
   const [activeTab, setActiveTab] = useState('About');
   const [isModalOpen, setIsModalOpen] = useState(() => location.search.includes('enquire=true'));
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  useScrollLock(isModalOpen || showSuccessModal);
   const [enquiryData, setEnquiryData] = useState({
     name: user?.name || '',
     phone: user?.phone || '',

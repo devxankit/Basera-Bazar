@@ -43,6 +43,7 @@ import { twMerge } from "tailwind-merge";
 import api from "../../services/api";
 import { toast } from "../../mockToast";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import { useScrollLock } from "../../hooks/useScrollLock";
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -61,6 +62,8 @@ export default function AdminUserDetails() {
     loading: false,
     type: "danger",
   });
+
+  useScrollLock(confirmModal.isOpen);
 
   const {
     data: rawData,

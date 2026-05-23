@@ -14,6 +14,7 @@ import { getAdminUsers, refreshAdminCache } from '../../services/AdminService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import Skeleton from '../../components/common/Skeleton';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export default function AdminPartnerVerification() {
   const queryClient = useQueryClient();
@@ -23,6 +24,8 @@ export default function AdminPartnerVerification() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [showKYCView, setShowKYCView] = useState(false);
+
+  useScrollLock(isModalOpen || showKYCView);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
 

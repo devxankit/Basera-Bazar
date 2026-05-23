@@ -16,6 +16,7 @@ import { Skeleton } from '../../components/common/Skeleton';
 
 import { motion } from 'framer-motion';
 import { INDIAN_STATES_DISTRICTS, INDIAN_STATES } from '../../constants/indiaGeoData';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
@@ -38,6 +39,8 @@ const BrowseCategory = () => {
   const [isGridView, setIsGridView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+
+  useScrollLock(isFilterOpen || isSortOpen || isLocationModalOpen);
   const [selectedDistricts, setSelectedDistricts] = useState([]);
   const [filterState, setFilterState] = useState('Bihar');
   const [mandiCategories, setMandiCategories] = useState([]);

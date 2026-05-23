@@ -53,6 +53,16 @@ export default function PartnerHome() {
     enabled: !!user,
   });
 
+  const { data: notificationsRaw } = useQuery({
+    queryKey: ['partnerNotificationsUnread'],
+    queryFn: () => api.get('/notifications').then(r => r.data),
+    staleTime: 60 * 1000,
+    enabled: !!user,
+  });
+  const unreadCount = notificationsRaw?.success
+    ? (notificationsRaw.data || []).filter(n => !n.is_read).length
+    : 0;
+
   const loading = statsLoading || activitiesLoading || limitsLoading;
 
   const stats = statsRaw?.success ? statsRaw.data : { total_listings: 0, total_leads: 0, active_orders: 0, earnings: 0 };
@@ -126,7 +136,9 @@ export default function PartnerHome() {
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/partner/notifications')} className="relative p-2 bg-slate-50 rounded-xl text-slate-500 active:scale-95 transition-all">
             <Bell size={22} />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
+            )}
           </button>
           <button onClick={() => navigate('/partner/profile')} className="p-1 bg-slate-100 rounded-full">
             <div className="w-8 h-8 bg-[#001b4e] rounded-full flex items-center justify-center text-white text-[12px] font-bold">

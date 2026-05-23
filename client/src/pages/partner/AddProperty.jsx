@@ -12,6 +12,7 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { v } from '../../utils/validators';
 import toast from '../../mockToast';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 const TYPES = ['Commercial', 'Residential', 'Agricultural', 'Industrial'];
 const UNITS = ['sq. ft.', 'sq. m.', 'acre', 'dismil', 'gaj'];
@@ -30,7 +31,6 @@ export default function AddProperty() {
 
   const [activeStep, setActiveStep] = useState(1);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   
@@ -82,6 +82,8 @@ export default function AddProperty() {
     emiAvailable: false,
     emiDetails: ''
   });
+
+  useScrollLock(showConfirmModal || showMapModal);
 
   // --- React Query: subscription limits ---
   const { data: limitsData } = useQuery({
@@ -426,10 +428,10 @@ export default function AddProperty() {
     }
   });
 
+  const isSubmitting = submitPropertyMutation.isPending;
+
   const submitFinalProperty = () => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    submitPropertyMutation.mutate(formData, { onSettled: () => setIsSubmitting(false) });
+    submitPropertyMutation.mutate(formData);
   };
 
   const nextStep = () => {

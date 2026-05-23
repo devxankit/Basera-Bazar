@@ -14,6 +14,7 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { v } from '../../utils/validators';
 import toast from '../../mockToast';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 const SERVICE_CATEGORIES = [
   'AC maintenance', 'CCTV Services', 'Architect', 'Carpenter', 'Civil Engineer', 
@@ -63,6 +64,8 @@ export default function AddService() {
   const [activeStep, setActiveStep] = useState(1);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [searchParams] = useSearchParams();
+
+  useScrollLock(showSuccessModal);
   const editId = searchParams.get('edit');
 
   // --- React Query: top-level service categories ---

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import { useExecutive } from '../../context/ExecutiveContext';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 const STATUS_COLOR = { present: 'bg-green-100 text-green-700', absent: 'bg-red-100 text-red-700', half_day: 'bg-amber-100 text-amber-700', on_leave: 'bg-blue-100 text-blue-700' };
 const DAY_COLOR = { present: 'bg-green-400', absent: 'bg-red-400', half_day: 'bg-amber-300', on_leave: 'bg-blue-400' };
@@ -20,6 +21,8 @@ export default function ExecutiveAttendance() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [capturedFrame, setCapturedFrame] = useState(null);
+
+  useScrollLock(cameraOpen);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);

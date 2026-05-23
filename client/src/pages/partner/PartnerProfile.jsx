@@ -11,12 +11,15 @@ import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import logo from '../../assets/baseralogo.png';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export default function PartnerProfile() {
   const navigate = useNavigate();
   const { user, logout, refreshUser } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showDeleteRoleModal, setShowDeleteRoleModal] = useState(null);
+
+  useScrollLock(showLogoutModal || !!showDeleteRoleModal);
 
   useEffect(() => {
     if (!user) {

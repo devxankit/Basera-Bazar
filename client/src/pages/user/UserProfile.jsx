@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Skeleton from '../../components/common/Skeleton';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -25,6 +26,8 @@ const UserProfile = () => {
   const { location } = useLocationContext();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  useScrollLock(showLogoutConfirm);
 
   useEffect(() => {
     if (!isAuthenticated) {

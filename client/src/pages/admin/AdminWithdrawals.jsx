@@ -12,11 +12,14 @@ import api from '../../services/api';
 import { toast } from '../../mockToast';
 
 import Skeleton from '../../components/common/Skeleton';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export default function AdminWithdrawals() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useScrollLock(isModalOpen);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [adminNote, setAdminNote] = useState('');
   const [transactionId, setTransactionId] = useState('');

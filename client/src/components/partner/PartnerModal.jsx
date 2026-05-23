@@ -1,17 +1,19 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, AlertCircle, CreditCard, X, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
-export default function PartnerModal({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  type = 'confirm', 
-  title, 
-  message, 
+export default function PartnerModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  type = 'confirm',
+  title,
+  message,
   confirmLabel = 'Confirm',
-  loading = false 
+  loading = false
 }) {
+  useScrollLock(isOpen);
   if (!isOpen) return null;
 
   const getIcon = () => {

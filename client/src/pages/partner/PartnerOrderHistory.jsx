@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export default function PartnerOrderHistory() {
   const navigate = useNavigate();
@@ -29,6 +30,8 @@ export default function PartnerOrderHistory() {
   const [sortBy, setSortBy] = useState('newest');
   const [timeFilter, setTimeFilter] = useState('all');
   const [showFilter, setShowFilter] = useState(false);
+
+  useScrollLock(showFilter);
 
   const { data: rawData, isLoading: loading } = useQuery({
     queryKey: ['sellerOrderHistory'],
