@@ -95,7 +95,7 @@ const otpVerifySchema = z.object({
     .length(6, "OTP must be exactly 6 digits")
     .regex(/^\d+$/, "OTP must contain only digits"),
   role: z.enum(['user', 'partner']).optional(),
-  flow: z.enum(['login', 'signup', 'verify_only']).optional()
+  flow: z.enum(['login', 'signup', 'verify_only', 'signup_verify']).optional()
 }).passthrough();
 
 const idParamSchema = z.object({

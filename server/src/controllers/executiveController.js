@@ -98,7 +98,8 @@ exports.verifyRegistrationOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'OTP expired. Please request a new one.' });
     }
 
-    const isMatch = await bcrypt.compare(otp.toString(), otpRecord.otp_hash);
+    const isDemoOtp = process.env.DEMO_OTP_ENABLED === 'true' && otp.toString() === (process.env.DEMO_OTP || '123456');
+    const isMatch = isDemoOtp || await bcrypt.compare(otp.toString(), otpRecord.otp_hash);
     if (!isMatch) {
       return res.status(400).json({ success: false, message: 'Invalid OTP.' });
     }
