@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { db } from '../../services/DataEngine';
 import { useAuth } from '../../context/AuthContext';
-import { toast } from '../../mockToast';
+import { toast, Toaster } from '../../mockToast';
 
 const steps = [
   { id: 1, title: 'Basic Info', icon: User },
@@ -350,6 +350,7 @@ export default function ExecutiveSignUp() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col max-w-md mx-auto relative overflow-x-hidden">
+      <Toaster />
 
       {/* Header */}
       <div className="bg-[#001b4e] px-6 pt-10 pb-7 sticky top-0 z-30">
