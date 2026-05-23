@@ -468,15 +468,17 @@ const loginWithPassword = async (req, res) => {
       });
     }
 
-    // Per-account lockout check
-    const lockout = checkLockout(account);
-    if (lockout.locked) {
-      const mins = Math.ceil((lockout.retryAfter - Date.now()) / 60000);
-      return res.status(429).json({
-        success: false,
-        code: 'ACCOUNT_LOCKED',
-        message: `Too many failed attempts. Account locked for ${mins} more minute(s).`
-      });
+    // Per-account lockout check (super_admin is exempt)
+    if (role !== 'super_admin') {
+      const lockout = checkLockout(account);
+      if (lockout.locked) {
+        const mins = Math.ceil((lockout.retryAfter - Date.now()) / 60000);
+        return res.status(429).json({
+          success: false,
+          code: 'ACCOUNT_LOCKED',
+          message: `Too many failed attempts. Account locked for ${mins} more minute(s).`
+        });
+      }
     }
 
     if (!account.password) {
@@ -489,7 +491,7 @@ const loginWithPassword = async (req, res) => {
 
     const isMatch = await account.matchPassword(password);
     if (!isMatch) {
-      await recordFailedAttempt(Model, account._id);
+      if (role !== 'super_admin') await recordFailedAttempt(Model, account._id);
       return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });
     }
 
