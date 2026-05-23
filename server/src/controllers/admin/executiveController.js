@@ -228,6 +228,14 @@ const updateWithdrawalStatus = async (req, res) => {
       }
     }
 
+    // Invalidate caches to reflect status change immediately
+    if (request.user_type === 'Executive') {
+      await invalidate.executiveProfile(request.user_id);
+    } else if (request.user_type === 'Partner') {
+      await invalidate.partnerProfile(request.user_id || request.partner_id);
+    }
+    await invalidate.adminDashboard();
+
     res.status(200).json({ success: true, message: `Withdrawal request marked as '${status}' successfully` });
   } catch (error) {
     logger.error({ err: error }, 'updateWithdrawalStatus Error:')
@@ -548,6 +556,8 @@ const setExecutiveSalary = async (req, res) => {
     };
 
     await executive.save();
+
+    await invalidate.executiveProfile(id);
 
     await logActivity({
       actor_name: req.user.name,

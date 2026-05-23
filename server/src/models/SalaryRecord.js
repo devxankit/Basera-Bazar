@@ -9,6 +9,7 @@ const salaryRecordSchema = new mongoose.Schema({
   // Polymorphic staff support (team_leader / office_staff)
   staff_id: {
     type: mongoose.Schema.Types.ObjectId,
+    refPath: 'staff_model',
     index: true,
     default: null
   },
@@ -16,6 +17,16 @@ const salaryRecordSchema = new mongoose.Schema({
     type: String,
     enum: ['executive', 'team_leader', 'office_staff'],
     default: 'executive'
+  },
+  staff_model: {
+    type: String,
+    enum: ['TeamLeader', 'Executive', 'OfficeStaff'],
+    default: function() {
+      if (this.staff_type === 'team_leader') return 'TeamLeader';
+      if (this.staff_type === 'field_executive' || this.staff_type === 'executive') return 'Executive';
+      if (this.staff_type === 'office_staff') return 'OfficeStaff';
+      return null;
+    }
   },
   month: {
     type: String,         // 'YYYY-MM' e.g. '2026-05'
@@ -72,5 +83,16 @@ const salaryRecordSchema = new mongoose.Schema({
 salaryRecordSchema.index({ executive_id: 1, month: 1 }, { unique: true, sparse: true });
 // New: one record per staff per month
 salaryRecordSchema.index({ staff_id: 1, month: 1 }, { unique: true, sparse: true });
+
+salaryRecordSchema.pre('save', function(next) {
+  if (this.staff_type === 'team_leader') {
+    this.staff_model = 'TeamLeader';
+  } else if (this.staff_type === 'field_executive' || this.staff_type === 'executive') {
+    this.staff_model = 'Executive';
+  } else if (this.staff_type === 'office_staff') {
+    this.staff_model = 'OfficeStaff';
+  }
+  next();
+});
 
 module.exports = mongoose.model('SalaryRecord', salaryRecordSchema);

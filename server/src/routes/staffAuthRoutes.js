@@ -21,7 +21,7 @@ const staffLoginLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined,
+  skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true' || process.env.JEST_WORKER_ID !== undefined,
   message: { success: false, message: 'Too many login attempts. Please try again in 5 minutes.' }
 });
 
@@ -30,7 +30,7 @@ const staffPasswordLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined,
+  skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true' || process.env.JEST_WORKER_ID !== undefined,
   message: { success: false, message: 'Too many password reset attempts. Please try again in 5 minutes.' }
 });
 

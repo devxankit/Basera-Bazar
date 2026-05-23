@@ -13,7 +13,7 @@ export default function ExecutiveReportForm() {
   const queryClient = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
-    partners_visited: 0, partners_registered: 0, subscriptions_sold: 0, leads_uploaded: 0, notes: '',
+    partners_visited: '', partners_registered: '', subscriptions_sold: '', leads_uploaded: '', notes: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -23,7 +23,15 @@ export default function ExecutiveReportForm() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post('/executive/reports/daily', { ...form, date: today });
+      const payload = {
+        partners_visited: Number(form.partners_visited) || 0,
+        partners_registered: Number(form.partners_registered) || 0,
+        subscriptions_sold: Number(form.subscriptions_sold) || 0,
+        leads_uploaded: Number(form.leads_uploaded) || 0,
+        notes: form.notes,
+        date: today
+      };
+      await api.post('/executive/reports/daily', payload);
       toast.success('Daily report submitted.');
       queryClient.invalidateQueries({ queryKey: ['executiveReportsHistory'] });
       navigate('/executive/reports');
@@ -49,19 +57,19 @@ export default function ExecutiveReportForm() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Partners Visited</label>
-              <input type="number" value={form.partners_visited} onChange={(e) => set('partners_visited', Number(e.target.value))} min={0} className={inputCls} />
+              <input type="number" value={form.partners_visited} onChange={(e) => set('partners_visited', e.target.value)} min={0} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Partners Registered</label>
-              <input type="number" value={form.partners_registered} onChange={(e) => set('partners_registered', Number(e.target.value))} min={0} className={inputCls} />
+              <input type="number" value={form.partners_registered} onChange={(e) => set('partners_registered', e.target.value)} min={0} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Subscriptions Sold</label>
-              <input type="number" value={form.subscriptions_sold} onChange={(e) => set('subscriptions_sold', Number(e.target.value))} min={0} className={inputCls} />
+              <input type="number" value={form.subscriptions_sold} onChange={(e) => set('subscriptions_sold', e.target.value)} min={0} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Leads Uploaded</label>
-              <input type="number" value={form.leads_uploaded} onChange={(e) => set('leads_uploaded', Number(e.target.value))} min={0} className={inputCls} />
+              <input type="number" value={form.leads_uploaded} onChange={(e) => set('leads_uploaded', e.target.value)} min={0} className={inputCls} />
             </div>
           </div>
           <div>

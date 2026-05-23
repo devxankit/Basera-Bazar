@@ -11,7 +11,7 @@ export default function OfficeStaffReportForm() {
   const navigate = useNavigate();
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
-    calls_made: 0, follow_ups_done: 0, leads_generated: 0, data_entries_updated: 0, notes: '',
+    calls_made: '', follow_ups_done: '', leads_generated: '', data_entries_updated: '', notes: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -21,7 +21,15 @@ export default function OfficeStaffReportForm() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post('/office-staff/reports/daily', { ...form, date: today });
+      const payload = {
+        calls_made: Number(form.calls_made) || 0,
+        follow_ups_done: Number(form.follow_ups_done) || 0,
+        leads_generated: Number(form.leads_generated) || 0,
+        data_entries_updated: Number(form.data_entries_updated) || 0,
+        notes: form.notes,
+        date: today
+      };
+      await api.post('/office-staff/reports/daily', payload);
       toast.success('Daily report submitted.');
       navigate('/office-staff/reports');
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to submit report.'); }
@@ -46,19 +54,19 @@ export default function OfficeStaffReportForm() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Calls Made</label>
-              <input type="number" value={form.calls_made} onChange={(e) => set('calls_made', Number(e.target.value))} min={0} className={inputCls} />
+              <input type="number" value={form.calls_made} onChange={(e) => set('calls_made', e.target.value)} min={0} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Follow-ups Done</label>
-              <input type="number" value={form.follow_ups_done} onChange={(e) => set('follow_ups_done', Number(e.target.value))} min={0} className={inputCls} />
+              <input type="number" value={form.follow_ups_done} onChange={(e) => set('follow_ups_done', e.target.value)} min={0} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Leads Generated</label>
-              <input type="number" value={form.leads_generated} onChange={(e) => set('leads_generated', Number(e.target.value))} min={0} className={inputCls} />
+              <input type="number" value={form.leads_generated} onChange={(e) => set('leads_generated', e.target.value)} min={0} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Data Entries Updated</label>
-              <input type="number" value={form.data_entries_updated} onChange={(e) => set('data_entries_updated', Number(e.target.value))} min={0} className={inputCls} />
+              <input type="number" value={form.data_entries_updated} onChange={(e) => set('data_entries_updated', e.target.value)} min={0} className={inputCls} />
             </div>
           </div>
           <div>

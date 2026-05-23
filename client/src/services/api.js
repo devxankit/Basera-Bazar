@@ -53,8 +53,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Not a 401, or marked as auth-check (startup /auth/me) — don't touch it
-    if (error.response?.status !== 401 || originalRequest?._isAuthCheck) {
+    // Not a 401, or marked as auth-check (startup /auth/me), or is a login request — don't touch it
+    if (
+      error.response?.status !== 401 ||
+      originalRequest?._isAuthCheck ||
+      originalRequest?.url?.includes('/login')
+    ) {
       return Promise.reject(error);
     }
 

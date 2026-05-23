@@ -56,13 +56,13 @@ describe('ErrorBoundary', () => {
     expect(screen.queryByText(/something went wrong/i)).toBeNull();
   });
 
-  test('shows an Okay button in full-page error mode', () => {
+  test('shows a Back to Home button in full-page error mode', () => {
     render(
       <ErrorBoundary>
         <ThrowingChild shouldThrow={true} />
       </ErrorBoundary>
     );
-    expect(screen.getByRole('button', { name: /okay/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /back to home/i })).toBeInTheDocument();
   });
 
   describe('handleReset redirect behavior', () => {
@@ -90,7 +90,7 @@ describe('ErrorBoundary', () => {
         </ErrorBoundary>
       );
 
-      const button = screen.getByRole('button', { name: /okay/i });
+      const button = screen.getByRole('button', { name: /back to home/i });
       button.click();
 
       expect(window.location.href).toBe('/');
@@ -108,7 +108,7 @@ describe('ErrorBoundary', () => {
         </ErrorBoundary>
       );
 
-      const button = screen.getByRole('button', { name: /okay/i });
+      const button = screen.getByRole('button', { name: /back to home/i });
       button.click();
 
       expect(window.location.href).toBe('/admin/dashboard');
@@ -126,7 +126,7 @@ describe('ErrorBoundary', () => {
         </ErrorBoundary>
       );
 
-      const button = screen.getByRole('button', { name: /okay/i });
+      const button = screen.getByRole('button', { name: /back to home/i });
       button.click();
 
       expect(window.location.href).toBe('/partner/home');
@@ -144,7 +144,7 @@ describe('ErrorBoundary', () => {
         </ErrorBoundary>
       );
 
-      const button = screen.getByRole('button', { name: /okay/i });
+      const button = screen.getByRole('button', { name: /back to home/i });
       button.click();
 
       expect(window.location.href).toBe('/executive/dashboard');
@@ -162,7 +162,7 @@ describe('ErrorBoundary', () => {
         </ErrorBoundary>
       );
 
-      const button = screen.getByRole('button', { name: /okay/i });
+      const button = screen.getByRole('button', { name: /back to home/i });
       button.click();
 
       expect(window.location.href).toBe('/team-leader/dashboard');
@@ -180,7 +180,7 @@ describe('ErrorBoundary', () => {
         </ErrorBoundary>
       );
 
-      const button = screen.getByRole('button', { name: /okay/i });
+      const button = screen.getByRole('button', { name: /back to home/i });
       button.click();
 
       expect(window.location.href).toBe('/office-staff/dashboard');
@@ -198,7 +198,7 @@ describe('ErrorBoundary', () => {
         </ErrorBoundary>
       );
 
-      const button = screen.getByRole('button', { name: /okay/i });
+      const button = screen.getByRole('button', { name: /back to home/i });
       button.click();
 
       expect(window.location.href).toBe('/');

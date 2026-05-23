@@ -87,12 +87,13 @@ export default function StaffLogin() {
       }
     } catch (err) {
       const status = err.response?.status;
+      const errorMsg = err.response?.data?.message || 'Something went wrong. Please try again.';
+      toast.error(errorMsg);
+
       if (status === 404) {
         setShowNotFoundModal(true);
       } else if (status === 401) {
         setShowBadCredsModal(true);
-      } else {
-        toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
@@ -144,10 +145,13 @@ export default function StaffLogin() {
               The password you entered is incorrect. Please contact your admin if you've forgotten your credentials.
             </p>
             <button
-              onClick={() => setShowBadCredsModal(false)}
+              onClick={() => {
+                setShowBadCredsModal(false);
+                navigate('/staff/login');
+              }}
               className="w-full py-4 bg-[#001b4e] text-white rounded-2xl font-bold text-[15px]"
             >
-              Try Again
+              Okay
             </button>
           </motion.div>
         </div>

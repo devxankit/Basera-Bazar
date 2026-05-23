@@ -37,14 +37,22 @@ export const getAdminBadgeCounts = async () => {
   });
 };
 
+export const getStaffStats = async () => {
+  return cacheService.get('admin_staff_stats', async () => {
+    const res = await api.get('/admin/staff/stats');
+    return res.data.data || {};
+  });
+};
+
 export const getAdminStats = async () => {
   return cacheService.get('admin_stats', async () => {
-    const [users, requests, executives, withdrawals, badgeCounts] = await Promise.all([
+    const [users, requests, executives, withdrawals, badgeCounts, staffStats] = await Promise.all([
       getAdminUsers(),
       getRoleRequests(),
       getExecutives(),
       getWithdrawals(),
-      getAdminBadgeCounts()
+      getAdminBadgeCounts(),
+      getStaffStats()
     ]);
 
     return {
@@ -57,7 +65,8 @@ export const getAdminStats = async () => {
       withdrawals,
       pendingPropertiesCount: badgeCounts.pendingPropertiesCount || 0,
       mandiKycPending: badgeCounts.mandiKycPending || 0,
-      mandiWithdrawalsPending: badgeCounts.mandiWithdrawalsPending || 0
+      mandiWithdrawalsPending: badgeCounts.mandiWithdrawalsPending || 0,
+      staffStats
     };
   });
 };

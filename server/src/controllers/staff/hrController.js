@@ -11,6 +11,7 @@ const LeaveRequest = require('../../models/LeaveRequest');
 const DailyReport = require('../../models/DailyReport');
 const AuditLog = require('../../models/AuditLog');
 const invalidate = require('../../utils/cacheInvalidator');
+const WithdrawalRequest = require('../../models/Wallet');
 
 // ─── Admin: Target Management ────────────────────────────────────────────────
 
@@ -204,13 +205,18 @@ const getStaffStats = async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const [tlCount, feCount, osCount, todayAttendance, pendingLeaves, pendingReports] = await Promise.all([
+    const [
+      tlCount, feCount, osCount, todayAttendance,
+      pendingLeaves, pendingReports, pendingPayouts, pendingAttendance
+    ] = await Promise.all([
       TeamLeader.countDocuments({ is_active: true, onboarding_status: 'approved' }),
       Executive.countDocuments({ is_active: true, onboarding_status: { $in: ['approved', 'verified'] } }),
       OfficeStaff.countDocuments({ is_active: true, onboarding_status: 'approved' }),
       StaffAttendance.countDocuments({ date: today, status: 'present' }),
       LeaveRequest.countDocuments({ status: { $in: ['pending', 'tl_approved'] } }),
       DailyReport.countDocuments({ status: 'submitted', date: today }),
+      WithdrawalRequest.countDocuments({ status: 'pending', user_type: 'Executive' }),
+      StaffAttendance.countDocuments({ check_in_time: { $ne: null }, verified_by_admin: false }),
     ]);
 
     res.status(200).json({
@@ -222,6 +228,8 @@ const getStaffStats = async (req, res) => {
         today_present: todayAttendance,
         pending_leaves: pendingLeaves,
         pending_reports: pendingReports,
+        pending_payouts: pendingPayouts,
+        pending_attendance: pendingAttendance,
       },
     });
   } catch (err) {

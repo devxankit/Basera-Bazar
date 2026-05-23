@@ -13,6 +13,7 @@ const AuditLog = require('../../models/AuditLog');
 const { checkLockout, recordFailedAttempt, resetFailedAttempts } = require('../../utils/loginLockout');
 const { signAccessToken, signRefreshToken, setAuthCookies } = require('../../utils/cookieAuth');
 const invalidate = require('../../utils/cacheInvalidator');
+const WithdrawalRequest = require('../../models/Wallet');
 
 // ─── Staff Unified Login ─────────────────────────────────────────────────────
 
@@ -420,6 +421,9 @@ const updateTeamLeaderSalary = async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!tl) return res.status(404).json({ success: false, message: 'Team Leader not found.' });
+
+    await invalidate.adminStaff();
+
     res.status(200).json({ success: true, message: 'Salary structure updated.' });
   } catch (err) {
     logger.error({ err }, 'updateTeamLeaderSalary Error');
@@ -508,7 +512,7 @@ const updateOfficeStaff = async (req, res) => {
     // Prevent mass-assignment (B-2)
     const { 
       name, phone, email, calling_specialization, address, 
-      bank_details, profile_image 
+      bank_details, profile_image, fixed_salary
     } = req.body;
 
     const updateData = { 
@@ -516,8 +520,19 @@ const updateOfficeStaff = async (req, res) => {
       bank_details, profile_image 
     };
 
-    const os = await OfficeStaff.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
+    if (fixed_salary !== undefined) {
+      const sal = Number(fixed_salary);
+      if (isNaN(sal) || sal < 0) {
+        return res.status(400).json({ success: false, message: 'Invalid salary value.' });
+      }
+      updateData.fixed_salary = sal;
+    }
+
+    const os = await OfficeStaff.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true, runValidators: true });
     if (!os) return res.status(404).json({ success: false, message: 'Office Staff not found.' });
+
+    await invalidate.adminStaff();
+
     res.status(200).json({ success: true, data: os.toJSON(), message: 'Office Staff updated.' });
   } catch (err) {
     logger.error({ err }, 'updateOfficeStaff Error');
@@ -806,13 +821,18 @@ const getStaffStats = async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const [tlCount, feCount, osCount, todayAttendance, pendingLeaves, pendingReports] = await Promise.all([
+    const [
+      tlCount, feCount, osCount, todayAttendance,
+      pendingLeaves, pendingReports, pendingPayouts, pendingAttendance
+    ] = await Promise.all([
       TeamLeader.countDocuments({ is_active: true, onboarding_status: 'approved' }),
       Executive.countDocuments({ is_active: true, onboarding_status: { $in: ['approved', 'verified'] } }),
       OfficeStaff.countDocuments({ is_active: true, onboarding_status: 'approved' }),
       StaffAttendance.countDocuments({ date: today, status: 'present' }),
       LeaveRequest.countDocuments({ status: { $in: ['pending', 'tl_approved'] } }),
       DailyReport.countDocuments({ status: 'submitted', date: today }),
+      WithdrawalRequest.countDocuments({ status: 'pending', user_type: 'Executive' }),
+      StaffAttendance.countDocuments({ check_in_time: { $ne: null }, verified_by_admin: false }),
     ]);
 
     res.status(200).json({
@@ -824,6 +844,8 @@ const getStaffStats = async (req, res) => {
         today_present: todayAttendance,
         pending_leaves: pendingLeaves,
         pending_reports: pendingReports,
+        pending_payouts: pendingPayouts,
+        pending_attendance: pendingAttendance,
       },
     });
   } catch (err) {

@@ -214,7 +214,9 @@ export default function AdminLayout({ children }) {
     pendingReports: 0,
     pendingProperties: 0,
     mandiKycPending: 0,
-    mandiWithdrawalsPending: 0
+    mandiWithdrawalsPending: 0,
+    pendingPayouts: 0,
+    pendingAttendance: 0
   });
 
   React.useEffect(() => {
@@ -249,7 +251,9 @@ export default function AdminLayout({ children }) {
           pendingReports: staffStats.pending_reports || 0,
           pendingProperties: data.pendingPropertiesCount || 0,
           mandiKycPending: data.mandiKycPending || 0,
-          mandiWithdrawalsPending: data.mandiWithdrawalsPending || 0
+          mandiWithdrawalsPending: data.mandiWithdrawalsPending || 0,
+          pendingPayouts: staffStats.pending_payouts || 0,
+          pendingAttendance: staffStats.pending_attendance || 0
         });
       } catch (err) {
         // badge fetch failure is non-critical
@@ -352,12 +356,13 @@ export default function AdminLayout({ children }) {
               if (itemWithBadges.id === 'staff-management') {
                 itemWithBadges.children = itemWithBadges.children.map(child => {
                   if (child.label === 'Pending Verification') return { ...child, badge: badges.executives };
-                  if (child.label === 'Payout Requests') return { ...child, badge: badges.withdrawals };
+                  if (child.label === 'Payout Requests') return { ...child, badge: badges.pendingPayouts };
                   if (child.label === 'Leave Approval') return { ...child, badge: badges.pendingLeaves };
                   if (child.label === 'Performance Reports') return { ...child, badge: badges.pendingReports };
+                  if (child.label === 'Attendance Monitor') return { ...child, badge: badges.pendingAttendance };
                   return child;
                 });
-                itemWithBadges.badge = badges.executives + badges.withdrawals + badges.pendingLeaves + badges.pendingReports;
+                itemWithBadges.badge = badges.executives + badges.pendingPayouts + badges.pendingLeaves + badges.pendingReports + badges.pendingAttendance;
               }
 
               if (itemWithBadges.id === 'properties') {

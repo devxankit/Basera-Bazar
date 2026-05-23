@@ -221,7 +221,10 @@ const verifySubscription = async (req, res) => {
 const getMyTransactions = async (req, res) => {
   try {
     const partnerId = req.user.id;
-    let transactions = await Transaction.find({ partner_id: partnerId }).sort({ createdAt: -1 });
+    let transactions = await Transaction.find({
+      partner_id: partnerId,
+      type: { $ne: 'executive_commission' }
+    }).sort({ createdAt: -1 });
 
     // Backfill: If no transactions found but partner has an active subscription, create one for them
     if (transactions.length === 0) {

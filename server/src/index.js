@@ -136,9 +136,44 @@ scheduleMonthlyDeduction();
 const { scheduleSubscriptionExpiryJob } = require('./jobs/subscriptionExpiryJob');
 scheduleSubscriptionExpiryJob();
 
+// One-time backfill: populate staff_model field on existing documents for dynamic refPath population
+setTimeout(async () => {
+  try {
+    if (mongoose.connection.readyState !== 1) return;
+    const LeaveRequest = mongoose.model('LeaveRequest');
+    const StaffAttendance = mongoose.model('StaffAttendance');
+    const DailyReport = mongoose.model('DailyReport');
+    const StaffPerformance = mongoose.model('StaffPerformance');
+    const SalaryRecord = mongoose.model('SalaryRecord');
+
+    const backfillInfo = [
+      { model: LeaveRequest, field: 'staff_model', typeField: 'staff_type' },
+      { model: StaffAttendance, field: 'staff_model', typeField: 'staff_type' },
+      { model: DailyReport, field: 'staff_model', typeField: 'staff_type' },
+      { model: StaffPerformance, field: 'staff_model', typeField: 'staff_type' },
+      { model: SalaryRecord, field: 'staff_model', typeField: 'staff_type' }
+    ];
+
+    let totalUpdated = 0;
+    for (const item of backfillInfo) {
+      const r1 = await item.model.updateMany({ [item.typeField]: 'team_leader', [item.field]: { $exists: false } }, { [item.field]: 'TeamLeader' });
+      const r2 = await item.model.updateMany({ [item.typeField]: { $in: ['field_executive', 'executive'] }, [item.field]: { $exists: false } }, { [item.field]: 'Executive' });
+      const r3 = await item.model.updateMany({ [item.typeField]: 'office_staff', [item.field]: { $exists: false } }, { [item.field]: 'OfficeStaff' });
+      totalUpdated += (r1.modifiedCount || 0) + (r2.modifiedCount || 0) + (r3.modifiedCount || 0);
+    }
+
+    if (totalUpdated > 0) {
+      logger.info(`[BACKFILL] Populated staff_model for ${totalUpdated} legacy staff records.`);
+    }
+  } catch (err) {
+    logger.error({ err }, '[BACKFILL] staff_model backfill failed');
+  }
+}, 5000);
+
 // One-time backfill: grant free trials to already-approved partners with no subscription
 setTimeout(async () => {
   try {
+    if (mongoose.connection.readyState !== 1) return;
     const { Partner } = require('./models/Partner');
     const { grantFreeTrial } = require('./utils/trialHelper');
     const orphans = await Partner.find({
@@ -190,7 +225,7 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later.' },
-  skip: () => process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined,
+  skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true' || process.env.JEST_WORKER_ID !== undefined,
 });
 
 const heavyLimiter = rateLimit({
@@ -199,7 +234,7 @@ const heavyLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Rate limit exceeded on this endpoint.' },
-  skip: () => process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined,
+  skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true' || process.env.JEST_WORKER_ID !== undefined,
 });
 
 app.use('/api', globalLimiter);

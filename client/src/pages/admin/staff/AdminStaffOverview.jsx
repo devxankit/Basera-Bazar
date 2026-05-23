@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users2, UserCheck, Headphones, MapPin, CalendarClock, FileText, UserPlus, Target, IndianRupee, BarChart3 } from 'lucide-react';
+import { Users2, UserCheck, Headphones, MapPin, CalendarClock, FileText, UserPlus, Target, IndianRupee, BarChart3, ClipboardCheck } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../../services/api';
 
@@ -52,6 +52,8 @@ export default function AdminStaffOverview() {
     { label: 'Present Today', value: stats?.today_present ?? 0, icon: UserCheck, color: 'bg-green-500' },
     { label: 'Pending Leaves', value: stats?.pending_leaves ?? 0, icon: CalendarClock, color: 'bg-amber-500' },
     { label: 'Reports Today', value: stats?.pending_reports ?? 0, icon: FileText, color: 'bg-blue-500' },
+    { label: 'Pending Payouts', value: stats?.pending_payouts ?? 0, icon: IndianRupee, color: 'bg-rose-500' },
+    { label: 'Pending Attendance', value: stats?.pending_attendance ?? 0, icon: ClipboardCheck, color: 'bg-violet-500' },
   ];
 
   const quickActions = [
@@ -69,7 +71,7 @@ export default function AdminStaffOverview() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {statCards.map((card) => (
           <StatCard key={card.label} {...card} loading={loading} />
         ))}
@@ -93,10 +95,12 @@ export default function AdminStaffOverview() {
         {[
           { label: 'Team Leaders', desc: 'Manage State Heads and their commission', path: '/admin/staff/team-leaders', icon: Users2, color: 'text-indigo-600 bg-indigo-50' },
           { label: 'Office Staff', desc: 'Manage calling and indoor staff', path: '/admin/staff/office-staff', icon: Headphones, color: 'text-teal-600 bg-teal-50' },
-          { label: 'Attendance Monitor', desc: 'View and verify daily attendance', path: '/admin/staff/attendance', icon: UserCheck, color: 'text-green-600 bg-green-50' },
+          { label: 'Field Executives', desc: 'Manage field team and tracking', path: '/admin/executives', icon: MapPin, color: 'text-orange-600 bg-orange-50' },
+          { label: 'Attendance Monitor', desc: `${stats?.pending_attendance ?? 0} verifications pending`, path: '/admin/staff/attendance', icon: UserCheck, color: 'text-green-600 bg-green-50' },
           { label: 'Leave Approval', desc: `${stats?.pending_leaves ?? 0} requests pending`, path: '/admin/staff/leaves', icon: CalendarClock, color: 'text-amber-600 bg-amber-50' },
+          { label: 'Payout Requests', desc: `${stats?.pending_payouts ?? 0} payouts pending`, path: '/admin/executives/withdrawals', icon: IndianRupee, color: 'text-rose-600 bg-rose-50' },
           { label: 'Performance & Salary', desc: 'View monthly performance and process salary', path: '/admin/staff/performance', icon: BarChart3, color: 'text-blue-600 bg-blue-50' },
-          { label: 'Leaderboard', desc: 'Top performers this month', path: '/admin/staff/leaderboard', icon: Target, color: 'text-orange-600 bg-orange-50' },
+          { label: 'Leaderboard', desc: 'Top performers this month', path: '/admin/staff/leaderboard', icon: Target, color: 'text-purple-600 bg-purple-50' },
         ].map(({ label, desc, path, icon: Icon, color }) => (
           <a
             key={path}

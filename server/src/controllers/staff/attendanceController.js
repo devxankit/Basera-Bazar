@@ -283,6 +283,8 @@ const submitLeaveRequest = async (req, res) => {
       reason,
     });
 
+    await cacheInvalidator.staffLeaves(req.user.id);
+
     res.status(201).json({ success: true, data: leave, message: 'Leave request submitted.' });
   } catch (err) {
     logger.error({ err }, 'submitLeaveRequest Error');
@@ -310,6 +312,9 @@ const tlApproveLeave = async (req, res) => {
       { new: true }
     );
     if (!leave) return res.status(404).json({ success: false, message: 'Leave request not found or already reviewed.' });
+
+    await cacheInvalidator.staffLeaves(leave.staff_id);
+
     res.status(200).json({ success: true, message: `Leave ${action}d.` });
   } catch (err) {
     logger.error({ err }, 'tlApproveLeave Error');

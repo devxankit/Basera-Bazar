@@ -208,6 +208,39 @@ describe('GET /api/finance/transactions', () => {
     expect(Array.isArray(res.body.data)).toBe(true);
   });
 
+  test('excludes executive_commission transactions from partner history', async () => {
+    const { Transaction } = require('../models/Finance');
+    const mongoose = require('mongoose');
+    
+    // Create a subscription transaction
+    await Transaction.create({
+      partner_id: partnerId,
+      type: 'subscription_payment',
+      amount: 499,
+      direction: 'debit',
+      status: 'success'
+    });
+
+    // Create an executive commission transaction with the same partner_id
+    await Transaction.create({
+      partner_id: partnerId,
+      executive_id: new mongoose.Types.ObjectId(),
+      type: 'executive_commission',
+      amount: 50,
+      direction: 'credit',
+      status: 'success'
+    });
+
+    const res = await request(app)
+      .get('/api/finance/transactions')
+      .set('Authorization', `Bearer ${partnerToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.data[0].type).toBe('subscription_payment');
+  });
+
   test('returns 401 without auth', async () => {
     const res = await request(app).get('/api/finance/transactions');
     expect(res.status).toBe(401);

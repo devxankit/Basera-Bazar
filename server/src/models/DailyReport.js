@@ -2,11 +2,21 @@ const mongoose = require('mongoose');
 
 const dailyReportSchema = new mongoose.Schema(
   {
-    staff_id: { type: mongoose.Schema.Types.ObjectId, required: true },
+    staff_id: { type: mongoose.Schema.Types.ObjectId, required: true, refPath: 'staff_model' },
     staff_type: {
       type: String,
       enum: ['field_executive', 'office_staff'],
       required: true,
+    },
+    staff_model: {
+      type: String,
+      enum: ['TeamLeader', 'Executive', 'OfficeStaff'],
+      default: function() {
+        if (this.staff_type === 'team_leader') return 'TeamLeader';
+        if (this.staff_type === 'field_executive' || this.staff_type === 'executive') return 'Executive';
+        if (this.staff_type === 'office_staff') return 'OfficeStaff';
+        return null;
+      }
     },
     team_leader_id: { type: mongoose.Schema.Types.ObjectId, ref: 'TeamLeader' },
     date: { type: String, required: true }, // 'YYYY-MM-DD'
@@ -50,5 +60,16 @@ const dailyReportSchema = new mongoose.Schema(
 dailyReportSchema.index({ staff_id: 1, date: 1 }, { unique: true });
 dailyReportSchema.index({ team_leader_id: 1, date: 1, status: 1 });
 dailyReportSchema.index({ staff_type: 1, date: 1, status: 1 });
+
+dailyReportSchema.pre('save', function(next) {
+  if (this.staff_type === 'team_leader') {
+    this.staff_model = 'TeamLeader';
+  } else if (this.staff_type === 'field_executive' || this.staff_type === 'executive') {
+    this.staff_model = 'Executive';
+  } else if (this.staff_type === 'office_staff') {
+    this.staff_model = 'OfficeStaff';
+  }
+  next();
+});
 
 module.exports = mongoose.model('DailyReport', dailyReportSchema);
