@@ -205,13 +205,16 @@ export default function AdminLayout({ children }) {
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [badges, setBadges] = useState({ 
-    verification: 0, 
-    upgrades: 0, 
-    executives: 0, 
+  const [badges, setBadges] = useState({
+    verification: 0,
+    upgrades: 0,
+    executives: 0,
     withdrawals: 0,
     pendingLeaves: 0,
-    pendingReports: 0
+    pendingReports: 0,
+    pendingProperties: 0,
+    mandiKycPending: 0,
+    mandiWithdrawalsPending: 0
   });
 
   React.useEffect(() => {
@@ -237,13 +240,16 @@ export default function AdminLayout({ children }) {
         const executivePendingCount = executives.filter(e => e.onboarding_status === 'pending_approval').length;
         const withdrawalsCount = withdrawals.filter(w => w.status === 'pending').length;
 
-        setBadges({ 
-          verification: verificationCount, 
+        setBadges({
+          verification: verificationCount,
           upgrades: upgradesCount,
           executives: executivePendingCount,
           withdrawals: withdrawalsCount,
           pendingLeaves: staffStats.pending_leaves || 0,
-          pendingReports: staffStats.pending_reports || 0
+          pendingReports: staffStats.pending_reports || 0,
+          pendingProperties: data.pendingPropertiesCount || 0,
+          mandiKycPending: data.mandiKycPending || 0,
+          mandiWithdrawalsPending: data.mandiWithdrawalsPending || 0
         });
       } catch (err) {
         // badge fetch failure is non-critical
@@ -352,6 +358,23 @@ export default function AdminLayout({ children }) {
                   return child;
                 });
                 itemWithBadges.badge = badges.executives + badges.withdrawals + badges.pendingLeaves + badges.pendingReports;
+              }
+
+              if (itemWithBadges.id === 'properties') {
+                itemWithBadges.children = itemWithBadges.children.map(child => {
+                  if (child.label === 'All Properties') return { ...child, badge: badges.pendingProperties };
+                  return child;
+                });
+                itemWithBadges.badge = badges.pendingProperties;
+              }
+
+              if (itemWithBadges.id === 'mandi-bazar') {
+                itemWithBadges.children = itemWithBadges.children.map(child => {
+                  if (child.label === 'KYC Queue') return { ...child, badge: badges.mandiKycPending };
+                  if (child.label === 'Payouts') return { ...child, badge: badges.mandiWithdrawalsPending };
+                  return child;
+                });
+                itemWithBadges.badge = badges.mandiKycPending + badges.mandiWithdrawalsPending;
               }
 
               if (itemWithBadges.children) {

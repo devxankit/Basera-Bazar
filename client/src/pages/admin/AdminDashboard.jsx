@@ -7,7 +7,7 @@ import {
   ArrowDownRight, Activity, UserCog, Crown,
   CreditCard, ExternalLink, CheckCircle2, XCircle,
   Eye, Loader2, AlertCircle, MessageSquare, Zap, Home,
-  Landmark
+  Landmark, ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -199,6 +199,14 @@ export default function AdminDashboard() {
       color: 'bg-orange-100 text-orange-600',
       trend: { value: '100%', isUp: false, label: 'Since Last Month' },
       path: '/admin/reports/payments'
+    },
+    {
+      title: 'KYC Pending',
+      value: (data?.kyc_pending || 0),
+      icon: ShieldAlert,
+      color: 'bg-amber-100 text-amber-600',
+      badge: { text: 'Action', color: 'bg-amber-500 text-white', icon: AlertCircle, subtext: 'Awaiting Review' },
+      path: '/admin/partners/verification'
     },
     {
       title: 'Pending Requests',

@@ -38,7 +38,7 @@ const getDashboardStats = async (req, res) => {
       totalProperties, totalServices, totalProducts, totalRevenueData,
       registrationTrendsUser, registrationTrendsPartner, registrationTrendsAdmin,
       pendingProperties, pendingServices, adminSummary, partnerSummary, userSummary,
-      withdrawalsCount
+      withdrawalsCount, kycPendingCount
     ] = await Promise.all([
       User.countDocuments(),
       Partner.countDocuments({ onboarding_status: 'approved' }),
@@ -55,7 +55,8 @@ const getDashboardStats = async (req, res) => {
       AdminUser.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]),
       Partner.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]),
       User.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]),
-      WithdrawalRequest.countDocuments({ status: 'pending' })
+      WithdrawalRequest.countDocuments({ status: 'pending' }),
+      Partner.countDocuments({ onboarding_status: 'pending_approval' })
     ]);
 
     const totalUsersCount = userCollectionCounts + partnerCollectionCounts + adminCollectionCounts;
@@ -120,6 +121,7 @@ const getDashboardStats = async (req, res) => {
         services: totalServices,
         products: totalProducts,
         revenue: totalRevenue,
+        kyc_pending: kycPendingCount,
         analytics: { chartData, distribution: finalDistribution },
         pending: {
           properties: pendingProperties,
@@ -292,11 +294,32 @@ const changeAdminPassword = async (req, res) => {
   }
 };
 
+const getBadgeCounts = async (req, res) => {
+  try {
+    const [pendingPropertiesCount, mandiKycPending, mandiWithdrawalsPending] = await Promise.all([
+      PropertyListing.countDocuments({ status: 'pending_approval' }),
+      Partner.countDocuments({
+        onboarding_status: 'pending_approval',
+        $or: [{ roles: 'mandi_seller' }, { partner_type: 'mandi_seller' }]
+      }),
+      WithdrawalRequest.countDocuments({ status: 'pending', user_type: 'Partner' })
+    ]);
+    res.status(200).json({
+      success: true,
+      data: { pendingPropertiesCount, mandiKycPending, mandiWithdrawalsPending }
+    });
+  } catch (error) {
+    logger.error({ err: error }, "Badge counts error:");
+    res.status(500).json({ success: false, message: 'Error fetching badge counts.' });
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getAdminActivities,
   getPendingApprovals,
   getAdminProfile,
   updateAdminProfile,
-  changeAdminPassword
+  changeAdminPassword,
+  getBadgeCounts
 };

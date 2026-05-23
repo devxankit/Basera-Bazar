@@ -78,7 +78,8 @@ const {
   getMonthlyPerformance,
   getSalaryRecords,
   markSalaryPaid,
-  triggerMonthlyDeduction
+  triggerMonthlyDeduction,
+  getBadgeCounts
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
@@ -97,6 +98,7 @@ router.use(authorizeRoles('super_admin'));
 
 // Dashboard Stats & Feeds
 router.get('/dashboard/stats', cacheMiddleware(2, true), getDashboardStats);
+router.get('/dashboard/badge-counts', cacheMiddleware(2, true), getBadgeCounts);
 router.get('/dashboard/activities', cacheMiddleware(1, true), getAdminActivities);
 router.get('/dashboard/pending/:type', cacheMiddleware(2, true), getPendingApprovals);
 
