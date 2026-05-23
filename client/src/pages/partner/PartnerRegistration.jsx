@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from '../../mockToast';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RoleStep from '../../components/partner/RoleStep';
 import InfoStep from '../../components/partner/InfoStep';
@@ -59,6 +59,7 @@ export default function PartnerRegistration() {
   const { login } = useAuth();
   const totalSteps = 5;
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
     type: 'confirm',
@@ -106,59 +107,17 @@ export default function PartnerRegistration() {
   };
 
   const handleCompleteRequest = () => {
-    // This now just moves to the plan step
     nextStep();
   };
 
   const handleConfirmRegistration = async () => {
-    if (!authState) {
-       toast.error("Please verify your phone number first.");
-       return;
+    if (!authState?.phoneVerifiedToken) {
+      toast.error("Please verify your phone number first.");
+      return;
     }
 
     setIsSubmitting(true);
     try {
-      // 1. Ensure token is set (already handled in onVerified)
-      const { token, user: userData } = authState;
-
-      // 2. Handle Image Uploads for Profile/Business Logo
-      let profileUrl = formData.profileImage;
-      if (formData.profileImage && formData.profileImage.startsWith('data:')) {
-         const res = await db.uploadFile(await fetch(formData.profileImage).then(r => r.blob()));
-         profileUrl = res.url;
-      }
-
-      let logoUrl = formData.businessLogo;
-      if (formData.businessLogo && formData.businessLogo.startsWith('data:')) {
-         const res = await db.uploadFile(await fetch(formData.businessLogo).then(r => r.blob()));
-         logoUrl = res.url;
-      }
-
-      let panUrl = formData.panImage;
-      if (formData.panImage && formData.panImage.startsWith('data:')) {
-         const res = await db.uploadFile(await fetch(formData.panImage).then(r => r.blob()));
-         panUrl = res.url;
-      }
-
-      let aadharFrontUrl = formData.aadharFront;
-      if (formData.aadharFront && formData.aadharFront.startsWith('data:')) {
-         const res = await db.uploadFile(await fetch(formData.aadharFront).then(r => r.blob()));
-         aadharFrontUrl = res.url;
-      }
-
-      let aadharBackUrl = formData.aadharBack;
-      if (formData.aadharBack && formData.aadharBack.startsWith('data:')) {
-         const res = await db.uploadFile(await fetch(formData.aadharBack).then(r => r.blob()));
-         aadharBackUrl = res.url;
-      }
-
-      let gstUrl = formData.gstImage;
-      if (formData.gstImage && formData.gstImage.startsWith('data:')) {
-         const res = await db.uploadFile(await fetch(formData.gstImage).then(r => r.blob()));
-         gstUrl = res.url;
-      }
-
-      // 3. Update Profile with full details
       const roleMapping = {
         'agent': 'property_agent',
         'service': 'service_provider',
@@ -167,58 +126,57 @@ export default function PartnerRegistration() {
       };
       const backendRole = roleMapping[selectedRole] || 'service_provider';
 
-      const updatePayload = {
-        name: formData.fullName,
-        email: formData.email,
-        partner_type: backendRole,
-        roles: [backendRole],
-        active_role: backendRole,
-        image: profileUrl,
-        service_radius_km: formData.service_radius_km,
-        location: {
-           type: 'Point',
-           coordinates: formData.coords || [85.3647, 26.1209]
-        },
-        state: formData.state,
-        district: formData.district,
-        address: formData.address,
-        pincode: formData.pincode,
-        'kyc.pan_number': formData.pan,
-        'kyc.pan_image': panUrl,
-        'kyc.aadhar_number': formData.aadhar,
-        'kyc.aadhar_front_image': aadharFrontUrl,
-        'kyc.aadhar_back_image': aadharBackUrl,
-        'kyc.gst_number': formData.gst,
-        'kyc.gst_image': gstUrl,
-        onboarding_status: (panUrl && formData.pan && aadharFrontUrl && formData.aadhar) ? 'pending_approval' : 'incomplete'
+      // Upload images (still base64 data URIs at this point)
+      const uploadIfNeeded = async (dataUri) => {
+        if (dataUri && dataUri.startsWith('data:')) {
+          const res = await db.uploadFile(await fetch(dataUri).then(r => r.blob()));
+          return res.url;
+        }
+        return dataUri || null;
       };
 
-      if (backendRole === 'mandi_seller') {
-        updatePayload['profile.mandi_profile.business_name'] = formData.businessName;
-        updatePayload['profile.mandi_profile.business_logo'] = logoUrl;
-        updatePayload['profile.mandi_profile.business_description'] = formData.businessDescription;
-      }
+      const [profileUrl, logoUrl, panUrl, aadharFrontUrl, aadharBackUrl, gstUrl] = await Promise.all([
+        uploadIfNeeded(formData.profileImage),
+        uploadIfNeeded(formData.businessLogo),
+        uploadIfNeeded(formData.panImage),
+        uploadIfNeeded(formData.aadharFront),
+        uploadIfNeeded(formData.aadharBack),
+        uploadIfNeeded(formData.gstImage),
+      ]);
 
-      await api.put('/auth/profile', updatePayload);
+      // Create the partner account in one shot at the final step
+      const res = await api.post('/auth/partner/register', {
+        phone_verified_token: authState.phoneVerifiedToken,
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        partner_type: backendRole,
+        coords: formData.coords || [85.3647, 26.1209],
+        state: formData.state,
+        district: formData.district,
+        city: formData.city,
+        address: formData.address,
+        pincode: formData.pincode,
+        service_radius_km: formData.service_radius_km,
+        referral_code: formData.referral_code || undefined,
+        profile_image: profileUrl,
+        pan_number: formData.pan,
+        pan_image: panUrl,
+        aadhar_number: formData.aadhar,
+        aadhar_front_image: aadharFrontUrl,
+        aadhar_back_image: aadharBackUrl,
+        gst_number: formData.gst,
+        gst_image: gstUrl,
+        business_name: formData.businessName,
+        business_logo: logoUrl,
+        business_description: formData.businessDescription,
+      });
 
-      // 4. Handle Subscription (if free trial or plan passed)
-      // If it's a paid plan, we handle it separately via Razorpay verification which also activates it.
-      // If it's free trial, we can activate it via a separate endpoint if we had one, 
-      // but for now, we'll assume the backend handles 'trial' logic or we activate it here.
-      // However, per requirements, the user MUST choose a plan to complete registration.
-      
-      // For Free Trial activation:
-      if (selectedPlan === 'free_trial') {
-        // Find a trial plan on backend or handle trial logic
-        // We can call a specialized trial activation endpoint
-        try {
-          // We'll use a hidden 0-price plan if available, or just skip and let admin handle it
-          // For now, let's just complete registration.
-        } catch (subErr) {
-        }
-      }
+      const { user: userData, token } = res.data;
 
-      // 6. Finalize Auth Session
+      // Set the token immediately for the Razorpay/subscription step that may follow
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
       const activity = {
         title: `Account Registered as ${selectedRole}`,
         time: new Date().toLocaleTimeString(),
@@ -227,12 +185,10 @@ export default function PartnerRegistration() {
       };
       const activityKey = `baserabazar_activity_${userData.id || userData._id}`;
       const existingLogs = JSON.parse(localStorage.getItem(activityKey) || '[]');
-      const filteredLogs = existingLogs.filter(log => log.title !== activity.title);
-      localStorage.setItem(activityKey, JSON.stringify([activity, ...filteredLogs]));
+      localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs.filter(l => l.title !== activity.title)]));
 
       login(userData, token);
       sessionStorage.removeItem(STORAGE_KEY);
-
       setModalConfig(prev => ({ ...prev, isOpen: false }));
       navigate('/partner/home');
     } catch (error) {
@@ -250,10 +206,60 @@ export default function PartnerRegistration() {
 
     setIsSubmitting(true);
     try {
-    // Temporarily set token so protected routes work before login() is called
-      api.defaults.headers.common['Authorization'] = `Bearer ${authState.token}`;
+      // 1. Create the partner account first (sets token on api instance inside handleConfirmRegistration)
+      // For paid plans we need to register first to get an auth token, then initiate subscription.
+      // We call the register endpoint directly here to get the token before Razorpay.
+      const roleMapping = { 'agent': 'property_agent', 'service': 'service_provider', 'supplier': 'supplier', 'mandi': 'mandi_seller' };
+      const backendRole = roleMapping[selectedRole] || 'service_provider';
 
-      // 1. Initiate Subscription
+      const uploadIfNeeded = async (dataUri) => {
+        if (dataUri && dataUri.startsWith('data:')) {
+          const res = await db.uploadFile(await fetch(dataUri).then(r => r.blob()));
+          return res.url;
+        }
+        return dataUri || null;
+      };
+
+      const [profileUrl, logoUrl, panUrl, aadharFrontUrl, aadharBackUrl, gstUrl] = await Promise.all([
+        uploadIfNeeded(formData.profileImage),
+        uploadIfNeeded(formData.businessLogo),
+        uploadIfNeeded(formData.panImage),
+        uploadIfNeeded(formData.aadharFront),
+        uploadIfNeeded(formData.aadharBack),
+        uploadIfNeeded(formData.gstImage),
+      ]);
+
+      const regRes = await api.post('/auth/partner/register', {
+        phone_verified_token: authState.phoneVerifiedToken,
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        partner_type: backendRole,
+        coords: formData.coords || [85.3647, 26.1209],
+        state: formData.state,
+        district: formData.district,
+        city: formData.city,
+        address: formData.address,
+        pincode: formData.pincode,
+        service_radius_km: formData.service_radius_km,
+        referral_code: formData.referral_code || undefined,
+        profile_image: profileUrl,
+        pan_number: formData.pan,
+        pan_image: panUrl,
+        aadhar_number: formData.aadhar,
+        aadhar_front_image: aadharFrontUrl,
+        aadhar_back_image: aadharBackUrl,
+        gst_number: formData.gst,
+        gst_image: gstUrl,
+        business_name: formData.businessName,
+        business_logo: logoUrl,
+        business_description: formData.businessDescription,
+      });
+
+      const { user: userData, token } = regRes.data;
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // 2. Initiate Subscription
       const initRes = await api.post('/finance/subscription/initiate', {
         plan_id: selectedPlan
       });
@@ -267,20 +273,30 @@ export default function PartnerRegistration() {
         name: "Basera Bazar",
         description: `Subscription: ${plan_name}`,
         order_id,
-        handler: async (response) => {
+        handler: async (rzpResponse) => {
           try {
-            // 2. Verify and Activate
             await api.post('/finance/subscription/verify', {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
+              razorpay_order_id: rzpResponse.razorpay_order_id,
+              razorpay_payment_id: rzpResponse.razorpay_payment_id,
+              razorpay_signature: rzpResponse.razorpay_signature,
               plan_id: selectedPlan
             });
-            
-            // 3. Complete Profile Update
-            await handleConfirmRegistration();
+            // Account already created above — just finalise session
+            const activity = {
+              title: `Account Registered as ${selectedRole}`,
+              time: new Date().toLocaleTimeString(),
+              timestamp: new Date().toISOString(),
+              type: 'profile'
+            };
+            const activityKey = `baserabazar_activity_${userData.id || userData._id}`;
+            const existingLogs = JSON.parse(localStorage.getItem(activityKey) || '[]');
+            localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs.filter(l => l.title !== activity.title)]));
+            login(userData, token);
+            sessionStorage.removeItem(STORAGE_KEY);
+            navigate('/partner/home');
           } catch (err) {
             toast.error("Payment verification failed. Please contact support.");
+            setIsSubmitting(false);
           }
         },
         prefill: {
@@ -316,11 +332,38 @@ export default function PartnerRegistration() {
 
   return (
     <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-white flex flex-col font-sans overflow-x-hidden">
+      {/* Exit registration confirmation */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-[#001b4e]/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center">
+            <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-5">
+              <X size={28} className="text-orange-500" />
+            </div>
+            <h3 className="text-[20px] font-bold text-[#001b4e] mb-2">Exit Registration?</h3>
+            <p className="text-slate-500 text-[14px] mb-7 leading-relaxed">Your progress will be lost and you'll need to start over.</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => { sessionStorage.removeItem(STORAGE_KEY); navigate('/partner/login'); }}
+                className="w-full py-4 bg-[#001b4e] text-white rounded-2xl font-bold text-[15px]"
+              >
+                Yes, Exit
+              </button>
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                className="w-full py-3 text-slate-400 font-bold text-[14px] hover:text-[#001b4e] transition-colors"
+              >
+                Continue Registration
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header / Progress Bar */}
       <div className="bg-white sticky top-0 z-50">
         <div className="px-5 py-4 flex items-center justify-between border-b border-slate-50">
-          <button 
-            onClick={() => step === 1 ? navigate('/partner/login') : prevStep()}
+          <button
+            onClick={() => step === 1 ? setShowExitConfirm(true) : prevStep()}
             className="p-1 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
           >
             <ArrowLeft size={24} />
@@ -379,25 +422,22 @@ export default function PartnerRegistration() {
               />
             )}
             {step === 3 && (
-              <OTPStep 
+              <OTPStep
                 formData={formData}
                 selectedRole={selectedRole}
                 onBack={prevStep}
-                onVerified={(userData, token) => {
-                  // Set token on API instance immediately for subsequent steps
-                  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                  setAuthState({ user: userData, token });
+                onVerified={(phoneVerifiedToken) => {
+                  setAuthState({ phoneVerifiedToken });
                   nextStep();
                 }}
               />
             )}
             {step === 4 && (
-              <KYCStep 
+              <KYCStep
                 formData={formData}
                 setFormData={setFormData}
                 onBack={prevStep}
                 onComplete={nextStep}
-                onSkip={nextStep}
                 role={selectedRole}
               />
             )}

@@ -225,16 +225,6 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
     const cfmErr = v.passwordConfirm(formData.confirmPassword, formData.password);
     if (cfmErr) newErrors.confirmPassword = cfmErr;
 
-    if (formData.aadhar) {
-      const aErr = v.aadhar(formData.aadhar);
-      if (aErr) newErrors.aadhar = aErr;
-    }
-
-    if (formData.pan) {
-      const pErr = v.pan(formData.pan);
-      if (pErr) newErrors.pan = pErr;
-    }
-
     if (!formData.state || !(formData.city || formData.district)) {
       newErrors.location = "Please set your state and city/district";
     }
@@ -245,6 +235,22 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
     if (role === 'supplier' && (!formData.category || formData.category.length === 0)) {
       newErrors.category = "Please select at least one category";
     }
+
+    // Required fields in the "additional info" section
+    if (!formData.address?.trim()) newErrors.address = "Address is required";
+    if (!formData.pincode?.trim() || !/^\d{6}$/.test(formData.pincode.trim())) {
+      newErrors.pincode = "Enter a valid 6-digit pincode";
+    }
+
+    // Mandi sellers must provide business details
+    if (role === 'mandi') {
+      if (!formData.businessName?.trim()) newErrors.businessName = "Business name is required";
+      if (!formData.businessDescription?.trim()) newErrors.businessDescription = "Business description is required";
+    }
+
+    // Auto-expand the optional section if it contains errors
+    const optionalFields = ['address', 'pincode', 'businessName', 'businessDescription'];
+    if (optionalFields.some(f => newErrors[f])) setIsOptionalOpen(true);
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -656,7 +662,9 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
               <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
                 <span className="text-[18px] font-bold">{isOptionalOpen ? '-' : '+'}</span>
               </div>
-              <span className="text-[15px] font-bold">Add Optional Information</span>
+              <span className="text-[15px] font-bold">
+                {role === 'mandi' ? 'Business & Address Details *' : 'Additional Information'}
+              </span>
             </div>
             <ChevronDown size={20} className={`text-slate-400 transition-transform duration-300 ${isOptionalOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -695,21 +703,22 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                     </div>
                   </div>
 
-                  <InputField 
-                    icon={<Building2 size={18} />} 
-                    label="Business Name" 
+                  <InputField
+                    icon={<Building2 size={18} />}
+                    label={role === 'mandi' ? 'Business Name *' : 'Business Name'}
                     name="businessName"
                     value={formData.businessName}
                     onChange={handleChange}
-                    placeholder="Name of your shop or company" 
+                    placeholder="Name of your shop or company"
+                    error={errors.businessName}
                   />
-                  
+
                   <div className="relative">
                     <div className="absolute left-4 top-4 text-slate-400">
                       <FileText size={18} />
                     </div>
                     <label className="absolute -top-2 left-4 px-2 bg-white text-[10px] font-bold text-[#001b4e] uppercase tracking-wider">
-                      Business Description
+                      Business Description{role === 'mandi' ? ' *' : ''}
                     </label>
                     <textarea
                       name="businessDescription"
@@ -717,8 +726,9 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                       onChange={handleChange}
                       placeholder="Tell us about your products or services..."
                       rows="3"
-                      className="w-full bg-white border border-slate-200 rounded-2xl py-4 pl-12 pr-4 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all resize-none"
+                      className={`w-full bg-white border ${errors.businessDescription ? 'border-red-400' : 'border-slate-200'} rounded-2xl py-4 pl-12 pr-4 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all resize-none`}
                     ></textarea>
+                    {errors.businessDescription && <p className="text-red-500 text-[12px] font-medium mt-1 ml-1">{errors.businessDescription}</p>}
                   </div>
 
                   <div className="relative">
@@ -726,7 +736,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                       <MapPin size={18} />
                     </div>
                     <label className="absolute -top-2 left-4 px-2 bg-white text-[10px] font-bold text-[#001b4e] uppercase tracking-wider">
-                      Full Address
+                      Full Address *
                     </label>
                     <textarea
                       name="address"
@@ -734,19 +744,21 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                       onChange={handleChange}
                       placeholder="Building, Street, Area..."
                       rows="2"
-                      className="w-full bg-white border border-slate-200 rounded-2xl py-4 pl-12 pr-4 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all resize-none"
+                      className={`w-full bg-white border ${errors.address ? 'border-red-400' : 'border-slate-200'} rounded-2xl py-4 pl-12 pr-4 text-[15px] font-medium text-[#001b4e] placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all resize-none`}
                     ></textarea>
+                    {errors.address && <p className="text-red-500 text-[12px] font-medium mt-1 ml-1">{errors.address}</p>}
                   </div>
 
                   <InputField
                     icon={<Map size={18} />}
-                    label="Pincode"
+                    label="Pincode *"
                     name="pincode"
                     value={formData.pincode}
                     onChange={handleChange}
                     placeholder="6 digit number"
                     inputMode="numeric"
                     maxLength={6}
+                    error={errors.pincode}
                   />
                 </div>
               </motion.div>

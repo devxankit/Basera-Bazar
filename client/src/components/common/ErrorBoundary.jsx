@@ -79,12 +79,20 @@ export default class ErrorBoundary extends React.Component {
               ? `An unexpected error occurred. Please refresh to continue using the ${label}.`
               : 'An unexpected error occurred. Please go back to the home page and try again.'}
           </p>
-          <button
-            onClick={this.handleReset}
-            className="px-6 py-3 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors"
-          >
-            Okay
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              className="px-6 py-3 bg-slate-100 text-slate-700 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={this.handleReset}
+              className="px-6 py-3 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors"
+            >
+              Back to Home
+            </button>
+          </div>
         </div>
       );
     }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Phone, Lock, Eye, EyeOff, MapPin, Headphones, ArrowRight, Shield, TrendingUp, Clock } from 'lucide-react';
+import { Users, Phone, Lock, Eye, EyeOff, MapPin, Headphones, ArrowRight, Shield, TrendingUp, Clock, UserX, AlertTriangle } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from '../../mockToast';
@@ -58,6 +58,8 @@ export default function StaffLogin() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showNotFoundModal, setShowNotFoundModal] = useState(false);
+  const [showBadCredsModal, setShowBadCredsModal] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -84,14 +86,72 @@ export default function StaffLogin() {
         navigate(selectedRole.redirectTo);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Invalid credentials. Please try again.');
+      const status = err.response?.status;
+      if (status === 404) {
+        setShowNotFoundModal(true);
+      } else if (status === 401) {
+        setShowBadCredsModal(true);
+      } else {
+        toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const roleLabel = selectedRole?.label || 'Staff';
+
   return (
     <div className="min-h-screen flex">
+      {/* Account Not Found Modal */}
+      {showNotFoundModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center"
+          >
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
+              <UserX size={28} className="text-red-500" />
+            </div>
+            <h3 className="text-[20px] font-bold text-slate-900 mb-2">Account Not Found</h3>
+            <p className="text-slate-500 text-[14px] mb-7 leading-relaxed">
+              No <span className="font-bold text-slate-700">{roleLabel}</span> account exists with these details. Please contact your admin to get access.
+            </p>
+            <button
+              onClick={() => setShowNotFoundModal(false)}
+              className="w-full py-4 bg-[#001b4e] text-white rounded-2xl font-bold text-[15px]"
+            >
+              Okay
+            </button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Wrong Credentials Modal */}
+      {showBadCredsModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center"
+          >
+            <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-5">
+              <AlertTriangle size={28} className="text-amber-500" />
+            </div>
+            <h3 className="text-[20px] font-bold text-slate-900 mb-2">Incorrect Credentials</h3>
+            <p className="text-slate-500 text-[14px] mb-7 leading-relaxed">
+              The password you entered is incorrect. Please contact your admin if you've forgotten your credentials.
+            </p>
+            <button
+              onClick={() => setShowBadCredsModal(false)}
+              className="w-full py-4 bg-[#001b4e] text-white rounded-2xl font-bold text-[15px]"
+            >
+              Try Again
+            </button>
+          </motion.div>
+        </div>
+      )}
       {/* Left branding panel — hidden on mobile */}
       <div className="hidden lg:flex lg:w-[42%] xl:w-[45%] bg-[#001b4e] flex-col justify-between p-10 relative overflow-hidden">
         {/* Background decoration */}

@@ -190,6 +190,19 @@ const verifyOtp = async (req, res) => {
       return res.status(200).json({ success: true, message: 'OTP verified successfully.' });
     }
 
+    // Handle "signup verify" flow — consume OTP and return a short-lived phone-verified token
+    // Used by partner registration to defer DB write to the final step
+    if (flow === 'signup_verify') {
+      const jwt = require('jsonwebtoken');
+      await Otp.deleteOne({ _id: otpRecord._id });
+      const phoneVerifiedToken = jwt.sign(
+        { phone, type: 'phone_verified' },
+        process.env.JWT_SECRET,
+        { expiresIn: '30m' }
+      );
+      return res.status(200).json({ success: true, phone_verified_token: phoneVerifiedToken });
+    }
+
     if (flow === 'signup') {
       const Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
 
@@ -750,6 +763,148 @@ const resetPassword = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Create partner account after phone is verified — called at final registration step
+ * @route   POST /api/auth/partner/register
+ * @access  Public (guarded by phone_verified_token)
+ */
+const registerPartner = async (req, res) => {
+  try {
+    const jwt = require('jsonwebtoken');
+    const {
+      phone_verified_token,
+      name, email, password,
+      partner_type, coords, state, district, address, pincode, city,
+      service_radius_km, referral_code,
+      pan_number, pan_image, aadhar_number, aadhar_front_image, aadhar_back_image,
+      gst_number, gst_image,
+      profile_image,
+      business_name, business_logo, business_description,
+    } = req.body;
+
+    // Verify the short-lived phone token issued after OTP verification
+    let phonePayload;
+    try {
+      phonePayload = jwt.verify(phone_verified_token, process.env.JWT_SECRET);
+    } catch {
+      return res.status(400).json({ success: false, message: 'Phone verification expired. Please verify your OTP again.' });
+    }
+    if (phonePayload.type !== 'phone_verified') {
+      return res.status(400).json({ success: false, message: 'Invalid phone verification token.' });
+    }
+    const phone = phonePayload.phone;
+
+    if (!name || !email) {
+      return res.status(400).json({ success: false, message: 'Name and email are required.' });
+    }
+
+    // Conflict checks
+    const existing = await Partner.findOne({ phone });
+    if (existing) {
+      return res.status(409).json({ success: false, code: 'PHONE_EXISTS', message: 'This phone number is already registered as a partner.' });
+    }
+    const emailConflict = await Partner.findOne({ email: email.toLowerCase() });
+    if (emailConflict) {
+      return res.status(409).json({ success: false, code: 'EMAIL_EXISTS', message: 'This email is already registered.' });
+    }
+    const crossConflict = await User.findOne({ phone });
+    if (crossConflict) {
+      return res.status(409).json({ success: false, code: 'PHONE_EXISTS_OTHER', message: 'This phone is already registered as a Customer account.' });
+    }
+
+    let finalCoords = coords;
+    if (!finalCoords && city) finalCoords = getCityCoords(city);
+    if (!finalCoords) finalCoords = [85.3647, 26.1209];
+
+    const finalPartnerType = partner_type || 'service_provider';
+    const hasKyc = !!(pan_number && pan_image && aadhar_number && aadhar_front_image);
+
+    const partner = await Partner.create({
+      phone,
+      name,
+      email: email.toLowerCase(),
+      password: password || undefined,
+      partner_type: finalPartnerType,
+      roles: [finalPartnerType],
+      active_role: finalPartnerType,
+      service_radius_km: service_radius_km || 100,
+      location: { type: 'Point', coordinates: finalCoords },
+      address,
+      state,
+      district,
+      city,
+      pincode,
+      image: profile_image,
+      kyc: {
+        pan_number,
+        pan_image,
+        aadhar_number,
+        aadhar_front_image,
+        aadhar_back_image,
+        gst_number,
+        gst_image,
+      },
+      onboarding_status: hasKyc ? 'pending_approval' : 'incomplete',
+      ...(referral_code && { referral_code_used: referral_code }),
+      ...(finalPartnerType === 'mandi_seller' && {
+        profile: {
+          mandi_profile: {
+            business_name,
+            business_logo,
+            business_description,
+          }
+        }
+      }),
+    });
+
+    if (referral_code) {
+      const executive = await Executive.findOne({ referral_code: referral_code.toUpperCase(), is_active: true });
+      if (executive && ['approved', 'verified'].includes(executive.onboarding_status)) {
+        partner.referred_by_executive = executive._id;
+        await partner.save();
+      }
+    }
+
+    logActivity({
+      actor_name: partner.name,
+      actor_id: partner._id,
+      action: 'registered',
+      entity_type: 'partner',
+      entity_name: partner.name,
+      entity_id: partner._id,
+      description: `New ${finalPartnerType} registered: ${partner.name}`,
+    });
+
+    const accessToken  = signAccessToken(partner._id, 'partner', partner.email, partner.token_version || 0);
+    const refreshToken = signRefreshToken(partner._id, 'partner', partner.token_version || 0);
+    setAuthCookies(res, accessToken, refreshToken);
+
+    res.status(201).json({
+      success: true,
+      token: accessToken,
+      user: {
+        id: partner._id,
+        phone: partner.phone,
+        email: partner.email,
+        name: partner.name,
+        profileImage: partner.image || '',
+        role: 'partner',
+        partner_type: partner.partner_type,
+        roles: partner.roles,
+        active_role: partner.active_role,
+        onboarding_status: partner.onboarding_status,
+      },
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'registerPartner error:');
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(v => v.message);
+      return res.status(400).json({ success: false, message: messages.join(', ') });
+    }
+    res.status(500).json({ success: false, message: 'Registration failed. Please try again.' });
+  }
+};
+
 module.exports = {
   checkExists,
   requestOtp,
@@ -763,4 +918,5 @@ module.exports = {
   testNotification,
   refreshToken,
   logoutUser,
+  registerPartner,
 };

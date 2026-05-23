@@ -3,7 +3,7 @@ import { ShieldCheck, Camera, CheckCircle2, ChevronRight, FileText, ArrowLeft } 
 import { motion } from 'framer-motion';
 import { v, sanitize } from '../../utils/validators';
 
-export default function KYCStep({ formData, setFormData, onBack, onComplete, onSkip, role }) {
+export default function KYCStep({ formData, setFormData, onBack, onComplete, role }) {
   const panInputRef = useRef(null);
   const aadharFrontRef = useRef(null);
   const aadharBackRef = useRef(null);
@@ -25,8 +25,20 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
 
   const handleComplete = () => {
     const errs = {};
-    if (formData.pan) { const e = v.pan(formData.pan); if (e) errs.pan = e; }
-    if (formData.aadhar) { const e = v.aadhar(formData.aadhar); if (e) errs.aadhar = e; }
+    if (!formData.pan?.trim()) {
+      errs.pan = 'PAN card number is required';
+    } else {
+      const e = v.pan(formData.pan);
+      if (e) errs.pan = e;
+    }
+    if (!formData.panImage) errs.panImage = 'PAN card image is required';
+    if (!formData.aadhar?.trim()) {
+      errs.aadhar = 'Aadhaar card number is required';
+    } else {
+      const e = v.aadhar(formData.aadhar);
+      if (e) errs.aadhar = e;
+    }
+    if (!formData.aadharFront) errs.aadharFront = 'Aadhaar front image is required';
     if (isMandiOrSupplier && formData.gst) { const e = v.gstOptional(formData.gst); if (e) errs.gst = e; }
     if (Object.keys(errs).length > 0) { setKycErrors(errs); return; }
     setKycErrors({});
@@ -43,7 +55,7 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
       <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex gap-3 items-start mb-8">
         <ShieldCheck size={20} className="text-blue-500 shrink-0 mt-0.5" />
         <p className="text-[12px] text-blue-700 leading-relaxed font-medium">
-          Verified partners get 3x more visibility and trust from customers. You can skip this step and complete it later from your profile.
+          KYC verification is required to activate your account. Verified partners get 3x more visibility and trust from customers.
         </p>
       </div>
 
@@ -63,11 +75,11 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
             {kycErrors.pan && <p className="text-[12px] text-red-500 font-semibold mt-1 ml-1">{kycErrors.pan}</p>}
           </div>
           <div className="space-y-1.5">
-            <label className="text-[13px] font-bold text-slate-700 ml-1">PAN Card Image</label>
-            <input type="file" ref={panInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'panImage')} />
-            <div 
+            <label className="text-[13px] font-bold text-slate-700 ml-1">PAN Card Image <span className="text-red-500">*</span></label>
+            <input type="file" ref={panInputRef} className="hidden" accept="image/*" onChange={(e) => { handleFileChange(e, 'panImage'); setKycErrors(p => ({ ...p, panImage: undefined })); }} />
+            <div
               onClick={() => panInputRef.current.click()}
-              className="w-full h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"
+              className={`w-full h-40 bg-slate-50 border-2 border-dashed rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group ${kycErrors.panImage ? 'border-red-400' : 'border-slate-200'}`}
             >
               {formData.panImage ? (
                 <img src={formData.panImage} className="w-full h-full object-cover" alt="PAN" />
@@ -80,6 +92,7 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
                 </>
               )}
             </div>
+            {kycErrors.panImage && <p className="text-[12px] text-red-500 font-semibold mt-1 ml-1">{kycErrors.panImage}</p>}
           </div>
         </div>
 
@@ -98,13 +111,13 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
             {kycErrors.aadhar && <p className="text-[12px] text-red-500 font-semibold mt-1 ml-1">{kycErrors.aadhar}</p>}
           </div>
           <div className="space-y-1.5">
-            <label className="text-[13px] font-bold text-slate-700 ml-1">Aadhar Card Images</label>
+            <label className="text-[13px] font-bold text-slate-700 ml-1">Aadhar Card Images <span className="text-red-500">*</span></label>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <input type="file" ref={aadharFrontRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharFront')} />
-                <div 
+                <input type="file" ref={aadharFrontRef} className="hidden" accept="image/*" onChange={(e) => { handleFileChange(e, 'aadharFront'); setKycErrors(p => ({ ...p, aadharFront: undefined })); }} />
+                <div
                   onClick={() => aadharFrontRef.current.click()}
-                  className="h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"
+                  className={`h-32 bg-slate-50 border-2 border-dashed rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group ${kycErrors.aadharFront ? 'border-red-400' : 'border-slate-200'}`}
                 >
                   {formData.aadharFront ? (
                     <img src={formData.aadharFront} className="w-full h-full object-cover" alt="Aadhar Front" />
@@ -115,6 +128,7 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
                     </>
                   )}
                 </div>
+                {kycErrors.aadharFront && <p className="text-[11px] text-red-500 font-semibold">{kycErrors.aadharFront}</p>}
               </div>
               <div className="space-y-2">
                 <input type="file" ref={aadharBackRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharBack')} />
@@ -180,13 +194,6 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, onS
         >
           Complete Registration
           <ChevronRight size={20} />
-        </button>
-        
-        <button
-          onClick={onSkip}
-          className="w-full py-5 bg-white text-slate-400 rounded-2xl font-bold text-[15px] active:bg-slate-50 transition-all"
-        >
-          Skip for Now
         </button>
         
         <button

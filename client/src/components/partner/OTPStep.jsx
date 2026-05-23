@@ -40,27 +40,13 @@ export default function OTPStep({ formData, selectedRole, onBack, onVerified }) 
     try {
       setVerifying(true);
       setError('');
-      const roleMapping = {
-        'agent': 'property_agent',
-        'service': 'service_provider',
-        'supplier': 'supplier',
-        'mandi': 'mandi_seller'
-      };
-      
       const response = await api.post('/auth/verify-otp', {
         phone: formData.phone.trim(),
         otp: otp,
-        role: 'partner',
-        partner_type: roleMapping[selectedRole] || 'service_provider',
-        flow: 'signup',
-        name: formData.fullName,
-        email: formData.email,
-        password: formData.password,
-        referral_code: formData.referral_code
+        flow: 'signup_verify',
       });
-
       if (response.data?.success) {
-        onVerified(response.data.user, response.data.token);
+        onVerified(response.data.phone_verified_token);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid OTP. Please try again.');
