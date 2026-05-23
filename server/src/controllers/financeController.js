@@ -86,8 +86,8 @@ const verifySubscription = async (req, res) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan_id } = req.body;
     const partnerId = req.user.id;
 
-    // 1. Signature Verification (Only if not mock — mock bypass only allowed outside production)
-    const isMock = process.env.NODE_ENV === 'test' && razorpay_order_id.startsWith('order_mock_');
+    // 1. Signature Verification (skip for mock orders in demo/test mode)
+    const isMock = (process.env.DEMO_OTP_ENABLED === 'true' || process.env.NODE_ENV === 'test') && razorpay_order_id.startsWith('order_mock_');
     if (!isMock) {
       const body = razorpay_order_id + "|" + razorpay_payment_id;
       const expectedSignature = crypto

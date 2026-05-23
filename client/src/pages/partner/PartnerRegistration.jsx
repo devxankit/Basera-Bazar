@@ -237,6 +237,33 @@ export default function PartnerRegistration() {
       const initRes = await api.post('/finance/subscription/initiate', { plan_id: selectedPlan });
       const { order_id, amount, key, plan_name } = initRes.data;
 
+      const completeRegistration = async (paymentId, signature) => {
+        await api.post('/finance/subscription/verify', {
+          razorpay_order_id: order_id,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: signature,
+          plan_id: selectedPlan
+        });
+        const activity = {
+          title: `Account Registered as ${selectedRole}`,
+          time: new Date().toLocaleTimeString(),
+          timestamp: new Date().toISOString(),
+          type: 'profile'
+        };
+        const activityKey = `baserabazar_activity_${userData.id || userData._id}`;
+        const existingLogs = JSON.parse(localStorage.getItem(activityKey) || '[]');
+        localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs.filter(l => l.title !== activity.title)]));
+        login(userData, token);
+        sessionStorage.removeItem(STORAGE_KEY);
+        navigate('/partner/home');
+      };
+
+      // Demo mode: skip Razorpay modal and auto-verify
+      if (key === 'rzp_test_mock') {
+        await completeRegistration(`pay_mock_${Date.now()}`, 'mock_signature');
+        return;
+      }
+
       const options = {
         key,
         amount,
@@ -246,24 +273,7 @@ export default function PartnerRegistration() {
         order_id,
         handler: async (rzpResponse) => {
           try {
-            await api.post('/finance/subscription/verify', {
-              razorpay_order_id: rzpResponse.razorpay_order_id,
-              razorpay_payment_id: rzpResponse.razorpay_payment_id,
-              razorpay_signature: rzpResponse.razorpay_signature,
-              plan_id: selectedPlan
-            });
-            const activity = {
-              title: `Account Registered as ${selectedRole}`,
-              time: new Date().toLocaleTimeString(),
-              timestamp: new Date().toISOString(),
-              type: 'profile'
-            };
-            const activityKey = `baserabazar_activity_${userData.id || userData._id}`;
-            const existingLogs = JSON.parse(localStorage.getItem(activityKey) || '[]');
-            localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs.filter(l => l.title !== activity.title)]));
-            login(userData, token);
-            sessionStorage.removeItem(STORAGE_KEY);
-            navigate('/partner/home');
+            await completeRegistration(rzpResponse.razorpay_payment_id, rzpResponse.razorpay_signature);
           } catch (err) {
             toast.error("Payment verification failed. Please contact support.");
             setIsSubmitting(false);

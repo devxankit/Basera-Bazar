@@ -61,14 +61,11 @@ exports.registerStep1 = async (req, res) => {
       logger.info(`[DEV] OTP for ${phone}: ${otpCode}`);
     }
 
-    // In demo mode skip real SMS — 123456 is accepted at verify step
-    if (process.env.DEMO_OTP_ENABLED !== 'true') {
-      try {
-        await sendOTP(phone, otpCode);
-      } catch (smsErr) {
-        logger.error({ err: smsErr }, '[SMS] Failed to send executive OTP');
-        return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
-      }
+    try {
+      await sendOTP(phone, otpCode);
+    } catch (smsErr) {
+      logger.error({ err: smsErr }, '[SMS] Failed to send executive OTP');
+      return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
     }
 
     res.status(200).json({
@@ -91,26 +88,21 @@ exports.verifyRegistrationOtp = async (req, res) => {
     if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
     phone = phone.replace(/\s+/g, '').replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
 
-    // Demo OTP bypass — checked first so it works even without a real OTP record
-    const isDemoOtp = process.env.DEMO_OTP_ENABLED === 'true' && otp.toString() === (process.env.DEMO_OTP || '123456');
-
     const otpRecord = await Otp.findOne({ phone }).sort({ createdAt: -1 });
 
-    if (!isDemoOtp) {
-      if (!otpRecord) {
-        return res.status(400).json({ success: false, message: 'OTP expired or not found.' });
-      }
-      if (otpRecord.expires_at && otpRecord.expires_at < new Date()) {
-        await Otp.deleteOne({ _id: otpRecord._id });
-        return res.status(400).json({ success: false, message: 'OTP expired. Please request a new one.' });
-      }
-      const isMatch = await bcrypt.compare(otp.toString(), otpRecord.otp_hash);
-      if (!isMatch) {
-        return res.status(400).json({ success: false, message: 'Invalid OTP.' });
-      }
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'OTP expired or not found.' });
+    }
+    if (otpRecord.expires_at && otpRecord.expires_at < new Date()) {
+      await Otp.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({ success: false, message: 'OTP expired. Please request a new one.' });
+    }
+    const isMatch = await bcrypt.compare(otp.toString(), otpRecord.otp_hash);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP.' });
     }
 
-    if (otpRecord) await Otp.deleteOne({ _id: otpRecord._id });
+    await Otp.deleteOne({ _id: otpRecord._id });
 
     // Return a short-lived token — no DB write yet
     const phoneVerifiedToken = jwt.sign(
