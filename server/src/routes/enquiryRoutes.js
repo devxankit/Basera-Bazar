@@ -13,8 +13,8 @@ const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
 const { enquirySchema, idParamSchema } = require('../utils/validators');
 
-router.post('/enquiries', protect, authorizeRoles('user', 'Customer'), validate(enquirySchema), createEnquiry);
-router.get('/users/enquiries', protect, authorizeRoles('user', 'Customer'), getMyEnquiries);
+router.post('/enquiries', protect, validate(enquirySchema), createEnquiry);
+router.get('/users/enquiries', protect, getMyEnquiries);
 
 // Partner Routes
 router.get('/partners/enquiries', protect, authorizeRoles('partner'), getPartnerInquiries);

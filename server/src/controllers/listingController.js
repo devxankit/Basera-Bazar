@@ -519,6 +519,79 @@ const updateListing = async (req, res) => {
       }
     }
 
+    // ── PROPERTY SPECIFIC MAPPING ──
+    if (Model === PropertyListing) {
+      if (updateData.propertyType) {
+        let property_type = updateData.propertyType.toLowerCase();
+        if (!['apartment', 'hostel_pg', 'office', 'plot', 'warehouse', 'residential', 'commercial', 'agricultural', 'industrial', 'house', 'villa'].includes(property_type)) {
+          property_type = 'residential';
+        }
+        updateData.property_type = property_type;
+      }
+
+      if (updateData.intention) {
+        updateData.listing_intent = updateData.intention.toLowerCase().includes('rent') ? 'rent' : 'sell';
+      }
+
+      if (updateData.price) {
+        updateData.pricing = {
+          amount: Number(updateData.price?.value || updateData.price || 0),
+          currency: 'INR'
+        };
+      }
+
+      if (updateData.completeAddress || updateData.district || updateData.state || updateData.pinCode) {
+        updateData.address = {
+          district: updateData.district !== undefined ? updateData.district : listing.address?.district,
+          state: updateData.state !== undefined ? updateData.state : listing.address?.state,
+          full_address: updateData.completeAddress !== undefined ? updateData.completeAddress : listing.address?.full_address,
+          pincode: updateData.pinCode !== undefined ? updateData.pinCode : listing.address?.pincode
+        };
+      }
+
+      if (updateData.latitude && updateData.longitude) {
+        updateData.location = {
+          type: 'Point',
+          coordinates: [parseFloat(updateData.longitude), parseFloat(updateData.latitude)]
+        };
+      }
+
+      if (updateData.details) {
+        const rawDetails = updateData.details || {};
+        const furnishingMap = {
+          'fully furnished': 'fully-furnished', 'fully-furnished': 'fully-furnished',
+          'semi furnished': 'semi-furnished', 'semi-furnished': 'semi-furnished',
+          'unfurnished': 'unfurnished'
+        };
+        const furnishing = furnishingMap[(rawDetails.furnishing || '').toLowerCase()] || 'unfurnished';
+
+        const validFacing = ['north', 'south', 'east', 'west', 'no-preference'];
+        const facing = validFacing.includes((rawDetails.facing || '').toLowerCase())
+          ? (rawDetails.facing || '').toLowerCase() : 'no-preference';
+
+        let areaUnit = rawDetails.areaUnit || rawDetails.unit || 'sqft';
+        if (areaUnit === 'sq. ft.' || areaUnit === 'sq.ft') areaUnit = 'sqft';
+        else if (areaUnit === 'sq. m.' || areaUnit === 'sq.m.' || areaUnit === 'sqmt') areaUnit = 'sqmt';
+
+        const existingDetails = listing.details || {};
+        const existingArea = existingDetails.area || {};
+
+        updateData.details = {
+          area: {
+            value: rawDetails.area !== undefined ? (Number(rawDetails.area || rawDetails.builtUpArea || 0) || undefined) : existingArea.value,
+            unit: areaUnit,
+          },
+          bhk: rawDetails.bedrooms !== undefined ? (Number(rawDetails.bedrooms?.replace?.(/\D/g, '') || rawDetails.bhk || rawDetails.bedrooms) || undefined) : existingDetails.bhk,
+          bathrooms: rawDetails.bathrooms !== undefined ? (Number(rawDetails.bathrooms) || undefined) : existingDetails.bathrooms,
+          washrooms: rawDetails.washrooms !== undefined ? (Number(rawDetails.washrooms) || undefined) : existingDetails.washrooms,
+          furnishing,
+          facing,
+          floor_number: rawDetails.floorNumber !== undefined ? (Number(rawDetails.floorNumber || rawDetails.floor_number) || undefined) : existingDetails.floor_number,
+          total_floors: rawDetails.totalFloors !== undefined ? (Number(rawDetails.totalFloors || rawDetails.total_floors) || undefined) : existingDetails.total_floors,
+        };
+      }
+    }
+
     // ── MANDI SPECIFIC MAPPING ──
     // Frontend sends 'stock', Backend schema uses 'stock_quantity'
     if (Model === MandiListing && updateData.stock !== undefined) {

@@ -74,10 +74,14 @@ const createPropertyListing = async (req, res) => {
     const facing = validFacing.includes((rawDetails.facing || '').toLowerCase())
       ? (rawDetails.facing || '').toLowerCase() : 'no-preference';
 
+    let areaUnit = rawDetails.areaUnit || rawDetails.unit || 'sqft';
+    if (areaUnit === 'sq. ft.' || areaUnit === 'sq.ft') areaUnit = 'sqft';
+    else if (areaUnit === 'sq. m.' || areaUnit === 'sq.m.' || areaUnit === 'sqmt') areaUnit = 'sqmt';
+
     const safeDetails = {
       area: {
         value: Number(rawDetails.area || rawDetails.builtUpArea || 0) || undefined,
-        unit: rawDetails.areaUnit || rawDetails.unit || 'sqft',
+        unit: areaUnit,
       },
       bhk: Number(rawDetails.bedrooms?.replace?.(/\D/g, '') || rawDetails.bhk || rawDetails.bedrooms) || undefined,
       bathrooms: Number(rawDetails.bathrooms) || undefined,

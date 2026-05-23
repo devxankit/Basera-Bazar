@@ -143,14 +143,21 @@ class DataEngine {
     
     // Normalize Area (PREVENTS OBJECT RENDERING CRASH)
     if (normalized.details && typeof normalized.details.area === 'object' && normalized.details.area !== null) {
-      normalized.details.areaUnit = normalized.details.area.unit || 'sq.ft';
+      let u = normalized.details.area.unit || 'sqft';
+      if (u === 'sqft' || u === 'sq.ft') u = 'sq. ft.';
+      else if (u === 'sqmt' || u === 'sq.m.') u = 'sq. m.';
+      normalized.details.areaUnit = u;
       normalized.details.area = normalized.details.area.value || ''; // Overwrite with string/number for UI
     }
     
     // Add BHK, Area, and Stock to root for easy access
     normalized.bhk = item.details?.bhk || item.bhk || '';
     normalized.area = item.details?.areaValue || item.details?.area || item.area || '';
-    normalized.areaUnit = item.details?.areaUnit || item.areaUnit || 'Sqft';
+    
+    let displayUnit = normalized.details?.areaUnit || item.details?.areaUnit || item.areaUnit || 'sq. ft.';
+    if (displayUnit === 'sqft' || displayUnit === 'sq.ft') displayUnit = 'sq. ft.';
+    else if (displayUnit === 'sqmt' || displayUnit === 'sq.m.') displayUnit = 'sq. m.';
+    normalized.areaUnit = displayUnit;
     normalized.stock = item.stock_quantity || item.stock || 0;
 
     // Legacy support for components using .location as a string
