@@ -121,15 +121,15 @@ const staffForgotPassword = async (req, res) => {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ success: false, message: 'Phone number required.' });
 
-    // Check in all staff models
+    // Check in all staff models — allow any active account regardless of onboarding status
     const [tl, os, fe] = await Promise.all([
-      TeamLeader.findOne({ phone, onboarding_status: 'approved', is_active: true }),
-      OfficeStaff.findOne({ phone, onboarding_status: 'approved', is_active: true }),
-      Executive.findOne({ phone, onboarding_status: { $in: ['approved', 'verified'] }, is_active: true }),
+      TeamLeader.findOne({ phone, is_active: true }),
+      OfficeStaff.findOne({ phone, is_active: true }),
+      Executive.findOne({ phone, is_active: true }),
     ]);
 
     const staff = tl || os || fe;
-    if (!staff) return res.status(404).json({ success: false, message: 'Active staff account not found with this phone.' });
+    if (!staff) return res.status(404).json({ success: false, message: 'No active staff account found with this phone.' });
 
     const crypto = require('crypto');
     const otpCode = crypto.randomInt(100000, 1000000).toString();
@@ -144,10 +144,18 @@ const staffForgotPassword = async (req, res) => {
     await Otp.create({
       phone,
       otp_hash: otpHash,
-      expires_at: new Date(Date.now() + 5 * 60 * 1000), // 5 mins
+      expires_at: new Date(Date.now() + 5 * 60 * 1000),
     });
 
-    await require('../../utils/sms').sendOTP(phone, otpCode);
+    try {
+      await require('../../utils/sms').sendOTP(phone, otpCode);
+    } catch (smsErr) {
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn(`[DEV] SMS failed — OTP for ${phone}: ${otpCode}`);
+      } else {
+        throw smsErr;
+      }
+    }
 
     res.status(200).json({ success: true, message: 'OTP sent successfully.' });
   } catch (err) {

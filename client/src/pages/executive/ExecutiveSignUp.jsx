@@ -318,27 +318,30 @@ export default function ExecutiveSignUp() {
       return;
     }
     setIsSubmitting(true);
-    const loadingToast = toast.loading('Uploading documents...');
+    const loadingToastId = toast.loading('Uploading documents...');
     try {
       const kycData = { ...formData.kyc };
       const uploadFields = ['aadhar_image', 'pan_image', 'live_photo'];
-      
+
       for (const field of uploadFields) {
         if (kycData[field]?.startsWith('data:')) {
           const file = dataURLtoFile(kycData[field], `${field}.jpg`);
-          const res = await db.uploadFile(file);
-          kycData[field] = res.url;
+          const uploadRes = await db.uploadFile(file);
+          kycData[field] = uploadRes.url;
         }
       }
 
       const res = await api.put('/executive/register/step3', { kyc: kycData });
-      toast.success('KYC Submitted Successfully!', { id: loadingToast });
-      
+      toast.dismiss(loadingToastId);
+      toast.success('KYC submitted! Redirecting…');
+
       const token = localStorage.getItem('baserabazar_token');
       login(res.data.executive, token);
-      setTimeout(() => navigate('/executive/dashboard'), 1000);
+      setTimeout(() => navigate('/executive/dashboard'), 1200);
     } catch (error) {
-      toast.error('KYC Submission failed', { id: loadingToast });
+      toast.dismiss(loadingToastId);
+      const msg = error.response?.data?.message || error.message || 'KYC submission failed. Please try again.';
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

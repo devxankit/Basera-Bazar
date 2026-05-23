@@ -118,8 +118,12 @@ const requestOtp = async (req, res) => {
     try {
       await sendOTP(phone, otpCode);
     } catch (smsErr) {
-      logger.error({ err: smsErr }, '[SMS] Failed to send OTP');
-      return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn(`[DEV] SMS failed — OTP for ${phone}: ${otpCode}`);
+      } else {
+        logger.error({ err: smsErr }, '[SMS] Failed to send OTP');
+        return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
+      }
     }
 
     res.status(200).json({

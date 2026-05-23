@@ -68,8 +68,7 @@ export default function PartnerLogin() {
   // ── OTP Handlers ──
   const handleSendOtp = async () => {
     const err = v.phone(phone);
-    if (err) { setLoginError(err); return; }
-    setLoginError('');
+    if (err) { toast.error(err); return; }
     try {
       setLoading(true);
       const res = await api.post('/auth/send-otp', { phone, checkExists: true });
@@ -86,8 +85,7 @@ export default function PartnerLogin() {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     const err = v.otp(otp);
-    if (err) { setLoginError(err); return; }
-    setLoginError('');
+    if (err) { toast.error(err); return; }
     try {
       setLoading(true);
       const res = await api.post('/auth/verify-otp', { phone, otp, role: 'partner' });
@@ -104,8 +102,8 @@ export default function PartnerLogin() {
   const handlePasswordLogin = async (e) => {
     e.preventDefault();
     const idErr = identifier.includes('@') ? v.email(identifier) : v.phone(identifier);
-    if (idErr) { setLoginError(idErr); return; }
-    if (!password) { setLoginError('Password is required.'); return; }
+    if (idErr) { toast.error(idErr); return; }
+    if (!password) { toast.error('Password is required.'); return; }
     setLoginError('');
     try {
       setLoading(true);
