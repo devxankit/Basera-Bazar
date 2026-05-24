@@ -115,14 +115,10 @@ export default function ExecutiveSignUp() {
     setErrors(prev => ({ ...prev, [name]: fieldError || undefined }));
   };
 
-  const handleFileUpload = async (e, field) => {
+  const handleFileUpload = (e, field) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, [field]: reader.result } }));
-    };
-    reader.readAsDataURL(file);
+    setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, [field]: file } }));
   };
 
   const startCamera = async () => {
@@ -324,7 +320,10 @@ export default function ExecutiveSignUp() {
       const uploadFields = ['aadhar_image', 'pan_image', 'live_photo'];
 
       for (const field of uploadFields) {
-        if (kycData[field]?.startsWith('data:')) {
+        if (kycData[field] instanceof File) {
+          const uploadRes = await db.uploadFile(kycData[field]);
+          kycData[field] = uploadRes.url;
+        } else if (typeof kycData[field] === 'string' && kycData[field].startsWith('data:')) {
           const file = dataURLtoFile(kycData[field], `${field}.jpg`);
           const uploadRes = await db.uploadFile(file);
           kycData[field] = uploadRes.url;
