@@ -1,7 +1,7 @@
 const express = require('express');
 const logger = require('../utils/logger');
 const router = express.Router();
-const { upload } = require('../config/cloudinary');
+const { upload, cloudinary } = require('../config/cloudinary');
 const { protect } = require('../middlewares/authMiddleware');
 
 /**
@@ -39,6 +39,38 @@ router.post('/', protect, (req, res, next) => {
   } catch (error) {
     logger.error({ err: error }, "Upload error:")
     res.status(500).json({ success: false, message: 'Server error during upload.' });
+  }
+});
+
+/**
+ * @desc    Delete an image from Cloudinary by its URL
+ * @route   DELETE /api/upload
+ * @access  Private
+ * @body    { url: "https://res.cloudinary.com/..." }
+ */
+router.delete('/', protect, async (req, res) => {
+  const { url } = req.body;
+  if (!url || typeof url !== 'string') {
+    return res.status(400).json({ success: false, message: 'Image URL is required.' });
+  }
+
+  try {
+    // Extract the public_id from a Cloudinary URL
+    // URL format: https://res.cloudinary.com/<cloud>/image/upload/v<version>/<folder>/<filename>.<ext>
+    const matches = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[a-z]+$/i);
+    if (!matches || !matches[1]) {
+      return res.status(400).json({ success: false, message: 'Invalid Cloudinary URL format.' });
+    }
+
+    const publicId = matches[1]; // e.g. "basera_bazar_uploads/abc123"
+    logger.info(`[Upload] Deleting Cloudinary asset: ${publicId} for user: ${req.user?._id}`);
+
+    await cloudinary.uploader.destroy(publicId);
+
+    res.status(200).json({ success: true, message: 'Image deleted successfully.' });
+  } catch (error) {
+    logger.error({ err: error }, "[Upload] Delete error:");
+    res.status(500).json({ success: false, message: 'Failed to delete image.' });
   }
 });
 

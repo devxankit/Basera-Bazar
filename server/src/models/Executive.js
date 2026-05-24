@@ -120,7 +120,9 @@ executiveSchema.set('toJSON', {
       delete ret.kyc.pan_number;
     }
     if (ret.bank_details) {
-      delete ret.bank_details.account_number;
+      if (ret.bank_details.account_number) {
+        ret.bank_details.account_number = 'XXXX' + ret.bank_details.account_number.slice(-4);
+      }
     }
     return ret;
   }

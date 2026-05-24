@@ -5,6 +5,7 @@ import {
   Route,
   Outlet,
   useLocation,
+  useNavigate,
   Navigate,
 } from "react-router-dom";
 import ErrorBoundary from "./components/common/ErrorBoundary";
@@ -28,6 +29,7 @@ import {
   setupForegroundHandler,
   registerFCMToken,
 } from "./services/pushNotificationService";
+import { toast } from "./mockToast";
 
 // --- Lazy-loaded User pages ---
 const Home = lazy(() => import("./pages/user/Home"));
@@ -347,6 +349,15 @@ const PageSpinner = () => (
   </div>
 );
 
+// --- Scroll-to-top on every route change ---
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
+  return null;
+};
+
 // --- SWITCHER COMPONENTS FOR UNIFIED URLS ---
 const PartnerInventorySwitcher = () => {
   const { user } = useAuth();
@@ -415,6 +426,25 @@ const ExecutiveRoute = ({ children }) => {
   if (loading) return <PageSpinner />;
   if (!isAuthenticated || user?.role !== "executive")
     return <Navigate to="/staff/login" replace />;
+  return children;
+};
+
+/**
+ * VerifiedExecutiveRoute — blocks access to restricted pages for unverified executives.
+ * Only allows access when onboarding_status is 'approved' or 'verified'.
+ */
+const VerifiedExecutiveRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
+  if (loading) return <PageSpinner />;
+  if (!isAuthenticated || user?.role !== "executive")
+    return <Navigate to="/staff/login" replace />;
+  const status = user?.onboarding_status;
+  const isVerified = status === 'approved' || status === 'verified';
+  if (!isVerified) {
+    // Redirect to dashboard immediately
+    return <Navigate to="/executive/dashboard" replace />;
+  }
   return children;
 };
 
@@ -674,6 +704,7 @@ function App() {
             <FCMHandler>
               <LocationSyncHandler>
                 <Router>
+                  <ScrollToTop />
                   <LocationGate>
                   <Suspense fallback={<PageSpinner />}>
                     <Routes>
@@ -1163,21 +1194,21 @@ function App() {
                         <Route
                           path="/executive/partners"
                           element={
-                            <ExecutiveRoute>
+                            <VerifiedExecutiveRoute>
                               <ExecutiveLayout>
                                 <ExecutivePartners />
                               </ExecutiveLayout>
-                            </ExecutiveRoute>
+                            </VerifiedExecutiveRoute>
                           }
                         />
                         <Route
                           path="/executive/wallet"
                           element={
-                            <ExecutiveRoute>
+                            <VerifiedExecutiveRoute>
                               <ExecutiveLayout>
                                 <ExecutiveWallet />
                               </ExecutiveLayout>
-                            </ExecutiveRoute>
+                            </VerifiedExecutiveRoute>
                           }
                         />
                         <Route
@@ -1994,51 +2025,51 @@ function App() {
                         <Route
                           path="/executive/attendance"
                           element={
-                            <ExecutiveRoute>
+                            <VerifiedExecutiveRoute>
                               <ExecutiveLayout>
                                 <ExecutiveAttendance />
                               </ExecutiveLayout>
-                            </ExecutiveRoute>
+                            </VerifiedExecutiveRoute>
                           }
                         />
                         <Route
                           path="/executive/targets"
                           element={
-                            <ExecutiveRoute>
+                            <VerifiedExecutiveRoute>
                               <ExecutiveLayout>
                                 <ExecutiveTargets />
                               </ExecutiveLayout>
-                            </ExecutiveRoute>
+                            </VerifiedExecutiveRoute>
                           }
                         />
                         <Route
                           path="/executive/reports"
                           element={
-                            <ExecutiveRoute>
+                            <VerifiedExecutiveRoute>
                               <ExecutiveLayout>
                                 <ExecutiveReports />
                               </ExecutiveLayout>
-                            </ExecutiveRoute>
+                            </VerifiedExecutiveRoute>
                           }
                         />
                         <Route
                           path="/executive/reports/submit"
                           element={
-                            <ExecutiveRoute>
+                            <VerifiedExecutiveRoute>
                               <ExecutiveLayout>
                                 <ExecutiveReportForm />
                               </ExecutiveLayout>
-                            </ExecutiveRoute>
+                            </VerifiedExecutiveRoute>
                           }
                         />
                         <Route
                           path="/executive/leaves"
                           element={
-                            <ExecutiveRoute>
+                            <VerifiedExecutiveRoute>
                               <ExecutiveLayout>
                                 <ExecutiveLeaves />
                               </ExecutiveLayout>
-                            </ExecutiveRoute>
+                            </VerifiedExecutiveRoute>
                           }
                         />
 

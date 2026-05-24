@@ -47,6 +47,8 @@ export default function ExecutiveProfile() {
   });
 
   const profile = rawData?.success ? rawData.data.profile : null;
+  const kycStatus = profile?.onboarding_status;
+  const isVerified = kycStatus === 'verified' || kycStatus === 'approved';
 
   // Sync form state when profile loads
   useEffect(() => {
@@ -118,7 +120,7 @@ export default function ExecutiveProfile() {
     );
   }
 
-  const kycStatus = profile?.onboarding_status;
+
 
   return (
     <div className="min-h-screen bg-white flex flex-col max-w-md mx-auto relative overflow-x-hidden pb-32 font-inter">
@@ -130,8 +132,20 @@ export default function ExecutiveProfile() {
         </button>
         <h1 className="text-lg font-medium text-slate-900">Profile</h1>
         <button 
-          onClick={() => setIsEditing(!isEditing)}
-          className={`p-2 rounded-xl transition-all ${isEditing ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+          onClick={() => {
+            if (!isVerified) {
+              toast.error('Profile editing is disabled until your account is verified by admin.');
+              return;
+            }
+            setIsEditing(!isEditing);
+          }}
+          className={`p-2 rounded-xl transition-all ${
+            isEditing 
+              ? 'bg-slate-900 text-white' 
+              : isVerified 
+              ? 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              : 'bg-slate-50 text-slate-300 cursor-default'
+          }`}
         >
           {isEditing ? <X size={20} /> : <Edit3 size={20} />}
         </button>
@@ -146,8 +160,12 @@ export default function ExecutiveProfile() {
         {/* Centered Identity Section */}
         <motion.div variants={itemVariants} className="flex flex-col items-center text-center space-y-6">
           <div className="relative">
-            <div className="w-32 h-32 bg-emerald-600 rounded-[2.5rem] flex items-center justify-center text-white text-4xl font-medium shadow-2xl shadow-emerald-200 relative z-10">
-              {profile?.name?.charAt(0).toLowerCase()}
+            <div className="w-32 h-32 bg-emerald-600 rounded-[2.5rem] flex items-center justify-center text-white text-4xl font-medium shadow-2xl shadow-emerald-200 relative z-10 overflow-hidden">
+              {(profile?.kyc?.live_photo || profile?.image) ? (
+                <img src={profile?.kyc?.live_photo || profile?.image} alt={profile?.name} className="w-full h-full object-cover" />
+              ) : (
+                <span>{profile?.name?.charAt(0)?.toUpperCase() || '?'}</span>
+              )}
             </div>
             <div className="absolute inset-0 bg-emerald-600/20 blur-3xl rounded-full scale-150 -z-0" />
           </div>
@@ -255,6 +273,16 @@ export default function ExecutiveProfile() {
           )}
         </motion.div>
 
+        {/* Unverified notice */}
+        {!isVerified && (
+          <motion.div variants={itemVariants} className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-3 items-start">
+            <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-[12px] font-medium text-amber-800 leading-relaxed">
+              Profile editing and bank details are disabled until your account is verified by the admin.
+            </p>
+          </motion.div>
+        )}
+
         {/* Edit Profile Form (Inline) */}
         <AnimatePresence>
           {isEditing && (
@@ -304,8 +332,20 @@ export default function ExecutiveProfile() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-medium text-slate-900 uppercase tracking-widest">Bank Details</h3>
             <button
-              onClick={() => setShowBankForm(!showBankForm)}
-              className={`px-3 py-1.5 text-[9px] font-medium uppercase tracking-widest rounded-lg transition-all ${showBankForm ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-500 border border-slate-100 hover:bg-slate-100'}`}
+              onClick={() => {
+                if (!isVerified) {
+                  toast.error('Bank details can only be edited after your account is verified.');
+                  return;
+                }
+                setShowBankForm(!showBankForm);
+              }}
+              className={`px-3 py-1.5 text-[9px] font-medium uppercase tracking-widest rounded-lg transition-all ${
+                showBankForm 
+                  ? 'bg-slate-900 text-white' 
+                  : isVerified
+                  ? 'bg-slate-50 text-slate-500 border border-slate-100 hover:bg-slate-100'
+                  : 'bg-slate-50 text-slate-300 border border-slate-100 cursor-default'
+              }`}
             >
               {showBankForm ? 'Cancel' : (profile?.bank_details?.account_number ? 'Edit' : 'Add Bank')}
             </button>

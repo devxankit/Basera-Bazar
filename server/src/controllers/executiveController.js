@@ -271,6 +271,8 @@ exports.updateStep3 = async (req, res) => {
       executive.kyc = kyc;
       executive.onboarding_status = 'pending';
       await executive.save();
+      await invalidate.executiveProfile(req.user.id);
+      await invalidate.adminDashboard();
     } catch (saveError) {
       logger.error({ err: saveError }, 'Executive Final Save Error:')
       return res.status(400).json({ 

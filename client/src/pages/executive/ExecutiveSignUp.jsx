@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, MapPin, Landmark, Camera, ShieldCheck, Mail, Phone, Lock, CheckCircle2, ChevronRight, MapPinned, CreditCard, Building2, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
-import { db } from '../../services/DataEngine';
 import { useAuth } from '../../context/AuthContext';
 import { toast, Toaster } from '../../mockToast';
+import { useBackgroundUpload } from '../../hooks/useBackgroundUpload';
 
 const steps = [
   { id: 1, title: 'Basic Info', icon: User },
@@ -18,6 +18,7 @@ export default function ExecutiveSignUp() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const fallbackCameraRef = useRef(null);
+  const { queueUpload, awaitUpload, cancelUpload } = useBackgroundUpload();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -118,7 +119,19 @@ export default function ExecutiveSignUp() {
   const handleFileUpload = (e, field) => {
     const file = e.target.files[0];
     if (!file) return;
-    setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, [field]: file } }));
+
+    // Show local preview immediately (fast — no upload needed for preview)
+    const localPreview = URL.createObjectURL(file);
+    setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, [field]: localPreview } }));
+
+    // Compress + upload to Cloudinary in the background right now
+    queueUpload(field, file);
+  };
+
+  const handleRemoveKycImage = (field) => {
+    // Cancel background upload and delete from Cloudinary if already done
+    cancelUpload(field);
+    setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, [field]: null } }));
   };
 
   const startCamera = async () => {
@@ -171,8 +184,17 @@ export default function ExecutiveSignUp() {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
       ctx.drawImage(video, 0, 0);
-      setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, live_photo: canvas.toDataURL('image/jpeg') } }));
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, live_photo: dataUrl } }));
       stopCamera();
+      // Convert dataURL to File and queue background upload
+      fetch(dataUrl)
+        .then(r => r.blob())
+        .then(blob => {
+          const file = new File([blob], 'live_photo.jpg', { type: 'image/jpeg' });
+          queueUpload('live_photo', file);
+        })
+        .catch(() => {}); // non-fatal
     }
   };
 
@@ -314,21 +336,22 @@ export default function ExecutiveSignUp() {
       return;
     }
     setIsSubmitting(true);
-    const loadingToastId = toast.loading('Uploading documents...');
+    const loadingToastId = toast.loading('Finalizing submission…');
     try {
-      const kycData = { ...formData.kyc };
-      const uploadFields = ['aadhar_image', 'pan_image', 'live_photo'];
+      // Background uploads started on file-select — await them here.
+      // If already done, these resolve instantly (zero wait).
+      const [aadharUrl, panUrl, livePhotoUrl] = await Promise.all([
+        awaitUpload('aadhar_image'),
+        awaitUpload('pan_image'),
+        awaitUpload('live_photo'),
+      ]);
 
-      for (const field of uploadFields) {
-        if (kycData[field] instanceof File) {
-          const uploadRes = await db.uploadFile(kycData[field]);
-          kycData[field] = uploadRes.url;
-        } else if (typeof kycData[field] === 'string' && kycData[field].startsWith('data:')) {
-          const file = dataURLtoFile(kycData[field], `${field}.jpg`);
-          const uploadRes = await db.uploadFile(file);
-          kycData[field] = uploadRes.url;
-        }
-      }
+      const kycData = {
+        ...formData.kyc,
+        aadhar_image: aadharUrl || formData.kyc.aadhar_image,
+        pan_image: panUrl || formData.kyc.pan_image,
+        live_photo: livePhotoUrl || formData.kyc.live_photo || null,
+      };
 
       const res = await api.put('/executive/register/step3', { kyc: kycData });
       toast.dismiss(loadingToastId);
@@ -555,7 +578,7 @@ export default function ExecutiveSignUp() {
                 </div>
                 <div className="p-5 space-y-4">
                   <InputField label="Aadhaar Number" name="aadhar_number" inputMode="numeric" maxLength={12} value={formData.kyc.aadhar_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="12-digit UIDAI number" error={errors.aadhar_number} />
-                  <DocUpload label="Aadhaar Front Side" value={formData.kyc.aadhar_image} onChange={(e) => handleFileUpload(e, 'aadhar_image')} error={errors.aadhar_image} />
+                  <DocUpload label="Aadhaar Front Side" value={formData.kyc.aadhar_image} onChange={(e) => handleFileUpload(e, 'aadhar_image')} onRemove={() => handleRemoveKycImage('aadhar_image')} error={errors.aadhar_image} />
                 </div>
               </div>
 
@@ -569,7 +592,7 @@ export default function ExecutiveSignUp() {
                 </div>
                 <div className="p-5 space-y-4">
                   <InputField label="PAN Number" name="pan_number" maxLength={10} value={formData.kyc.pan_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="ABCDE1234F" error={errors.pan_number} />
-                  <DocUpload label="PAN Card Photo" value={formData.kyc.pan_image} onChange={(e) => handleFileUpload(e, 'pan_image')} error={errors.pan_image} />
+                  <DocUpload label="PAN Card Photo" value={formData.kyc.pan_image} onChange={(e) => handleFileUpload(e, 'pan_image')} onRemove={() => handleRemoveKycImage('pan_image')} error={errors.pan_image} />
                 </div>
               </div>
 
@@ -588,9 +611,9 @@ export default function ExecutiveSignUp() {
       <input type="file" ref={fallbackCameraRef} accept="image/*" capture="user" className="hidden" onChange={(e) => {
         const file = e.target.files[0];
         if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, live_photo: reader.result } }));
-          reader.readAsDataURL(file);
+          const localUrl = URL.createObjectURL(file);
+          setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, live_photo: localUrl } }));
+          queueUpload('live_photo', file);
         }
       }} />
     </div>
@@ -614,21 +637,29 @@ const InputField = ({ label, icon: Icon, prefix, error, ...props }) => (
   </div>
 );
 
-const DocUpload = ({ label, value, onChange, error }) => (
+const DocUpload = ({ label, value, onChange, onRemove, error }) => (
   <div className="space-y-1.5">
     <div className="relative">
-      <input type="file" accept="image/*" onChange={onChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+      {!value && <input type="file" accept="image/*" onChange={onChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />}
       <div className={`w-full py-4 px-5 rounded-2xl border-2 border-dashed flex items-center justify-between transition-all ${value ? 'border-green-400 bg-green-50' : error ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50 hover:border-[#001b4e] hover:bg-blue-50'}`}>
         <div className="flex items-center gap-4">
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${value ? 'bg-green-500 text-white' : error ? 'bg-red-100 text-red-500' : 'bg-white text-slate-400 border border-slate-200'}`}>
-            <Camera size={20} />
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden ${value ? 'bg-green-500 text-white' : error ? 'bg-red-100 text-red-500' : 'bg-white text-slate-400 border border-slate-200'}`}>
+            {value ? <img src={value} alt={label} className="w-full h-full object-cover" /> : <Camera size={20} />}
           </div>
           <div>
             <p className="text-sm font-bold text-slate-700">{label}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{value ? 'Tap to replace' : 'Tap to upload photo'}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{value ? '✓ Uploaded — tap × to remove' : 'Tap to upload photo'}</p>
           </div>
         </div>
-        {value ? <CheckCircle2 size={22} className="text-green-500" /> : <span className="text-xs font-bold text-slate-400 bg-white border border-slate-200 px-3 py-1.5 rounded-lg">Upload</span>}
+        {value ? (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
+            className="p-2 rounded-xl bg-red-100 text-red-500 hover:bg-red-200 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        ) : <span className="text-xs font-bold text-slate-400 bg-white border border-slate-200 px-3 py-1.5 rounded-lg">Upload</span>}
       </div>
     </div>
     {error && <p className="text-xs text-red-500 font-semibold ml-0.5">{error}</p>}

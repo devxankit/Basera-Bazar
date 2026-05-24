@@ -13,6 +13,7 @@ import { db } from '../../services/DataEngine';
 import { v } from '../../utils/validators';
 import toast from '../../mockToast';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { useBackgroundUpload } from '../../hooks/useBackgroundUpload';
 
 export default function AddMandiProduct() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function AddMandiProduct() {
   const { user } = useAuth();
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
+  const { queueUpload, awaitUpload } = useBackgroundUpload();
 
   const [loading, setLoading] = useState(false);
 
@@ -183,18 +185,14 @@ export default function AddMandiProduct() {
     }
   };
 
-  const handleFileChange = async (e) => {
+  const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    try {
-      setLoading(true);
-      const res = await db.uploadFile(file);
-      if (res?.url) setFormData(prev => ({ ...prev, thumbnail: res.url }));
-    } catch (err) {
-      toast.error("Image upload failed.");
-    } finally {
-      setLoading(false);
-    }
+    // Show local preview immediately
+    const localUrl = URL.createObjectURL(file);
+    setFormData(prev => ({ ...prev, thumbnail: localUrl }));
+    // Compress + upload in the background
+    queueUpload('thumbnail', file);
   };
 
   const handleSubmit = async () => {
@@ -206,8 +204,14 @@ export default function AddMandiProduct() {
     if (priceErr) { toast.error(priceErr); return; }
     try {
       setLoading(true);
+      // Resolve background thumbnail upload — near-instant if already done
+      let thumbnailUrl = formData.thumbnail;
+      if (formData.thumbnail && formData.thumbnail.startsWith('blob:')) {
+        thumbnailUrl = await awaitUpload('thumbnail') || null;
+      }
       const payload = {
         ...formData,
+        thumbnail: thumbnailUrl,
         category: 'mandi_product',
         title: formData.title || formData.material_name || 'Product'
       };

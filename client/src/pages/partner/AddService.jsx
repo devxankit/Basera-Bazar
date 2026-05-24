@@ -15,6 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import { v } from '../../utils/validators';
 import toast from '../../mockToast';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { useBackgroundUpload } from '../../hooks/useBackgroundUpload';
 
 const SERVICE_CATEGORIES = [
   'AC maintenance', 'CCTV Services', 'Architect', 'Carpenter', 'Civil Engineer', 
@@ -34,6 +35,9 @@ export default function AddService() {
   const thumbnailRef = useRef(null);
   const portfolioRef = useRef(null);
   const queryClient = useQueryClient();
+  const { queueUpload, awaitUpload, cancelUpload } = useBackgroundUpload();
+  // Track local preview URL -> upload key for portfolio images
+  const localPreviewKeys = useRef({});
 
   const [subCategories, setSubCategories] = useState([]);
 
@@ -180,64 +184,38 @@ export default function AddService() {
     }
   };
 
-  const handleFileChange = async (e, field) => {
+  const handleFileChange = (e, field) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const compressImage = (file) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 1200;
-            const MAX_HEIGHT = 1200;
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height) {
-              if (width > MAX_WIDTH) {
-                height = Math.round(height * (MAX_WIDTH / width));
-                width = MAX_WIDTH;
-              }
-            } else {
-              if (height > MAX_HEIGHT) {
-                width = Math.round(width * (MAX_HEIGHT / height));
-                height = MAX_HEIGHT;
-              }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.5));
-          };
-          img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
-    };
-
     if (field === 'thumbnail') {
-      const compressedDataUrl = await compressImage(files[0]);
-      setFormData(prev => ({ ...prev, thumbnail: compressedDataUrl }));
+      const file = files[0];
+      const localUrl = URL.createObjectURL(file);
+      setFormData(prev => ({ ...prev, thumbnail: localUrl }));
+      queueUpload('thumbnail', file);
     } else if (field === 'portfolio') {
       const remainingSlots = 10 - formData.portfolio.length;
       const count = Math.min(files.length, remainingSlots);
-      
       for (let i = 0; i < count; i++) {
-        const compressedDataUrl = await compressImage(files[i]);
-        setFormData(prev => ({ 
-          ...prev, 
-          portfolio: [...prev.portfolio, compressedDataUrl] 
-        }));
+        const file = files[i];
+        const localUrl = URL.createObjectURL(file);
+        const uploadKey = `portfolio_${Date.now()}_${i}`;
+        localPreviewKeys.current[localUrl] = uploadKey;
+        setFormData(prev => ({ ...prev, portfolio: [...prev.portfolio, localUrl] }));
+        queueUpload(uploadKey, file);
       }
     }
   };
 
   const removePortfolioImage = (index) => {
+    const removedUrl = formData.portfolio[index];
+    const uploadKey = localPreviewKeys.current[removedUrl];
+    if (uploadKey) {
+      cancelUpload(uploadKey);
+      delete localPreviewKeys.current[removedUrl];
+    } else if (removedUrl && !removedUrl.startsWith('blob:')) {
+      cancelUpload(removedUrl);
+    }
     setFormData(prev => ({
       ...prev,
       portfolio: prev.portfolio.filter((_, i) => i !== index)
@@ -246,20 +224,22 @@ export default function AddService() {
 
   const saveServiceMutation = useMutation({
     mutationFn: async (fd) => {
-      const uploadIfNeeded = async (img) => {
-        if (!img) return null;
-        if (img.startsWith('data:')) {
-          const blob = await fetch(img).then(r => r.blob());
-          const res = await db.uploadFile(blob);
-          return res.url;
-        }
-        return img;
-      };
+      // Resolve background uploads — near-instant if already done
+      let thumbnailUrl = fd.thumbnail;
+      if (fd.thumbnail && fd.thumbnail.startsWith('blob:')) {
+        thumbnailUrl = await awaitUpload('thumbnail') || null;
+      }
 
-      const [thumbnailUrl, ...portfolioUrls] = await Promise.all([
-        uploadIfNeeded(fd.thumbnail),
-        ...fd.portfolio.map(uploadIfNeeded),
-      ]);
+      const resolvedPortfolio = await Promise.all(
+        fd.portfolio.map(async (img) => {
+          if (img.startsWith('blob:')) {
+            const key = localPreviewKeys.current[img];
+            if (key) return (await awaitUpload(key)) || null;
+            return null;
+          }
+          return img; // Already a Cloudinary URL (edit mode)
+        })
+      );
 
       const payload = {
         listing_type: 'service',
@@ -272,7 +252,7 @@ export default function AddService() {
         years_of_experience: fd.experience,
         video_link: fd.videoLink,
         thumbnail: thumbnailUrl,
-        portfolio_images: portfolioUrls,
+        portfolio_images: resolvedPortfolio.filter(Boolean),
         service_radius_km: fd.serviceRadiusKm,
         is_featured: fd.is_featured,
         address: {

@@ -58,9 +58,10 @@ router.use(protect);
 // Registration completion: needs auth but not approval (onboarding_status is 'incomplete')
 router.put('/register/step2', validate(executiveRegisterStep2Schema), updateStep2);
 router.put('/register/step3', updateStep3);
+// Allow unverified executives to access their dashboard/profile data
+router.get('/dashboard', cacheMiddleware(10, true), getDashboard);
 
 router.use(verifyApproved);
-router.get('/dashboard', cacheMiddleware(10, true), getDashboard);
 router.get('/my-partners', cacheMiddleware(3, true), getMyPartners);
 router.get('/my-partners/:partnerId', getMyPartnerDetail);
 router.get('/transactions', cacheMiddleware(5, true), getMyTransactions);

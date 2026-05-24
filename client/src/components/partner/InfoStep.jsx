@@ -13,6 +13,7 @@ import LocationPicker from '../common/LocationPicker';
 import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
 import { v } from '../../utils/validators';
 import toast from '../../mockToast';
+import { useBackgroundUpload } from '../../hooks/useBackgroundUpload';
 
 const INDIA_DISTRICTS = INDIAN_STATES_DISTRICTS;
 
@@ -87,6 +88,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isOptionalOpen, setIsOptionalOpen] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const { queueUpload, awaitUpload } = useBackgroundUpload();
   
   // Verification States
   const [verifying, setVerifying] = useState(false);
@@ -160,48 +162,14 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
     }
   };
 
-  const handleFileChange = async (e, field) => {
+  const handleFileChange = (e, field) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    const compressImage = (file) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 1200; 
-            const MAX_HEIGHT = 1200;
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height) {
-              if (width > MAX_WIDTH) {
-                height = Math.round(height * (MAX_WIDTH / width));
-                width = MAX_WIDTH;
-              }
-            } else {
-              if (height > MAX_HEIGHT) {
-                width = Math.round(width * (MAX_HEIGHT / height));
-                height = MAX_HEIGHT;
-              }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.5));
-          };
-          img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
-    };
-
-    const compressedDataUrl = await compressImage(file);
-    setFormData(prev => ({ ...prev, [field]: compressedDataUrl }));
+    // Show local preview immediately
+    const localUrl = URL.createObjectURL(file);
+    setFormData(prev => ({ ...prev, [field]: localUrl }));
+    // Compress + upload in the background
+    queueUpload(field, file);
   };
 
   const handleTogglePassword = () => setShowPassword(!showPassword);

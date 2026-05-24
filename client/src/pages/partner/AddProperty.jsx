@@ -13,6 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { v } from '../../utils/validators';
 import toast from '../../mockToast';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { useBackgroundUpload } from '../../hooks/useBackgroundUpload';
 
 const TYPES = ['Commercial', 'Residential', 'Agricultural', 'Industrial'];
 const UNITS = ['sq. ft.', 'sq. m.', 'acre', 'dismil', 'gaj'];
@@ -33,6 +34,9 @@ export default function AddProperty() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
+  const { queueUpload, awaitUpload, cancelUpload } = useBackgroundUpload();
+  // Track local-preview URLs so we can match them to queued uploads
+  const localPreviewKeys = useRef({});
   
   const [formData, setFormData] = useState({
     // Step 1: Essential Details
@@ -234,43 +238,42 @@ export default function AddProperty() {
     try {
       if (field === 'thumbnail') {
         const file = files[0];
-        // Show local preview immediately
+        // Show local preview immediately — no waiting for upload
         const localUrl = URL.createObjectURL(file);
         setFormData(prev => ({ ...prev, thumbnail: localUrl }));
-        
-        // Upload to Cloudinary
-        const res = await db.uploadFile(file);
-        if (res?.url) {
-          setFormData(prev => ({ ...prev, thumbnail: res.url }));
-        }
+        // Queue background upload; resolve URL when user hits submit
+        queueUpload('thumbnail', file);
       } else if (field === 'images') {
         const maxSlots = 10 - formData.images.length;
         const count = Math.min(files.length, maxSlots);
-        
         for (let i = 0; i < count; i++) {
           const file = files[i];
-          // Show local preview immediately
           const localUrl = URL.createObjectURL(file);
+          const uploadKey = `image_${Date.now()}_${i}`;
+          // Record the mapping so we can resolve the URL at submit time
+          localPreviewKeys.current[localUrl] = uploadKey;
           setFormData(prev => ({ ...prev, images: [...prev.images, localUrl] }));
-          
-          // Upload to Cloudinary and replace local URL
-          const res = await db.uploadFile(file);
-          if (res?.url) {
-            setFormData(prev => ({
-              ...prev,
-              images: prev.images.map(img => img === localUrl ? res.url : img)
-            }));
-          }
+          queueUpload(uploadKey, file);
         }
       }
     } catch (err) {
-      toast.error('Failed to upload image. Please try again.');
+      toast.error('Failed to process image. Please try again.');
     } finally {
       setUploadingImage(false);
     }
   };
 
   const removeImage = (index) => {
+    const removedUrl = formData.images[index];
+    // If it's a local preview URL, cancel its background upload
+    const uploadKey = localPreviewKeys.current[removedUrl];
+    if (uploadKey) {
+      cancelUpload(uploadKey);
+      delete localPreviewKeys.current[removedUrl];
+    } else if (removedUrl && !removedUrl.startsWith('blob:')) {
+      // It's already a Cloudinary URL from edit mode — delete it
+      cancelUpload(removedUrl);
+    }
     setFormData(prev => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
@@ -375,12 +378,31 @@ export default function AddProperty() {
     }));
   };
 
+
   const submitPropertyMutation = useMutation({
     mutationFn: async (fd) => {
+      // Resolve background upload URLs \u2014 these started uploading on file-select,
+      // so this await is typically instant or near-instant.
+      let thumbnailUrl = fd.thumbnail;
+      if (fd.thumbnail && fd.thumbnail.startsWith('blob:')) {
+        thumbnailUrl = await awaitUpload('thumbnail') || fd.thumbnail;
+      }
+
+      const resolvedImages = await Promise.all(
+        fd.images.map(async (img) => {
+          if (img.startsWith('blob:')) {
+            const key = localPreviewKeys.current[img];
+            if (key) return (await awaitUpload(key)) || img;
+          }
+          return img;
+        })
+      );
+
       const payload = {
         ...fd,
-        image: fd.thumbnail,
-        images: fd.images,
+        image: thumbnailUrl,
+        thumbnail: thumbnailUrl,
+        images: resolvedImages.filter(Boolean),
         category: 'property',
         serviceType: fd.subcategoryName || fd.categoryName,
         details: {
@@ -433,6 +455,7 @@ export default function AddProperty() {
   const submitFinalProperty = () => {
     submitPropertyMutation.mutate(formData);
   };
+
 
   const nextStep = () => {
     if (activeStep === 1) {

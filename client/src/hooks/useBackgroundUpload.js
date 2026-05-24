@@ -1,0 +1,199 @@
+import { useRef, useCallback } from 'react';
+import api from '../services/api';
+
+/**
+ * 🚀 useBackgroundUpload — Instant Background Image Upload Hook
+ * ─────────────────────────────────────────────────────────────
+ * Purpose:
+ *   Start compressing and uploading the moment the user picks a file.
+ *   By the time they finish filling the form, images are already on Cloudinary.
+ *   On form submit, just await the stored promise — it's usually already resolved.
+ *
+ * Usage:
+ *   const { queueUpload, awaitUpload, cancelUpload, cancelAll } = useBackgroundUpload();
+ *
+ *   // On file select:
+ *   queueUpload(field, file);
+ *
+ *   // On submit:
+ *   const url = await awaitUpload(field); // instantly resolves if already done
+ *
+ *   // On file remove:
+ *   cancelUpload(field); // deletes from Cloudinary if already uploaded
+ */
+export function useBackgroundUpload() {
+  /**
+   * uploadMap stores per-field state:
+   * {
+   *   [field]: {
+   *     promise: Promise<string | null>,  // resolves to Cloudinary URL
+   *     controller: AbortController | null,
+   *     status: 'uploading' | 'done' | 'cancelled',
+   *     url: string | null,              // populated after upload completes
+   *   }
+   * }
+   */
+  const uploadMap = useRef({});
+
+  /**
+   * Compress a file using the Canvas API for fast, lightweight optimization.
+   */
+  const compressFile = useCallback((file) => {
+    // Skip non-image files (e.g. PDF for GST cert)
+    if (!file.type.startsWith('image/')) return Promise.resolve(file);
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const MAX = 1280;
+          let { width, height } = img;
+          if (width > height) {
+            if (width > MAX) { height = Math.round(height * MAX / width); width = MAX; }
+          } else {
+            if (height > MAX) { width = Math.round(width * MAX / height); height = MAX; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          const format = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) return reject(new Error('Compression failed'));
+              resolve(new File([blob], file.name, { type: format, lastModified: Date.now() }));
+            },
+            format,
+            0.80
+          );
+        };
+        img.onerror = reject;
+      };
+      reader.onerror = reject;
+    });
+  }, []);
+
+  /**
+   * Start compressing + uploading immediately in the background.
+   * Cancels any existing pending upload for the same field first.
+   *
+   * @param {string} field   - Unique field identifier (e.g. 'aadhar_image')
+   * @param {File}   file    - The raw File object from input[type=file]
+   */
+  const queueUpload = useCallback((field, file) => {
+    // Cancel any previous upload for this field
+    if (uploadMap.current[field]) {
+      _cancelField(field, uploadMap.current);
+    }
+
+    const uploadPromise = (async () => {
+      try {
+        // 1. Compress
+        const optimizedFile = await compressFile(file);
+
+        // Check if this field was cancelled during compression
+        if (uploadMap.current[field]?.status === 'cancelled') return null;
+
+        // 2. Upload
+        const formData = new FormData();
+        formData.append('image', optimizedFile);
+        const response = await api.post('/upload', formData);
+        const url = response.data?.url || null;
+
+        // Store URL so cancelUpload can delete it from Cloudinary
+        if (uploadMap.current[field] && uploadMap.current[field].status !== 'cancelled') {
+          uploadMap.current[field].status = 'done';
+          uploadMap.current[field].url = url;
+        } else {
+          // Cancelled after upload — delete the just-uploaded file from Cloudinary
+          if (url) _deleteFromCloudinary(url);
+          return null;
+        }
+
+        return url;
+      } catch (err) {
+        console.error(`[useBackgroundUpload] Upload failed for field "${field}":`, err);
+        return null;
+      }
+    })();
+
+    uploadMap.current[field] = {
+      promise: uploadPromise,
+      status: 'uploading',
+      url: null,
+    };
+  }, [compressFile]);
+
+  /**
+   * Await the upload for a given field.
+   * Returns the Cloudinary URL or null on failure.
+   *
+   * @param {string} field
+   * @returns {Promise<string | null>}
+   */
+  const awaitUpload = useCallback(async (field) => {
+    const entry = uploadMap.current[field];
+    if (!entry) return null;
+    return entry.promise;
+  }, []);
+
+  /**
+   * Get a preview-ready local URL (ObjectURL) immediately, separate from the upload.
+   * Just a utility wrapper — the caller should call URL.revokeObjectURL when done.
+   */
+  const getLocalPreview = useCallback((file) => {
+    if (!file || !(file instanceof File)) return null;
+    return URL.createObjectURL(file);
+  }, []);
+
+  /**
+   * Cancel/remove the upload for a field.
+   * If the upload already completed, the image is deleted from Cloudinary.
+   * If still in progress, deletion runs after the promise resolves.
+   *
+   * @param {string} field
+   */
+  const cancelUpload = useCallback((field) => {
+    _cancelField(field, uploadMap.current);
+  }, []);
+
+  /**
+   * Cancel all pending/completed uploads (e.g. on component unmount or form reset).
+   */
+  const cancelAll = useCallback(() => {
+    Object.keys(uploadMap.current).forEach((field) => {
+      _cancelField(field, uploadMap.current);
+    });
+  }, []);
+
+  return { queueUpload, awaitUpload, getLocalPreview, cancelUpload, cancelAll };
+}
+
+// ─── Private Helpers ──────────────────────────────────────────────────────────
+
+function _cancelField(field, map) {
+  const entry = map[field];
+  if (!entry) return;
+
+  if (entry.status === 'done' && entry.url) {
+    // Already uploaded — fire-and-forget delete
+    _deleteFromCloudinary(entry.url);
+  } else if (entry.status === 'uploading') {
+    // Mark as cancelled — the promise will detect this and delete after upload
+    entry.status = 'cancelled';
+  }
+
+  delete map[field];
+}
+
+async function _deleteFromCloudinary(url) {
+  try {
+    await api.delete('/upload', { data: { url } });
+  } catch (err) {
+    // Non-blocking — log but don't crash the UI
+    console.warn('[useBackgroundUpload] Failed to delete from Cloudinary:', err?.message);
+  }
+}

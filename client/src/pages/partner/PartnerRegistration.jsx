@@ -137,13 +137,19 @@ export default function PartnerRegistration() {
   // Non-blocking: a failure here does not abort registration — images can be updated later.
   const uploadAndPatchMedia = async () => {
     try {
-      const uploadIfNeeded = async (dataUri) => {
-        if (!dataUri || !dataUri.startsWith('data:')) return dataUri || null;
-        try {
-          const blob = await fetch(dataUri).then(r => r.blob());
-          const res = await db.uploadFile(blob);
-          return res.url;
-        } catch { return null; }
+      const uploadIfNeeded = async (url) => {
+        if (!url) return null;
+        // Already a Cloudinary URL (resolved by KYCStep background upload)
+        if (url.startsWith('https://')) return url;
+        // blob: URL (new path from InfoStep background upload) or data: URI (legacy)
+        if (url.startsWith('blob:') || url.startsWith('data:')) {
+          try {
+            const blob = await fetch(url).then(r => r.blob());
+            const res = await db.uploadFile(blob);
+            return res.url;
+          } catch { return null; }
+        }
+        return null;
       };
 
       const [profileUrl, logoUrl, panUrl, aadharFrontUrl, aadharBackUrl, gstUrl] = await Promise.all([
@@ -169,6 +175,7 @@ export default function PartnerRegistration() {
       console.warn('Media upload during registration failed — images can be updated in profile:', err);
     }
   };
+
 
   const handleConfirmRegistration = async () => {
     if (!authState?.phoneVerifiedToken) {
