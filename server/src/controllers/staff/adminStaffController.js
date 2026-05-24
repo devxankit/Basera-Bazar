@@ -937,8 +937,10 @@ const adminApproveLeave = async (req, res) => {
 
     await session.commitTransaction();
 
-    // Invalidate the staff member's cached leaves so they see the updated status immediately
+    // Invalidate caches
+    await invalidate.adminStaff();
     await invalidate.staffLeaves(leave.staff_id);
+    await invalidate.staffProfile(leave.staff_id, leave.staff_type);
 
     res.status(200).json({ success: true, message: `Leave ${action}d successfully.` });
   } catch (err) {

@@ -216,7 +216,7 @@ const getStaffStats = async (req, res) => {
       LeaveRequest.countDocuments({ status: { $in: ['pending', 'tl_approved'] } }),
       DailyReport.countDocuments({ status: 'submitted', date: today }),
       WithdrawalRequest.countDocuments({ status: 'pending', user_type: 'Executive' }),
-      StaffAttendance.countDocuments({ check_in_time: { $ne: null }, verified_by_admin: false }),
+      StaffAttendance.countDocuments({ date: today, check_in_time: { $ne: null }, verified_by_admin: false }),
     ]);
 
     res.status(200).json({
@@ -320,6 +320,12 @@ const adminApproveLeave = async (req, res) => {
     }], { session });
 
     await session.commitTransaction();
+
+    // Invalidate caches
+    await invalidate.adminStaff();
+    await invalidate.staffLeaves(leave.staff_id);
+    await invalidate.staffProfile(leave.staff_id, leave.staff_type);
+
     res.status(200).json({ success: true, message: `Leave ${action}d successfully.` });
   } catch (err) {
     await session.abortTransaction();

@@ -315,6 +315,7 @@ const tlApproveLeave = async (req, res) => {
     if (!leave) return res.status(404).json({ success: false, message: 'Leave request not found or already reviewed.' });
 
     await cacheInvalidator.staffLeaves(leave.staff_id);
+    await cacheInvalidator.adminStaff();
 
     res.status(200).json({ success: true, message: `Leave ${action}d.` });
   } catch (err) {

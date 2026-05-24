@@ -20,15 +20,15 @@ const sendOTP = async (phone, otp) => {
     const templateId = process.env.SMS_DLT_TEMPLATE_ID;
     const entityId = process.env.SMS_ENTITY_ID;
 
-    // 2. Guard clause: if credentials are not set, run in development mock mode
-    if (!apiKey || apiKey === 'your_smsindiahub_api_key') {
-      logger.info(`[DEVELOPMENT MODE - MOCK SMS] OTP would have been sent to +91${phone}. Set SMS_API_KEY in .env to enable real SMS.`)
-      return true; // Pretend success in dev mode
+    // 2. Guard clause: if credentials are not set, or running in test environment, run in mock mode
+    if (!apiKey || apiKey === 'your_smsindiahub_api_key' || process.env.NODE_ENV === 'test') {
+      logger.info(`[MOCK SMS] OTP would have been sent to +91${phone}. Set SMS_API_KEY in .env to enable real SMS.`)
+      return true; // Pretend success in dev/test mode
     }
     const appName = "Basera Bazar";
 
     // 3. The SMS message text — must exactly match your DLT registered template!
-    const message = `Welcome to the ${appName} powered by SMSINDIAHUB. Your OTP for registration is ${otp}`;
+    const message = `Welcome to the ${appName} powered by IIDMTB. Use OTP ${otp} to verify your login`;
 
     // 4. URL-encode the message so special characters don't break the URL
     const encodedMessage = encodeURIComponent(message);
