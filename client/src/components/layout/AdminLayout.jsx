@@ -239,7 +239,7 @@ export default function AdminLayout({ children }) {
         ).length;
 
         const upgradesCount = upgrades.filter(r => r.status === 'pending').length;
-        const executivePendingCount = executives.filter(e => e.onboarding_status === 'pending_approval').length;
+        const executivePendingCount = executives.filter(e => e.onboarding_status === 'pending_approval' || e.onboarding_status === 'pending').length;
         const withdrawalsCount = withdrawals.filter(w => w.status === 'pending').length;
 
         setBadges({

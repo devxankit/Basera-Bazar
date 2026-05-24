@@ -142,6 +142,7 @@ const deleteExecutive = async (req, res) => {
     const executive = await Executive.findById(id);
     if (!executive) return res.status(404).json({ success: false, message: 'Executive not found' });
 
+    // 1. Unset referral code on Partners
     if (executive.referral_code) {
       await Partner.updateMany(
         { referral_code_used: executive.referral_code },
@@ -149,6 +150,44 @@ const deleteExecutive = async (req, res) => {
       );
     }
 
+    // 2. Unset assigned executive on Partners
+    await Partner.updateMany(
+      { assigned_executive: id },
+      { $set: { assigned_executive: null } }
+    );
+
+    // Dynamic requires to prevent circular dependencies
+    const LeaveRequest = require('../../models/LeaveRequest');
+    const DailyReport = require('../../models/DailyReport');
+    const StaffPerformance = require('../../models/StaffPerformance');
+    const StaffTarget = require('../../models/StaffTarget');
+    const { Transaction } = require('../../models/Finance');
+
+    // 3. Delete attendance records
+    await StaffAttendance.deleteMany({ staff_id: id });
+
+    // 4. Delete leave requests
+    await LeaveRequest.deleteMany({ staff_id: id });
+
+    // 5. Delete daily reports
+    await DailyReport.deleteMany({ staff_id: id });
+
+    // 6. Delete salary records
+    await SalaryRecord.deleteMany({ $or: [{ executive_id: id }, { staff_id: id }] });
+
+    // 7. Delete staff performance records
+    await StaffPerformance.deleteMany({ staff_id: id });
+
+    // 8. Delete withdrawal requests
+    await WithdrawalRequest.deleteMany({ user_id: id, user_type: 'Executive' });
+
+    // 9. Delete transactions
+    await Transaction.deleteMany({ executive_id: id });
+
+    // 10. Pull from targets assignment list
+    await StaffTarget.updateMany({ assign_to_ids: id }, { $pull: { assign_to_ids: id } });
+
+    // 11. Delete the executive itself
     await Executive.findByIdAndDelete(id);
 
     res.status(200).json({ success: true, message: 'Executive removed from database' });
