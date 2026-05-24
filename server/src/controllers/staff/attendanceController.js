@@ -141,6 +141,7 @@ const officeStaffCheckIn = async (req, res) => {
         status: 'present',
         geo_fence_valid: true,
         team_leader_id: os?.team_leader_id || null,
+        check_in_location: null
       },
       { upsert: true, new: true }
     );

@@ -55,7 +55,9 @@ leaveRequestSchema.pre('save', function(next) {
   } else if (this.staff_type === 'office_staff') {
     this.staff_model = 'OfficeStaff';
   }
-  next();
+  if (typeof next === 'function') {
+    next();
+  }
 });
 
 module.exports = mongoose.model('LeaveRequest', leaveRequestSchema);
