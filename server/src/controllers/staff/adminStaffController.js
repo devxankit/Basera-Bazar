@@ -832,7 +832,7 @@ const getStaffStats = async (req, res) => {
       LeaveRequest.countDocuments({ status: { $in: ['pending', 'tl_approved'] } }),
       DailyReport.countDocuments({ status: 'submitted', date: today }),
       WithdrawalRequest.countDocuments({ status: 'pending', user_type: 'Executive' }),
-      StaffAttendance.countDocuments({ check_in_time: { $ne: null }, verified_by_admin: false }),
+      StaffAttendance.countDocuments({ date: today, check_in_time: { $ne: null }, verified_by_admin: false }),
     ]);
 
     res.status(200).json({
