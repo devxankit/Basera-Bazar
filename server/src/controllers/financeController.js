@@ -244,13 +244,25 @@ const subscriptionCallback = async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, error } = req.body;
 
   const redirectOrigin = origin ? decodeURIComponent(origin) : 'https://baserabazar.in';
-  const defaultErrorRedirect = redirect_to ? decodeURIComponent(redirect_to) : '/partner/register';
-  const defaultSuccessRedirect = '/partner/home';
+  // Where to send the user on failure (back to the page they came from — registration or subscription)
+  const failureReturnPath = redirect_to ? decodeURIComponent(redirect_to) : '/partner/subscription';
+  // Context label for the status page UI copy
+  const context = failureReturnPath.includes('register') ? 'registration' : 'subscription';
+
+  const buildStatusUrl = (status, finalRedirect, message = '') => {
+    const params = new URLSearchParams({
+      status,
+      redirect: finalRedirect,
+      context,
+      ...(message && { message }),
+    });
+    return `${redirectOrigin}/payment/status?${params.toString()}`;
+  };
 
   if (error) {
     logger.error({ err: error }, "Razorpay Redirect Callback Error Payload:");
-    const errReason = error.description || 'payment_failed';
-    return res.redirect(`${redirectOrigin}${defaultErrorRedirect}?error=${encodeURIComponent(errReason)}`);
+    const errReason = error.description || error.reason || 'Payment failed. Please try again.';
+    return res.redirect(buildStatusUrl('failed', failureReturnPath, errReason));
   }
 
   try {
@@ -270,12 +282,12 @@ const subscriptionCallback = async (req, res) => {
       partnerId
     });
 
-    // 3. Redirect back to client dashboard / onboarding home or specified custom redirect
-    const targetRedirect = redirect_to ? decodeURIComponent(redirect_to) : defaultSuccessRedirect;
-    return res.redirect(`${redirectOrigin}${targetRedirect}?payment=success`);
+    // 3. Redirect to status page — success
+    // After the countdown, the status page redirects to /partner/home
+    return res.redirect(buildStatusUrl('success', '/partner/home'));
   } catch (err) {
     logger.error({ err: err.message || err }, "Subscription Callback Error:");
-    return res.redirect(`${redirectOrigin}${defaultErrorRedirect}?error=${encodeURIComponent(err.message || 'verification_failed')}`);
+    return res.redirect(buildStatusUrl('failed', failureReturnPath, err.message || 'Verification failed. Please contact support.'));
   }
 };
 

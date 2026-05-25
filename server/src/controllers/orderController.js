@@ -321,10 +321,20 @@ const marketplacePaymentCallback = async (req, res) => {
 
   const redirectOrigin = origin ? decodeURIComponent(origin) : 'https://baserabazar.in';
 
+  const buildStatusUrl = (status, finalRedirect, message = '') => {
+    const params = new URLSearchParams({
+      status,
+      redirect: finalRedirect,
+      context: 'order',
+      ...(message && { message }),
+    });
+    return `${redirectOrigin}/payment/status?${params.toString()}`;
+  };
+
   if (error) {
     logger.error({ err: error }, "Razorpay Order Callback Payment Error:");
-    const errReason = error.description || 'payment_failed';
-    return res.redirect(`${redirectOrigin}/mandi-bazar/checkout?error=${encodeURIComponent(errReason)}`);
+    const errReason = error.description || error.reason || 'Payment failed. Please try again.';
+    return res.redirect(buildStatusUrl('failed', '/mandi-bazar/checkout', errReason));
   }
 
   try {
@@ -334,10 +344,10 @@ const marketplacePaymentCallback = async (req, res) => {
       razorpay_signature
     });
 
-    return res.redirect(`${redirectOrigin}/profile/my-orders?payment=success`);
+    return res.redirect(buildStatusUrl('success', '/profile/my-orders'));
   } catch (err) {
     logger.error({ err: err.message || err }, "Marketplace Callback Processing Error:");
-    return res.redirect(`${redirectOrigin}/mandi-bazar/checkout?error=${encodeURIComponent(err.message || 'verification_failed')}`);
+    return res.redirect(buildStatusUrl('failed', '/mandi-bazar/checkout', err.message || 'Verification failed. Please contact support.'));
   }
 };
 

@@ -33,18 +33,19 @@ export default function PartnerHome() {
   const { user, refreshUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Payment result is shown on /payment/status before landing here.
+  // We read a sessionStorage flag set by PaymentStatusPage to refresh user subscription data.
   useEffect(() => {
-    const payment = searchParams.get('payment');
-    const error = searchParams.get('error');
-    if (payment === 'success') {
-      toast.success("Subscription activated successfully!");
-      setSearchParams({}, { replace: true });
+    const subSuccess = sessionStorage.getItem('bb_subscription_payment_success');
+    if (subSuccess === '1') {
+      sessionStorage.removeItem('bb_subscription_payment_success');
       refreshUser();
-    } else if (error) {
-      toast.error(`Subscription payment failed: ${decodeURIComponent(error)}`);
-      setSearchParams({}, { replace: true });
+    } else if (user) {
+      // Always refresh once on mount to keep subscription status current
+      refreshUser();
     }
-  }, [searchParams, setSearchParams, refreshUser]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data: statsRaw, isLoading: statsLoading } = useQuery({
     queryKey: ['partnerStats'],

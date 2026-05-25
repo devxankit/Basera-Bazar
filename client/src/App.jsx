@@ -58,6 +58,7 @@ const MyEnquiriesPage = lazy(() => import("./pages/user/MyEnquiriesPage"));
 const HelpSupport = lazy(() => import("./pages/user/HelpSupport"));
 const FAQs = lazy(() => import("./pages/user/FAQs"));
 const AboutUs = lazy(() => import("./pages/user/AboutUs"));
+const PaymentStatusPage = lazy(() => import("./pages/PaymentStatusPage"));
 
 // --- Lazy-loaded Auth pages ---
 const Login = lazy(() => import("./pages/auth/Login"));
@@ -931,6 +932,11 @@ function App() {
                         <Route
                           path="/partner/register"
                           element={<PartnerRegistration />}
+                        />
+                        {/* Public payment status page — accessible without auth */}
+                        <Route
+                          path="/payment/status"
+                          element={<PaymentStatusPage />}
                         />
                         <Route
                           path="/partner/home"

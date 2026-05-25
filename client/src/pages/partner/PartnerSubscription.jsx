@@ -20,18 +20,9 @@ export default function PartnerSubscription() {
   const { user, refreshUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  useEffect(() => {
-    const payment = searchParams.get('payment');
-    const error = searchParams.get('error');
-    if (payment === 'success') {
-      toast.success("Subscription upgraded successfully!");
-      setSearchParams({}, { replace: true });
-      refreshUser();
-    } else if (error) {
-      toast.error(`Subscription payment failed: ${decodeURIComponent(error)}`);
-      setSearchParams({}, { replace: true });
-    }
-  }, [searchParams, setSearchParams, refreshUser]);
+  // Note: payment result (success/failure) is now handled by /payment/status page.
+  // Razorpay redirect callback routes through /payment/status before landing here.
+
   const [showHistory, setShowHistory] = useState(false);
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -59,10 +50,17 @@ export default function PartnerSubscription() {
   });
   const plans = plansData?.data || [];
 
-  // Refresh user (subscription status) once on mount
+  // Read sessionStorage flag set by PaymentStatusPage on successful subscription payment
   useEffect(() => {
-    if (user) refreshUser();
-  }, [refreshUser]);
+    const subSuccess = sessionStorage.getItem('bb_subscription_payment_success');
+    if (subSuccess === '1') {
+      sessionStorage.removeItem('bb_subscription_payment_success');
+      refreshUser();
+    } else if (user) {
+      refreshUser();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!user) return null;
   const partner = user;
@@ -177,7 +175,7 @@ export default function PartnerSubscription() {
   const handlePaymentSuccess = async (response, plan) => {
     try {
       setSubmitting(true);
-      // 3. Verify Payment
+      // Verify Payment (used by simulation mode)
       const verifyRes = await api.post('/finance/subscription/verify', {
         razorpay_order_id: response.razorpay_order_id,
         razorpay_payment_id: response.razorpay_payment_id,
@@ -186,12 +184,27 @@ export default function PartnerSubscription() {
       });
 
       if (verifyRes.data.success) {
-        setSuccess(true);
         setShowSubscribeModal(false);
         setShowSimModal(false);
+        // Navigate to the status page — shows "Payment Successful!" with 5s countdown → /partner/subscription
+        const params = new URLSearchParams({
+          status: 'success',
+          redirect: '/partner/subscription',
+          context: 'subscription',
+        });
+        window.location.replace(`/payment/status?${params.toString()}`);
       }
     } catch (err) {
-      toast.error("Payment verification failed. Please contact support.");
+      setShowSimModal(false);
+      // Navigate to status page — shows failure screen with 5s countdown back to subscription page
+      const errMsg = err.response?.data?.message || 'Payment verification failed. Please contact support.';
+      const params = new URLSearchParams({
+        status: 'failed',
+        redirect: '/partner/subscription',
+        context: 'subscription',
+        message: errMsg,
+      });
+      window.location.replace(`/payment/status?${params.toString()}`);
     } finally {
       setSubmitting(false);
     }

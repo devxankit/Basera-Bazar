@@ -28,19 +28,16 @@ const MyOrdersPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { clearCart } = useCart();
 
+  // Payment result is shown on /payment/status before landing here.
+  // We read a sessionStorage flag set by PaymentStatusPage to clear the cart.
   useEffect(() => {
-    const payment = searchParams.get('payment');
-    const error = searchParams.get('error');
-
-    if (payment === 'success') {
-      toast.success("Payment successful! Your order has been placed.");
+    const orderSuccess = sessionStorage.getItem('bb_order_payment_success');
+    if (orderSuccess === '1') {
+      sessionStorage.removeItem('bb_order_payment_success');
       clearCart();
-      setSearchParams({}, { replace: true });
-    } else if (error) {
-      toast.error(`Payment failed: ${decodeURIComponent(error)}`);
-      setSearchParams({}, { replace: true });
+      toast.success('Payment successful! Your order has been placed.');
     }
-  }, [searchParams, setSearchParams, clearCart]);
+  }, [clearCart]);
 
   const [activeFilter, setActiveFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);

@@ -85,15 +85,8 @@ export default function PartnerRegistration() {
     }));
   }, [step, selectedRole, selectedPlan, selectedPlanObject, formData, authState]);
 
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  useEffect(() => {
-    const error = searchParams.get('error');
-    if (error) {
-      toast.error(`Registration payment failed: ${decodeURIComponent(error)}`);
-      setSearchParams({}, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
+  // Note: payment errors from Razorpay callback are now handled by /payment/status page.
+  // We no longer read ?error from the URL here.
 
   const nextStep = () => setStep(prev => Math.min(prev + 1, totalSteps));
 
@@ -241,7 +234,13 @@ export default function PartnerRegistration() {
 
       sessionStorage.removeItem(STORAGE_KEY);
       setModalConfig(prev => ({ ...prev, isOpen: false }));
-      window.location.replace('/partner/home');
+      // Show "Welcome Aboard!" status screen with 5-second countdown → /partner/home
+      const params = new URLSearchParams({
+        status: 'success',
+        redirect: '/partner/home',
+        context: 'registration',
+      });
+      window.location.replace(`/payment/status?${params.toString()}`);
     } catch (error) {
       toast.error(error.response?.data?.message || "Registration failed. Please try again.");
     } finally {
@@ -294,9 +293,13 @@ export default function PartnerRegistration() {
         const existingLogs = JSON.parse(localStorage.getItem(activityKey) || '[]');
         localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs.filter(l => l.title !== activity.title)]));
         sessionStorage.removeItem(STORAGE_KEY);
-        // Hard redirect so auth context re-initialises cleanly from localStorage
-        // after Razorpay handler callback (avoids PartnerRoute flash-redirect to login)
-        window.location.replace('/partner/home');
+        // Route through status page — shows "Payment Successful!" / "Welcome Aboard!" with 5s countdown
+        const params = new URLSearchParams({
+          status: 'success',
+          redirect: '/partner/home',
+          context: 'registration',
+        });
+        window.location.replace(`/payment/status?${params.toString()}`);
       };
 
       // Demo mode: skip Razorpay modal and auto-verify

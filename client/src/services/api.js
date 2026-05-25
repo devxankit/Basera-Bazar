@@ -48,6 +48,8 @@ function isProtectedRoute(path) {
     path === '/partner/login' ||
     path === '/partner/register' ||
     path.startsWith('/partner/register') || // cover /partner/register?... query strings
+    path === '/payment/status' ||
+    path.startsWith('/payment/status') ||   // cover /payment/status?... query strings
     path === '/executive/login' ||
     path === '/executive/register' ||
     path === '/executive/signup' ||
