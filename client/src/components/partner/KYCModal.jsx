@@ -39,22 +39,33 @@ export default function KYCModal({ isOpen, onClose, user, onComplete }) {
       const img = new Image();
       img.src = dataUrl;
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+        try {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
 
-        if (width > maxWidth) {
-          height = (maxWidth / width) * height;
-          width = maxWidth;
+          if (width > maxWidth) {
+            height = (maxWidth / width) * height;
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              fetch(dataUrl).then(r => r.blob()).then(resolve).catch(() => resolve(null));
+            } else {
+              resolve(blob);
+            }
+          }, 'image/jpeg', quality);
+        } catch (e) {
+          fetch(dataUrl).then(r => r.blob()).then(resolve).catch(() => resolve(null));
         }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          resolve(blob);
-        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => {
+        fetch(dataUrl).then(r => r.blob()).then(resolve).catch(() => resolve(null));
       };
     });
   };
@@ -160,7 +171,7 @@ export default function KYCModal({ isOpen, onClose, user, onComplete }) {
                   {/* PAN */}
                   <div className="space-y-2">
                     <label className="text-[13px] font-bold text-slate-700">PAN Card Image</label>
-                    <input type="file" ref={panInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'panImage')} />
+                    <input type="file" ref={panInputRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={(e) => handleFileChange(e, 'panImage')} />
                     <div
                       onClick={() => panInputRef.current.click()}
                       className="w-full h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 overflow-hidden relative group"
@@ -180,14 +191,14 @@ export default function KYCModal({ isOpen, onClose, user, onComplete }) {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[13px] font-bold text-slate-700">Aadhar Front</label>
-                      <input type="file" ref={aadharFrontRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharFront')} />
+                      <input type="file" ref={aadharFrontRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={(e) => handleFileChange(e, 'aadharFront')} />
                       <div onClick={() => aadharFrontRef.current.click()} className="h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 overflow-hidden group">
                         {formData.aadharFront ? <img src={formData.aadharFront} className="w-full h-full object-cover" /> : <Camera size={20} className="text-slate-300" />}
                       </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-[13px] font-bold text-slate-700">Aadhar Back</label>
-                      <input type="file" ref={aadharBackRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharBack')} />
+                      <input type="file" ref={aadharBackRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={(e) => handleFileChange(e, 'aadharBack')} />
                       <div onClick={() => aadharBackRef.current.click()} className="h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 overflow-hidden group">
                         {formData.aadharBack ? <img src={formData.aadharBack} className="w-full h-full object-cover" /> : <Camera size={20} className="text-slate-300" />}
                       </div>
@@ -198,7 +209,7 @@ export default function KYCModal({ isOpen, onClose, user, onComplete }) {
                   {isMandiOrSupplier && (
                     <div className="space-y-2">
                       <label className="text-[13px] font-bold text-slate-700">GST Certificate</label>
-                      <input type="file" ref={gstInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'gstImage')} />
+                      <input type="file" ref={gstInputRef} className="hidden" accept="image/jpeg, image/png, image/webp, application/pdf" onChange={(e) => handleFileChange(e, 'gstImage')} />
                       <div onClick={() => gstInputRef.current.click()} className="w-full h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 overflow-hidden group">
                         {formData.gstImage ? (
                           <img src={formData.gstImage} className="w-full h-full object-cover" />

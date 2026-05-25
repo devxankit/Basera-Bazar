@@ -230,7 +230,7 @@ export default function PartnerOnboarding() {
                <div className="space-y-1.5">
                   <label className="text-[13px] font-bold text-slate-700 ml-1">Business Logo</label>
                   <label className="w-full h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative">
-                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'businessLogo')} />
+                    <input type="file" className="hidden" accept="image/jpeg, image/png, image/webp" onChange={(e) => handleFileChange(e, 'businessLogo')} />
                     {formData.businessLogo ? (
                       <img src={formData.businessLogo} className="w-full h-full object-cover" alt="Logo" />
                     ) : (
@@ -262,7 +262,7 @@ export default function PartnerOnboarding() {
             <div className="space-y-1.5">
               <label className="text-[13px] font-bold text-slate-700 ml-1">PAN Card Image</label>
               <label className="w-full h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group">
-                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'panImage')} />
+                <input type="file" className="hidden" accept="image/jpeg, image/png, image/webp" onChange={(e) => handleFileChange(e, 'panImage')} />
                 {formData.panImage ? (
                   <img src={formData.panImage} className="w-full h-full object-cover" alt="PAN" />
                 ) : (
@@ -294,7 +294,7 @@ export default function PartnerOnboarding() {
               <label className="text-[13px] font-bold text-slate-700 ml-1">Aadhar Card Images</label>
               <div className="grid grid-cols-2 gap-4">
                 <label className="h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative">
-                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharFront')} />
+                  <input type="file" className="hidden" accept="image/jpeg, image/png, image/webp" onChange={(e) => handleFileChange(e, 'aadharFront')} />
                   {formData.aadharFront ? (
                     <img src={formData.aadharFront} className="w-full h-full object-cover" alt="Front" />
                   ) : (
@@ -305,7 +305,7 @@ export default function PartnerOnboarding() {
                   )}
                 </label>
                 <label className="h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative">
-                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharBack')} />
+                  <input type="file" className="hidden" accept="image/jpeg, image/png, image/webp" onChange={(e) => handleFileChange(e, 'aadharBack')} />
                   {formData.aadharBack ? (
                     <img src={formData.aadharBack} className="w-full h-full object-cover" alt="Back" />
                   ) : (
@@ -334,7 +334,7 @@ export default function PartnerOnboarding() {
             <div className="space-y-1.5">
               <label className="text-[13px] font-bold text-slate-700 ml-1">GST Certificate</label>
               <label className="w-full h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative">
-                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'gstImage')} />
+                <input type="file" className="hidden" accept="image/jpeg, image/png, image/webp, application/pdf" onChange={(e) => handleFileChange(e, 'gstImage')} />
                 {formData.gstImage ? (
                   <img src={formData.gstImage} className="w-full h-full object-cover" alt="GST" />
                 ) : (

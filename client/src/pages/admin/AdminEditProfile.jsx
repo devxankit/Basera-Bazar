@@ -361,7 +361,7 @@ export default function AdminEditProfile() {
                           ? 'image_uploaded.png' 
                           : (profileForm.profileImage?.name || 'No file chosen')}
                       </span>
-                      <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                      <input type="file" accept="image/jpeg, image/png, image/webp" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
                     </label>
                     <p className="text-[11px] text-slate-400 mt-1.5">Recommended: 300×300 px (JPG, PNG)</p>
                   </div>

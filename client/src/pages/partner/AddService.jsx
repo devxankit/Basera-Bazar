@@ -638,7 +638,7 @@ export default function AddService() {
               type="file" 
               ref={thumbnailRef}
               className="hidden"
-              accept="image/*"
+              accept="image/jpeg, image/png, image/webp"
               onChange={(e) => handleFileChange(e, 'thumbnail')}
             />
 
@@ -691,7 +691,7 @@ export default function AddService() {
               type="file" 
               ref={portfolioRef}
               className="hidden"
-              accept="image/*"
+              accept="image/jpeg, image/png, image/webp"
               multiple
               onChange={(e) => handleFileChange(e, 'portfolio')}
             />

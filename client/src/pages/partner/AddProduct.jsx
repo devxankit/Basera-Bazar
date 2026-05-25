@@ -636,7 +636,7 @@ function StepThree({ formData, handleChange, handleFileChange, removeImage, addS
             )}
             <input 
               type="file" 
-              accept="image/*" 
+              accept="image/jpeg, image/png, image/webp" 
               onChange={(e) => handleFileChange(e, 'thumbnail')}
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
@@ -678,7 +678,7 @@ function StepThree({ formData, handleChange, handleFileChange, removeImage, addS
                )}
                <input 
                  type="file" 
-                 accept="image/*" 
+                 accept="image/jpeg, image/png, image/webp" 
                  multiple
                  disabled={uploadingImage}
                  onChange={(e) => handleFileChange(e, 'images')}

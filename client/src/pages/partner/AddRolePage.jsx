@@ -533,7 +533,7 @@ export default function AddRolePage() {
                         <input
                           type="file"
                           onChange={(e) => handleFileUpload(e, 'rera')}
-                          accept="image/*"
+                          accept="image/jpeg, image/png, image/webp"
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
                         <div className={`w-full border-2 border-dashed rounded-[24px] p-8 flex flex-col items-center justify-center transition-all ${profileData.rera_certificate_image ? 'border-emerald-200 bg-emerald-50' : 'border-slate-100 bg-white shadow-sm'}`}>
@@ -582,7 +582,7 @@ export default function AddRolePage() {
                     <input
                       type="file"
                       onChange={handleFileUpload}
-                      accept="image/*"
+                      accept="image/jpeg, image/png, image/webp, application/pdf"
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
                     <div className={`w-full border-2 border-dashed rounded-[24px] p-10 flex flex-col items-center justify-center transition-all ${gstData.image ? 'border-emerald-200 bg-emerald-50' : 'border-slate-100 bg-white shadow-sm'}`}>

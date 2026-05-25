@@ -317,7 +317,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
             type="file" 
             ref={profileInputRef} 
             className="hidden" 
-            accept="image/*"
+            accept="image/jpeg, image/png, image/webp"
             onChange={(e) => handleFileChange(e, 'profileImage')}
           />
           <div className="w-32 h-32 bg-slate-100 rounded-[32px] flex items-center justify-center border-4 border-white shadow-xl overflow-hidden relative group">
@@ -668,7 +668,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                       type="file" 
                       ref={businessLogoRef} 
                       className="hidden" 
-                      accept="image/*"
+                      accept="image/jpeg, image/png, image/webp"
                       onChange={(e) => handleFileChange(e, 'businessLogo')}
                     />
                     <div 

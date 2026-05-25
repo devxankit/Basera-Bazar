@@ -192,10 +192,13 @@ export default function PartnerRegistration() {
       const res = await api.post('/auth/partner/register', buildRegisterPayload(backendRole, 'free_trial'));
       const { user: userData, token } = res.data;
 
-      // Step 2: Set auth token so subsequent requests are authenticated
+      // Step 2: Write token and user to localStorage and update auth context immediately
+      login(userData, token);
+
+      // Step 3: Set auth token so subsequent requests are authenticated
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      // Step 3: Upload images and patch partner record (non-blocking)
+      // Step 4: Upload images and patch partner record (non-blocking)
       await uploadAndPatchMedia();
 
       const activity = {
@@ -208,10 +211,9 @@ export default function PartnerRegistration() {
       const existingLogs = JSON.parse(localStorage.getItem(activityKey) || '[]');
       localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs.filter(l => l.title !== activity.title)]));
 
-      login(userData, token);
       sessionStorage.removeItem(STORAGE_KEY);
       setModalConfig(prev => ({ ...prev, isOpen: false }));
-      navigate('/partner/home');
+      window.location.replace('/partner/home');
     } catch (error) {
       toast.error(error.response?.data?.message || "Registration failed. Please try again.");
     } finally {
@@ -234,13 +236,16 @@ export default function PartnerRegistration() {
       const regRes = await api.post('/auth/partner/register', buildRegisterPayload(backendRole));
       const { user: userData, token } = regRes.data;
 
-      // Step 2: Set auth token so upload and subscription requests are authenticated
+      // Step 2: Write token and user to localStorage and update auth context immediately
+      login(userData, token);
+
+      // Step 3: Set auth token so upload and subscription requests are authenticated
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      // Step 3: Upload images and patch partner record (non-blocking)
+      // Step 4: Upload images and patch partner record (non-blocking)
       await uploadAndPatchMedia();
 
-      // Step 4: Initiate Subscription
+      // Step 5: Initiate Subscription
       const initRes = await api.post('/finance/subscription/initiate', { plan_id: selectedPlan });
       const { order_id, amount, key, plan_name } = initRes.data;
 
@@ -260,7 +265,6 @@ export default function PartnerRegistration() {
         const activityKey = `baserabazar_activity_${userData.id || userData._id}`;
         const existingLogs = JSON.parse(localStorage.getItem(activityKey) || '[]');
         localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs.filter(l => l.title !== activity.title)]));
-        login(userData, token);
         sessionStorage.removeItem(STORAGE_KEY);
         // Hard redirect so auth context re-initialises cleanly from localStorage
         // after Razorpay handler callback (avoids PartnerRoute flash-redirect to login)

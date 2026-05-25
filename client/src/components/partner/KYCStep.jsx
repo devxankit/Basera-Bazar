@@ -103,7 +103,7 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
           </div>
           <div className="space-y-1.5">
             <label className="text-[13px] font-bold text-slate-700 ml-1">PAN Card Image <span className="text-red-500">*</span></label>
-            <input type="file" ref={panInputRef} className="hidden" accept="image/*" onChange={(e) => { handleFileChange(e, 'panImage'); setKycErrors(p => ({ ...p, panImage: undefined })); }} />
+            <input type="file" ref={panInputRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={(e) => { handleFileChange(e, 'panImage'); setKycErrors(p => ({ ...p, panImage: undefined })); }} />
             <div
               className={`w-full h-40 bg-slate-50 border-2 border-dashed rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group ${kycErrors.panImage ? 'border-red-400' : 'border-slate-200'}`}
             >
@@ -149,7 +149,7 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
             <label className="text-[13px] font-bold text-slate-700 ml-1">Aadhar Card Images <span className="text-red-500">*</span></label>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <input type="file" ref={aadharFrontRef} className="hidden" accept="image/*" onChange={(e) => { handleFileChange(e, 'aadharFront'); setKycErrors(p => ({ ...p, aadharFront: undefined })); }} />
+                <input type="file" ref={aadharFrontRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={(e) => { handleFileChange(e, 'aadharFront'); setKycErrors(p => ({ ...p, aadharFront: undefined })); }} />
                 <div
                   className={`h-32 bg-slate-50 border-2 border-dashed rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group ${kycErrors.aadharFront ? 'border-red-400' : 'border-slate-200'}`}
                 >
@@ -174,7 +174,7 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
                 {kycErrors.aadharFront && <p className="text-[11px] text-red-500 font-semibold">{kycErrors.aadharFront}</p>}
               </div>
               <div className="space-y-2">
-                <input type="file" ref={aadharBackRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'aadharBack')} />
+                <input type="file" ref={aadharBackRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={(e) => handleFileChange(e, 'aadharBack')} />
                 <div 
                   className="h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"
                 >
@@ -217,7 +217,7 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
             </div>
             <div className="space-y-1.5">
               <label className="text-[13px] font-bold text-slate-700 ml-1">GST Certificate</label>
-              <input type="file" ref={gstInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'gstImage')} />
+              <input type="file" ref={gstInputRef} className="hidden" accept="image/jpeg, image/png, image/webp, application/pdf" onChange={(e) => handleFileChange(e, 'gstImage')} />
               <div 
                 onClick={() => gstInputRef.current.click()}
                 className="w-full h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"

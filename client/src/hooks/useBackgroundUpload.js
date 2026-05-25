@@ -40,39 +40,53 @@ export function useBackgroundUpload() {
    */
   const compressFile = useCallback((file) => {
     // Skip non-image files (e.g. PDF for GST cert)
-    if (!file.type.startsWith('image/')) return Promise.resolve(file);
+    if (!file || !file.type || !file.type.startsWith('image/')) return Promise.resolve(file);
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = (event) => {
         const img = new Image();
         img.src = event.target.result;
         img.onload = () => {
-          const MAX = 1280;
-          let { width, height } = img;
-          if (width > height) {
-            if (width > MAX) { height = Math.round(height * MAX / width); width = MAX; }
-          } else {
-            if (height > MAX) { width = Math.round(width * MAX / height); height = MAX; }
+          try {
+            const MAX = 1280;
+            let { width, height } = img;
+            if (width > height) {
+              if (width > MAX) { height = Math.round(height * MAX / width); width = MAX; }
+            } else {
+              if (height > MAX) { width = Math.round(width * MAX / height); height = MAX; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            const format = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  console.warn('[useBackgroundUpload] Canvas toBlob failed, falling back to original file.');
+                  return resolve(file);
+                }
+                resolve(new File([blob], file.name || 'image.jpg', { type: format, lastModified: Date.now() }));
+              },
+              format,
+              0.80
+            );
+          } catch (e) {
+            console.warn('[useBackgroundUpload] Canvas compression error, falling back to original file:', e);
+            resolve(file);
           }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-          const format = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) return reject(new Error('Compression failed'));
-              resolve(new File([blob], file.name, { type: format, lastModified: Date.now() }));
-            },
-            format,
-            0.80
-          );
         };
-        img.onerror = reject;
+        img.onerror = (err) => {
+          console.warn('[useBackgroundUpload] Image load error, falling back to original file:', err);
+          resolve(file);
+        };
       };
-      reader.onerror = reject;
+      reader.onerror = (err) => {
+        console.warn('[useBackgroundUpload] FileReader error, falling back to original file:', err);
+        resolve(file);
+      };
     });
   }, []);
 

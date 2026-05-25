@@ -172,7 +172,7 @@ export default function AdminOfficeStaffForm() {
               )}
             </div>
             <label className="absolute -bottom-2 -right-2 p-2 bg-teal-600 text-white rounded-lg cursor-pointer hover:bg-teal-700 shadow-lg transition-transform hover:scale-110">
-              <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
+              <input type="file" className="hidden" accept="image/jpeg, image/png, image/webp" onChange={handleImageUpload} disabled={uploading} />
               <Save size={14} />
             </label>
           </div>

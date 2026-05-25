@@ -608,7 +608,7 @@ export default function ExecutiveSignUp() {
         </AnimatePresence>
       </div>
 
-      <input type="file" ref={fallbackCameraRef} accept="image/*" capture="user" className="hidden" onChange={(e) => {
+      <input type="file" ref={fallbackCameraRef} accept="image/jpeg, image/png, image/webp" capture="user" className="hidden" onChange={(e) => {
         const file = e.target.files[0];
         if (file) {
           const localUrl = URL.createObjectURL(file);
@@ -640,7 +640,7 @@ const InputField = ({ label, icon: Icon, prefix, error, ...props }) => (
 const DocUpload = ({ label, value, onChange, onRemove, error }) => (
   <div className="space-y-1.5">
     <div className="relative">
-      {!value && <input type="file" accept="image/*" onChange={onChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />}
+      {!value && <input type="file" accept="image/jpeg, image/png, image/webp" onChange={onChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />}
       <div className={`w-full py-4 px-5 rounded-2xl border-2 border-dashed flex items-center justify-between transition-all ${value ? 'border-green-400 bg-green-50' : error ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50 hover:border-[#001b4e] hover:bg-blue-50'}`}>
         <div className="flex items-center gap-4">
           <div className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden ${value ? 'bg-green-500 text-white' : error ? 'bg-red-100 text-red-500' : 'bg-white text-slate-400 border border-slate-200'}`}>

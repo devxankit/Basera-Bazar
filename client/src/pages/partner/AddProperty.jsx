@@ -1039,7 +1039,7 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage, uploa
             )}
             <input 
               type="file" 
-              accept="image/*" 
+              accept="image/jpeg, image/png, image/webp" 
               disabled={uploadingImage}
               onChange={(e) => handleFileChange(e, 'thumbnail')}
               className="absolute inset-0 opacity-0 cursor-pointer"
@@ -1082,7 +1082,7 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage, uploa
                )}
                <input 
                  type="file" 
-                 accept="image/*" 
+                 accept="image/jpeg, image/png, image/webp" 
                  multiple
                  disabled={uploadingImage}
                  onChange={(e) => handleFileChange(e, 'images')}

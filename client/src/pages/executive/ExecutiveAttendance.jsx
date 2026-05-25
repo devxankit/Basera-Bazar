@@ -313,7 +313,7 @@ export default function ExecutiveAttendance() {
           <input
             ref={fallbackInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg, image/png, image/webp"
             capture="user"
             className="hidden"
             onChange={handleFallbackCapture}

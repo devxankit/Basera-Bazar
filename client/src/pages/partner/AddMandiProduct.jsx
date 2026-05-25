@@ -546,7 +546,7 @@ export default function AddMandiProduct() {
                   <span className="text-[10px] font-bold uppercase tracking-widest">Tap to upload</span>
                 </div>
               )}
-              <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
+              <input type="file" ref={fileInputRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={handleFileChange} />
             </div>
             <textarea className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-[13px] font-medium text-[#001b4e] min-h-[80px] outline-none focus:bg-white focus:border-blue-500/20"
               placeholder="Any additional details about this product..."

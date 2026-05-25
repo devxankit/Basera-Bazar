@@ -355,6 +355,7 @@ const LeadSubmission = () => {
              <div className="relative">
                 <input 
                   type="file" 
+                  accept="image/jpeg, image/png, image/webp, application/pdf"
                   onChange={handleFileUpload}
                   className="absolute inset-0 opacity-0 cursor-pointer z-10"
                 />
