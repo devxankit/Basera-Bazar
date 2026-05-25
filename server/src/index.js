@@ -31,6 +31,7 @@ if (process.env.SENTRY_DSN) {
 }
 
 const app = express();
+app.set('trust proxy', true);
 const PORT = process.env.PORT || 5000;
 
 // Security headers — tightened for a pure JSON API (no HTML served)
