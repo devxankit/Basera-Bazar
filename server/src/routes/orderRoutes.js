@@ -3,6 +3,7 @@ const router = express.Router();
 const { 
   createMarketplaceOrder, 
   verifyMarketplacePayment, 
+  marketplacePaymentCallback,
   updateLeadStatus,
   getUserOrders,
   getSellerOrders,
@@ -18,6 +19,7 @@ const { orderCheckoutSchema, orderPaymentVerifySchema, orderStatusSchema, orderR
 // Marketplace Transaction Routes
 router.post('/checkout', protect, validate(orderCheckoutSchema), createMarketplaceOrder);
 router.post('/payment/verify', protect, validate(orderPaymentVerifySchema), verifyMarketplacePayment);
+router.post('/payment/callback', marketplacePaymentCallback); // Public redirect POST
 
 // Tracking Routes
 router.get('/my-orders', protect, getUserOrders);

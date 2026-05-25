@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from '../../mockToast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RoleStep from '../../components/partner/RoleStep';
@@ -83,6 +83,16 @@ export default function PartnerRegistration() {
       step, selectedRole, selectedPlan, selectedPlanObject, formData, authState
     }));
   }, [step, selectedRole, selectedPlan, selectedPlanObject, formData, authState]);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      toast.error(`Registration payment failed: ${decodeURIComponent(error)}`);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const nextStep = () => setStep(prev => Math.min(prev + 1, totalSteps));
 
@@ -277,6 +287,10 @@ export default function PartnerRegistration() {
         return;
       }
 
+      const callbackBase = api.defaults.baseURL?.startsWith('http') 
+        ? api.defaults.baseURL 
+        : window.location.origin + (api.defaults.baseURL || '/api');
+
       const options = {
         key,
         amount,
@@ -285,14 +299,6 @@ export default function PartnerRegistration() {
         description: `Subscription: ${plan_name}`,
         image: "https://res.cloudinary.com/dbqsy9vvt/image/upload/v1714570000/logos/logo_main.png",
         order_id,
-        handler: async (rzpResponse) => {
-          try {
-            await completeRegistration(rzpResponse.razorpay_payment_id, rzpResponse.razorpay_signature);
-          } catch (err) {
-            toast.error("Payment verification failed. Please contact support.");
-            setIsSubmitting(false);
-          }
-        },
         prefill: {
           name: formData.fullName || "",
           email: formData.email || "",
@@ -302,6 +308,8 @@ export default function PartnerRegistration() {
         modal: {
           ondismiss: () => setIsSubmitting(false)
         },
+        redirect: true,
+        callback_url: `${callbackBase}/finance/subscription/callback?plan_id=${selectedPlan}&redirect_to=${encodeURIComponent('/partner/register')}&origin=${encodeURIComponent(window.location.origin)}`
       };
 
       const rzp = new window.Razorpay(options);

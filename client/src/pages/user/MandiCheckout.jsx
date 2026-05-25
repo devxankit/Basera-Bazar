@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
    ArrowLeft,
    MapPin,
@@ -12,7 +12,7 @@ import {
    Navigation,
    Building2
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useQuery } from '@tanstack/react-query';
 import { useCart } from '../../context/CartContext';
@@ -27,6 +27,15 @@ export default function MandiCheckout() {
    const [step, setStep] = useState(1); // 1: Address, 2: Review & Pay, 3: Success
    const [orderData, setOrderData] = useState(null);
    const [deliveryOtp, setDeliveryOtp] = useState('');
+   const [searchParams, setSearchParams] = useSearchParams();
+
+   useEffect(() => {
+      const error = searchParams.get('error');
+      if (error) {
+         toast.error(`Payment failed: ${decodeURIComponent(error)}`);
+         setSearchParams({}, { replace: true });
+      }
+   }, [searchParams, setSearchParams]);
 
    const { data: configRaw } = useQuery({
       queryKey: ['mandiSettings'],
@@ -106,6 +115,10 @@ export default function MandiCheckout() {
                throw new Error("Failed to load payment gateway. Please disable your ad-blocker to proceed with payment.");
             }
 
+            const callbackBase = api.defaults.baseURL?.startsWith('http') 
+                ? api.defaults.baseURL 
+                : window.location.origin + (api.defaults.baseURL || '/api');
+
             // 2. Open Razorpay Modal
             const options = {
                key: key,
@@ -114,37 +127,17 @@ export default function MandiCheckout() {
                name: "Basera Bazar",
                description: "Marketplace Booking Token",
                order_id: razorpay_order_id,
-               handler: async (response) => {
-                  try {
-                     setLoading(true);
-                     // 3. Verify Payment
-                     const verifyRes = await api.post('/orders/payment/verify', {
-                        razorpay_order_id: response.razorpay_order_id,
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_signature: response.razorpay_signature
-                     });
-
-                     if (verifyRes.data.success) {
-                        setOrderData({ order });
-                        setDeliveryOtp(order.items[0]?.delivery_otp || "Verified");
-                        clearCart();
-                        setStep(3);
-                     }
-                  } catch (err) {
-                     toast.error("Payment verification failed. Please contact support.");
-                  } finally {
-                     setLoading(false);
-                  }
+               prefill: {
+                  name: address.receiver_name || "",
+                  contact: address.receiver_phone || ""
                },
-                prefill: {
-                   name: address.receiver_name || "",
-                   contact: address.receiver_phone || ""
-                },
-                theme: { color: "#001b4e" },
-                modal: {
-                   ondismiss: () => setLoading(false)
-                }
-             };
+               theme: { color: "#001b4e" },
+               modal: {
+                  ondismiss: () => setLoading(false)
+               },
+               redirect: true,
+               callback_url: `${callbackBase}/orders/payment/callback?origin=${encodeURIComponent(window.location.origin)}`
+            };
 
             const rzp = new window.Razorpay(options);
             rzp.open();

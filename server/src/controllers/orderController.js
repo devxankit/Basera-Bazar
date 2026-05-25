@@ -183,6 +183,105 @@ const createMarketplaceOrder = async (req, res) => {
 };
 
 /**
+ * Helper to process marketplace order payment (shared between AJAX verify and Redirect callback)
+ */
+const processMarketplacePaymentActivation = async ({ razorpay_order_id, razorpay_payment_id, razorpay_signature }) => {
+  // 1. Signature Verification (Only if not mock — mock bypass only allowed outside production)
+  const isMock = process.env.NODE_ENV !== 'production' && razorpay_order_id.startsWith('order_mock_');
+  if (!isMock) {
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(body.toString())
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      throw new Error('Invalid payment signature');
+    }
+  }
+
+  const rzOrder = await RazorpayOrder.findOne({ razorpay_order_id });
+  if (!rzOrder) {
+    throw new Error('Payment record not found.');
+  }
+
+  if (rzOrder.status === 'paid') {
+    const order = await Order.findOne({ 'token_payment.razorpay_order_id': razorpay_order_id });
+    return { order };
+  }
+
+  // 1. Update Razorpay record
+  rzOrder.status = 'paid';
+  rzOrder.razorpay_payment_id = razorpay_payment_id || `pay_${crypto.randomBytes(8).toString('hex')}`;
+  await rzOrder.save();
+
+  // 2. Find the marketplace order using token_payment intent
+  const order = await Order.findOne({ 'token_payment.razorpay_order_id': razorpay_order_id });
+  if (!order) {
+    throw new Error('Marketplace order not found.');
+  }
+
+  // 3 & 4. Update Token Payment status and reduce stock atomically inside a session.
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    order.token_payment.status = 'paid';
+    order.token_payment.paid_at = Date.now();
+    order.token_payment.razorpay_payment_id = rzOrder.razorpay_payment_id;
+    order.status = 'token_paid';
+    await order.save({ session });
+
+    for (const item of order.items) {
+      const updated = await MandiListing.findOneAndUpdate(
+        { _id: item.productId, stock_quantity: { $gte: item.qty } },
+        { $inc: { stock_quantity: -item.qty } },
+        { session, new: true }
+      );
+      if (!updated) {
+        await session.abortTransaction();
+        session.endSession();
+        throw new Error(`Stock no longer available for "${item.name}".`);
+      }
+    }
+    await session.commitTransaction();
+  } catch (txErr) {
+    await session.abortTransaction();
+    throw txErr;
+  } finally {
+    session.endSession();
+  }
+
+  // 5. Record Transaction for Financial Report
+  await Transaction.create({
+    user_id: order.user_id, // The payer (customer)
+    type: 'mandi_commission',
+    amount: order.token_payment.amount,
+    direction: 'credit', // Credit to the platform
+    status: 'success',
+    razorpay_order_id: rzOrder._id,
+    reference_id: order._id
+  });
+
+  // 6. Notify Sellers (Active Leads)
+  try {
+    const { createNotification } = require('../utils/notificationHelper');
+    for (let item of order.items) {
+      await createNotification(
+        'partner',
+        item.seller_id,
+        'New Order Received! 🛍️',
+        `You have a new order for ${item.name} (${item.qty} units). Total: ₹${item.price * item.qty}.`,
+        { type: 'mandi_order', orderId: order._id, itemId: item._id }
+      );
+    }
+  } catch (notifErr) {
+    logger.error({ err: notifErr }, "Seller Notification Error:")
+  }
+
+  return { order };
+};
+
+/**
  * @desc    Verify Payment for Marketplace Order
  * @route   POST /api/orders/payment/verify
  * @access  Private (User OR Webhook Mock)
@@ -190,103 +289,11 @@ const createMarketplaceOrder = async (req, res) => {
 const verifyMarketplacePayment = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-
-    // 1. Signature Verification (Only if not mock — mock bypass only allowed outside production)
-    const isMock = process.env.NODE_ENV !== 'production' && razorpay_order_id.startsWith('order_mock_');
-    if (!isMock) {
-      const body = razorpay_order_id + "|" + razorpay_payment_id;
-      const expectedSignature = crypto
-        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-        .update(body.toString())
-        .digest('hex');
-
-      if (expectedSignature !== razorpay_signature) {
-        return res.status(400).json({ success: false, message: 'Invalid payment signature' });
-      }
-    }
-
-    const rzOrder = await RazorpayOrder.findOne({ razorpay_order_id });
-    if (!rzOrder) {
-      return res.status(404).json({ success: false, message: 'Payment record not found.' });
-    }
-
-    if (rzOrder.status === 'paid') {
-      return res.status(200).json({ success: true, message: 'Payment already verified.' });
-    }
-
-    // 1. Update Razorpay record
-    rzOrder.status = 'paid';
-    rzOrder.razorpay_payment_id = razorpay_payment_id || `pay_${crypto.randomBytes(8).toString('hex')}`;
-    await rzOrder.save();
-
-    // 2. Find the marketplace order using token_payment intent
-    const order = await Order.findOne({ 'token_payment.razorpay_order_id': razorpay_order_id });
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Marketplace order not found.' });
-    }
-
-    // 3 & 4. Update Token Payment status and reduce stock atomically inside a session.
-    // Both operations are wrapped in a transaction so a stock failure rolls back the
-    // payment-status update and prevents the order from being permanently marked paid.
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      order.token_payment.status = 'paid';
-      order.token_payment.paid_at = Date.now();
-      order.token_payment.razorpay_payment_id = rzOrder.razorpay_payment_id;
-      order.status = 'token_paid';
-      await order.save({ session });
-
-      for (const item of order.items) {
-        const updated = await MandiListing.findOneAndUpdate(
-          { _id: item.productId, stock_quantity: { $gte: item.qty } },
-          { $inc: { stock_quantity: -item.qty } },
-          { session, new: true }
-        );
-        if (!updated) {
-          await session.abortTransaction();
-          session.endSession();
-          return res.status(409).json({
-            success: false,
-            message: `Stock no longer available for "${item.name}". Please refresh your cart.`,
-          });
-        }
-      }
-      await session.commitTransaction();
-    } catch (txErr) {
-      await session.abortTransaction();
-      throw txErr;
-    } finally {
-      session.endSession();
-    }
-
-    // 5. Record Transaction for Financial Report
-    await Transaction.create({
-      user_id: order.user_id, // The payer (customer)
-      type: 'mandi_commission',
-      amount: order.token_payment.amount,
-      direction: 'credit', // Credit to the platform
-      status: 'success',
-      razorpay_order_id: rzOrder._id,
-      reference_id: order._id
+    const { order } = await processMarketplacePaymentActivation({
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature
     });
-
-    // 6. Notify Sellers (Active Leads)
-    try {
-      const { createNotification } = require('../utils/notificationHelper');
-      for (let item of order.items) {
-        await createNotification(
-          'partner',
-          item.seller_id,
-          'New Order Received! 🛍️',
-          `You have a new order for ${item.name} (${item.qty} units). Total: ₹${item.price * item.qty}.`,
-          { type: 'mandi_order', orderId: order._id, itemId: item._id }
-        );
-      }
-    } catch (notifErr) {
-      logger.error({ err: notifErr }, "Seller Notification Error:")
-      // Don't fail the payment verification if notification fails
-    }
 
     res.status(200).json({ 
       success: true, 
@@ -295,10 +302,45 @@ const verifyMarketplacePayment = async (req, res) => {
     });
 
   } catch (error) {
-    logger.error({ err: error }, "Verify Payment Error:")
-    res.status(500).json({ success: false, message: 'Error verifying payment.' });
+    logger.error({ err: error.message || error }, "Verify Payment Error:")
+    res.status(error.message.includes('not found') ? 404 : (error.message.includes('Stock') ? 409 : 500)).json({ 
+      success: false, 
+      message: error.message || 'Error verifying payment.' 
+    });
   }
 };
+
+/**
+ * @desc    Handle Razorpay Redirect Callback (PWA/WebView fallback)
+ * @route   POST /api/orders/payment/callback
+ * @access  Public (Redirect POST)
+ */
+const marketplacePaymentCallback = async (req, res) => {
+  const { origin } = req.query;
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, error } = req.body;
+
+  const redirectOrigin = origin ? decodeURIComponent(origin) : 'https://baserabazar.in';
+
+  if (error) {
+    logger.error({ err: error }, "Razorpay Order Callback Payment Error:");
+    const errReason = error.description || 'payment_failed';
+    return res.redirect(`${redirectOrigin}/mandi-bazar/checkout?error=${encodeURIComponent(errReason)}`);
+  }
+
+  try {
+    await processMarketplacePaymentActivation({
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature
+    });
+
+    return res.redirect(`${redirectOrigin}/profile/my-orders?payment=success`);
+  } catch (err) {
+    logger.error({ err: err.message || err }, "Marketplace Callback Processing Error:");
+    return res.redirect(`${redirectOrigin}/mandi-bazar/checkout?error=${encodeURIComponent(err.message || 'verification_failed')}`);
+  }
+};
+
 
 /**
  * @desc    Seller Update Order Lead Status (Contacted/Shipped/Delivered)
@@ -655,6 +697,7 @@ const getOrderReview = async (req, res) => {
 module.exports = {
   createMarketplaceOrder,
   verifyMarketplacePayment,
+  marketplacePaymentCallback,
   updateLeadStatus,
   getUserOrders,
   getSellerOrders,

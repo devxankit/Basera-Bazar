@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { initiateSubscription, verifySubscription, cancelSubscription, getMyTransactions } = require('../controllers/financeController');
+const { initiateSubscription, verifySubscription, subscriptionCallback, cancelSubscription, getMyTransactions } = require('../controllers/financeController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
 const { financeInitiateSchema, financeVerifySchema } = require('../utils/validators');
@@ -8,6 +8,7 @@ const { financeInitiateSchema, financeVerifySchema } = require('../utils/validat
 // Subscription Routes
 router.post('/subscription/initiate', protect, authorizeRoles('partner'), validate(financeInitiateSchema), initiateSubscription);
 router.post('/subscription/verify', protect, authorizeRoles('partner'), validate(financeVerifySchema), verifySubscription);
+router.post('/subscription/callback', subscriptionCallback); // Public redirect POST
 router.post('/subscription/cancel', protect, authorizeRoles('partner'), cancelSubscription);
 router.get('/transactions', protect, authorizeRoles('partner'), getMyTransactions);
 

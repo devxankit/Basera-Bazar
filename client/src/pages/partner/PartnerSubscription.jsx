@@ -9,7 +9,7 @@ import {
   ShieldCheck, ZapOff, Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -18,6 +18,20 @@ import { loadScript } from '../../utils/loadScript';
 export default function PartnerSubscription() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const payment = searchParams.get('payment');
+    const error = searchParams.get('error');
+    if (payment === 'success') {
+      toast.success("Subscription upgraded successfully!");
+      setSearchParams({}, { replace: true });
+      refreshUser();
+    } else if (error) {
+      toast.error(`Subscription payment failed: ${decodeURIComponent(error)}`);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, refreshUser]);
   const [showHistory, setShowHistory] = useState(false);
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -124,6 +138,10 @@ export default function PartnerSubscription() {
         return;
       }
 
+      const callbackBase = api.defaults.baseURL?.startsWith('http') 
+        ? api.defaults.baseURL 
+        : window.location.origin + (api.defaults.baseURL || '/api');
+
       const options = {
         key: orderData.key,
         amount: orderData.amount,
@@ -132,9 +150,6 @@ export default function PartnerSubscription() {
         description: `Subscription: ${plan.name}`,
         image: "https://res.cloudinary.com/dbqsy9vvt/image/upload/v1714570000/logos/logo_main.png",
         order_id: orderData.order_id,
-        handler: async function (response) {
-          handlePaymentSuccess(response, plan);
-        },
         prefill: {
           name: partner.name || "",
           email: partner.email || "",
@@ -145,7 +160,9 @@ export default function PartnerSubscription() {
           ondismiss: function() {
             setSubmitting(false);
           }
-        }
+        },
+        redirect: true,
+        callback_url: `${callbackBase}/finance/subscription/callback?plan_id=${plan._id || plan.id}&redirect_to=${encodeURIComponent('/partner/subscription')}&origin=${encodeURIComponent(window.location.origin)}`
       };
 
       const rzp = new window.Razorpay(options);

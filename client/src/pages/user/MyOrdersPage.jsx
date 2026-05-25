@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import toast from '../../mockToast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -24,6 +25,23 @@ const MyOrdersPage = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { clearCart } = useCart();
+
+  useEffect(() => {
+    const payment = searchParams.get('payment');
+    const error = searchParams.get('error');
+
+    if (payment === 'success') {
+      toast.success("Payment successful! Your order has been placed.");
+      clearCart();
+      setSearchParams({}, { replace: true });
+    } else if (error) {
+      toast.error(`Payment failed: ${decodeURIComponent(error)}`);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, clearCart]);
+
   const [activeFilter, setActiveFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showFilters, setShowFilters] = useState(false);

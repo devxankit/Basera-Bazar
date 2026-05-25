@@ -21,7 +21,7 @@ import {
   AlertCircle,
   ShieldCheck
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
@@ -31,6 +31,20 @@ import logo from '../../assets/baseralogo.png';
 export default function PartnerHome() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const payment = searchParams.get('payment');
+    const error = searchParams.get('error');
+    if (payment === 'success') {
+      toast.success("Subscription activated successfully!");
+      setSearchParams({}, { replace: true });
+      refreshUser();
+    } else if (error) {
+      toast.error(`Subscription payment failed: ${decodeURIComponent(error)}`);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, refreshUser]);
 
   const { data: statsRaw, isLoading: statsLoading } = useQuery({
     queryKey: ['partnerStats'],
