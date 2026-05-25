@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Building2, Wrench, Package, Store, Check, 
   ChevronRight, Loader2, CheckCircle2, Upload, FileText, 
-  CreditCard, Info, Zap, Activity, ShieldCheck
+  CreditCard, Info, Zap, Activity, ShieldCheck, Gift
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
