@@ -172,7 +172,7 @@ export default function PartnerRegistration() {
       ]);
 
       if (profileUrl || logoUrl || panUrl || aadharFrontUrl || aadharBackUrl || gstUrl) {
-        await api.patch('/partner/onboard-media', {
+        await api.patch('/partners/onboard-media', {
           image: profileUrl,
           business_logo: logoUrl,
           pan_image: panUrl,
