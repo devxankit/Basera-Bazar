@@ -38,7 +38,10 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'none'"],      // block all resource loading
-      frameAncestors: ["'none'"],  // deny framing (clickjacking)
+      frameAncestors: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
+      frameSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
+      childSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com"],
     },
   },
   crossOriginEmbedderPolicy: false, // not relevant for an API

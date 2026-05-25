@@ -136,15 +136,15 @@ export default function MandiCheckout() {
                      setLoading(false);
                   }
                },
-               prefill: {
-                  name: address.receiver_name,
-                  contact: address.receiver_phone
-               },
-               theme: { color: "#001b4e" },
-               modal: {
-                  ondismiss: () => setLoading(false)
-               }
-            };
+                prefill: {
+                   name: address.receiver_name || "",
+                   contact: address.receiver_phone || ""
+                },
+                theme: { color: "#001b4e" },
+                modal: {
+                   ondismiss: () => setLoading(false)
+                }
+             };
 
             const rzp = new window.Razorpay(options);
             rzp.open();

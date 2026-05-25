@@ -283,6 +283,7 @@ export default function PartnerRegistration() {
         currency: "INR",
         name: "Basera Bazar",
         description: `Subscription: ${plan_name}`,
+        image: "https://res.cloudinary.com/dbqsy9vvt/image/upload/v1714570000/logos/logo_main.png",
         order_id,
         handler: async (rzpResponse) => {
           try {
@@ -293,9 +294,9 @@ export default function PartnerRegistration() {
           }
         },
         prefill: {
-          name: formData.fullName,
-          email: formData.email,
-          contact: formData.phone
+          name: formData.fullName || "",
+          email: formData.email || "",
+          contact: formData.phone || ""
         },
         theme: { color: "#4f46e5" },
         modal: {

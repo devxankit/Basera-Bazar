@@ -136,9 +136,9 @@ export default function PartnerSubscription() {
           handlePaymentSuccess(response, plan);
         },
         prefill: {
-          name: partner.name,
-          email: partner.email,
-          contact: partner.phone
+          name: partner.name || "",
+          email: partner.email || "",
+          contact: partner.phone || ""
         },
         theme: { color: "#001b4e" },
         modal: {
