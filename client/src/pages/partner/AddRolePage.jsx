@@ -105,6 +105,25 @@ export default function AddRolePage() {
     uploading: false
   });
 
+  // Reset form states when going back to step 1 or changing selected role
+  React.useEffect(() => {
+    if (step === 1) {
+      setProfileData({
+        business_name: '',
+        business_description: '',
+        rera_number: '',
+        rera_certificate_image: '',
+        uploading: false
+      });
+      setGstData({
+        number: '',
+        image: null,
+        uploading: false
+      });
+      setUseCredit(false);
+    }
+  }, [step, selectedRole]);
+
   const currentRoles = user?.roles || (user?.partner_type ? [user.partner_type] : []);
   const activeRole = user?.active_role || user?.partner_type || currentRoles[0];
   
@@ -209,18 +228,25 @@ export default function AddRolePage() {
     }
     setSubmitting(true);
     try {
+      // Map empty string/null values to undefined to omit them from payload so Zod validation passes
       const payload = {
         new_role: selectedRole,
+        use_role_credit: useCredit,
         profile_data: selectedRole === 'mandi_seller' 
-          ? { business_name: profileData.business_name, business_description: profileData.business_description }
+          ? { 
+              business_name: profileData.business_name || undefined, 
+              business_description: profileData.business_description || undefined 
+            }
           : selectedRole === 'property_agent'
-          ? { rera_number: profileData.rera_number, rera_certificate_image: profileData.rera_certificate_image }
+          ? { 
+              rera_number: profileData.rera_number || undefined, 
+              rera_certificate_image: profileData.rera_certificate_image || undefined 
+            }
           : {},
-        gst_number: gstData.number,
-        gst_image: gstData.image,
-        rera_number: selectedRole === 'property_agent' ? profileData.rera_number : undefined,
-        rera_certificate_image: selectedRole === 'property_agent' ? profileData.rera_certificate_image : undefined,
-        use_role_credit: useCredit
+        gst_number: gstData.number || undefined,
+        gst_image: gstData.image || undefined,
+        rera_number: selectedRole === 'property_agent' ? (profileData.rera_number || undefined) : undefined,
+        rera_certificate_image: selectedRole === 'property_agent' ? (profileData.rera_certificate_image || undefined) : undefined,
       };
 
       const res = await api.post('/partners/add-role', payload);
@@ -245,7 +271,13 @@ export default function AddRolePage() {
         }
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to add role. Please try again.');
+      const serverMessage = error.response?.data?.message;
+      const validationErrors = error.response?.data?.errors;
+      if (serverMessage === 'Validation Error' && Array.isArray(validationErrors) && validationErrors.length > 0) {
+        toast.error(validationErrors.map(e => `${e.field}: ${e.message}`).join(', '));
+      } else {
+        toast.error(serverMessage || 'Failed to add role. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
