@@ -88,7 +88,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isOptionalOpen, setIsOptionalOpen] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const { queueUpload, awaitUpload } = useBackgroundUpload();
+  const { queueUpload, awaitUpload } = useBackgroundUpload(); // used only after auth (not in registration flow)
   
   // Verification States
   const [verifying, setVerifying] = useState(false);
@@ -165,11 +165,14 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   const handleFileChange = (e, field) => {
     const file = e.target.files[0];
     if (!file) return;
-    // Show local preview immediately
+    // Show local blob: preview immediately
     const localUrl = URL.createObjectURL(file);
-    setFormData(prev => ({ ...prev, [field]: localUrl }));
-    // Compress + upload in the background
-    queueUpload(field, file);
+    // Store the blob: URL for preview AND the raw File for upload after registration
+    setFormData(prev => ({ ...prev, [field]: localUrl, [`${field}_file`]: file }));
+    // NOTE: We intentionally do NOT call queueUpload() here because InfoStep runs during
+    // partner registration when the user has no JWT token yet. Uploading now would fail
+    // with 401 and trigger the auth interceptor. The actual upload happens in
+    // PartnerRegistration.uploadAndPatchMedia() after the user is registered and authenticated.
   };
 
   const handleTogglePassword = () => setShowPassword(!showPassword);

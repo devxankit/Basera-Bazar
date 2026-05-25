@@ -41,9 +41,10 @@ const DEFAULT_FORM = {
 
 // Fields that belong to each step — clearing on back uses these lists
 const STEP_FIELDS = {
-  2: Object.keys(DEFAULT_FORM), // InfoStep owns all formData
+  2: [...Object.keys(DEFAULT_FORM), 'profileImage_file', 'businessLogo_file'], // InfoStep
   3: [],                        // OTP step owns authState only
-  4: ['pan', 'aadhar', 'gst', 'panImage', 'aadharFront', 'aadharBack', 'gstImage'],
+  4: ['pan', 'aadhar', 'gst', 'panImage', 'aadharFront', 'aadharBack', 'gstImage',
+      'panImage_file', 'aadharFront_file', 'aadharBack_file', 'gstImage_file'], // KYCStep
   5: [],                        // Plan step owns selectedPlan/selectedPlanObject only
 };
 
@@ -145,30 +146,47 @@ export default function PartnerRegistration() {
 
   // Upload images using the auth token that was just set, then PATCH the partner record.
   // Non-blocking: a failure here does not abort registration — images can be updated later.
+  //
+  // Priority order for each field:
+  //   1. File object stored by KYCStep (formData[field_file]) — most reliable, has MIME type
+  //   2. blob: / data: URL stored in formData[field]         — fallback for InfoStep images
+  //   3. https: Cloudinary URL already uploaded              — already done, just pass through
   const uploadAndPatchMedia = async () => {
     try {
-      const uploadIfNeeded = async (url) => {
+      const uploadFile = async (file) => {
+        try {
+          const res = await db.uploadFile(file);
+          return res?.url || null;
+        } catch { return null; }
+      };
+
+      const uploadIfNeeded = async (field) => {
+        // 1. Raw File object (from KYCStep — stored as formData[field + '_file'])
+        const fileObj = formData[`${field}_file`];
+        if (fileObj instanceof File) {
+          return uploadFile(fileObj);
+        }
+        const url = formData[field];
         if (!url) return null;
-        // Already a Cloudinary URL (resolved by KYCStep background upload)
+        // 2. Already a Cloudinary URL
         if (url.startsWith('https://')) return url;
-        // blob: URL (new path from InfoStep background upload) or data: URI (legacy)
+        // 3. blob: or data: URL (e.g. from InfoStep profile/logo background upload)
         if (url.startsWith('blob:') || url.startsWith('data:')) {
           try {
             const blob = await fetch(url).then(r => r.blob());
-            const res = await db.uploadFile(blob);
-            return res.url;
+            return uploadFile(blob);
           } catch { return null; }
         }
         return null;
       };
 
       const [profileUrl, logoUrl, panUrl, aadharFrontUrl, aadharBackUrl, gstUrl] = await Promise.all([
-        uploadIfNeeded(formData.profileImage),
-        uploadIfNeeded(formData.businessLogo),
-        uploadIfNeeded(formData.panImage),
-        uploadIfNeeded(formData.aadharFront),
-        uploadIfNeeded(formData.aadharBack),
-        uploadIfNeeded(formData.gstImage),
+        uploadIfNeeded('profileImage'),
+        uploadIfNeeded('businessLogo'),
+        uploadIfNeeded('panImage'),
+        uploadIfNeeded('aadharFront'),
+        uploadIfNeeded('aadharBack'),
+        uploadIfNeeded('gstImage'),
       ]);
 
       if (profileUrl || logoUrl || panUrl || aadharFrontUrl || aadharBackUrl || gstUrl) {

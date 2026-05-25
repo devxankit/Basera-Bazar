@@ -40,13 +40,14 @@ function processQueue(error, token = null) {
 }
 
 function isProtectedRoute(path) {
-  // Exclude explicitly public routes
+  // Exclude explicitly public routes (these pages can make unauthenticated API calls)
   if (
     path === '/' ||
     path === '/login' ||
     path === '/signup' ||
     path === '/partner/login' ||
     path === '/partner/register' ||
+    path.startsWith('/partner/register') || // cover /partner/register?... query strings
     path === '/executive/login' ||
     path === '/executive/register' ||
     path === '/executive/signup' ||

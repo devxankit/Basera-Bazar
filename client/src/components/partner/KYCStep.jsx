@@ -3,34 +3,49 @@ import { ShieldCheck, Camera, CheckCircle2, ChevronRight, FileText, ArrowLeft, X
 import { motion } from 'framer-motion';
 import { v, sanitize } from '../../utils/validators';
 import toast from '../../mockToast';
-import { useBackgroundUpload } from '../../hooks/useBackgroundUpload';
 
+/**
+ * KYCStep — Identity verification document upload.
+ *
+ * NOTE: This step intentionally does NOT attempt background uploads.
+ * The user is not yet authenticated (no JWT token) at this point in the
+ * registration flow. Uploads would fail with 401 and potentially trigger
+ * the auth interceptor's redirect logic.
+ *
+ * Instead, blob: preview URLs and the original File objects are stored in
+ * formData. The actual Cloudinary upload happens inside
+ * PartnerRegistration.uploadAndPatchMedia() AFTER registration completes
+ * and the auth token is set.
+ */
 export default function KYCStep({ formData, setFormData, onBack, onComplete, role }) {
   const panInputRef = useRef(null);
   const aadharFrontRef = useRef(null);
   const aadharBackRef = useRef(null);
   const gstInputRef = useRef(null);
-  const { queueUpload, awaitUpload, cancelUpload } = useBackgroundUpload();
+
+  // fileRefs holds the original File objects keyed by field name.
+  // These are passed through to uploadAndPatchMedia for actual upload.
+  const fileRefs = useRef({});
 
   const handleFileChange = (e, field) => {
     const file = e.target.files[0];
     if (!file) return;
-    // Show local preview immediately
+    // Store original File object for later upload
+    fileRefs.current[field] = file;
+    // Show local blob: preview immediately (no upload attempt)
     const localUrl = URL.createObjectURL(file);
-    setFormData(prev => ({ ...prev, [field]: localUrl }));
-    // Compress + upload in the background right now
-    queueUpload(field, file);
+    setFormData(prev => ({ ...prev, [field]: localUrl, [`${field}_file`]: file }));
   };
 
   const handleRemoveFile = (field) => {
-    cancelUpload(field);
-    setFormData(prev => ({ ...prev, [field]: null }));
+    delete fileRefs.current[field];
+    setFormData(prev => ({ ...prev, [field]: null, [`${field}_file`]: null }));
   };
 
   const [kycErrors, setKycErrors] = useState({});
   const isMandiOrSupplier = role === 'mandi' || role === 'supplier';
 
-  const handleComplete = async () => {
+  const handleComplete = () => {
     const errs = {};
     if (!formData.pan?.trim()) {
       errs.pan = 'PAN card number is required';
@@ -53,22 +68,7 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
       return;
     }
     setKycErrors({});
-    // Resolve background upload URLs before passing to the parent flow
-    // These are already uploading in the background — this will be near-instant
-    const [panUrl, aadharFrontUrl, aadharBackUrl, gstUrl] = await Promise.all([
-      awaitUpload('panImage'),
-      awaitUpload('aadharFront'),
-      awaitUpload('aadharBack'),
-      awaitUpload('gstImage'),
-    ]);
-    // Patch resolved Cloudinary URLs into formData before parent finalizes
-    setFormData(prev => ({
-      ...prev,
-      panImage: panUrl || prev.panImage,
-      aadharFront: aadharFrontUrl || prev.aadharFront,
-      aadharBack: aadharBackUrl || prev.aadharBack,
-      gstImage: gstUrl || prev.gstImage,
-    }));
+    // Blob: URLs are already stored in formData. Upload happens after registration.
     onComplete();
   };
 
