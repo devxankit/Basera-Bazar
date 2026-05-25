@@ -39,11 +39,52 @@ function processQueue(error, token = null) {
   refreshQueue = [];
 }
 
+function isProtectedRoute(path) {
+  // Exclude explicitly public routes
+  if (
+    path === '/' ||
+    path === '/login' ||
+    path === '/signup' ||
+    path === '/partner/login' ||
+    path === '/partner/register' ||
+    path === '/executive/login' ||
+    path === '/executive/register' ||
+    path === '/executive/signup' ||
+    path === '/staff/login' ||
+    path === '/staff/forgot-password' ||
+    path === '/admin/login' ||
+    path.startsWith('/products/') ||
+    path.startsWith('/agent/') ||
+    path.startsWith('/service/') ||
+    path.startsWith('/browse/') ||
+    (path.startsWith('/mandi-bazar') && !path.startsWith('/mandi-bazar/checkout'))
+  ) {
+    return false;
+  }
+
+  // Include protected route prefixes
+  return (
+    path.startsWith('/partner') ||
+    path.startsWith('/executive') ||
+    path.startsWith('/team-leader') ||
+    path.startsWith('/office-staff') ||
+    path.startsWith('/admin') ||
+    path.startsWith('/profile') ||
+    path === '/broadcast-lead'
+  );
+}
+
 function redirectToLogin() {
   localStorage.removeItem('baserabazar_token');
   localStorage.removeItem('baserabazar_user');
   localStorage.removeItem('baserabazar_partner_role');
   const path = window.location.pathname;
+  
+  if (!isProtectedRoute(path)) {
+    // Already on a public route, do not force redirect
+    return;
+  }
+  
   if (path.startsWith('/admin'))     window.location.href = '/admin/login';
   else if (path.startsWith('/partner'))   window.location.href = '/partner/login';
   else if (path.startsWith('/executive')) window.location.href = '/executive/login';
