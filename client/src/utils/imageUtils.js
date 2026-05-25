@@ -5,7 +5,7 @@
  * Reduces bandwidth usage, storage costs, and improves page load performance.
  */
 
-export const compressImage = async (file, { maxWidth = 1280, maxHeight = 1280, quality = 0.8 } = {}) => {
+export const compressImage = async (file, { maxWidth = 1024, maxHeight = 1024, quality = 0.8 } = {}) => {
   return new Promise((resolve) => {
     // 1. Validate if it's an image
     if (!file || !file.type || !file.type.startsWith('image/')) {
@@ -42,8 +42,7 @@ export const compressImage = async (file, { maxWidth = 1280, maxHeight = 1280, q
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // 4. Convert to Blob (WebP preferred, fallback to JPEG)
-          const format = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+          // 4. Convert to Blob (force JPEG format for optimal size)
           canvas.toBlob(
             (blob) => {
               if (!blob) {
@@ -52,14 +51,17 @@ export const compressImage = async (file, { maxWidth = 1280, maxHeight = 1280, q
               }
               
               // Create a new file from the blob
-              const optimizedFile = new File([blob], file.name || 'image.jpg', {
-                type: format,
+              const originalName = file.name || 'image.jpg';
+              const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+              const fileName = `${baseName}.jpg`;
+              const optimizedFile = new File([blob], fileName, {
+                type: 'image/jpeg',
                 lastModified: Date.now(),
               });
               
               resolve(optimizedFile);
             },
-            format,
+            'image/jpeg',
             quality
           );
         } catch (e) {

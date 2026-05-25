@@ -50,7 +50,7 @@ export function useBackgroundUpload() {
         img.src = event.target.result;
         img.onload = () => {
           try {
-            const MAX = 1280;
+            const MAX = 1024;
             let { width, height } = img;
             if (width > height) {
               if (width > MAX) { height = Math.round(height * MAX / width); width = MAX; }
@@ -61,16 +61,18 @@ export function useBackgroundUpload() {
             canvas.width = width;
             canvas.height = height;
             canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-            const format = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
             canvas.toBlob(
               (blob) => {
                 if (!blob) {
                   console.warn('[useBackgroundUpload] Canvas toBlob failed, falling back to original file.');
                   return resolve(file);
                 }
-                resolve(new File([blob], file.name || 'image.jpg', { type: format, lastModified: Date.now() }));
+                const originalName = file.name || 'image.jpg';
+                const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+                const fileName = `${baseName}.jpg`;
+                resolve(new File([blob], fileName, { type: 'image/jpeg', lastModified: Date.now() }));
               },
-              format,
+              'image/jpeg',
               0.80
             );
           } catch (e) {
