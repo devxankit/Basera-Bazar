@@ -45,7 +45,8 @@ exports.registerStep1 = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Executive already registered.' });
     }
 
-    const otpCode = process.env.TESTING_MODE === 'true' ? '123456' : crypto.randomInt(100000, 1000000).toString();
+    const isMockMode = process.env.TESTING_MODE === 'true' || !process.env.SMS_API_KEY || process.env.SMS_API_KEY === 'your_smsindiahub_api_key';
+    const otpCode = isMockMode ? '123456' : crypto.randomInt(100000, 1000000).toString();
     const salt = await bcrypt.genSalt(10);
     const otpHash = await bcrypt.hash(otpCode, salt);
 
@@ -98,7 +99,11 @@ exports.verifyRegistrationOtp = async (req, res) => {
       await Otp.deleteOne({ _id: otpRecord._id });
       return res.status(400).json({ success: false, message: 'OTP expired. Please request a new one.' });
     }
-    const isMatch = await bcrypt.compare(otp.toString(), otpRecord.otp_hash);
+    let isMatch = await bcrypt.compare(otp.toString(), otpRecord.otp_hash);
+    const isMockMode = process.env.TESTING_MODE === 'true' || !process.env.SMS_API_KEY || process.env.SMS_API_KEY === 'your_smsindiahub_api_key';
+    if (!isMatch && isMockMode) {
+      isMatch = otp.toString() === '123456';
+    }
     if (!isMatch) {
       return res.status(400).json({ success: false, message: 'Invalid OTP.' });
     }

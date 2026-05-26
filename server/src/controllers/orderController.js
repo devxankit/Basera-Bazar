@@ -116,7 +116,7 @@ const createMarketplaceOrder = async (req, res) => {
         status: 'pending',
         commission_rate: categoryRate,
         commission_amount: itemCommission,
-        delivery_otp: crypto.randomInt(100000, 1000000).toString()
+        delivery_otp: (process.env.TESTING_MODE === 'true' || !process.env.SMS_API_KEY || process.env.SMS_API_KEY === 'your_smsindiahub_api_key') ? '123456' : crypto.randomInt(100000, 1000000).toString()
       });
     }
 

@@ -10,7 +10,7 @@ module.exports = defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5179',
     headless: true,
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
@@ -27,9 +27,9 @@ module.exports = defineConfig({
   // API calls are mocked inside each test via page.route(), so the
   // real backend does NOT need to be running.
   webServer: {
-    command: 'npm run preview -- --port 5173',
+    command: 'npm run preview -- --port 5179',
     cwd: './client',
-    port: 5173,
+    port: 5179,
     reuseExistingServer: false,
     timeout: 60_000,
     stderr: 'ignore', // suppress VitePWA macOS EPERM warnings

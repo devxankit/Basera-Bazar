@@ -315,10 +315,19 @@ const getPublicCategories = async (req, res) => {
   try {
     let { type, parent_id, partner_id, district, state } = req.query;
     
-    // SANITIZATION
-    if (district && typeof district !== 'string') district = null;
-    if (state && typeof state !== 'string') state = null;
+    // SANITIZATION: Prevent "undefined" or "null" strings from breaking queries
+    if (district === 'undefined' || district === 'null' || !district) district = null;
+    if (state === 'undefined' || state === 'null' || !state) state = null;
     if (parent_id && typeof parent_id !== 'string') parent_id = undefined;
+
+    // Ensure they are strings if they exist
+    if (district && typeof district !== 'string') district = String(district);
+    if (state && typeof state !== 'string') state = String(state);
+
+    // Normalize: strip common suffixes like "District", "Zila", "Jila" for robust text matching
+    const normalizePlace = (s) => s ? s.trim().replace(/\s*(district|zila|jila|जिला)\s*$/i, '').trim() : s;
+    if (district) district = normalizePlace(district);
+    if (state) state = normalizePlace(state);
 
     let categories;
     if (type === 'supplier') {
@@ -522,9 +531,25 @@ const updateListing = async (req, res) => {
     // ── PROPERTY SPECIFIC MAPPING ──
     if (Model === PropertyListing) {
       if (updateData.propertyType) {
-        let property_type = updateData.propertyType.toLowerCase();
-        if (!['apartment', 'hostel_pg', 'office', 'plot', 'warehouse', 'residential', 'commercial', 'agricultural', 'industrial', 'house', 'villa'].includes(property_type)) {
-          property_type = 'residential';
+        let property_type = 'residential';
+        const typeStr = String(updateData.propertyType).toLowerCase();
+        
+        if (typeStr.includes('apartment') || typeStr.includes('flat')) {
+          property_type = 'apartment';
+        } else if (typeStr.includes('hostel') || typeStr.includes('pg')) {
+          property_type = 'hostel_pg';
+        } else if (typeStr.includes('office') || typeStr.includes('shop')) {
+          property_type = 'office';
+        } else if (typeStr.includes('plot') || typeStr.includes('land')) {
+          property_type = 'plot';
+        } else if (typeStr.includes('warehouse') || typeStr.includes('godown')) {
+          property_type = 'warehouse';
+        } else if (typeStr.includes('house')) {
+          property_type = 'house';
+        } else if (typeStr.includes('villa')) {
+          property_type = 'villa';
+        } else if (['commercial', 'agricultural', 'industrial', 'residential'].includes(typeStr)) {
+          property_type = typeStr;
         }
         updateData.property_type = property_type;
       }

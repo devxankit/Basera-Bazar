@@ -36,9 +36,25 @@ const createPropertyListing = async (req, res) => {
     const description = item.description || item.details?.description || '';
 
     // Map property type from frontend to lowercase enum
-    let property_type = (item.propertyType || 'residential').toLowerCase();
-    if (!['apartment', 'hostel_pg', 'office', 'plot', 'warehouse', 'residential', 'commercial', 'agricultural', 'industrial', 'house', 'villa'].includes(property_type)) {
-      property_type = 'residential';
+    let property_type = 'residential';
+    const typeStr = String(item.propertyType || item.property_type || '').toLowerCase();
+    
+    if (typeStr.includes('apartment') || typeStr.includes('flat')) {
+      property_type = 'apartment';
+    } else if (typeStr.includes('hostel') || typeStr.includes('pg')) {
+      property_type = 'hostel_pg';
+    } else if (typeStr.includes('office') || typeStr.includes('shop')) {
+      property_type = 'office';
+    } else if (typeStr.includes('plot') || typeStr.includes('land')) {
+      property_type = 'plot';
+    } else if (typeStr.includes('warehouse') || typeStr.includes('godown')) {
+      property_type = 'warehouse';
+    } else if (typeStr.includes('house')) {
+      property_type = 'house';
+    } else if (typeStr.includes('villa')) {
+      property_type = 'villa';
+    } else if (['commercial', 'agricultural', 'industrial', 'residential'].includes(typeStr)) {
+      property_type = typeStr;
     }
 
     const listing_intent = (item.intention && item.intention.toLowerCase().includes('rent')) ? 'rent' : 'sell';
