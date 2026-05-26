@@ -132,7 +132,7 @@ const staffForgotPassword = async (req, res) => {
     if (!staff) return res.status(404).json({ success: false, message: 'No active staff account found with this phone.' });
 
     const crypto = require('crypto');
-    const otpCode = crypto.randomInt(100000, 1000000).toString();
+    const otpCode = process.env.TESTING_MODE === 'true' ? '123456' : crypto.randomInt(100000, 1000000).toString();
 
     const bcrypt = require('bcryptjs');
     const salt = await bcrypt.genSalt(10);
@@ -147,13 +147,15 @@ const staffForgotPassword = async (req, res) => {
       expires_at: new Date(Date.now() + 5 * 60 * 1000),
     });
 
-    try {
-      await require('../../utils/sms').sendOTP(phone, otpCode);
-    } catch (smsErr) {
-      if (process.env.NODE_ENV === 'development') {
-        logger.warn(`[DEV] SMS failed — OTP for ${phone}: ${otpCode}`);
-      } else {
-        throw smsErr;
+    if (process.env.TESTING_MODE !== 'true') {
+      try {
+        await require('../../utils/sms').sendOTP(phone, otpCode);
+      } catch (smsErr) {
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn(`[DEV] SMS failed — OTP for ${phone}: ${otpCode}`);
+        } else {
+          throw smsErr;
+        }
       }
     }
 

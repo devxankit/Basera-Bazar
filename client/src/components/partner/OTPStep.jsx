@@ -3,6 +3,7 @@ import { ShieldCheck, Phone, ArrowLeft, Loader2, CheckCircle2, Info } from 'luci
 import { motion } from 'framer-motion';
 import api from '../../services/api';
 import { v, sanitize } from '../../utils/validators';
+import TestingModeBanner from '../common/TestingModeBanner';
 
 export default function OTPStep({ formData, selectedRole, onBack, onVerified }) {
   const [otp, setOtp] = useState('');
@@ -22,7 +23,7 @@ export default function OTPStep({ formData, selectedRole, onBack, onVerified }) 
     try {
       setVerifying(true);
       setError('');
-      const response = await api.post('/auth/send-otp', { phone: formData.phone.trim() });
+      const response = await api.post('/auth/send-otp', { phone: formData.phone.trim(), role: 'partner' });
       if (response.data.success) {
         setTimer(60);
         setOtp('');
@@ -57,6 +58,7 @@ export default function OTPStep({ formData, selectedRole, onBack, onVerified }) 
 
   return (
     <div className="flex flex-col font-sans">
+      <TestingModeBanner />
       <div className="mb-8 p-1">
         <h1 className="text-[28px] font-bold text-[#001b4e] tracking-tight">Verify Phone</h1>
         <p className="text-slate-500 text-[15px] mt-1">We've sent a 6-digit code to</p>

@@ -7,6 +7,7 @@ import api from '../../services/api';
 import { registerFCMToken } from '../../services/pushNotificationService';
 import { v, sanitize } from '../../utils/validators';
 import toast from '../../mockToast';
+import TestingModeBanner from '../../components/common/TestingModeBanner';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -308,6 +309,8 @@ export default function Login() {
             Password
           </button>
         </motion.div>
+
+        <TestingModeBanner />
 
         <form onSubmit={handleLogin}>
           {/* Identity/Identifier input */}

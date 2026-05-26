@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast, Toaster } from '../../mockToast';
+import TestingModeBanner from '../../components/common/TestingModeBanner';
 import { useBackgroundUpload } from '../../hooks/useBackgroundUpload';
 
 const steps = [
@@ -412,6 +413,7 @@ export default function ExecutiveSignUp() {
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5 pt-2">
+              <TestingModeBanner />
               <p className="text-slate-500 text-sm font-medium mb-2">Fill in your basic information to get started.</p>
               <InputField label="Full Name" name="name" icon={UserCircle} value={formData.name} onChange={handleInputChange} placeholder="As per documents" inputMode="text" autoComplete="name" maxLength={60} error={errors.name} />
               <InputField label="Email Address" name="email" icon={Mail} type="email" value={formData.email} onChange={handleInputChange} placeholder="you@example.com" autoComplete="email" maxLength={100} error={errors.email} />

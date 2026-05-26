@@ -10,6 +10,7 @@ import { useScrollLock } from '../../hooks/useScrollLock';
 import { v, sanitize } from '../../utils/validators';
 import useFormValidation from '../../hooks/useFormValidation';
 import toast from '../../mockToast';
+import TestingModeBanner from '../../components/common/TestingModeBanner';
 
 // ─── Small reusable popup modal ───────────────────────────────────────────────
 function AlertModal({ icon: Icon, iconBg, iconColor, title, message, primaryText, primaryAction, secondaryText, secondaryAction }) {
@@ -263,6 +264,8 @@ export default function SignUp() {
               Join BaseraBazar to find your dream property
             </div>
           </motion.div>
+
+          <TestingModeBanner />
 
           <form onSubmit={handleSignUp}>
             {/* Full Name */}

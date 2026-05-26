@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { registerFCMToken } from '../../services/pushNotificationService';
 import { v, sanitize } from '../../utils/validators';
 import toast from '../../mockToast';
+import TestingModeBanner from '../../components/common/TestingModeBanner';
 
 export default function PartnerLogin() {
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ export default function PartnerLogin() {
     if (err) { toast.error(err); return; }
     try {
       setLoading(true);
-      const res = await api.post('/auth/send-otp', { phone, checkExists: true });
+      const res = await api.post('/auth/send-otp', { phone, checkExists: true, role: 'partner' });
       if (res.data.success) { setOtpSent(true); setTimer(60); }
     } catch (err) {
       if (err.response?.status === 404 && err.response?.data?.notExists) setShowSignupModal(true);
@@ -195,6 +196,8 @@ export default function PartnerLogin() {
             </button>
           ))}
         </div>
+
+        <TestingModeBanner />
 
         <form onSubmit={handleSubmit} className="space-y-4">
 

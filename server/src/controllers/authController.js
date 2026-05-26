@@ -98,8 +98,7 @@ const requestOtp = async (req, res) => {
       // user can always receive the OTP regardless of account status.
     }
 
-    // Cryptographically secure 6-digit OTP
-    const otpCode = crypto.randomInt(100000, 1000000).toString();
+    const otpCode = process.env.TESTING_MODE === 'true' ? '123456' : crypto.randomInt(100000, 1000000).toString();
 
     const salt = await bcrypt.genSalt(10);
     const otpHash = await bcrypt.hash(otpCode, salt);
@@ -115,14 +114,16 @@ const requestOtp = async (req, res) => {
       expires_at: expirationDate,
     });
 
-    try {
-      await sendOTP(phone, otpCode);
-    } catch (smsErr) {
-      if (process.env.NODE_ENV === 'development') {
-        logger.warn(`[DEV] SMS failed — OTP for ${phone}: ${otpCode}`);
-      } else {
-        logger.error({ err: smsErr }, '[SMS] Failed to send OTP');
-        return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
+    if (process.env.TESTING_MODE !== 'true') {
+      try {
+        await sendOTP(phone, otpCode);
+      } catch (smsErr) {
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn(`[DEV] SMS failed — OTP for ${phone}: ${otpCode}`);
+        } else {
+          logger.error({ err: smsErr }, '[SMS] Failed to send OTP');
+          return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
+        }
       }
     }
 

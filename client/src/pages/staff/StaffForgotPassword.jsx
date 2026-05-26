@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Phone, ArrowLeft, Key, CheckCircle } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
+import TestingModeBanner from '../../components/common/TestingModeBanner';
 
 export default function StaffForgotPassword() {
   const [step, setStep] = useState(1); // 1: Phone, 2: OTP & New Password
@@ -77,6 +78,7 @@ export default function StaffForgotPassword() {
         </div>
 
         <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
+          <TestingModeBanner />
           {step === 1 ? (
             <form onSubmit={handleRequestOtp} className="space-y-4">
               <p className="text-sm text-slate-600 mb-4">Enter your registered phone number. We'll send you a 6-digit OTP to verify your identity.</p>

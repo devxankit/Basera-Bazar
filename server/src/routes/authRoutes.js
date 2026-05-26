@@ -23,23 +23,25 @@ const authLimiter = rateLimit({
   message: { success: false, message: 'Too many authentication attempts. Please try again in 5 minutes.' }
 });
 
-// 20 OTP sends per 5 min per IP (login + forgot password combined)
+// 10 OTP sends per 5 min per IP per module — keyed by IP + role so user/partner counters are independent
 const sendOtpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
-  max: 20,
+  max: 10,
+  keyGenerator: (req) => `${req.ip}-${req.body?.role || 'user'}`,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true' || process.env.JEST_WORKER_ID !== undefined,
+  skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true' || process.env.JEST_WORKER_ID !== undefined || process.env.TESTING_MODE === 'true',
   message: { success: false, message: 'Too many OTP requests. Please wait 5 minutes before trying again.' }
 });
 
-// 30 verify attempts per 5 min per IP — separate pool from send-otp
+// 10 verify attempts per 5 min per IP per module
 const verifyOtpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
-  max: 30,
+  max: 10,
+  keyGenerator: (req) => `${req.ip}-${req.body?.role || 'user'}`,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true' || process.env.JEST_WORKER_ID !== undefined,
+  skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true' || process.env.JEST_WORKER_ID !== undefined || process.env.TESTING_MODE === 'true',
   message: { success: false, message: 'Too many OTP verification attempts. Please wait 5 minutes.' }
 });
 

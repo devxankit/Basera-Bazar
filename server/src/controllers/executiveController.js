@@ -45,8 +45,7 @@ exports.registerStep1 = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Executive already registered.' });
     }
 
-    // Cryptographically secure 6-digit OTP
-    const otpCode = crypto.randomInt(100000, 1000000).toString();
+    const otpCode = process.env.TESTING_MODE === 'true' ? '123456' : crypto.randomInt(100000, 1000000).toString();
     const salt = await bcrypt.genSalt(10);
     const otpHash = await bcrypt.hash(otpCode, salt);
 
@@ -57,18 +56,16 @@ exports.registerStep1 = async (req, res) => {
       expires_at: new Date(Date.now() + 5 * 60 * 1000)
     });
 
-    if (process.env.NODE_ENV !== 'production') {
-      logger.info(`[DEV] OTP for ${phone}: ${otpCode}`);
-    }
-
-    try {
-      await sendOTP(phone, otpCode);
-    } catch (smsErr) {
-      if (process.env.NODE_ENV === 'development') {
-        logger.warn(`[DEV] SMS failed — OTP for ${phone}: ${otpCode}`);
-      } else {
-        logger.error({ err: smsErr }, '[SMS] Failed to send executive OTP');
-        return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
+    if (process.env.TESTING_MODE !== 'true') {
+      try {
+        await sendOTP(phone, otpCode);
+      } catch (smsErr) {
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn(`[DEV] SMS failed — OTP for ${phone}: ${otpCode}`);
+        } else {
+          logger.error({ err: smsErr }, '[SMS] Failed to send executive OTP');
+          return res.status(502).json({ success: false, message: 'Failed to send OTP. Please try again.' });
+        }
       }
     }
 

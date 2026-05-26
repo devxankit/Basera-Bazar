@@ -37,14 +37,14 @@ const {
   getExecutiveTargets,
 } = require('../controllers/staff/executiveStaffController');
 
-// OTP limiter scoped only to registration/OTP endpoints
+// OTP limiter scoped only to registration/OTP endpoints — 10 per 5 min per IP
 const otpLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 5,
+  windowMs: 5 * 60 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true' || process.env.JEST_WORKER_ID !== undefined,
-  message: { success: false, message: 'Too many OTP requests. Please wait 10 minutes before trying again.' }
+  skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true' || process.env.JEST_WORKER_ID !== undefined || process.env.TESTING_MODE === 'true',
+  message: { success: false, message: 'Too many OTP requests. Please wait 5 minutes before trying again.' }
 });
 
 router.post('/register/step1', otpLimiter, registerStep1);
