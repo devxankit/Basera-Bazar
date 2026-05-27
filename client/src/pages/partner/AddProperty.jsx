@@ -32,7 +32,9 @@ export default function AddProperty() {
 
   const [activeStep, setActiveStep] = useState(1);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const uploadingImage = uploadingThumbnail || uploadingImages;
   const [showMapModal, setShowMapModal] = useState(false);
   const { queueUpload, awaitUpload, cancelUpload } = useBackgroundUpload();
   // Track local-preview URLs so we can match them to queued uploads
@@ -159,6 +161,35 @@ export default function AddProperty() {
     }
   }, [user, navigate]);
 
+  // Persist form data across refresh (only for new listings, not edits)
+  const SESSION_KEY = 'addProperty_draft';
+  useEffect(() => {
+    if (!editId) {
+      try {
+        const saved = sessionStorage.getItem(SESSION_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const savedFormData = parsed.formData || parsed;
+          const savedStep = parsed.step;
+          // Don't restore image blobs (they expire after page close)
+          setFormData(prev => ({
+            ...prev,
+            ...savedFormData,
+            thumbnail: typeof savedFormData.thumbnail === 'string' && !savedFormData.thumbnail.startsWith('blob:') ? savedFormData.thumbnail : prev.thumbnail,
+            images: (savedFormData.images || []).filter(img => !img.startsWith('blob:')),
+          }));
+          if (savedStep && savedStep > 1) setActiveStep(savedStep);
+        }
+      } catch {}
+    }
+  }, [editId]);
+
+  useEffect(() => {
+    if (!editId) {
+      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ formData, step: activeStep })); } catch {}
+    }
+  }, [formData, activeStep, editId]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (name === 'state') {
@@ -171,10 +202,10 @@ export default function AddProperty() {
         city: ''
       }));
     } else if (name === 'district') {
-      setFormData(prev => ({ 
-        ...prev, 
+      setFormData(prev => ({
+        ...prev,
         district: value,
-        city: prev.city || value 
+        city: ''
       }));
     } else if (name === 'pinCode') {
       const val = value.slice(0, 6);
@@ -234,7 +265,8 @@ export default function AddProperty() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    setUploadingImage(true);
+    if (field === 'thumbnail') setUploadingThumbnail(true);
+    else setUploadingImages(true);
     try {
       if (field === 'thumbnail') {
         const file = files[0];
@@ -259,7 +291,8 @@ export default function AddProperty() {
     } catch (err) {
       toast.error('Failed to process image. Please try again.');
     } finally {
-      setUploadingImage(false);
+      if (field === 'thumbnail') setUploadingThumbnail(false);
+      else setUploadingImages(false);
     }
   };
 
@@ -442,6 +475,7 @@ export default function AddProperty() {
         logs.push({ type: 'listing', title: `Added Property: ${formData.title}`, time: 'Just now', timestamp: new Date().toISOString() });
         localStorage.setItem(logKey, JSON.stringify(logs));
       }
+      try { sessionStorage.removeItem('addProperty_draft'); } catch {}
       setShowConfirmModal(false);
       navigate('/partner/inventory');
     },
@@ -458,6 +492,7 @@ export default function AddProperty() {
 
 
   const nextStep = () => {
+    window.scrollTo(0, 0);
     if (activeStep === 1) {
       const titleErr = v.title(formData.title);
       if (titleErr) { toast.error(titleErr); return; }
@@ -467,8 +502,13 @@ export default function AddProperty() {
       if (subCategories.length > 0 && !formData.subcategoryId) { toast.error('Please select a sub-category.'); return; }
     }
 
+    if (activeStep === 2) {
+      if (!formData.listedBy) { toast.error('Please select who is listing this property.'); return; }
+    }
+
     if (activeStep === 3) {
       if (!formData.state || !formData.district) { toast.error('Please select a state and district.'); return; }
+      if (!formData.city) { toast.error('Please enter the town/city.'); return; }
       if (!formData.completeAddress) { toast.error('Please enter the complete address.'); return; }
       const pincodeErr = v.pincode(formData.pinCode);
       if (pincodeErr) { toast.error(pincodeErr); return; }
@@ -497,7 +537,7 @@ export default function AddProperty() {
     <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden bg-slate-50 font-sans pb-24">
       {/* Header */}
       <div className="bg-[#001b4e] px-5 py-4 flex items-center gap-4 sticky top-0 z-50 shadow-md">
-        <button onClick={() => navigate(-1)} className="text-white hover:bg-white/10 rounded-lg p-1 transition-colors">
+        <button onClick={() => activeStep > 1 ? prevStep() : navigate('/partner/inventory')} className="text-white hover:bg-white/10 rounded-lg p-1 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <h1 className="text-white text-[20px] font-medium">{editId ? 'Edit Property' : 'Add New Property'}</h1>
@@ -576,12 +616,13 @@ export default function AddProperty() {
               />
             )}
             {activeStep === 4 && (
-              <StepFour 
-                formData={formData} 
-                handleChange={handleChange} 
-                handleFileChange={handleFileChange} 
-                removeImage={removeImage} 
-                uploadingImage={uploadingImage}
+              <StepFour
+                formData={formData}
+                handleChange={handleChange}
+                handleFileChange={handleFileChange}
+                removeImage={removeImage}
+                uploadingThumbnail={uploadingThumbnail}
+                uploadingImages={uploadingImages}
                 subscriptionLimits={subscriptionLimits}
               />
             )}
@@ -690,7 +731,7 @@ function StepOne({ formData, handleChange, handleCategorySelect, handleSubCatego
                <label className="block text-[10px] font-black text-[#001b4e] uppercase mb-1 ml-1">Intention</label>
                <div className="relative">
                   <Building2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <select name="intention" value={formData.intention} onChange={handleChange} className="w-full border border-slate-200 rounded-lg py-2.5 pl-9 pr-3 text-[13px] font-bold text-[#001b4e] outline-none appearance-none bg-slate-50/50">
+                  <select name="intention" value={formData.intention} onChange={handleChange} className="w-full border border-slate-200 rounded-lg py-3.5 pl-9 pr-3 text-[13px] font-bold text-[#001b4e] outline-none appearance-none bg-slate-50/50">
                     <option value="For Sale">For Sale</option>
                     <option value="For Rent">For Rent</option>
                   </select>
@@ -757,7 +798,7 @@ function StepOne({ formData, handleChange, handleCategorySelect, handleSubCatego
       <SectionCard title="Area Information" icon={<Triangle size={16} className="text-blue-500 transform rotate-[-90deg]" />}>
         <div className="grid grid-cols-5 gap-4">
           <div className="col-span-3">
-            <InputField label="Built-up Area" name="builtUpArea" type="number" value={formData.builtUpArea} icon={<Square size={18} />} placeholder="Ex: 1200" onChange={handleChange} />
+            <InputField label="Built-up Area" name="builtUpArea" type="number" value={formData.builtUpArea} placeholder="Ex: 1200" onChange={handleChange} />
           </div>
           <div className="col-span-2">
             <SelectField label="Unit" name="unit" icon={null} value={formData.unit} options={UNITS} onChange={handleChange} />
@@ -794,7 +835,7 @@ function StepTwo({ formData, handleChange, handleSelect }) {
     <div className="space-y-6">
       <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex items-start gap-3 text-blue-600 mb-6 font-medium text-[13px]">
          <Info size={18} className="mt-0.5 shrink-0" />
-         <p>All fields in this step are optional but highly recommended to attract better leads.</p>
+         <p>Most fields in this step are optional but highly recommended to attract better leads.</p>
       </div>
 
       {!isPlotOrLand && (
@@ -830,7 +871,7 @@ function StepTwo({ formData, handleChange, handleSelect }) {
       <SectionCard title="Additional Information" icon={<Info size={18} className="text-blue-500 fill-blue-500" />}>
          <div className="space-y-4">
            <InputField label="Project/Society Name (Optional)" name="projectName" value={formData.projectName} icon={<Building2 size={18} />} placeholder="Enter society name" onChange={handleChange} />
-           <SelectField label="Listed By (Optional)" name="listedBy" icon={<Users size={18} />} value={formData.listedBy} options={['Owner', 'Dealer/Agent', 'Builder']} onChange={handleChange} />
+           <SelectField label="Listed By *" name="listedBy" icon={<Users size={18} />} value={formData.listedBy} options={['Owner', 'Dealer/Agent', 'Builder']} onChange={handleChange} />
            
            {!isPlotOrLand && (
              <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50/50">
@@ -995,7 +1036,7 @@ function StepThree({ formData, handleChange, handleSelect, handleFetchCoordinate
 // -------------------------------------------------------------
 // STEP 4 COMPONENTS
 // -------------------------------------------------------------
-function StepFour({ formData, handleChange, handleFileChange, removeImage, uploadingImage, subscriptionLimits }) {
+function StepFour({ formData, handleChange, handleFileChange, removeImage, uploadingThumbnail, uploadingImages, subscriptionLimits }) {
   // Safe defaults - if limits are not loaded or canFeature is false, it stays false.
   const limits = subscriptionLimits || { canFeature: false };
   return (
@@ -1009,7 +1050,7 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage, uploa
         <div>
           <label className="block text-[13px] font-bold text-[#001b4e] mb-3">Main Property Image</label>
           <div className="relative w-full h-48 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center overflow-hidden group bg-slate-50 hover:bg-slate-100 transition-colors">
-            {uploadingImage && !formData.thumbnail ? (
+            {uploadingThumbnail && !formData.thumbnail ? (
               <div className="flex flex-col items-center gap-2">
                 <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
                 <p className="text-[12px] text-slate-500 font-medium">Uploading to Cloudinary...</p>
@@ -1017,12 +1058,12 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage, uploa
             ) : formData.thumbnail ? (
               <>
                 <img src={formData.thumbnail} alt="Thumbnail preview" className="w-full h-full object-cover" />
-                {uploadingImage && (
+                {uploadingThumbnail && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
-                {!uploadingImage && (
+                {!uploadingThumbnail && (
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                     <span className="text-white font-medium text-[13px] flex items-center gap-2"><UploadCloud size={16}/> Replace Image</span>
                   </div>
@@ -1040,7 +1081,7 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage, uploa
             <input 
               type="file" 
               accept="image/jpeg, image/png, image/webp" 
-              disabled={uploadingImage}
+              disabled={uploadingThumbnail}
               onChange={(e) => handleFileChange(e, 'thumbnail')}
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
@@ -1068,8 +1109,8 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage, uploa
           </div>
 
           {formData.images.length < 10 && (
-            <div className={`relative w-full py-4 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center transition-colors ${uploadingImage ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 hover:bg-slate-100'}`}>
-               {uploadingImage ? (
+            <div className={`relative w-full py-4 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center transition-colors ${uploadingImages ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 hover:bg-slate-100'}`}>
+               {uploadingImages ? (
                  <span className="text-[14px] font-bold text-blue-600 flex items-center gap-2">
                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                    Uploading...
@@ -1084,7 +1125,7 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage, uploa
                  type="file" 
                  accept="image/jpeg, image/png, image/webp" 
                  multiple
-                 disabled={uploadingImage}
+                 disabled={uploadingImages}
                  onChange={(e) => handleFileChange(e, 'images')}
                  className="absolute inset-0 opacity-0 cursor-pointer"
                />
