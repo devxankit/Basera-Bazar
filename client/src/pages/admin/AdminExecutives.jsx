@@ -533,7 +533,7 @@ const DetailRow = ({ icon: Icon, label, value }) => (
       <Icon size={12} className="text-slate-300" />
       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
     </div>
-    <p className="text-[13px] font-bold text-slate-700 ml-5">{value || 'N/A'}</p>
+    <p className="text-[13px] font-bold text-slate-700 ml-5 break-all">{value || 'N/A'}</p>
   </div>
 );
 

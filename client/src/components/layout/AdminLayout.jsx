@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Briefcase, ShoppingBag,
@@ -195,6 +195,7 @@ const CollapsibleItem = ({ item, isOpen, onToggle, location, setSidebarOpen }) =
 
 export default function AdminLayout({ children }) {
   const location = useLocation();
+  const contentRef = useRef(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openSectionId, setOpenSectionId] = useState(() => {
     const activeSection = navItems.find(item => 
@@ -205,6 +206,10 @@ export default function AdminLayout({ children }) {
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+  }, [location.pathname]);
   const [badges, setBadges] = useState({
     verification: 0,
     upgrades: 0,
@@ -488,7 +493,7 @@ export default function AdminLayout({ children }) {
         </header>
 
         {/* Page Content */}
-        <div className="grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
+        <div ref={contentRef} className="grow overflow-y-auto overflow-x-auto p-4 md:p-8 custom-scrollbar">
           <div className="max-w-400 mx-auto">
             {children}
           </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Save, ArrowLeft } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
@@ -10,10 +10,19 @@ const labelCls = 'block text-xs font-bold text-slate-600 mb-1';
 
 export default function ExecutiveReportForm() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
+
+  const editReport = location.state?.editReport ?? null;
+  const isEdit = !!editReport;
+
   const [form, setForm] = useState({
-    partners_visited: '', partners_registered: '', subscriptions_sold: '', leads_uploaded: '', notes: '',
+    partners_visited: isEdit ? String(editReport.partners_visited ?? '') : '',
+    partners_registered: isEdit ? String(editReport.partners_registered ?? '') : '',
+    subscriptions_sold: isEdit ? String(editReport.subscriptions_sold ?? '') : '',
+    leads_uploaded: isEdit ? String(editReport.leads_uploaded ?? '') : '',
+    notes: isEdit ? (editReport.notes ?? '') : '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,10 +38,14 @@ export default function ExecutiveReportForm() {
         subscriptions_sold: Number(form.subscriptions_sold) || 0,
         leads_uploaded: Number(form.leads_uploaded) || 0,
         notes: form.notes,
-        date: today
       };
-      await api.post('/executive/reports/daily', payload);
-      toast.success('Daily report submitted.');
+      if (isEdit) {
+        await api.patch('/executive/reports/daily', payload);
+        toast.success('Report updated.');
+      } else {
+        await api.post('/executive/reports/daily', payload);
+        toast.success('Daily report submitted.');
+      }
       queryClient.invalidateQueries({ queryKey: ['executiveReportsHistory'] });
       navigate('/executive/reports');
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to submit report.'); }
@@ -46,7 +59,7 @@ export default function ExecutiveReportForm() {
           <ArrowLeft size={16} className="text-slate-500" />
         </button>
         <div>
-          <h1 className="text-xl font-black text-slate-900">Submit Daily Report</h1>
+          <h1 className="text-xl font-black text-slate-900">{isEdit ? 'Edit Report' : 'Submit Daily Report'}</h1>
           <p className="text-sm text-slate-500">{today}</p>
         </div>
       </div>
@@ -81,7 +94,7 @@ export default function ExecutiveReportForm() {
 
         <div className="flex gap-3">
           <button type="submit" disabled={submitting} className="flex items-center gap-2 px-5 py-2.5 bg-orange-600 text-white rounded-lg text-sm font-bold hover:bg-orange-700 disabled:opacity-60">
-            <Save size={15} /> {submitting ? 'Submitting...' : 'Submit Report'}
+            <Save size={15} /> {submitting ? (isEdit ? 'Saving...' : 'Submitting...') : (isEdit ? 'Save Changes' : 'Submit Report')}
           </button>
           <button type="button" onClick={() => navigate('/executive/reports')} className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-50">
             Cancel

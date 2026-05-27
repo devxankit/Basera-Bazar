@@ -93,7 +93,6 @@ export default function MandiCheckout() {
             qty: c.qty
          }));
 
-         // 1. Create Order and Get Razorpay Intent
          const res = await api.post('/orders/checkout', {
             items: orderItems,
             shipping_address: {
@@ -107,19 +106,32 @@ export default function MandiCheckout() {
          });
 
          if (res.data.success) {
-            const { razorpay_order_id, payment_amount, key, order } = res.data.data;
+            const { razorpay_order_id, payment_amount, key } = res.data.data;
 
-            // 1.5 Load Razorpay Script Dynamically
-            const isLoaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
-            if (!isLoaded) {
-               throw new Error("Failed to load payment gateway. Please disable your ad-blocker to proceed with payment.");
+            // Testing/mock mode: skip Razorpay, verify directly to show success screen
+            if (key === 'rzp_test_mock' || razorpay_order_id.startsWith('order_mock_')) {
+               const verifyRes = await api.post('/orders/payment/verify', {
+                  razorpay_order_id,
+                  razorpay_payment_id: `pay_mock_${Date.now()}`,
+                  razorpay_signature: 'mock'
+               });
+               if (verifyRes.data.success) {
+                  const confirmedOrder = verifyRes.data.data;
+                  setOrderData({ order: confirmedOrder });
+                  setDeliveryOtp(confirmedOrder.items?.[0]?.delivery_otp || '');
+                  clearCart();
+                  setStep(3);
+               }
+               return;
             }
 
-            const callbackBase = api.defaults.baseURL?.startsWith('http') 
-                ? api.defaults.baseURL 
+            // Real Razorpay flow — load SDK and open modal
+            await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+
+            const callbackBase = api.defaults.baseURL?.startsWith('http')
+                ? api.defaults.baseURL
                 : window.location.origin + (api.defaults.baseURL || '/api');
 
-            // 2. Open Razorpay Modal
             const options = {
                key: key,
                amount: payment_amount * 100,
@@ -143,7 +155,7 @@ export default function MandiCheckout() {
             rzp.open();
          }
       } catch (err) {
-         const errorMsg = err.response?.data?.message || "Order failed";
+         const errorMsg = err.response?.data?.message || err.message || "Order failed";
          toast.error(errorMsg);
       } finally {
          setLoading(false);
@@ -245,8 +257,8 @@ export default function MandiCheckout() {
                      onClick={() => {
                         if (!address.receiver_name?.trim() || !address.receiver_phone?.trim() || !address.street?.trim() || !address.city?.trim() || !address.pincode?.trim()) {
                            toast.error("Please fill all required fields marked with *");
-                        } else if (!/^\d{10}$/.test(address.receiver_phone.trim())) {
-                           toast.error("Please enter a valid 10-digit phone number");
+                        } else if (!/^[6-9]\d{9}$/.test(address.receiver_phone.trim())) {
+                           toast.error("Please enter a valid 10-digit phone number starting with 6, 7, 8, or 9");
                         } else if (!/^\d{6}$/.test(address.pincode.trim())) {
                            toast.error("Please enter a valid 6-digit pincode");
                         }

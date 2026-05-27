@@ -125,12 +125,15 @@ exports.verifyRegistrationOtp = async (req, res) => {
 };
 
 /**
- * @desc    Create executive account (deferred write — after OTP verified)
+ * @desc    Final registration — single DB write after all steps are complete
  * @route   POST /api/executive/register/create
+ *
+ * Accepts all data (basic info + address + bank + KYC) in one payload.
+ * Executive is only created in DB here; no partial records are saved earlier.
  */
 exports.createExecutive = async (req, res) => {
   try {
-    const { phone_verified_token, name, email, password, address, bank_details } = req.body;
+    const { phone_verified_token, name, email, password, address, bank_details, kyc } = req.body;
 
     if (!phone_verified_token) {
       return res.status(400).json({ success: false, message: 'Phone verification token is required.' });
@@ -153,7 +156,12 @@ exports.createExecutive = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
     }
 
-    // Check for conflicts with fully registered executives
+    // Require all KYC fields
+    if (!kyc?.aadhar_number || !kyc?.aadhar_image || !kyc?.pan_number || !kyc?.pan_image || !kyc?.live_photo) {
+      return res.status(400).json({ success: false, message: 'All KYC fields (Aadhaar number, Aadhaar image, PAN number, PAN image, live photo) are required.' });
+    }
+
+    // Reject if already fully registered
     const conflict = await Executive.findOne({
       $or: [{ phone }, { email }],
       onboarding_status: { $ne: 'incomplete' }
@@ -162,24 +170,30 @@ exports.createExecutive = async (req, res) => {
       return res.status(409).json({ success: false, message: 'An executive account already exists with this phone or email.' });
     }
 
-    // Upsert: update incomplete record or create fresh
-    let executive = await Executive.findOne({ $or: [{ phone }, { email }] });
-    if (executive) {
-      executive.name = name;
-      executive.email = email;
-      executive.phone = phone;
-      executive.password = password;
-      if (address) executive.address = address;
-      if (bank_details) executive.bank_details = bank_details;
-      await executive.save();
-    } else {
-      executive = await Executive.create({
-        name, email, phone, password,
-        address: address || undefined,
-        bank_details: bank_details || undefined,
-        onboarding_status: 'incomplete',
+    // Single write — create with pending status, never save incomplete records
+    const executive = await Executive.create({
+      name, email, phone, password,
+      address: address || undefined,
+      bank_details: bank_details || undefined,
+      kyc,
+      onboarding_status: 'pending',
+    });
+
+    try {
+      logActivity({
+        actor_name: executive.name,
+        actor_id: executive._id,
+        action: 'submitted_onboarding',
+        entity_type: 'executive',
+        entity_name: executive.name,
+        entity_id: executive._id,
+        description: `Executive ${executive.name} completed registration and submitted onboarding documents.`
       });
+    } catch (logError) {
+      logger.warn({ err: logError }, 'Non-critical: Activity log failed for executive submission');
     }
+
+    await invalidate.adminDashboard();
 
     const accessToken = signAccessToken(executive._id, 'executive', executive.email, executive.token_version || 0);
     const refreshTokenVal = signRefreshToken(executive._id, 'executive', executive.token_version || 0);

@@ -130,7 +130,7 @@ export default function AdminUsers() {
               {row.name}
             </p>
             <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
-              {String(row._id).padStart(8, "0")}
+              {String(row._id).slice(-8).toUpperCase()}
             </p>
           </div>
         </div>

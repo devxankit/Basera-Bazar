@@ -63,10 +63,16 @@ export default function StaffLogin() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  const handlePhoneChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.startsWith('91') && value.length > 10) value = value.slice(2);
+    setIdentifier(value.slice(0, 10));
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!selectedRole) { toast.error('Please select your role.'); return; }
-    const idErr = identifier.includes('@') ? v.email(identifier) : v.phone(identifier);
+    const idErr = v.phone(identifier);
     if (idErr) { toast.error(idErr); return; }
     if (!password) { toast.error('Password is required.'); return; }
     setIsSubmitting(true);
@@ -115,16 +121,29 @@ export default function StaffLogin() {
             <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
               <UserX size={28} className="text-red-500" />
             </div>
-            <h3 className="text-[20px] font-bold text-slate-900 mb-2">Account Not Found</h3>
+            <h3 className="text-[20px] font-bold text-slate-900 mb-2">Not Registered</h3>
             <p className="text-slate-500 text-[14px] mb-7 leading-relaxed">
-              No <span className="font-bold text-slate-700">{roleLabel}</span> account exists with these details. Please contact your admin to get access.
+              No <span className="font-bold text-slate-700">{roleLabel}</span> account found with this number.
+              {selectedRole?.id === 'field_executive'
+                ? ' Please sign up to create your account.'
+                : ' Please contact your admin to get access.'}
             </p>
-            <button
-              onClick={() => setShowNotFoundModal(false)}
-              className="w-full py-4 bg-[#001b4e] text-white rounded-2xl font-bold text-[15px]"
-            >
-              Okay
-            </button>
+            <div className="space-y-3">
+              {selectedRole?.id === 'field_executive' && (
+                <button
+                  onClick={() => { setShowNotFoundModal(false); navigate('/executive/signup'); }}
+                  className="w-full py-4 bg-[#ea580c] text-white rounded-2xl font-bold text-[15px]"
+                >
+                  Sign Up Here
+                </button>
+              )}
+              <button
+                onClick={() => setShowNotFoundModal(false)}
+                className="w-full py-4 bg-[#001b4e] text-white rounded-2xl font-bold text-[15px]"
+              >
+                Go Back
+              </button>
+            </div>
           </motion.div>
         </div>
       )}
@@ -142,7 +161,7 @@ export default function StaffLogin() {
             </div>
             <h3 className="text-[20px] font-bold text-slate-900 mb-2">Incorrect Credentials</h3>
             <p className="text-slate-500 text-[14px] mb-7 leading-relaxed">
-              The password you entered is incorrect. Please contact your admin if you've forgotten your credentials.
+              The phone number or password you entered is wrong. Please check your credentials and try again.
             </p>
             <button
               onClick={() => {
@@ -304,21 +323,25 @@ export default function StaffLogin() {
                   </div>
 
                   <form onSubmit={handleLogin} className="space-y-4">
-                    {/* Identifier */}
+                    {/* Phone */}
                     <div>
                       <label className="block text-sm font-bold text-slate-600 mb-1.5">
-                        Phone Number or Email
+                        Phone Number
                       </label>
-                      <div className="relative">
-                        <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <div className="relative flex items-center">
+                        <div className="absolute left-3.5 flex items-center gap-2 pointer-events-none">
+                          <Phone size={15} className="text-slate-400" />
+                          <span className="text-slate-500 font-medium text-sm border-r border-slate-200 pr-2">+91</span>
+                        </div>
                         <input
-                          type="text"
+                          type="tel"
+                          inputMode="numeric"
                           value={identifier}
-                          onChange={(e) => setIdentifier(e.target.value)}
-                          placeholder="10-digit phone or email address"
+                          onChange={handlePhoneChange}
+                          placeholder="10-digit number"
+                          maxLength={10}
                           required
-                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:border-transparent bg-slate-50 placeholder-slate-300 transition-all"
-                          style={{ '--tw-ring-color': selectedRole.accent }}
+                          className="w-full pl-24 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none bg-slate-50 placeholder-slate-300 transition-all"
                           onFocus={(e) => { e.target.style.borderColor = selectedRole.accent; e.target.style.boxShadow = `0 0 0 3px ${selectedRole.accent}22`; }}
                           onBlur={(e) => { e.target.style.borderColor = ''; e.target.style.boxShadow = ''; }}
                         />
@@ -406,7 +429,7 @@ export default function StaffLogin() {
                         <MessageCircle size={12} />
                         <span>Need help?</span>
                         <a
-                          href="tel:+919999999999"
+                          href="tel:+919262515888"
                           className="font-bold hover:underline"
                           style={{ color: selectedRole.accent }}
                         >

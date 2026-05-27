@@ -132,7 +132,7 @@ export default function AdminPaymentReport() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div>
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">

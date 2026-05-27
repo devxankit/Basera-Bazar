@@ -23,6 +23,7 @@ const TABS = ['All', 'Pending', 'Approved', 'Rejected'];
 const EMPTY_FORM = { leave_type: 'casual', start_date: '', end_date: '', reason: '' };
 
 export default function ExecutiveLeaves() {
+  const today = new Date().toISOString().slice(0, 10);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [activeTab, setActiveTab] = useState('All');
@@ -60,11 +61,19 @@ export default function ExecutiveLeaves() {
 
   const submitMutation = useMutation({
     mutationFn: (payload) => api.post('/executive/leaves', payload).then(r => r.data),
-    onSuccess: () => {
+    onSuccess: (responseData) => {
       toast.success('Leave request submitted.');
       setShowForm(false);
       setForm(EMPTY_FORM);
       setActiveTab('Pending');
+      // Optimistically prepend the new leave so it's visible immediately
+      // without waiting for the server cache to clear.
+      queryClient.setQueryData(['executiveLeaves'], (old) => {
+        const existing = old?.data ?? [];
+        const newLeave = responseData?.data;
+        if (!newLeave) return old;
+        return { ...old, success: true, data: [newLeave, ...existing] };
+      });
       queryClient.invalidateQueries({ queryKey: ['executiveLeaves'] });
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to submit.'),
@@ -127,11 +136,11 @@ export default function ExecutiveLeaves() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1">From Date</label>
-              <input type="date" value={form.start_date} onChange={(e) => setForm((p) => ({ ...p, start_date: e.target.value }))} required className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white" />
+              <input type="date" value={form.start_date} min={today} onChange={(e) => setForm((p) => ({ ...p, start_date: e.target.value, end_date: p.end_date < e.target.value ? e.target.value : p.end_date }))} required className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1">To Date</label>
-              <input type="date" value={form.end_date} min={form.start_date} onChange={(e) => setForm((p) => ({ ...p, end_date: e.target.value }))} required className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white" />
+              <input type="date" value={form.end_date} min={form.start_date || today} onChange={(e) => setForm((p) => ({ ...p, end_date: e.target.value }))} required className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white" />
             </div>
           </div>
           <div>

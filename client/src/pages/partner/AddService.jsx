@@ -279,6 +279,10 @@ export default function AddService() {
       setShowSuccessModal(true);
     },
     onError: (error) => {
+      if (error.response?.data?.code === 'SUBSCRIPTION_EXPIRED') {
+        navigate('/partner/subscription');
+        return;
+      }
       toast.error(error.response?.data?.message || 'Failed to save service. Please try again.');
     }
   });
@@ -384,8 +388,29 @@ export default function AddService() {
       </div>
 
       <div className="p-6 space-y-8">
+        {/* Subscription Expired Warning */}
+        {user?.subscription_expired && (
+          <div className="bg-rose-50 border border-rose-100 rounded-2xl p-5 space-y-4 shadow-sm shadow-rose-900/5">
+            <div className="flex gap-3">
+              <Star className="text-rose-500 shrink-0 mt-0.5" size={20} />
+              <div className="text-left">
+                <h4 className="text-[15px] font-black text-rose-900 uppercase tracking-tight">Subscription Expired</h4>
+                <p className="text-[13px] text-rose-700 leading-relaxed font-medium mt-1">
+                  Your subscription has expired. Please renew your plan to add or edit listings.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/partner/subscription')}
+              className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold text-[13px] uppercase tracking-widest shadow-lg shadow-rose-900/20 active:scale-95 transition-all"
+            >
+              Go to Subscription Page
+            </button>
+          </div>
+        )}
+
         {/* Subscription Limit Warning */}
-        {!subscriptionLimits.canAddListing && !editId && (
+        {!subscriptionLimits.canAddListing && !editId && !user?.subscription_expired && (
           <div className="bg-rose-50 border border-rose-100 rounded-2xl p-5 space-y-4 shadow-sm shadow-rose-900/5">
             <div className="flex gap-3">
               <Star className="text-rose-500 shrink-0 mt-0.5" size={20} />
@@ -396,7 +421,7 @@ export default function AddService() {
                 </p>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => navigate('/partner/subscription')}
               className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold text-[13px] uppercase tracking-widest shadow-lg shadow-rose-900/20 active:scale-95 transition-all"
             >

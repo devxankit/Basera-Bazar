@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import LocationPicker from '../common/LocationPicker';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
 import { v } from '../../utils/validators';
@@ -94,6 +95,9 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
   const [verifying, setVerifying] = useState(false);
   const [showExistsModal, setShowExistsModal] = useState(false);
   const [errors, setErrors] = useState({});
+  const [validationPopup, setValidationPopup] = useState(null); // string | null
+
+  useScrollLock(isLocationModalOpen);
   const [referralStatus, setReferralStatus] = useState('idle'); // 'idle', 'validating', 'success', 'error'
   const [executiveName, setExecutiveName] = useState('');
   const [shake, setShake] = useState(false);
@@ -219,30 +223,12 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
     return newErrors;
   };
 
-  const scrollToFirstError = (errs) => {
-    const firstKey = FIELD_ORDER.find(k => errs[k]);
-    if (!firstKey) return;
-
-    // Show specific toast for this field
-    toast.error(errs[firstKey]);
-
-    setTimeout(() => {
-      let el;
-      if (firstKey === 'location') {
-        el = document.querySelector('[data-field="location"]');
-      } else {
-        el = document.querySelector(`[name="${firstKey}"]`);
-      }
-      if (!el) return;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      if (typeof el.focus === 'function') el.focus();
-    }, 100);
-  };
-
   const handleSendOtp = async () => {
     const errs = validateForm();
     if (Object.keys(errs).length > 0) {
-      scrollToFirstError(errs);
+      // Show the first error as a popup
+      const firstKey = FIELD_ORDER.find(k => errs[k]);
+      if (firstKey) setValidationPopup(errs[firstKey]);
       return;
     }
     try {
@@ -530,12 +516,14 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
               icon={<Box size={18} />}
               label="Serviceable Radius (in KM) *"
               name="service_radius_km"
-              type="number"
+              type="text"
               inputMode="numeric"
-              min={1}
-              max={500}
+              maxLength={3}
               value={formData.service_radius_km ?? ''}
-              onChange={handleChange}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 3);
+                handleChange({ target: { name: 'service_radius_km', value: val === '' ? '' : Number(val) } });
+              }}
               placeholder="e.g. 50"
               error={errors.service_radius_km}
             />
@@ -881,6 +869,39 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
                   Cancel
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── VALIDATION ERROR POPUP ── */}
+      <AnimatePresence>
+        {validationPopup && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setValidationPopup(null)}
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-[340px] bg-white rounded-[28px] p-8 text-center shadow-2xl"
+            >
+              <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mx-auto mb-5">
+                <Info size={28} />
+              </div>
+              <h3 className="text-[18px] font-bold text-[#001b4e] mb-2">Fix Required</h3>
+              <p className="text-slate-500 text-[14px] leading-relaxed mb-7">{validationPopup}</p>
+              <button
+                onClick={() => setValidationPopup(null)}
+                className="w-full py-4 bg-[#001b4e] text-white rounded-2xl font-bold text-[15px] active:scale-[0.98] transition-all"
+              >
+                OK, Got It
+              </button>
             </motion.div>
           </div>
         )}

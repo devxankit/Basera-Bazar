@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { ShieldCheck, Camera, CheckCircle2, ChevronRight, FileText, ArrowLeft, X } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ShieldCheck, Camera, CheckCircle2, ChevronRight, FileText, ArrowLeft, X, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { v, sanitize } from '../../utils/validators';
 import toast from '../../mockToast';
 
@@ -43,6 +43,7 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
   };
 
   const [kycErrors, setKycErrors] = useState({});
+  const [validationPopup, setValidationPopup] = useState(null);
   const isMandiOrSupplier = role === 'mandi' || role === 'supplier';
 
   const handleComplete = () => {
@@ -61,14 +62,16 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
       if (e) errs.aadhar = e;
     }
     if (!formData.aadharFront) errs.aadharFront = 'Aadhaar front image is required';
+    if (!formData.aadharBack) errs.aadharBack = 'Aadhaar back image is required';
     if (isMandiOrSupplier && formData.gst) { const e = v.gstOptional(formData.gst); if (e) errs.gst = e; }
     if (Object.keys(errs).length > 0) {
       setKycErrors(errs);
-      toast.error('Please fill all required KYC documents before continuing.');
+      // Show the first error as a popup
+      const firstErr = Object.values(errs)[0];
+      setValidationPopup(firstErr);
       return;
     }
     setKycErrors({});
-    // Blob: URLs are already stored in formData. Upload happens after registration.
     onComplete();
   };
 
@@ -174,9 +177,9 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
                 {kycErrors.aadharFront && <p className="text-[11px] text-red-500 font-semibold">{kycErrors.aadharFront}</p>}
               </div>
               <div className="space-y-2">
-                <input type="file" ref={aadharBackRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={(e) => handleFileChange(e, 'aadharBack')} />
-                <div 
-                  className="h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group"
+                <input type="file" ref={aadharBackRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={(e) => { handleFileChange(e, 'aadharBack'); setKycErrors(p => ({ ...p, aadharBack: undefined })); }} />
+                <div
+                  className={`h-32 bg-slate-50 border-2 border-dashed rounded-[24px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden relative group ${kycErrors.aadharBack ? 'border-red-400' : 'border-slate-200'}`}
                 >
                   {formData.aadharBack ? (
                     <>
@@ -192,10 +195,11 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
                   ) : (
                     <div onClick={() => aadharBackRef.current.click()} className="flex flex-col items-center gap-2 w-full h-full justify-center">
                       <Camera size={20} className="text-slate-300" />
-                      <span className="text-[11px] font-bold text-slate-400 text-center px-2">Back Side</span>
+                      <span className="text-[11px] font-bold text-slate-400 text-center px-2">Back Side <span className="text-red-400">*</span></span>
                     </div>
                   )}
                 </div>
+                {kycErrors.aadharBack && <p className="text-[11px] text-red-500 font-semibold">{kycErrors.aadharBack}</p>}
               </div>
             </div>
           </div>
@@ -246,7 +250,7 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
           Complete Registration
           <ChevronRight size={20} />
         </button>
-        
+
         <button
           onClick={onBack}
           className="w-full py-3 flex items-center justify-center gap-2 text-slate-400 font-bold text-[13px]"
@@ -254,6 +258,39 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
           <ArrowLeft size={16} /> Back
         </button>
       </div>
+
+      {/* ── KYC VALIDATION POPUP ── */}
+      <AnimatePresence>
+        {validationPopup && (
+          <div className="fixed inset-0 z-120 flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setValidationPopup(null)}
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-85 bg-white rounded-[28px] p-8 text-center shadow-2xl"
+            >
+              <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mx-auto mb-5">
+                <AlertCircle size={28} />
+              </div>
+              <h3 className="text-[18px] font-bold text-[#001b4e] mb-2">Document Required</h3>
+              <p className="text-slate-500 text-[14px] leading-relaxed mb-7">{validationPopup}</p>
+              <button
+                onClick={() => setValidationPopup(null)}
+                className="w-full py-4 bg-[#001b4e] text-white rounded-2xl font-bold text-[15px] active:scale-[0.98] transition-all"
+              >
+                OK, Got It
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

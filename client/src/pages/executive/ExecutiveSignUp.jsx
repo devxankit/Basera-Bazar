@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Landmark, Camera, ShieldCheck, Mail, Phone, Lock, CheckCircle2, ChevronRight, MapPinned, CreditCard, Building2, UserCircle } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Landmark, Camera, ShieldCheck, Mail, Phone, Lock, CheckCircle2, ChevronRight, MapPinned, CreditCard, Building2, UserCircle, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -167,6 +167,29 @@ export default function ExecutiveSignUp() {
     return () => clearTimeout(id);
   }, [resendTimer]);
 
+  // Seed step 1 into browser history on mount, then push entries as steps advance,
+  // so the browser back button navigates between steps instead of leaving the page.
+  useEffect(() => {
+    window.history.replaceState({ signupStep: 1 }, '');
+  }, []);
+
+  useEffect(() => {
+    const onPopState = (e) => {
+      const targetStep = e.state?.signupStep;
+      if (targetStep != null && targetStep >= 1) {
+        if (targetStep === 1) { setOtp(''); setOtpError(''); setErrors({}); }
+        setStep(targetStep);
+      } else if (step > 1) {
+        const prev = step - 1;
+        if (prev === 1) { setOtp(''); setOtpError(''); setErrors({}); }
+        setStep(prev);
+        window.history.pushState({ signupStep: prev }, '');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [step]);
+
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -233,6 +256,7 @@ export default function ExecutiveSignUp() {
         password: formData.password
       });
       toast.success('OTP sent to ' + formData.phone);
+      window.history.pushState({ signupStep: 2 }, '');
       setStep(2);
       setResendTimer(30);
     } catch (error) {
@@ -272,6 +296,7 @@ export default function ExecutiveSignUp() {
       });
       // Store token only — no DB write yet, don't log in
       setPhoneVerifiedToken(res.data.phone_verified_token);
+      window.history.pushState({ signupStep: 3 }, '');
       setStep(3);
       toast.success('Phone verified!');
     } catch (error) {
@@ -282,7 +307,7 @@ export default function ExecutiveSignUp() {
     }
   };
 
-  const submitDetails = async () => {
+  const submitDetails = () => {
     if (!validateStep(['pincode', 'account_number', 'ifsc_code'])) {
       toast.error('Please fix the highlighted errors');
       return;
@@ -292,24 +317,9 @@ export default function ExecutiveSignUp() {
       setStep(1);
       return;
     }
-    setIsSubmitting(true);
-    try {
-      // Create executive account now — first DB write
-      const res = await api.post('/executive/register/create', {
-        phone_verified_token: phoneVerifiedToken,
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        address: formData.address,
-        bank_details: formData.bank_details,
-      });
-      login(res.data.executive, res.data.token);
-      setStep(4);
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save details');
-    } finally {
-      setIsSubmitting(false);
-    }
+    // No API call — all data will be sent together in the final step
+    window.history.pushState({ signupStep: 4 }, '');
+    setStep(4);
   };
 
   // Helper: convert a data: URL to a proper File with correct MIME type + name
@@ -331,39 +341,52 @@ export default function ExecutiveSignUp() {
     else if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.kyc.pan_number)) kycErrors.pan_number = 'Invalid PAN (e.g. ABCDE1234F)';
     if (!formData.kyc.aadhar_image) kycErrors.aadhar_image = 'Aadhaar image is required';
     if (!formData.kyc.pan_image) kycErrors.pan_image = 'PAN card image is required';
+    if (!formData.kyc.live_photo) kycErrors.live_photo = 'Live photo is required';
     if (Object.keys(kycErrors).length > 0) {
       setErrors(prev => ({ ...prev, ...kycErrors }));
-      toast.error('Please fill all required KYC fields');
+      toast.error('Please complete all KYC fields to submit');
+      return;
+    }
+    if (!phoneVerifiedToken) {
+      toast.error('Session expired. Please restart registration.');
+      setStep(1);
       return;
     }
     setIsSubmitting(true);
-    const loadingToastId = toast.loading('Finalizing submission…');
+    const loadingToastId = toast.loading('Submitting registration…');
     try {
-      // Background uploads started on file-select — await them here.
-      // If already done, these resolve instantly (zero wait).
+      // Await background uploads — resolves instantly if already done
       const [aadharUrl, panUrl, livePhotoUrl] = await Promise.all([
         awaitUpload('aadhar_image'),
         awaitUpload('pan_image'),
         awaitUpload('live_photo'),
       ]);
 
-      const kycData = {
+      const kyc = {
         ...formData.kyc,
         aadhar_image: aadharUrl || formData.kyc.aadhar_image,
         pan_image: panUrl || formData.kyc.pan_image,
-        live_photo: livePhotoUrl || formData.kyc.live_photo || null,
+        live_photo: livePhotoUrl || formData.kyc.live_photo,
       };
 
-      const res = await api.put('/executive/register/step3', { kyc: kycData });
-      toast.dismiss(loadingToastId);
-      toast.success('KYC submitted! Redirecting…');
+      // Single DB write — creates executive with pending status
+      const res = await api.post('/executive/register/create', {
+        phone_verified_token: phoneVerifiedToken,
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        address: formData.address,
+        bank_details: formData.bank_details,
+        kyc,
+      });
 
-      const token = localStorage.getItem('baserabazar_token');
-      login(res.data.executive, token);
+      toast.dismiss(loadingToastId);
+      toast.success('Registration submitted! Awaiting admin approval.');
+      login(res.data.executive, res.data.token);
       setTimeout(() => navigate('/executive/dashboard'), 1200);
     } catch (error) {
       toast.dismiss(loadingToastId);
-      const msg = error.response?.data?.message || error.message || 'KYC submission failed. Please try again.';
+      const msg = error.response?.data?.message || error.message || 'Submission failed. Please try again.';
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
@@ -379,7 +402,13 @@ export default function ExecutiveSignUp() {
       <div className="bg-[#001b4e] px-6 pt-10 pb-7 sticky top-0 z-30">
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => step > 1 ? setStep(step - 1) : navigate('/executive/login')}
+            onClick={() => {
+              if (step > 1) {
+                window.history.back(); // popstate handler will setStep(step - 1)
+              } else {
+                navigate('/executive/login');
+              }
+            }}
             className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-white"
           >
             <ArrowLeft size={18} />
@@ -418,8 +447,8 @@ export default function ExecutiveSignUp() {
               <InputField label="Full Name" name="name" icon={UserCircle} value={formData.name} onChange={handleInputChange} placeholder="As per documents" inputMode="text" autoComplete="name" maxLength={60} error={errors.name} />
               <InputField label="Email Address" name="email" icon={Mail} type="email" value={formData.email} onChange={handleInputChange} placeholder="you@example.com" autoComplete="email" maxLength={100} error={errors.email} />
               <InputField label="Phone Number" name="phone" icon={Phone} type="tel" inputMode="numeric" maxLength={10} autoComplete="tel-national" prefix="+91" value={formData.phone} onChange={handleInputChange} placeholder="10-digit number" error={errors.phone} />
-              <InputField label="Password" name="password" icon={Lock} type="password" autoComplete="new-password" value={formData.password} onChange={handleInputChange} placeholder="Min 8 chars, include a number" error={errors.password} />
-              <InputField label="Confirm Password" name="confirmPassword" icon={Lock} type="password" autoComplete="new-password" value={formData.confirmPassword} onChange={handleInputChange} placeholder="Re-enter your password" error={errors.confirmPassword} />
+              <PasswordField label="Password" name="password" autoComplete="new-password" value={formData.password} onChange={handleInputChange} placeholder="Min 8 chars, include a number" error={errors.password} />
+              <PasswordField label="Confirm Password" name="confirmPassword" autoComplete="new-password" value={formData.confirmPassword} onChange={handleInputChange} placeholder="Re-enter your password" error={errors.confirmPassword} />
 
               <button
                 onClick={sendOtp}
@@ -621,6 +650,33 @@ export default function ExecutiveSignUp() {
     </div>
   );
 }
+
+const PasswordField = ({ label, error, ...props }) => {
+  const [visible, setVisible] = React.useState(false);
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-0.5">{label}</label>
+      <div className="relative">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+          <Lock size={18} className="text-slate-400" />
+        </div>
+        <input
+          {...props}
+          type={visible ? 'text' : 'password'}
+          className={`w-full bg-white border-2 ${error ? 'border-red-400 bg-red-50' : 'border-slate-200 focus:border-[#001b4e]'} py-3.5 pl-12 pr-12 rounded-xl text-[15px] font-semibold text-slate-900 placeholder:text-slate-300 placeholder:font-normal focus:outline-none transition-all`}
+        />
+        <button
+          type="button"
+          onClick={() => setVisible(v => !v)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+        >
+          {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-500 font-semibold ml-0.5">{error}</p>}
+    </div>
+  );
+};
 
 const InputField = ({ label, icon: Icon, prefix, error, ...props }) => (
   <div className="space-y-1.5">

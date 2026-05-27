@@ -460,7 +460,7 @@ export default function AdminDashboard() {
               View All
             </button>
           </div>
-          <div className="overflow-x-auto">
+          <div>
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50">

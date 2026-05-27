@@ -33,6 +33,7 @@ const {
 } = require('../controllers/staff/attendanceController');
 const {
   submitExecutiveDailyReport,
+  updateExecutiveDailyReport,
   getExecutiveDailyReports,
   getExecutiveTargets,
 } = require('../controllers/staff/executiveStaffController');
@@ -82,6 +83,7 @@ router.get('/targets', cacheMiddleware(10, true), getExecutiveTargets);
 
 // ─── Daily Reports ──────────────────────────────────────────────────────────
 router.post('/reports/daily', validate(dailyReportSchema), submitExecutiveDailyReport);
+router.patch('/reports/daily', validate(dailyReportSchema), updateExecutiveDailyReport);
 router.get('/reports/history', cacheMiddleware(10, true), getExecutiveDailyReports);
 
 // ─── Leaves ─────────────────────────────────────────────────────────────────

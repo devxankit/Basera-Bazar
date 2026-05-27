@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import toast from '../../mockToast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, X } from 'lucide-react';
@@ -39,14 +39,6 @@ const DEFAULT_FORM = {
   referral_code: ''
 };
 
-// Fields that belong to each step — clearing on back uses these lists
-const STEP_FIELDS = {
-  2: [...Object.keys(DEFAULT_FORM), 'profileImage_file', 'businessLogo_file'], // InfoStep
-  3: [],                        // OTP step owns authState only
-  4: ['pan', 'aadhar', 'gst', 'panImage', 'aadharFront', 'aadharBack', 'gstImage',
-      'panImage_file', 'aadharFront_file', 'aadharBack_file', 'gstImage_file'], // KYCStep
-  5: [],                        // Plan step owns selectedPlan/selectedPlanObject only
-};
 
 function loadSaved() {
   try {
@@ -85,30 +77,54 @@ export default function PartnerRegistration() {
     }));
   }, [step, selectedRole, selectedPlan, selectedPlanObject, formData, authState]);
 
-  // Note: payment errors from Razorpay callback are now handled by /payment/status page.
-  // We no longer read ?error from the URL here.
+  // ── Browser history: seed step 1 on mount ──────────────────────────────────
+  const isNavigatingBackRef = useRef(false);
+  const stepRef = useRef(step);
+  useEffect(() => { stepRef.current = step; }, [step]);
+
+  useEffect(() => {
+    window.history.replaceState({ regStep: 1 }, '');
+  }, []);
+
+  // When step advances forward (not via popstate), push a history entry
+  useEffect(() => {
+    if (isNavigatingBackRef.current) {
+      isNavigatingBackRef.current = false;
+      return;
+    }
+    if (step > 1) {
+      window.history.pushState({ regStep: step }, '');
+    }
+  }, [step]);
+
+  // Browser/OS back button: navigate between steps instead of leaving the page
+  useEffect(() => {
+    const onPopState = (e) => {
+      const current = stepRef.current;
+      const targetStep = e.state?.regStep;
+      const dest = targetStep != null ? targetStep : Math.max(current - 1, 1);
+
+      isNavigatingBackRef.current = true;
+      // Clear auth state when going behind the OTP step
+      if (current >= 3 && dest < 3) setAuthState(null);
+      // Clear plan state when going behind the plan step
+      if (current >= 5 && dest < 5) { setSelectedPlan(null); setSelectedPlanObject(null); }
+
+      setStep(dest);
+
+      // If history had no state, manufacture an entry for the destination
+      if (targetStep == null) {
+        window.history.pushState({ regStep: dest }, '');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const nextStep = () => setStep(prev => Math.min(prev + 1, totalSteps));
 
-  const prevStep = () => {
-    setStep(prev => {
-      const newStep = Math.max(prev - 1, 1);
-      // Clear data belonging to steps >= current (going backward)
-      if (prev >= 2) {
-        const fieldsToClear = STEP_FIELDS[prev] || [];
-        if (fieldsToClear.length > 0) {
-          setFormData(fd => {
-            const cleared = { ...fd };
-            fieldsToClear.forEach(f => { cleared[f] = DEFAULT_FORM[f] ?? null; });
-            return cleared;
-          });
-        }
-      }
-      if (prev >= 3) setAuthState(null);
-      if (prev >= 5) { setSelectedPlan(null); setSelectedPlanObject(null); }
-      return newStep;
-    });
-  };
+  // prevStep just uses window.history.back() so both in-app and OS back stay in sync
+  const prevStep = () => window.history.back();
 
   const handleCompleteRequest = () => {
     nextStep();
@@ -254,25 +270,34 @@ export default function PartnerRegistration() {
       return;
     }
 
+    if (!window.Razorpay) {
+      toast.error('Payment gateway not available. Please refresh the page and try again.');
+      return;
+    }
+
     setIsSubmitting(true);
+    // Hold token/user locally — do NOT call login() until payment is confirmed
+    let pendingUser = null;
+    let pendingToken = null;
+
     try {
       const roleMapping = { 'agent': 'property_agent', 'service': 'service_provider', 'supplier': 'supplier', 'mandi': 'mandi_seller' };
       const backendRole = roleMapping[selectedRole] || 'service_provider';
 
-      // Step 1: Register partner (no images)
+      // Step 1: Register partner (no images, no subscription yet)
       const regRes = await api.post('/auth/partner/register', buildRegisterPayload(backendRole));
       const { user: userData, token } = regRes.data;
+      pendingUser = userData;
+      pendingToken = token;
 
-      // Step 2: Write token and user to localStorage and update auth context immediately
-      login(userData, token);
-
-      // Step 3: Set auth token so upload and subscription requests are authenticated
+      // Step 2: Set auth token so upload and subscription requests are authenticated
+      // (login() is deferred until payment succeeds)
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      // Step 4: Upload images and patch partner record (non-blocking)
+      // Step 3: Upload images and patch partner record (non-blocking)
       await uploadAndPatchMedia();
 
-      // Step 5: Initiate Subscription
+      // Step 4: Initiate Subscription
       const initRes = await api.post('/finance/subscription/initiate', { plan_id: selectedPlan });
       const { order_id, amount, key, plan_name } = initRes.data;
 
@@ -289,11 +314,12 @@ export default function PartnerRegistration() {
           timestamp: new Date().toISOString(),
           type: 'profile'
         };
-        const activityKey = `baserabazar_activity_${userData.id || userData._id}`;
+        const activityKey = `baserabazar_activity_${pendingUser.id || pendingUser._id}`;
         const existingLogs = JSON.parse(localStorage.getItem(activityKey) || '[]');
         localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs.filter(l => l.title !== activity.title)]));
         sessionStorage.removeItem(STORAGE_KEY);
-        // Route through status page — shows "Payment Successful!" / "Welcome Aboard!" with 5s countdown
+        // Payment verified — NOW log the user in
+        login(pendingUser, pendingToken);
         const params = new URLSearchParams({
           status: 'success',
           redirect: '/partner/home',
@@ -302,14 +328,14 @@ export default function PartnerRegistration() {
         window.location.replace(`/payment/status?${params.toString()}`);
       };
 
-      // Demo mode: skip Razorpay modal and auto-verify
+      // Demo / testing mode: skip Razorpay modal and auto-verify
       if (key === 'rzp_test_mock') {
         await completeRegistration(`pay_mock_${Date.now()}`, 'mock_signature');
         return;
       }
 
-      const callbackBase = api.defaults.baseURL?.startsWith('http') 
-        ? api.defaults.baseURL 
+      const callbackBase = api.defaults.baseURL?.startsWith('http')
+        ? api.defaults.baseURL
         : window.location.origin + (api.defaults.baseURL || '/api');
 
       const options = {
@@ -327,7 +353,12 @@ export default function PartnerRegistration() {
         },
         theme: { color: "#4f46e5" },
         modal: {
-          ondismiss: () => setIsSubmitting(false)
+          ondismiss: () => {
+            // Payment dismissed without completing — clear token, stay on step 5
+            delete api.defaults.headers.common['Authorization'];
+            setIsSubmitting(false);
+            toast.error('Payment was cancelled. Please select a plan and try again.');
+          }
         },
         redirect: true,
         callback_url: `${callbackBase}/finance/subscription/callback?plan_id=${selectedPlan}&redirect_to=${encodeURIComponent('/partner/register')}&origin=${encodeURIComponent(window.location.origin)}`
@@ -336,7 +367,9 @@ export default function PartnerRegistration() {
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to start payment.");
+      // Clean up the auth header if it was set before the failure
+      delete api.defaults.headers.common['Authorization'];
+      toast.error(error.response?.data?.message || "Failed to start payment. Please try again.");
       setIsSubmitting(false);
     }
   };

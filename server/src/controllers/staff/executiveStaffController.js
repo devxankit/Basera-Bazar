@@ -51,6 +51,29 @@ const getExecutiveDailyReports = async (req, res) => {
   }
 };
 
+const updateExecutiveDailyReport = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const existing = await DailyReport.findOne({ staff_id: req.user.id, date: today });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'No report found for today.' });
+    }
+    if (existing.status !== 'submitted') {
+      return res.status(400).json({ success: false, message: 'Only submitted (unreviewed) reports can be edited.' });
+    }
+    const updated = await DailyReport.findOneAndUpdate(
+      { staff_id: req.user.id, date: today, status: 'submitted' },
+      { $set: req.body },
+      { new: true }
+    );
+    await invalidate.executiveProfile(req.user.id);
+    res.status(200).json({ success: true, data: updated, message: 'Report updated.' });
+  } catch (err) {
+    logger.error({ err }, 'updateExecutiveDailyReport Error');
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
 const getExecutiveTargets = async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
@@ -72,6 +95,7 @@ const getExecutiveTargets = async (req, res) => {
 
 module.exports = {
   submitExecutiveDailyReport,
+  updateExecutiveDailyReport,
   getExecutiveDailyReports,
   getExecutiveTargets,
 };

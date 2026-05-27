@@ -325,7 +325,7 @@ const AdminLeadDetails = () => {
                         <span className="text-[11px] font-bold uppercase tracking-widest">Requirement Items</span>
                      </div>
                    </div>
-                   <div className="p-0 overflow-x-auto">
+                   <div className="p-0">
                      <table className="w-full text-left">
                        <thead>
                          <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">

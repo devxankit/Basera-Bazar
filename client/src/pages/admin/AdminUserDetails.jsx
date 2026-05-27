@@ -72,7 +72,7 @@ export default function AdminUserDetails() {
   } = useQuery({
     queryKey: ["adminUserDetail", id],
     queryFn: () => api.get(`/admin/users/${id}`).then((r) => r.data),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
   const user = rawData?.data || null;
   const error = queryError ? "User profile not found in database." : null;
@@ -431,7 +431,7 @@ export default function AdminUserDetails() {
                     <MapPin size={12} className="text-slate-400" /> Location
                   </label>
                   <p className="text-sm font-semibold text-slate-900 uppercase">
-                    {user.city || "N/A"}, {user.state || "N/A"}
+                    {[user.city, user.district, user.state].filter(Boolean).join(", ") || "N/A"}
                   </p>
                 </div>
               </div>
@@ -467,6 +467,54 @@ export default function AdminUserDetails() {
                     {new Date(user.createdAt).toLocaleDateString("en-GB")}
                   </span>
                 </div>
+                {isPartner && user.partner_type && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">
+                      Partner Type
+                    </span>
+                    <span className="text-sm font-semibold text-slate-900 uppercase">
+                      {user.partner_type}
+                    </span>
+                  </div>
+                )}
+                {isPartner && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">
+                      Onboarding
+                    </span>
+                    <span className={cn(
+                      "px-2 py-1 rounded text-[10px] font-semibold uppercase tracking-widest border",
+                      user.onboarding_status === 'approved'
+                        ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                        : user.onboarding_status === 'rejected' || user.onboarding_status === 'suspended'
+                        ? "bg-rose-50 text-rose-600 border-rose-100"
+                        : user.onboarding_status === 'pending_approval'
+                        ? "bg-amber-50 text-amber-600 border-amber-100"
+                        : "bg-slate-50 text-slate-500 border-slate-200"
+                    )}>
+                      {user.onboarding_status?.replace('_', ' ') || 'N/A'}
+                    </span>
+                  </div>
+                )}
+                {isPartner && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">
+                      KYC Status
+                    </span>
+                    <span className={cn(
+                      "px-2 py-1 rounded text-[10px] font-semibold uppercase tracking-widest border",
+                      user.kyc?.status === 'approved'
+                        ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                        : user.kyc?.status === 'rejected'
+                        ? "bg-rose-50 text-rose-600 border-rose-100"
+                        : user.kyc?.status === 'pending'
+                        ? "bg-amber-50 text-amber-600 border-amber-100"
+                        : "bg-slate-50 text-slate-500 border-slate-200"
+                    )}>
+                      {user.kyc?.status || 'Not Submitted'}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

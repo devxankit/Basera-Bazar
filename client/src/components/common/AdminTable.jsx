@@ -55,7 +55,7 @@ export default function AdminTable({
       </div>
 
       {/* Table Content */}
-      <div className="overflow-x-auto custom-scrollbar min-h-[450px]">
+      <div className="min-h-112.5">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50/30">
