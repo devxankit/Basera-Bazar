@@ -64,20 +64,20 @@ export default function PartnerHelp() {
   });
 
   return (
-    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden bg-[#f8fafc] font-sans pb-20">
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-[#f8fafc] font-sans pb-20" style={{ overflowX: 'clip' }}>
       {/* Immersive Hero Section */}
-      <div className="relative h-[220px] bg-[#001b4e] overflow-hidden rounded-b-3xl shadow-2xl">
+      <div className="relative bg-[#001b4e] overflow-hidden rounded-b-3xl shadow-2xl">
         <div className="absolute top-0 left-0 w-full h-full opacity-30">
-          <motion.div 
+          <motion.div
             animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, -30, 0] }}
             transition={{ duration: 15, repeat: Infinity }}
-            className="absolute top-[-10%] right-[-10%] w-[300px] h-[300px] bg-blue-400 rounded-full blur-[100px]" 
+            className="absolute top-[-10%] right-[-10%] w-[300px] h-[300px] bg-blue-400 rounded-full blur-[100px]"
           />
         </div>
 
-        <div className="relative z-10 p-5 flex flex-col h-full">
+        <div className="relative z-10 p-5">
           <div className="flex items-center justify-between">
-            <button 
+            <button
               onClick={() => navigate('/partner/profile')}
               className="p-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-white backdrop-blur-xl border border-white/10 transition-all active:scale-95"
             >
@@ -88,15 +88,15 @@ export default function PartnerHelp() {
             </div>
           </div>
 
-          <div className="mt-4 text-center">
-            <motion.h1 
+          <div className="mt-4 mb-4 text-center">
+            <motion.h1
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-white text-[22px] font-black leading-tight uppercase tracking-widest"
             >
               Support <span className="text-blue-400 underline decoration-blue-500/30">Hub</span>
             </motion.h1>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
@@ -105,26 +105,26 @@ export default function PartnerHelp() {
               Instant Solutions for Partners
             </motion.p>
           </div>
+        </div>
 
-          {/* Glassmorphism Search */}
-          <div className="mt-auto mb-[-24px] relative z-20 px-2">
-            <div className="relative max-w-md mx-auto">
-              <div className="absolute inset-y-0 left-4 flex items-center text-slate-400">
-                <Search size={18} />
-              </div>
-              <input 
-                type="text" 
-                placeholder="Search Topics..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white rounded-xl py-3.5 pl-12 pr-6 text-[13px] shadow-2xl shadow-blue-900/10 border-none outline-none focus:ring-4 focus:ring-blue-500/5 transition-all font-black text-[#001b4e] placeholder:text-slate-200 uppercase tracking-tight"
-              />
+        {/* Search bar — inside rounded hero but NOT clipped by overflow-hidden */}
+        <div className="relative z-20 px-7 pb-6">
+          <div className="relative max-w-md mx-auto">
+            <div className="absolute inset-y-0 left-4 flex items-center text-slate-400">
+              <Search size={18} />
             </div>
+            <input
+              type="text"
+              placeholder="Search Topics..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white rounded-xl py-3.5 pl-12 pr-6 text-[13px] shadow-2xl shadow-blue-900/10 border-none outline-none focus:ring-4 focus:ring-blue-500/5 transition-all font-black text-[#001b4e] placeholder:text-slate-200 uppercase tracking-tight"
+            />
           </div>
         </div>
       </div>
 
-      <div className="px-5 pt-12 space-y-8">
+      <div className="px-5 pt-6 space-y-8">
         {/* Topic Navigator */}
         <div className="space-y-3">
           <h2 className="text-[11px] font-black text-slate-300 uppercase tracking-widest px-1">Browse Categories</h2>

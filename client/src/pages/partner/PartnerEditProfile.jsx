@@ -22,7 +22,7 @@ const SUPPLIER_CATEGORIES = [
 
 export default function PartnerEditProfile() {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, refreshUser } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -35,15 +35,19 @@ export default function PartnerEditProfile() {
   });
 
   useEffect(() => {
+    refreshUser().catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (user) {
       setFormData({
         name: user.name || '',
         phone: user.phone || '',
-        businessName: user.businessName || '',
         email: user.email || '',
         role: user.role || '',
         category: user.category || '',
-        businessName: user.businessName || user.business_name || '',
+        businessName: user.business_name || '',
         businessDescription: user.business_description || '',
         businessLogo: user.business_logo || ''
       });
@@ -97,7 +101,7 @@ export default function PartnerEditProfile() {
   };
 
   return (
-    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden bg-slate-50 font-sans pb-10">
+    <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-slate-50 font-sans pb-10" style={{ overflowX: 'clip' }}>
       {/* Header */}
       <div className="bg-white px-5 py-2.5 flex items-center justify-between sticky top-0 z-50 border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-3">
@@ -152,13 +156,16 @@ export default function PartnerEditProfile() {
                     input.accept = 'image/*';
                     input.onchange = async (e) => {
                       const file = e.target.files[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                           // For now we use base64, but in production we'd upload to Cloudinary
-                           setFormData({ ...formData, businessLogo: event.target.result });
-                        };
-                        reader.readAsDataURL(file);
+                      if (!file) return;
+                      try {
+                        const fd = new FormData();
+                        fd.append('image', file);
+                        const res = await api.post('/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                        if (res.data.success) {
+                          setFormData(prev => ({ ...prev, businessLogo: res.data.url }));
+                        }
+                      } catch {
+                        toast.error('Logo upload failed. Please try again.');
                       }
                     };
                     input.click();

@@ -27,6 +27,11 @@ export default function PartnerProfile() {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    refreshUser().catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!user) return null;
 
   const partner = user;
@@ -95,9 +100,15 @@ export default function PartnerProfile() {
       <div className="p-6 space-y-8">
         {/* Profile Card */}
         <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center text-center">
-          <div className="w-20 h-20 bg-[#001b4e] rounded-full flex items-center justify-center text-white text-[28px] font-bold mb-3 shadow-lg shadow-blue-900/20">
-            {partner.name?.charAt(0)}
-          </div>
+          {partner.image ? (
+            <div className="w-20 h-20 rounded-full mb-3 shadow-lg shadow-blue-900/20 overflow-hidden border-2 border-white">
+              <img src={partner.image} alt={partner.name} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-20 h-20 bg-[#001b4e] rounded-full flex items-center justify-center text-white text-[28px] font-bold mb-3 shadow-lg shadow-blue-900/20">
+              {partner.name?.charAt(0)}
+            </div>
+          )}
           <h2 className="text-[20px] font-bold text-[#001b4e] uppercase tracking-tight">{partner.name}</h2>
           <div className="text-slate-400 text-[12px] font-bold uppercase tracking-wider mt-0.5">{partner.email}</div>
           <div className="text-slate-400 text-[12px] font-bold uppercase tracking-wider">{partner.phone}</div>

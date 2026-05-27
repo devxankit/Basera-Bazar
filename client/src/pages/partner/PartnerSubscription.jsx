@@ -520,7 +520,6 @@ export default function PartnerSubscription() {
           <div className="fixed inset-0 z-[100] flex items-end justify-center">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#001b4e]/40 backdrop-blur-sm" />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-md bg-white rounded-t-3xl p-8 shadow-2xl">
-              <div className="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-6" />
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-[20px] font-black text-[#001b4e] uppercase tracking-tight">Payment History</h3>
                 <button onClick={() => setShowHistory(false)} className="p-2 bg-slate-50 rounded-full text-slate-300">

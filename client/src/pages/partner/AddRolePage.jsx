@@ -85,7 +85,7 @@ export default function AddRolePage() {
 
   React.useEffect(() => {
     const sync = async () => {
-      await refreshUser();
+      try { await refreshUser(); } catch {}
       setRefreshing(false);
     };
     sync();
@@ -352,8 +352,8 @@ export default function AddRolePage() {
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Modes</span>
                   </div>
 
-                  {user.role_credits > 0 && (
-                    <motion.div 
+                  {(user?.role_credits ?? 0) > 0 && (
+                    <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className="p-4 bg-gradient-to-r from-orange-400 to-rose-500 rounded-2xl text-white shadow-lg shadow-orange-100 flex items-center justify-between"
@@ -362,7 +362,7 @@ export default function AddRolePage() {
                         <Gift size={20} />
                         <div>
                           <p className="text-[11px] font-black uppercase tracking-tight">1+1 Offer Active</p>
-                          <p className="text-[9px] font-bold uppercase tracking-widest opacity-80">You have {user.role_credits} free role credits</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest opacity-80">You have {user?.role_credits} free role credits</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

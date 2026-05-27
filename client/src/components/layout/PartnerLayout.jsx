@@ -44,7 +44,7 @@ export default function PartnerLayout({ children }) {
   }, [location]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col max-w-md mx-auto relative shadow-2xl shadow-slate-200" style={{ overflowX: 'clip' }}>
       <Toaster />
       {/* Header removed from here as per user request to move notification icon into PartnerHome content */}
 
