@@ -49,7 +49,7 @@ const locationSchema = new mongoose.Schema({
 locationSchema.index({ coordinates: '2dsphere' });
 
 const notificationSchema = new mongoose.Schema({
-  recipient_type: { type: String, enum: ['user', 'partner', 'admin'], required: true },
+  recipient_type: { type: String, enum: ['user', 'partner', 'admin', 'executive'], required: true },
   recipient_id: { type: mongoose.Schema.Types.ObjectId, required: true },
   title: { type: String, required: true },
   body: { type: String, required: true },

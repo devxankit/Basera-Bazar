@@ -5,7 +5,7 @@ const { sendPushNotification } = require('../services/firebaseAdmin');
 
 /**
  * @desc    Create an in-app notification for a user or partner and send push if tokens exist
- * @param   {string} recipientType - 'user', 'partner', or 'admin'
+ * @param   {string} recipientType - 'user', 'partner', 'admin', or 'executive'
  * @param   {string} recipientId - MongoDB ID of the recipient
  * @param   {string} title - Notification title
  * @param   {string} body - Notification message body
@@ -25,15 +25,22 @@ const createNotification = async (recipientType, recipientId, title, body, data 
       body,
       data
     });
-    
+
     logger.info(`[Notification] Created in-app for ${recipientType} (${recipientId}): ${title}`)
 
-    // 2. Fetch Recipient to get FCM Tokens
+    // 2. Fetch Recipient to get FCM Tokens — use the correct model per type
     let recipient;
     if (recipientType === 'partner') {
-      recipient = await Partner.findById(recipientId);
+      recipient = await Partner.findById(recipientId).select('fcmTokens fcmTokenMobile');
+    } else if (recipientType === 'admin') {
+      const { AdminUser } = require('../models/Admin');
+      recipient = await AdminUser.findById(recipientId).select('fcmTokens fcmTokenMobile');
+    } else if (recipientType === 'executive') {
+      const Executive = require('../models/Executive');
+      recipient = await Executive.findById(recipientId).select('fcmTokens');
     } else {
-      recipient = await User.findById(recipientId);
+      // 'user' — default
+      recipient = await User.findById(recipientId).select('fcmTokens fcmTokenMobile');
     }
 
     if (recipient) {
@@ -47,13 +54,26 @@ const createNotification = async (recipientType, recipientId, title, body, data 
 
       if (uniqueTokens.length > 0) {
         logger.info(`[Push Notification] Attempting to send to ${uniqueTokens.length} devices for ${recipientType} ${recipientId}`)
-        
+
+        // Build a click_action URL appropriate for each recipient type
+        let clickAction = '/';
+        if (recipientType === 'partner') {
+          clickAction = data.enquiry_id ? `/partner/lead-details/${data.enquiry_id}` :
+                        data.type === 'broadcast_lead' ? '/partner/leads' :
+                        data.type === 'mandi_order' ? '/partner/marketplace/orders' : '/partner/home';
+        } else if (recipientType === 'executive') {
+          clickAction = data.type === 'commission_credit' ? '/executive/wallet' :
+                        data.type === 'daily_task' ? '/executive/tasks' : '/executive/home';
+        } else if (recipientType === 'admin') {
+          clickAction = '/admin/dashboard';
+        } else {
+          clickAction = data.listing_id ? `/listing/${data.listing_id}` : '/';
+        }
+
         // Prepare payload for FCM (FCM data values must be strings)
         const stringifiedData = {
           notification_id: notification._id.toString(),
-          click_action: data.enquiry_id ? `/partner/lead-details/${data.enquiry_id}` :
-                        data.type === 'broadcast_lead' ? '/partner/leads' :
-                        data.type === 'mandi_order' ? '/partner/marketplace/orders' : '/partner/home'
+          click_action: clickAction
         };
 
         // Merge extra data, converting all values to strings for FCM compatibility
@@ -61,21 +81,14 @@ const createNotification = async (recipientType, recipientId, title, body, data 
           stringifiedData[key] = String(data[key]);
         });
 
-        const pushPayload = {
-          title,
-          body,
-          data: stringifiedData
-        };
+        const pushPayload = { title, body, data: stringifiedData };
 
         await sendPushNotification(uniqueTokens, pushPayload);
-        
-        // Cleanup logic for failed tokens could be added here if needed
-        // but admin-sdk's sendEachForMulticast handles basic reporting
       } else {
         logger.info(`[Push Notification] No FCM tokens found for ${recipientType} ${recipientId}`)
       }
     }
-    
+
     return notification;
   } catch (error) {
     logger.error({ err: error }, 'Error creating notification:')

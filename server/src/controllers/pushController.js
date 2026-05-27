@@ -23,7 +23,7 @@ exports.saveFCMToken = async (req, res) => {
     } else if (userRole === 'executive') {
       const Executive = require('../models/Executive');
       recipient = await Executive.findById(userId);
-    } else if (userRole === 'super_admin') {
+    } else if (userRole === 'super_admin' || userRole === 'admin') {
       const { AdminUser } = require('../models/Admin');
       recipient = await AdminUser.findById(userId);
     } else {
@@ -34,8 +34,9 @@ exports.saveFCMToken = async (req, res) => {
 
     if (!recipient) return res.status(404).json({ success: false, message: 'Recipient not found' });
 
-    const tokenField = platform === 'mobile' ? 'fcmTokenMobile' : 'fcmTokens';
-    
+    // Executive model only has fcmTokens (no fcmTokenMobile), always fall back to fcmTokens
+    const tokenField = (platform === 'mobile' && recipient.fcmTokenMobile !== undefined) ? 'fcmTokenMobile' : 'fcmTokens';
+
     // Initialize array if not exists
     if (!recipient[tokenField]) recipient[tokenField] = [];
 
@@ -74,7 +75,7 @@ exports.removeFCMToken = async (req, res) => {
     } else if (userRole === 'executive') {
       const Executive = require('../models/Executive');
       recipient = await Executive.findById(userId);
-    } else if (userRole === 'super_admin') {
+    } else if (userRole === 'super_admin' || userRole === 'admin') {
       const { AdminUser } = require('../models/Admin');
       recipient = await AdminUser.findById(userId);
     } else {
@@ -83,8 +84,8 @@ exports.removeFCMToken = async (req, res) => {
 
     if (!recipient) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const tokenField = platform === 'mobile' ? 'fcmTokenMobile' : 'fcmTokens';
-    
+    const tokenField = (platform === 'mobile' && recipient.fcmTokenMobile !== undefined) ? 'fcmTokenMobile' : 'fcmTokens';
+
     if (recipient[tokenField]) {
       recipient[tokenField] = recipient[tokenField].filter(t => t !== token);
       await recipient.save();
@@ -112,13 +113,13 @@ exports.sendTestNotification = async (req, res) => {
     } else if (userRole === 'executive') {
       const Executive = require('../models/Executive');
       recipient = await Executive.findById(userId);
-    } else if (userRole === 'super_admin') {
+    } else if (userRole === 'super_admin' || userRole === 'admin') {
       const { AdminUser } = require('../models/Admin');
       recipient = await AdminUser.findById(userId);
     } else {
       recipient = await User.findById(userId);
     }
-    
+
     if (!recipient) return res.status(404).json({ success: false, message: 'User not found' });
 
     const tokens = [

@@ -10,10 +10,12 @@ const getMyNotifications = async (req, res) => {
   try {
     // Determine recipient_type based on role
     let recipient_type = 'user';
-    if (['Agent', 'Supplier', 'Service Provider', 'Partner', 'partner'].includes(req.user.role)) {
+    if (req.user.role === 'partner') {
       recipient_type = 'partner';
-    } else if (['Admin', 'super_admin'].includes(req.user.role)) {
+    } else if (['admin', 'super_admin', 'Admin', 'SuperAdmin'].includes(req.user.role)) {
       recipient_type = 'admin';
+    } else if (req.user.role === 'executive') {
+      recipient_type = 'executive';
     }
 
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
@@ -102,10 +104,12 @@ const markAsRead = async (req, res) => {
 const markAllAsRead = async (req, res) => {
   try {
     let recipient_type = 'user';
-    if (['Agent', 'Supplier', 'Service Provider', 'Partner', 'partner'].includes(req.user.role)) {
+    if (req.user.role === 'partner') {
       recipient_type = 'partner';
-    } else if (['Admin', 'super_admin'].includes(req.user.role)) {
+    } else if (['admin', 'super_admin', 'Admin', 'SuperAdmin'].includes(req.user.role)) {
       recipient_type = 'admin';
+    } else if (req.user.role === 'executive') {
+      recipient_type = 'executive';
     }
     await Notification.updateMany(
       { recipient_type, recipient_id: req.user._id, is_read: false },
