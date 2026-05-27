@@ -29,7 +29,7 @@ import {
   setupForegroundHandler,
   registerFCMToken,
 } from "./services/pushNotificationService";
-import { toast } from "./mockToast";
+import { toast, Toaster } from "./mockToast";
 
 // --- Lazy-loaded User pages ---
 const Home = lazy(() => import("./pages/user/Home"));
@@ -684,6 +684,7 @@ const UserLayout = ({ children }) => {
         {children}
       </main>
       {showBottomNav && <BottomNav />}
+      <Toaster />
     </div>
   );
 };
