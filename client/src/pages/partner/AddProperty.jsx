@@ -296,6 +296,11 @@ export default function AddProperty() {
     }
   };
 
+  const removeThumbnail = () => {
+    cancelUpload('thumbnail');
+    setFormData(prev => ({ ...prev, thumbnail: null }));
+  };
+
   const removeImage = (index) => {
     const removedUrl = formData.images[index];
     // If it's a local preview URL, cancel its background upload
@@ -621,6 +626,7 @@ export default function AddProperty() {
                 handleChange={handleChange}
                 handleFileChange={handleFileChange}
                 removeImage={removeImage}
+                removeThumbnail={removeThumbnail}
                 uploadingThumbnail={uploadingThumbnail}
                 uploadingImages={uploadingImages}
                 subscriptionLimits={subscriptionLimits}
@@ -738,14 +744,15 @@ function StepOne({ formData, handleChange, handleCategorySelect, handleSubCatego
                   <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                </div>
             </div>
-            <InputField 
-              label="Price *" 
-              name="price" 
+            <InputField
+              label="Price *"
+              name="price"
               type="number"
-              value={formData.price} 
-              icon={<span className="font-bold text-slate-400 text-sm">₹</span>} 
-              placeholder="Ex: 50L" 
-              onChange={handleChange} 
+              value={formData.price}
+              icon={<span className="font-bold text-slate-400 text-sm">₹</span>}
+              placeholder="Ex: 50L"
+              onChange={handleChange}
+              onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
             />
           </div>
         </div>
@@ -1036,7 +1043,7 @@ function StepThree({ formData, handleChange, handleSelect, handleFetchCoordinate
 // -------------------------------------------------------------
 // STEP 4 COMPONENTS
 // -------------------------------------------------------------
-function StepFour({ formData, handleChange, handleFileChange, removeImage, uploadingThumbnail, uploadingImages, subscriptionLimits }) {
+function StepFour({ formData, handleChange, handleFileChange, removeImage, removeThumbnail, uploadingThumbnail, uploadingImages, subscriptionLimits }) {
   // Safe defaults - if limits are not loaded or canFeature is false, it stays false.
   const limits = subscriptionLimits || { canFeature: false };
   return (
@@ -1064,9 +1071,18 @@ function StepFour({ formData, handleChange, handleFileChange, removeImage, uploa
                   </div>
                 )}
                 {!uploadingThumbnail && (
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <span className="text-white font-medium text-[13px] flex items-center gap-2"><UploadCloud size={16}/> Replace Image</span>
-                  </div>
+                  <>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <span className="text-white font-medium text-[13px] flex items-center gap-2"><UploadCloud size={16}/> Replace Image</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeThumbnail(); }}
+                      className="absolute top-2 right-2 z-10 bg-white/80 p-1.5 rounded-full text-red-500 backdrop-blur-sm shadow-sm"
+                    >
+                      <X size={14} strokeWidth={3} />
+                    </button>
+                  </>
                 )}
               </>
             ) : (
@@ -1199,18 +1215,19 @@ function SectionCard({ title, icon, children }) {
   );
 }
 
-function InputField({ label, name, type = 'text', value, placeholder, icon, onChange }) {
+function InputField({ label, name, type = 'text', value, placeholder, icon, onChange, onKeyDown }) {
   return (
     <div className="w-full">
       <label className="block text-[11px] font-bold text-[#001b4e] uppercase mb-1.5 ml-1">{label}</label>
       <div className="relative flex items-center">
         {icon && <div className="absolute left-4 z-10 flex items-center text-slate-400">{icon}</div>}
-        <input 
-          type={type} 
-          name={name} 
-          value={value} 
-          placeholder={placeholder} 
+        <input
+          type={type}
+          name={name}
+          value={value}
+          placeholder={placeholder}
           onChange={onChange}
+          onKeyDown={onKeyDown}
           className={`w-full bg-white border border-slate-200 rounded-xl py-3.5 pr-4 text-[14px] font-medium outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-300 ${icon ? 'pl-11' : 'pl-4'}`}
         />
       </div>

@@ -112,7 +112,7 @@ export default function AdminPropertyForm() {
           facing: d.details?.facing || 'no-preference', possession: d.details?.possession || 'ready'
         },
         images: d.images || [], thumbnail: d.thumbnail || '',
-        status: d.status || 'pending_approval', is_featured: d.is_featured || false,
+        status: d.status || 'pending_approval', is_featured: !!d.is_featured,
         emi_available: d.emi_available || false, emi_details: d.emi_details || ''
       });
     }
@@ -252,7 +252,7 @@ export default function AdminPropertyForm() {
                       <label className={labelClass}>Assigned Agent</label>
                       <select name="partner_id" required value={formData.partner_id} onChange={handleInputChange} className={inputClass}>
                         <option value="">Select Account</option>
-                        {partners.map(p => <option key={p._id} value={p._id}>{p.name} ({p.role})</option>)}
+                        {partners.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
                       </select>
                     </div>
                   )}
@@ -263,7 +263,7 @@ export default function AdminPropertyForm() {
                       <label className={labelClass}>Assigned Agent</label>
                       <select name="partner_id" required value={formData.partner_id} onChange={handleInputChange} className={inputClass}>
                         <option value="">Select Account</option>
-                        {partners.map(p => <option key={p._id} value={p._id}>{p.name} ({p.role})</option>)}
+                        {partners.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
                       </select>
                     </div>
                   </div>

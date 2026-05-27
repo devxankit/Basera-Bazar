@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  IndianRupee, ArrowLeft, User, RefreshCcw, XCircle, 
+import {
+  IndianRupee, ArrowLeft, User, RefreshCcw, XCircle,
   CheckCircle2, Clock, Calendar, Shield, CreditCard,
   Download, FileText, BarChart3, ChevronRight, AlertCircle,
-  ShieldCheck, Loader2
+  ShieldCheck, Loader2, Activity
 } from 'lucide-react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';

@@ -45,7 +45,7 @@ export default function ExecutiveSignUp() {
     confirmPassword: (v, fd) => !v ? 'Please confirm your password' : v !== fd.password ? 'Passwords do not match' : '',
     pincode: (v) => !v ? 'Pincode is required' : !/^\d{6}$/.test(v) ? 'Must be exactly 6 digits' : '',
     account_number: (v) => !v ? 'Account number is required' : !/^\d{9,18}$/.test(v) ? 'Must be 9–18 digits' : '',
-    ifsc_code: (v) => !v ? 'IFSC is required' : !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(v) ? 'Invalid IFSC (e.g. BARB0STAKOT)' : '',
+    ifsc_code: (v) => !v ? 'IFSC is required' : !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(v) ? 'Invalid IFSC format (e.g. SBIN0001234)' : '',
     aadhar_number: (v) => !v ? 'Aadhaar number is required' : !/^\d{12}$/.test(v) ? 'Must be exactly 12 digits' : '',
     pan_number: (v) => !v ? 'PAN number is required' : !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(v) ? 'Invalid PAN (e.g. ABCDE1234F)' : '',
   };
@@ -96,7 +96,7 @@ export default function ExecutiveSignUp() {
     if (name === 'ifsc_code') {
       value = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 11);
       if (value.length === 11 && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value)) {
-        setIfscError('Invalid IFSC (e.g. BARB0STAKOT)');
+        setIfscError('Invalid IFSC format (e.g. SBIN0001234)');
       } else {
         setIfscError('');
       }
@@ -532,10 +532,8 @@ export default function ExecutiveSignUp() {
                 <div className="p-5 space-y-4">
                   <InputField label="Bank Name" name="bank_name" icon={Building2} value={formData.bank_details.bank_name} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="e.g. HDFC, SBI" />
                   <InputField label="Account Number" name="account_number" inputMode="numeric" maxLength={18} value={formData.bank_details.account_number} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="9–18 digits" error={errors.account_number} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <InputField label="IFSC Code" name="ifsc_code" maxLength={11} value={formData.bank_details.ifsc_code} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="BARB0STAKOT" error={ifscError || errors.ifsc_code} />
-                    <InputField label="Account Holder" name="account_holder_name" value={formData.bank_details.account_holder_name} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="Full name" />
-                  </div>
+                  <InputField label="IFSC Code" name="ifsc_code" maxLength={11} value={formData.bank_details.ifsc_code} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="e.g. SBIN0001234" error={ifscError || errors.ifsc_code} />
+                  <InputField label="Account Holder Name" name="account_holder_name" value={formData.bank_details.account_holder_name} onChange={(e) => handleInputChange(e, 'bank_details')} placeholder="Full name as per bank" />
                 </div>
               </div>
 
@@ -639,7 +637,7 @@ export default function ExecutiveSignUp() {
         </AnimatePresence>
       </div>
 
-      <input type="file" ref={fallbackCameraRef} accept="image/jpeg, image/png, image/webp" capture="user" className="hidden" onChange={(e) => {
+      <input type="file" ref={fallbackCameraRef} accept="image/*" capture="user" className="hidden" onChange={(e) => {
         const file = e.target.files[0];
         if (file) {
           const localUrl = URL.createObjectURL(file);
@@ -698,7 +696,7 @@ const InputField = ({ label, icon: Icon, prefix, error, ...props }) => (
 const DocUpload = ({ label, value, onChange, onRemove, error }) => (
   <div className="space-y-1.5">
     <div className="relative">
-      {!value && <input type="file" accept="image/jpeg, image/png, image/webp" onChange={onChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />}
+      {!value && <input type="file" accept="image/*" onChange={onChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />}
       <div className={`w-full py-4 px-5 rounded-2xl border-2 border-dashed flex items-center justify-between transition-all ${value ? 'border-green-400 bg-green-50' : error ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50 hover:border-[#001b4e] hover:bg-blue-50'}`}>
         <div className="flex items-center gap-4">
           <div className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden ${value ? 'bg-green-500 text-white' : error ? 'bg-red-100 text-red-500' : 'bg-white text-slate-400 border border-slate-200'}`}>

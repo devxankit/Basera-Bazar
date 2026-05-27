@@ -71,7 +71,7 @@ const getDashboardStats = async (req, res) => {
       });
     });
 
-    let cumulativeBase = totalUsersCount - totalNewInPeriod;
+    let cumulativeBase = Math.max(0, totalUsersCount - totalNewInPeriod);
     const chartData = [];
     if (range === 'monthly') {
       for (let i = 4; i >= 0; i--) {

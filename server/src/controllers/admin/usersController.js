@@ -281,6 +281,21 @@ const updateUser = async (req, res) => {
       );
     }
 
+    if (isPartnerModel && onboarding_status === 'approved' && account.onboarding_status !== 'approved') {
+      await createNotification('partner', id,
+        'Account Approved! 🎉',
+        'Congratulations! Your partner account has been approved. You can now start listing your services and properties on Basera Bazar.',
+        { type: 'account_approved' }
+      ).catch(() => {});
+    }
+    if (isPartnerModel && onboarding_status === 'rejected' && account.onboarding_status !== 'rejected') {
+      await createNotification('partner', id,
+        'Application Update',
+        `Your partner application requires attention. ${rejection_reason ? 'Reason: ' + rejection_reason : 'Please contact support for details.'}`,
+        { type: 'account_rejected' }
+      ).catch(() => {});
+    }
+
     res.status(200).json({ success: true, message: 'Profile updated successfully.', data: updated });
 
     const actorName = req.user?.name || 'Admin';

@@ -143,6 +143,10 @@ export default function AdminUserDetails() {
   };
 
   const handleToggleStatus = () => {
+    if (user.role === 'admin' || user.role === 'superadmin') {
+      toast.error('Admin accounts cannot be deactivated.');
+      return;
+    }
     const newActive = !user.is_active;
     const action = newActive ? "activate" : "deactivate";
     // need isPartner — derive it here before calling openConfirm
@@ -615,24 +619,28 @@ export default function AdminUserDetails() {
                       title="Aadhar Back"
                       image={user.kyc?.aadhar_back_image}
                     />
-                    <DocumentCard
-                      title="GST Certificate"
-                      number={
-                        user.kyc?.gst_number ||
-                        user.role_requests?.[0]?.gst_number
-                      }
-                      image={
-                        user.kyc?.gst_image ||
-                        user.role_requests?.[0]?.gst_image
-                      }
-                    />
-                    <DocumentCard
-                      title="RERA Certificate"
-                      number={user.profile?.property_profile?.rera_number}
-                      image={
-                        user.profile?.property_profile?.rera_certificate_image
-                      }
-                    />
+                    {(user.kyc?.gst_number || user.kyc?.gst_image || user.role_requests?.[0]?.gst_number || user.role_requests?.[0]?.gst_image) && (
+                      <DocumentCard
+                        title="GST Certificate"
+                        number={
+                          user.kyc?.gst_number ||
+                          user.role_requests?.[0]?.gst_number
+                        }
+                        image={
+                          user.kyc?.gst_image ||
+                          user.role_requests?.[0]?.gst_image
+                        }
+                      />
+                    )}
+                    {(user.profile?.property_profile?.rera_number || user.profile?.property_profile?.rera_certificate_image) && (
+                      <DocumentCard
+                        title="RERA Certificate"
+                        number={user.profile?.property_profile?.rera_number}
+                        image={
+                          user.profile?.property_profile?.rera_certificate_image
+                        }
+                      />
+                    )}
                   </div>
                 </div>
               </div>

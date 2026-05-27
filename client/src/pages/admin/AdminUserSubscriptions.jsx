@@ -41,9 +41,13 @@ export default function AdminUserSubscriptions() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
       {/* Header / Breadcrumbs */}
       <div className="flex items-center gap-2 text-sm font-bold text-slate-400">
-        <span className="text-slate-900">{user?.name}'s Subscriptions</span>
-        <ChevronRight size={16} />
         <Link to="/admin/dashboard" className="hover:text-orange-500 transition-colors">Home</Link>
+        <ChevronRight size={16} />
+        <Link to="/admin/users" className="hover:text-orange-500 transition-colors">Users</Link>
+        <ChevronRight size={16} />
+        <span className="hover:text-orange-500 cursor-pointer transition-colors" onClick={() => navigate(`/admin/users/view/${id}`)}>{user?.name || 'User'}</span>
+        <ChevronRight size={16} />
+        <span className="text-slate-900">Subscriptions</span>
       </div>
 
       {/* User Summary Card */}
@@ -79,7 +83,10 @@ export default function AdminUserSubscriptions() {
               <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Subscriptions</p>
               <h3 className="text-5xl font-black text-slate-900 tracking-tight tabular-nums">{subscriptions.length}</h3>
             </div>
-            <button className="bg-orange-500 hover:bg-orange-600 text-white font-black px-6 py-4 rounded-[1.2rem] shadow-xl shadow-orange-100 transition-all flex items-center gap-2 active:scale-95 text-[15px]">
+            <button
+              onClick={() => navigate(`/admin/subscriptions/add-manual/${id}`)}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-black px-6 py-4 rounded-[1.2rem] shadow-xl shadow-orange-100 transition-all flex items-center gap-2 active:scale-95 text-[15px]"
+            >
               <Plus size={20} strokeWidth={3} />
               Add Subscription
             </button>

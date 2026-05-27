@@ -361,6 +361,7 @@ export default function AdminUsers() {
                                     await api.put(`/admin/users/${row._id}`, {
                                       is_active: !row.is_active,
                                     });
+                                    toast.success(`${row.name} has been ${row.is_active ? 'deactivated' : 'activated'} successfully.`);
                                     queryClient.invalidateQueries({
                                       queryKey: ["adminUsers"],
                                     });

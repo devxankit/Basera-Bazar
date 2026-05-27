@@ -707,7 +707,7 @@ const ListingDetails = () => {
                     <h3 className="text-[15px] font-semibold text-[#1f2355]">Contact Information</h3>
                     <div className="space-y-5">
                       {[
-                        { icon: Phone, label: 'Phone', value: listing.owner?.phone || '9322910004', action: true, href: `tel:${listing.owner?.phone}` },
+                        { icon: Phone, label: 'Phone', value: listing.owner?.phone || 'N/A', action: true, href: `tel:${listing.owner?.phone}` },
                         { icon: Mail, label: 'Email', value: listing.owner?.email || 'contact@baserabazar.com', action: true, href: `mailto:${listing.owner?.email}` },
                         { icon: MapPin, label: 'Address', value: listing.owner?.location || listing.location, action: false }
                       ].map((contact, idx) => (
@@ -793,7 +793,7 @@ const ListingDetails = () => {
                       <button 
                         onClick={() => {
                           db.recordInteraction(id, 'calls');
-                          window.open(`tel:${listing.owner?.phone || '9322910004'}`, '_self');
+                          if (listing.owner?.phone) window.open(`tel:${listing.owner.phone}`, '_self');
                         }}
                         className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-[#f0f9f1] border border-[#d2ead6] active:scale-95 transition-all"
                       >
@@ -805,7 +805,7 @@ const ListingDetails = () => {
                       <button 
                         onClick={() => {
                           db.recordInteraction(id, 'whatsapp_clicks');
-                          window.open(`https://wa.me/91${listing.owner?.phone || '9322910004'}`, '_blank');
+                          if (listing.owner?.phone) window.open(`https://wa.me/91${listing.owner.phone}`, '_blank');
                         }}
                         className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-[#ebfaf1] border border-[#d2ead6] active:scale-95 transition-all"
                       >
@@ -1009,6 +1009,15 @@ const ListingDetails = () => {
                     value={enquiryData.phone}
                     onChange={(e) => setEnquiryData({ ...enquiryData, phone: e.target.value.replace(/\D/g, '') })}
                   />
+                  {!user && otpSent && !isVerified && (
+                    <button
+                      type="button"
+                      onClick={() => { setOtpSent(false); setOtpCode(''); }}
+                      className="absolute right-2 top-1.5 bottom-1.5 px-3 rounded-lg text-slate-500 text-[12px] font-bold hover:text-[#1f2355] transition-all"
+                    >
+                      Change
+                    </button>
+                  )}
                   {!user && !isVerified && !otpSent && (
                     <button
                       type="button"
@@ -1043,6 +1052,9 @@ const ListingDetails = () => {
                       <button type="button" onClick={handleSendOtp} className="text-[12px] text-[#fa8639] font-bold">Resend OTP</button>
                     )}
                   </div>
+                  {import.meta.env.VITE_TESTING_MODE === 'true' && (
+                    <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 font-medium">Testing mode: use OTP <strong>123456</strong></p>
+                  )}
                   <div className="relative">
                     <input 
                       type="text"

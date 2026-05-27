@@ -303,12 +303,14 @@ export default function PartnerHome() {
               color="bg-indigo-600" 
               onClick={() => navigate('/partner/leads')}
             />
-            <ActionCard 
-              title="View Orders" 
-              icon={<ShoppingBag size={24} />} 
-              color="bg-slate-600" 
-              onClick={() => navigate('/partner/orders')}
-            />
+            {role.includes('mandi') && (
+              <ActionCard
+                title="View Orders"
+                icon={<ShoppingBag size={24} />}
+                color="bg-slate-600"
+                onClick={() => navigate('/partner/orders')}
+              />
+            )}
           </div>
         </div>
 

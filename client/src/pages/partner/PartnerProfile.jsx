@@ -35,6 +35,8 @@ export default function PartnerProfile() {
   if (!user) return null;
 
   const partner = user;
+  const role = (partner?.active_role || partner?.partner_type || partner?.role || 'partner').toLowerCase();
+  const isMandiPartner = role.includes('mandi');
   const isKYCPending = !partner.kyc?.pan_image || !partner.kyc?.aadhar_front_image;
   const isIncomplete = partner.onboarding_status === 'incomplete' || isKYCPending || !partner.is_active;
 
@@ -176,7 +178,7 @@ export default function PartnerProfile() {
         <div className="space-y-4">
           <SectionTitle title="Business Management" />
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <MenuOption icon={<Clock size={20} />} label="Order History" onClick={() => navigate('/partner/mandi/orders-history')} />
+            {isMandiPartner && <MenuOption icon={<Clock size={20} />} label="Order History" onClick={() => navigate('/partner/mandi/orders-history')} />}
             <MenuOption icon={<Trophy size={20} />} label="My Rewards" onClick={() => navigate('/partner/milestones')} />
             <MenuOption icon={<CreditCard size={20} />} label="My Subscription" onClick={() => navigate('/partner/subscription')} />
             <MenuOption icon={<AlertCircle size={20} />} label="Penalties" onClick={() => navigate('/partner/mandi/penalties')} />
