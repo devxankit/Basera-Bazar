@@ -107,7 +107,7 @@ export default function MandiInventory() {
       <div className="bg-white px-5 py-3 sticky top-0 z-50 border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-3 mb-4">
           <button 
-            onClick={() => navigate('/partner/home')}
+            onClick={() => navigate(-1)}
             className="p-1 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
           >
             <ArrowLeft size={22} />

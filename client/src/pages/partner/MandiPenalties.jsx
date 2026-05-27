@@ -32,8 +32,8 @@ export default function MandiPenalties() {
       {/* Header */}
       <div className="bg-white px-5 py-3 sticky top-0 z-50 border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-3 mb-2">
-          <button 
-            onClick={() => navigate('/partner/profile')}
+          <button
+            onClick={() => navigate(-1)}
             className="p-1 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
           >
             <ArrowLeft size={22} />

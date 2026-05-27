@@ -54,10 +54,19 @@ export default function PartnerLeadDetails() {
     }
   };
 
-  if (loading || !lead) return (
+  if (loading) return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6 text-center">
        <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
        <p className="text-slate-300 font-black uppercase tracking-widest text-[10px]">Syncing Details...</p>
+    </div>
+  );
+
+  if (!lead) return (
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6 text-center">
+       <AlertTriangle className="w-12 h-12 text-rose-400 mb-4" />
+       <h3 className="text-[16px] font-black text-[#001b4e] uppercase tracking-widest mb-2">Lead Not Found</h3>
+       <p className="text-slate-400 text-[12px] font-bold uppercase tracking-tight opacity-70 leading-relaxed mb-8 max-w-xs">This lead no longer exists or may have been deleted.</p>
+       <button onClick={() => navigate('/partner/inquiries')} className="px-6 py-3 bg-[#001b4e] text-white rounded-xl font-black text-[12px] uppercase tracking-widest active:scale-95 transition-all">Back to Leads</button>
     </div>
   );
 

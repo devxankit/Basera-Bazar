@@ -320,13 +320,15 @@ const AdminAllSubscriptions = () => {
                                    >
                                       <Plus size={14} />
                                    </button>
-                                   <button
-                                     onClick={() => handleCancelSubscription(sub._id)}
-                                     className="w-8 h-8 rounded-full border border-rose-100 text-rose-500 flex items-center justify-center hover:bg-rose-50 transition-all shadow-sm"
-                                     title="Revoke/Cancel"
-                                   >
-                                      <Ban size={14} />
-                                   </button>
+                                   {(sub.status === 'active' || sub.status === 'trial') && (
+                                     <button
+                                       onClick={() => handleCancelSubscription(sub._id)}
+                                       className="w-8 h-8 rounded-full border border-rose-100 text-rose-500 flex items-center justify-center hover:bg-rose-50 transition-all shadow-sm"
+                                       title="Revoke/Cancel"
+                                     >
+                                        <Ban size={14} />
+                                     </button>
+                                   )}
                                 </div>
                              </td>
                           </tr>

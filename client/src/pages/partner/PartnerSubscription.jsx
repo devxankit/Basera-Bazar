@@ -239,8 +239,8 @@ export default function PartnerSubscription() {
     <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-[#f8fafc] font-sans pb-32">
       {/* Header */}
       <div className="bg-white px-5 py-2.5 flex items-center justify-between sticky top-0 z-50 border-b border-slate-100 shadow-sm">
-        <button 
-          onClick={() => navigate('/partner/profile')}
+        <button
+          onClick={() => navigate(-1)}
           className="p-1.5 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors"
         >
           <ArrowLeft size={20} />
@@ -273,10 +273,6 @@ export default function PartnerSubscription() {
           animate={{ opacity: 1, y: 0 }}
           className={`${currentTheme.mainColor} rounded-xl p-6 text-white shadow-xl ${currentTheme.shadow} relative overflow-hidden`}
         >
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-             <Star size={80} fill="white" />
-          </div>
-          
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-6">
                <div>

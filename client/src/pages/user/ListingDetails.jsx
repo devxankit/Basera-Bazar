@@ -988,7 +988,7 @@ const ListingDetails = () => {
                     className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px]" 
                     required 
                     value={enquiryData.name}
-                    onChange={(e) => setEnquiryData({ ...enquiryData, name: e.target.value })}
+                    onChange={(e) => setEnquiryData({ ...enquiryData, name: e.target.value.replace(/[0-9]/g, '') })}
                   />
                 </div>
               </div>

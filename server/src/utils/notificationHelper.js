@@ -17,13 +17,30 @@ const createNotification = async (recipientType, recipientId, title, body, data 
     if (!Notification) {
       throw new Error('Notification model is not defined. Check imports in notificationHelper.js');
     }
-    // 1. Create In-App Notification Record
+
+    // Compute click_action before creating notification so it can be stored in DB
+    // (used by in-app notification UI for navigation on click)
+    let clickAction = '/';
+    if (recipientType === 'partner') {
+      clickAction = data.enquiry_id ? `/partner/lead-details/${data.enquiry_id}` :
+                    data.type === 'broadcast_lead' ? '/partner/leads' :
+                    data.type === 'mandi_order' ? '/partner/marketplace/orders' : '/partner/home';
+    } else if (recipientType === 'executive') {
+      clickAction = data.type === 'commission_credit' ? '/executive/wallet' :
+                    data.type === 'daily_task' ? '/executive/tasks' : '/executive/home';
+    } else if (recipientType === 'admin') {
+      clickAction = '/admin/dashboard';
+    } else {
+      clickAction = data.listing_id ? `/listing/${data.listing_id}` : '/';
+    }
+
+    // 1. Create In-App Notification Record (include redirect_url for in-app navigation)
     const notification = await Notification.create({
       recipient_type: recipientType,
       recipient_id: recipientId,
       title,
       body,
-      data
+      data: { ...data, redirect_url: clickAction }
     });
 
     logger.info(`[Notification] Created in-app for ${recipientType} (${recipientId}): ${title}`)
@@ -54,21 +71,6 @@ const createNotification = async (recipientType, recipientId, title, body, data 
 
       if (uniqueTokens.length > 0) {
         logger.info(`[Push Notification] Attempting to send to ${uniqueTokens.length} devices for ${recipientType} ${recipientId}`)
-
-        // Build a click_action URL appropriate for each recipient type
-        let clickAction = '/';
-        if (recipientType === 'partner') {
-          clickAction = data.enquiry_id ? `/partner/lead-details/${data.enquiry_id}` :
-                        data.type === 'broadcast_lead' ? '/partner/leads' :
-                        data.type === 'mandi_order' ? '/partner/marketplace/orders' : '/partner/home';
-        } else if (recipientType === 'executive') {
-          clickAction = data.type === 'commission_credit' ? '/executive/wallet' :
-                        data.type === 'daily_task' ? '/executive/tasks' : '/executive/home';
-        } else if (recipientType === 'admin') {
-          clickAction = '/admin/dashboard';
-        } else {
-          clickAction = data.listing_id ? `/listing/${data.listing_id}` : '/';
-        }
 
         // Prepare payload for FCM (FCM data values must be strings)
         const stringifiedData = {

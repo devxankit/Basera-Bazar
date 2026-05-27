@@ -43,7 +43,7 @@ export default function ExecutiveSalary() {
       {/* Header */}
       <div className="sticky top-0 z-40 px-6 py-4 bg-white border-b border-slate-100 flex items-center gap-4">
         <button
-          onClick={() => navigate('/executive/dashboard')}
+          onClick={() => navigate(-1)}
           className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft size={20} />

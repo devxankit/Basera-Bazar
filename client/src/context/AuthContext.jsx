@@ -77,9 +77,9 @@ export const AuthProvider = ({ children }) => {
         // The browser automatically sends the bb_access HttpOnly cookie
         // (withCredentials: true on axios), so a session survives iOS clearing
         // localStorage when the app is removed from the task switcher.
-        // _isAuthCheck prevents the 401 interceptor from redirecting here;
-        // we handle the outcome ourselves.
-        const response = await api.get('/auth/me', { _isAuthCheck: true });
+        // The 401 interceptor will attempt a token refresh automatically if
+        // the access token has expired but the refresh token is still valid.
+        const response = await api.get('/auth/me');
         if (response.data.success) {
           const freshUser = response.data.data;
           setUser(freshUser);
