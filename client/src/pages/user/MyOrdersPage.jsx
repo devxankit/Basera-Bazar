@@ -83,7 +83,8 @@ const MyOrdersPage = () => {
       }
       setRatingModal({ isOpen: false, order: null, initialData: null });
     } catch (err) {
-      toast.error("Failed to save review");
+      toast.error(err.response?.data?.message || "Failed to save review. Please try again.");
+      throw err;
     }
   };
 
@@ -463,7 +464,7 @@ const MyOrdersPage = () => {
           onClose={() => setRatingModal({ isOpen: false, order: null, initialData: null })}
           onSubmit={handleReviewSubmit}
           orderId={ratingModal.order?._id}
-          partnerId={ratingModal.order?.items[0]?.seller_id}
+          partnerId={ratingModal.order?.items[0]?.seller_id?._id || ratingModal.order?.items[0]?.seller_id}
           items={ratingModal.order?.items.filter(i => i.status === 'delivered')}
           initialData={ratingModal.initialData}
         />
