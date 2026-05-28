@@ -353,7 +353,7 @@ const orderStatusSchema = z.object({
   }),
   note: z.string().max(500).optional(),
   tracking_id: z.string().max(100).optional(),
-  delivery_otp: z.string().max(10).optional(),
+  delivery_otp: z.string().max(10).nullish().transform(v => v ?? undefined),
 });
 
 const orderReviewSchema = z.object({

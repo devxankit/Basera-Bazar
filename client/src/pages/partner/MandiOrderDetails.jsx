@@ -73,11 +73,10 @@ export default function MandiOrderDetails() {
   const handleUpdate = async (itemId, status, method, otp) => {
     try {
       setUpdating(true);
-      const res = await api.patch(`/orders/lead/${id}/${itemId}/status`, {
-        status,
-        method,
-        delivery_otp: otp
-      });
+      const body = { status };
+      if (method != null) body.method = method;
+      if (otp != null) body.delivery_otp = otp;
+      const res = await api.patch(`/orders/lead/${id}/${itemId}/status`, body);
       if (res.data.success) {
         setModal({ show: false });
         queryClient.invalidateQueries({ queryKey: ['mandiOrderDetails', id] });
