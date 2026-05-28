@@ -257,14 +257,23 @@ export default function MandiCheckout() {
 
                   <button
                      onClick={() => {
-                        if (!address.receiver_name?.trim() || !address.receiver_phone?.trim() || !address.street?.trim() || !address.city?.trim() || !address.pincode?.trim()) {
-                           toast.error("Please fill all required fields marked with *");
+                        if (!address.receiver_name?.trim()) {
+                           toast.error("Receiver's full name is required.");
+                        } else if (!address.receiver_phone?.trim()) {
+                           toast.error("Receiver's phone number is required.");
                         } else if (!/^[6-9]\d{9}$/.test(address.receiver_phone.trim())) {
-                           toast.error("Please enter a valid 10-digit phone number starting with 6, 7, 8, or 9");
+                           toast.error("Enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.");
+                        } else if (!address.street?.trim()) {
+                           toast.error("Complete street address is required.");
+                        } else if (!address.city?.trim()) {
+                           toast.error("City name is required.");
+                        } else if (!address.pincode?.trim()) {
+                           toast.error("Pincode is required.");
                         } else if (!/^\d{6}$/.test(address.pincode.trim())) {
-                           toast.error("Please enter a valid 6-digit pincode");
+                           toast.error("Enter a valid 6-digit pincode.");
+                        } else {
+                           setStep(2);
                         }
-                        else setStep(2);
                      }}
                      className="w-full h-16 bg-[#001b4e] text-white rounded-3xl font-bold text-[16px] shadow-lg shadow-indigo-900/10 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
