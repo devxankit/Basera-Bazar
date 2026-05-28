@@ -328,10 +328,18 @@ export default function PartnerHome() {
               </div>
             ) : (
               activities.map((act, idx) => (
-                <div key={idx} className={`p-4 flex items-center gap-4 ${idx !== activities.length - 1 ? 'border-b border-slate-50' : ''}`}>
+                <div
+                  key={idx}
+                  onClick={() => {
+                    if (act.type === 'order' && act.id) navigate(`/partner/orders/${act.id}`);
+                    else if (act.type === 'listing' && act.id) navigate(`/partner/add-product?edit=${act.id}`);
+                    else navigate('/partner/notifications');
+                  }}
+                  className={`p-4 flex items-center gap-4 cursor-pointer active:bg-slate-50 transition-colors ${idx !== activities.length - 1 ? 'border-b border-slate-50' : ''}`}
+                >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    act.type === 'listing' ? 'bg-blue-50 text-blue-600' : 
-                    act.type === 'order' ? 'bg-orange-50 text-orange-600' : 
+                    act.type === 'listing' ? 'bg-blue-50 text-blue-600' :
+                    act.type === 'order' ? 'bg-orange-50 text-orange-600' :
                     'bg-slate-50 text-slate-600'
                   }`}>
                     {act.type === 'listing' ? <Package size={20} /> : <Activity size={20} />}
@@ -344,7 +352,7 @@ export default function PartnerHome() {
                       <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">{act.type}</span>
                     </div>
                   </div>
-                  <ArrowUpRight size={16} className="text-slate-300" />
+                  <ArrowUpRight size={16} className="text-blue-400" />
                 </div>
               ))
             )}

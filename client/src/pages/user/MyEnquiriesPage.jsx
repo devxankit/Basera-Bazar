@@ -165,9 +165,20 @@ const MyEnquiriesPage = () => {
                      </div>
                    </div>
                 </div>
-                <div className="absolute top-5 right-5 w-8 h-8 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const url = `${window.location.origin}${enquiry.category === 'service' ? `/service/${enquiry.listingId}` : `/products/${enquiry.listingId}`}`;
+                    if (navigator.share) {
+                      navigator.share({ title: enquiry.listingTitle || 'Basera Bazar Listing', url });
+                    } else {
+                      navigator.clipboard?.writeText(url);
+                    }
+                  }}
+                  className="absolute top-5 right-5 w-8 h-8 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-sm active:scale-90 transition-all"
+                >
                   <Send size={14} strokeWidth={3} />
-                </div>
+                </button>
               </div>
 
               {/* Action Buttons */}

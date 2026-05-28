@@ -133,7 +133,8 @@ export default function AddMandiProduct() {
     queryKey: ['sellerAttributes', formData.material_id],
     queryFn: () => api.get(`/listings/seller-attributes/my?category_id=${formData.material_id}`).then(r => r.data),
     enabled: !!formData.material_id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
   const sellerTypes = sellerAttrsData?.success
     ? sellerAttrsData.data.filter(a => a.attribute_type === 'type')
@@ -306,7 +307,7 @@ export default function AddMandiProduct() {
             {categories.map(cat => (
               <button 
                 key={cat._id}
-                onClick={() => setFormData({...formData, material_id: cat._id, material_name: cat.name, grade_id: '', type_name: '', sub_type_name: '', brand_name: ''})}
+                onClick={() => setFormData({...formData, material_id: cat._id, material_name: cat.name, grade_id: '', type_name: '', sub_type_name: '', brand_name: '', price: '', stock: '', description: ''})}
                 className={`p-3.5 rounded-xl border-2 text-[13px] font-bold transition-all ${
                   formData.material_id === cat._id ? 'border-[#001b4e] bg-blue-50 text-[#001b4e] shadow-md shadow-blue-900/5' : 'border-slate-100 bg-slate-50/50 text-slate-400'
                 }`}

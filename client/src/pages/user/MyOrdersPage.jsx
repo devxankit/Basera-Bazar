@@ -89,13 +89,15 @@ const MyOrdersPage = () => {
   };
 
   const handleOpenRating = async (order) => {
+    const partnerId = order.items[0]?.seller_id?._id || order.items[0]?.seller_id;
+    if (!partnerId) {
+      toast.error("Cannot rate this order: seller information is unavailable.");
+      return;
+    }
     try {
-      // Fetch all reviews for this order
       const res = await api.get(`/orders/${order._id}/review`);
       let existingReview = null;
       if (res.data.success && res.data.data.length > 0) {
-        // Find the review by current user for the first seller in the order (assuming single seller for now or handling accordingly)
-        const sellerId = order.items[0]?.seller_id;
         existingReview = res.data.data.find(r => r.user_id === user?._id || r.user_id?._id === user?._id);
       }
       setRatingModal({ isOpen: true, order, initialData: existingReview });
@@ -300,7 +302,7 @@ const MyOrdersPage = () => {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Order ID</span>
-                    <span className="text-[11px] font-bold text-slate-500">#{order.order_id || order._id.slice(-8)}</span>
+                    <span className="text-[11px] font-bold text-slate-500">#{order.order_id || order._id.slice(-6).toUpperCase()}</span>
                   </div>
                   <div className="text-[14px] font-black text-[#001b4e]">
                     {new Date(order.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -317,7 +319,11 @@ const MyOrdersPage = () => {
               {/* Items Summary */}
               <div className="space-y-4">
                 {order.items.map((item, idx) => (
-                  <div key={idx} className="flex gap-4 items-center">
+                  <div
+                    key={idx}
+                    onClick={() => navigate(`/products/${item.productId?._id || item.productId}`)}
+                    className="flex gap-4 items-center cursor-pointer active:opacity-70 transition-opacity"
+                  >
                     <div className="w-14 h-14 bg-slate-50 rounded-[20px] overflow-hidden shrink-0 border border-slate-100 p-1">
                        <img src={item.productId?.thumbnail || '/placeholder-img.png'} className="w-full h-full object-cover rounded-[15px]" alt="" />
                     </div>

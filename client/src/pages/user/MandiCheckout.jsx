@@ -88,8 +88,8 @@ export default function MandiCheckout() {
          const itemTotal = itemPrice * c.qty;
          
          // Find category percentage
-         const categoryId = c.item.category_id?._id || c.item.category_id;
-         const catConfig = config.categories.find(cat => cat.id === categoryId);
+         const categoryId = (c.item.category_id?._id || c.item.category_id)?.toString();
+         const catConfig = config.categories.find(cat => cat.id?.toString() === categoryId);
          const percentage = catConfig ? Number(catConfig.percentage) : (config.commission_rate || 0);
          
          totalToken += (itemTotal * (percentage / 100));

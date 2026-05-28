@@ -83,6 +83,7 @@ export default function MandiOrderDetails() {
       if (res.data.success) {
         setModal({ show: false });
         queryClient.invalidateQueries({ queryKey: ['mandiOrderDetails', id] });
+        queryClient.invalidateQueries({ queryKey: ['sellerOrders'] });
       }
     } catch (err) {
       setModal({
@@ -159,7 +160,7 @@ export default function MandiOrderDetails() {
       {/* Header */}
       <div className="bg-white px-5 py-2.5 flex items-center justify-between sticky top-0 z-50 border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-1.5 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors">
+          <button onClick={() => navigate('/partner/orders')} className="p-1.5 text-[#001b4e] hover:bg-slate-50 rounded-lg transition-colors">
             <ArrowLeft size={20} />
           </button>
           <div>
@@ -249,7 +250,7 @@ export default function MandiOrderDetails() {
            
            <div className="divide-y divide-slate-50">
               {order.items.map((orderItem, idx) => (
-                <div key={idx} className="p-4 flex gap-4 items-center bg-white">
+                <div key={idx} onClick={() => navigate(`/products/${orderItem.productId?._id || orderItem.productId}`)} className="p-4 flex gap-4 items-center bg-white cursor-pointer active:bg-slate-50 transition-colors">
                    <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-100 overflow-hidden shrink-0 shadow-sm">
                       <img src={orderItem.productId?.thumbnail || orderItem.thumbnail} className="w-full h-full object-cover" alt="" />
                    </div>
@@ -336,7 +337,7 @@ export default function MandiOrderDetails() {
       </div>
 
       {/* Persistent Logic Control */}
-      <div className="fixed bottom-0 left-0 right-0 p-5 z-50 pointer-events-none">
+      <div className="fixed bottom-0 left-0 right-0 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] z-50 pointer-events-none">
           <div className="max-w-md mx-auto bg-white/90 backdrop-blur-xl border border-slate-100 shadow-[0_-8px_32px_rgba(0,27,78,0.1)] rounded-[24px] p-4 flex flex-col gap-4 pointer-events-auto">
               {item?.status === 'pending' && (
                 <button
@@ -374,7 +375,14 @@ export default function MandiOrderDetails() {
               {item?.status === 'shipped' && (
                 <div className="flex flex-col gap-3">
                   <button
-                    onClick={() => sendOTP(item._id)}
+                    onClick={() => setModal({
+                      show: true,
+                      type: 'confirm',
+                      title: 'Send OTP to Customer?',
+                      message: 'This will dispatch the delivery verification code to the customer via SMS.',
+                      confirmText: 'Send OTP',
+                      onConfirm: () => { setModal({ show: false }); sendOTP(item._id); }
+                    })}
                     disabled={sendingOTP || updating}
                     className="w-full h-10 border border-blue-100 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-sm"
                   >
@@ -388,7 +396,7 @@ export default function MandiOrderDetails() {
                       placeholder="AUTH CODE"
                       maxLength={6}
                       value={deliveryOTP}
-                      onChange={(e) => setDeliveryOTP(e.target.value)}
+                      onChange={(e) => setDeliveryOTP(e.target.value.trim())}
                       className="min-w-0 flex-1 h-12 bg-slate-50 border border-slate-200 rounded-xl text-center text-[15px] font-black tracking-[0.4em] outline-none focus:border-emerald-500/30 transition-all placeholder:text-[10px] placeholder:tracking-widest"
                     />
                     <button

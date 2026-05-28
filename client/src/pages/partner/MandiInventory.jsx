@@ -212,11 +212,12 @@ export default function MandiInventory() {
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {filteredItems.map((item) => (
-               <motion.div 
+               <motion.div
                 key={item.id || item._id}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[160px] transition-all ${item.status === 'inactive' ? 'opacity-70 bg-slate-50/50' : ''}`}
+                onClick={() => navigate(`/partner/add-product?edit=${item.id || item._id}`)}
+                className={`bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[160px] transition-all cursor-pointer active:scale-[0.99] ${item.status === 'inactive' ? 'opacity-70 bg-slate-50/50' : ''}`}
               >
                 <div className="flex h-[110px]">
                   {/* Thumbnail */}
@@ -238,7 +239,7 @@ export default function MandiInventory() {
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest truncate">{item.brand || 'UNBRANDED'}</span>
                         <button 
-                          onClick={(e) => { e.stopPropagation(); toggleStatus(item.id || item._id, item.status); }}
+                          onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleStatus(item.id || item._id, item.status); }}
                           className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all active:scale-95 ${
                             item.status === 'active' 
                             ? 'bg-emerald-50 border-emerald-100 text-emerald-600' 
@@ -284,15 +285,15 @@ export default function MandiInventory() {
                       <div className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">#{item.id?.slice(-4).toUpperCase() || 'NEW'}</div>
                    </div>
                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => navigate(`/partner/add-product?edit=${item.id || item._id}`)}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate(`/partner/add-product?edit=${item.id || item._id}`); }}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-slate-600 rounded-xl border border-slate-100 hover:bg-blue-50 hover:text-blue-600 transition-all active:scale-95 shadow-sm"
                       >
                          <Edit size={12} />
-                         <span className="text-[9px] font-bold uppercase tracking-widest pt-0.5">Edit Product</span>
+                         <span className="text-[9px] font-bold uppercase tracking-widest pt-0.5">Edit</span>
                       </button>
-                      <button 
-                        onClick={(e) => handleDelete(e, item.id || item._id)}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(e, item.id || item._id); }}
                         className="p-2 bg-rose-50 text-rose-500 rounded-xl border border-rose-100 active:scale-90 transition-all shadow-sm"
                       >
                          <Trash2 size={12} />
