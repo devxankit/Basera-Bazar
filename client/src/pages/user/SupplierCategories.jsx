@@ -19,14 +19,14 @@ const SupplierCategories = () => {
   return (
     <div className="bg-slate-50 flex flex-col font-sans">
       {/* Header */}
-      <div className="bg-white border-b border-slate-100 px-6 py-5 flex items-center justify-between sticky top-0 z-50 shadow-sm">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-1 text-primary-900 hover:bg-slate-50 transition-all">
+      <div className="bg-white border-b border-slate-100 px-6 py-5 flex items-center justify-between sticky top-0 z-50 shadow-sm gap-3">
+        <div className="flex items-center gap-4 min-w-0">
+          <button onClick={() => navigate(-1)} className="p-1 text-primary-900 hover:bg-slate-50 transition-all shrink-0">
             <ArrowLeft size={22} />
           </button>
-          <h1 className="text-xl font-semibold text-primary-900 tracking-tight uppercase">Supplier Categories</h1>
+          <h1 className="text-xl font-semibold text-primary-900 tracking-tight uppercase truncate">Supplier Categories</h1>
         </div>
-        <button className="p-2 text-slate-400">
+        <button onClick={() => navigate('/browse/supplier')} className="p-2 text-slate-400 shrink-0">
           <Search size={22} />
         </button>
       </div>

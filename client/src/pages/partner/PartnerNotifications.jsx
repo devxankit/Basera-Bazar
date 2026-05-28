@@ -18,6 +18,19 @@ export default function PartnerNotifications() {
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
+  useEffect(() => {
+    api.patch('/notifications/read-all')
+      .then(async () => {
+        queryClient.setQueryData(['partnerNotifications'], (old) => {
+          if (!old?.data) return old;
+          return { ...old, data: old.data.map(n => ({ ...n, is_read: true })) };
+        });
+        const { cacheService } = await import('../../services/CacheService');
+        cacheService.invalidate('unread_notifications_count');
+      })
+      .catch(() => {});
+  }, []);
+
   const { data: rawData, isLoading: loading } = useQuery({
     queryKey: ['partnerNotifications'],
     queryFn: () => api.get('/notifications').then(r => r.data),
@@ -29,10 +42,12 @@ export default function PartnerNotifications() {
   // Filter enquiry notifications by active role so a multi-role partner
   // doesn't see leads meant for a different role type (#174)
   const roleEnquiryTypeMap = {
-    property_agent: 'property', service_provider: 'service',
-    supplier: 'supplier', mandi_seller: 'mandi'
+    property_agent: 'property', property: 'property', agent: 'property',
+    service_provider: 'service', service: 'service',
+    supplier: 'supplier', supplier_partner: 'supplier',
+    mandi_seller: 'mandi', mandi: 'mandi'
   };
-  const activeRole = user?.active_role || user?.partner_type;
+  const activeRole = (user?.active_role || user?.partner_type || '').toLowerCase();
   const expectedEnquiryType = roleEnquiryTypeMap[activeRole];
   const notifications = rawNotifications.filter(n => {
     if (n.data?.type === 'enquiry' && expectedEnquiryType && n.data?.enquiry_type) {

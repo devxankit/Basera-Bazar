@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Search, SlidersHorizontal, X, MapPin, Star,
@@ -70,16 +70,30 @@ const TYPE_TABS = [
   { value: 'supplier', label: 'Suppliers', icon: Users },
 ];
 
+function fuzzyMatch(text, q) {
+  if (!text || !q) return 0;
+  if (text.includes(q)) return 1;
+  // Check if all characters of q appear in order in text (subsequence match)
+  let ti = 0, qi = 0;
+  while (ti < text.length && qi < q.length) {
+    if (text[ti] === q[qi]) qi++;
+    ti++;
+  }
+  return qi === q.length ? 0.3 : 0;
+}
+
 function scoreItem(item, q) {
   const title = getTitle(item).toLowerCase();
   const sd = (item.short_description || '').toLowerCase();
   const desc = (item.description || item.full_description || '').toLowerCase();
   const cat = (item.category_id?.name || '').toLowerCase();
+  const loc = getLocation(item).toLowerCase();
   return (
-    (title.includes(q) ? 10 : 0) +
-    (sd.includes(q) ? 4 : 0) +
-    (desc.includes(q) ? 1 : 0) +
-    (cat.includes(q) ? 2 : 0)
+    fuzzyMatch(title, q) * 10 +
+    fuzzyMatch(sd, q) * 4 +
+    fuzzyMatch(desc, q) * 1 +
+    fuzzyMatch(cat, q) * 3 +
+    fuzzyMatch(loc, q) * 1
   );
 }
 
@@ -195,6 +209,18 @@ const SearchResults = () => {
   const [activeType, setActiveType] = useState(searchParams.get('type') || 'all');
   const [sortBy, setSortBy] = useState('relevance');
   const [showSort, setShowSort] = useState(false);
+
+  // ── Debounced auto-search ────────────────────────────────────────────
+  useEffect(() => {
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+    const timer = setTimeout(() => {
+      setQuery(trimmed);
+      setSearchParams({ q: trimmed }, { replace: true });
+      setActiveType('all');
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [inputValue]);
 
   // ── Fetch ──────────────────────────────────────────────────────────────
 

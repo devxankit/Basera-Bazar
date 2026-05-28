@@ -114,8 +114,13 @@ export default function MandiCategoryView() {
                      <div className="flex-grow py-1 flex flex-col justify-between">
                         <div>
                            <div className="flex items-center justify-between">
-                              <h4 className="text-[15px] font-bold text-[#001b4e] line-clamp-1">{listing.title}</h4>
-                              <div className="flex items-center gap-1 text-emerald-500">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                 <h4 className="text-[15px] font-bold text-[#001b4e] line-clamp-1">{listing.title}</h4>
+                                 {listing.is_featured && (
+                                   <span className="shrink-0 bg-amber-400 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md">★</span>
+                                 )}
+                              </div>
+                              <div className="flex items-center gap-1 text-emerald-500 shrink-0">
                                  <Star size={12} fill="currentColor" />
                                  <span className="text-[11px] font-bold">4.8</span>
                               </div>

@@ -182,8 +182,8 @@ const AdminLeads = () => {
                 </button>
 
                 <button
-                  onClick={() => refetch()}
-                  className="p-3.5 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-indigo-600 transition-all hover:border-indigo-100 shadow-sm"
+                  onClick={() => { queryClient.invalidateQueries({ queryKey: ['adminLeads'] }); refetch(); }}
+                  className="p-3.5 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-indigo-600 transition-all hover:border-indigo-100 shadow-sm active:scale-95"
                 >
                   <RotateCcw size={18} />
                 </button>

@@ -460,7 +460,17 @@ const ListingDetails = () => {
               >
                 <ArrowLeft size={22} className="group-active:-translate-x-1 transition-transform" />
               </button>
-              <button className="p-2.5 bg-white/5 backdrop-blur-2xl text-white hover:bg-white/10 rounded-2xl transition-all border border-white/10 shadow-xl">
+              <button
+                onClick={() => {
+                  const url = window.location.href;
+                  if (navigator.share) {
+                    navigator.share({ title: listing.title, url });
+                  } else {
+                    navigator.clipboard?.writeText(url);
+                  }
+                }}
+                className="p-2.5 bg-white/5 backdrop-blur-2xl text-white hover:bg-white/10 rounded-2xl transition-all border border-white/10 shadow-xl"
+              >
                 <Share2 size={22} />
               </button>
             </div>
@@ -496,8 +506,8 @@ const ListingDetails = () => {
             <div className="grid grid-cols-3 gap-3 relative z-20">
               {[
                 { label: 'Status', value: listing.owner?.verificationStatus || 'Verified', color: 'text-emerald-400', icon: ShieldCheck },
-                { label: 'Experience', value: listing.owner?.experience || '5+ Years', color: 'text-white', icon: Navigation },
-                { label: 'Rating', value: listing.rating?.toFixed(1) || '4.8', color: 'text-orange-400', icon: Star }
+                { label: 'Experience', value: listing.owner?.experience || 'N/A', color: 'text-white', icon: Navigation },
+                { label: 'Rating', value: listing.rating?.toFixed(1) || 'N/A', color: 'text-orange-400', icon: Star }
               ].map((stat, i) => (
                 <div key={i} className="flex flex-col items-center justify-center py-4 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[24px] shadow-2xl">
                   <span className={cn("font-black text-[14px] xs:text-[16px] leading-none mb-1.5", stat.color)}>{stat.value}</span>

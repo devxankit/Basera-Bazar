@@ -482,6 +482,7 @@ export default function AdminUsers() {
         loading={loading}
         onSearch={setSearchTerm}
         hideFilter={true}
+        noWrapper={true}
         searchPlaceholder="Find users by name, id, email..."
         actions={
           <div className="flex items-center gap-3">

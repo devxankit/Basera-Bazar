@@ -145,7 +145,8 @@ const MyEnquiriesPage = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 space-y-4 relative overflow-hidden group"
+              onClick={() => navigate(enquiry.category === 'service' ? `/service/${enquiry.listingId}` : `/products/${enquiry.listingId}`)}
+              className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 space-y-4 relative overflow-hidden group cursor-pointer active:bg-slate-50 transition-colors"
             >
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-[#001b4e] border border-slate-100 shrink-0">

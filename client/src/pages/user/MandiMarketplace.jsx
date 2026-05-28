@@ -392,15 +392,15 @@ export default function MandiMarketplace() {
                      </div>
                   ))
                ) : (
-                  shopCategories.map((cat) => (
+                  categories.map((cat) => (
                      <div
-                        key={cat.id}
-                        onClick={() => navigate(`/browse/mandi?cat=${cat.id}`)}
+                        key={cat._id}
+                        onClick={() => navigate(`/mandi-bazar/category/${cat._id}`)}
                         className="flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-all group"
                      >
                         <div className="w-full aspect-square rounded-2xl overflow-hidden bg-orange-500/5 border border-orange-500/10 flex items-center justify-center p-1.5 group-hover:shadow-md transition-shadow">
                            <img
-                              src={cat.image}
+                              src={cat.mandi_icon || cat.icon || getCategoryImage(cat)}
                               alt={cat.name}
                               className="w-full h-full object-contain mix-blend-multiply"
                               onError={(e) => { e.target.src = '/default-product-category-image.png'; }}
@@ -477,8 +477,8 @@ export default function MandiMarketplace() {
                                 </button>
                               </div>
                            ) : (
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); navigate(`/products/${product.id}?action=add`); }}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                                 className="w-8 h-8 bg-[#1f2355] hover:bg-[#2d3269] rounded-xl flex items-center justify-center text-white shadow-lg active:scale-90 transition-all"
                               >
                                 <Plus size={14} strokeWidth={3} />

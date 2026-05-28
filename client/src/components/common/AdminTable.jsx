@@ -1,17 +1,18 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, Search, Filter } from 'lucide-react';
 
-export default function AdminTable({ 
-  columns, 
-  data, 
-  loading, 
-  title, 
-  onSearch, 
+export default function AdminTable({
+  columns,
+  data,
+  loading,
+  title,
+  onSearch,
   searchPlaceholder = "Search...",
   pagination = true,
   hideFilter = false,
   hideSearch = false,
-  actions
+  actions,
+  noWrapper = false
 }) {
   const [currentPage, setCurrentPage] = React.useState(1);
   const itemsPerPage = 10;
@@ -27,8 +28,8 @@ export default function AdminTable({
   const endIndex = Math.min(startIndex + itemsPerPage, safeData.length);
   const paginatedData = safeData.slice(startIndex, endIndex);
 
-  return (
-    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 transition-all">
+  const inner = (
+    <div className={noWrapper ? '' : 'bg-white rounded-3xl shadow-sm border border-slate-100 transition-all'}>
       {/* Table Header */}
       <div className="px-6 py-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {title && <h2 className="text-xl font-black text-slate-900 tracking-tight">{title}</h2>}
@@ -142,4 +143,5 @@ export default function AdminTable({
       )}
     </div>
   );
+  return inner;
 }

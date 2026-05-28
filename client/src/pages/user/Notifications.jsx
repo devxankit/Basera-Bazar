@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, ChevronLeft, Circle, Package, Truck, BadgePercent, Info, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,6 +29,17 @@ function relativeTime(dateStr) {
 const Notifications = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    api.patch('/notifications/read-all')
+      .then(() => {
+        queryClient.setQueryData(['userNotifications'], (old) => {
+          if (!old?.data) return old;
+          return { ...old, data: old.data.map(n => ({ ...n, is_read: true })) };
+        });
+      })
+      .catch(() => {});
+  }, []);
 
   const { data: rawData, isLoading: loading } = useQuery({
     queryKey: ['userNotifications'],

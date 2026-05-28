@@ -41,6 +41,21 @@ const BrowseCategory = () => {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   useScrollLock(isFilterOpen || isSortOpen || isLocationModalOpen);
+
+  // Intercept device back button while filter/sort/location modals are open
+  useEffect(() => {
+    const anyOpen = isFilterOpen || isSortOpen || isLocationModalOpen;
+    if (!anyOpen) return;
+    window.history.pushState({ modal: true }, '');
+    const handlePop = () => {
+      setIsFilterOpen(false);
+      setIsSortOpen(false);
+      setIsLocationModalOpen(false);
+    };
+    window.addEventListener('popstate', handlePop, { once: true });
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [isFilterOpen, isSortOpen, isLocationModalOpen]);
+
   const [selectedDistricts, setSelectedDistricts] = useState([]);
   const [filterState, setFilterState] = useState('Bihar');
   const [mandiCategories, setMandiCategories] = useState([]);
@@ -710,15 +725,16 @@ const BrowseCategory = () => {
 
               if (isItemSupplier) return (
                 /* Supplier Card */
-                <div key={item.id} onClick={() => navigate(`/products/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl p-5 flex gap-5 active:scale-[0.98] transition-all">
+                <div key={item.id} onClick={() => navigate(`/agent/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl p-5 flex gap-5 active:scale-[0.98] transition-all">
                   <div className="w-24 h-24 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
-                    <img src={item.profile?.image || '/placeholder-supplier.png'} className="w-full h-full object-cover" alt={item.name} />
+                    <img src={item.image || '/placeholder-supplier.png'} className="w-full h-full object-cover" alt={item.title || item.name} />
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <h3 className="font-black text-[#1f2355] text-[16px] truncate">{item.name}</h3>
-                    <p className="text-[11px] text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{item.profile?.bio || 'Verified supplier of premium building materials.'}</p>
+                    <h3 className="font-black text-[#1f2355] text-[16px] truncate">{item.title || item.businessName || item.name}</h3>
+                    <p className="text-[11px] text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{item.owner?.experience || item.details?.propertyType || 'Verified supplier of premium building materials.'}</p>
                     <div className="mt-3 flex gap-2">
                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-black rounded-full uppercase tracking-widest border border-emerald-100">Verified</span>
+                       {item.location && <span className="px-3 py-1 bg-slate-50 text-slate-500 text-[9px] font-black rounded-full uppercase tracking-widest border border-slate-100 truncate">{item.location}</span>}
                     </div>
                   </div>
                 </div>

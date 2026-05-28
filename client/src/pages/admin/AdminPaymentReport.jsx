@@ -42,7 +42,7 @@ export default function AdminPaymentReport() {
         txn.partner_id?.email || txn.partner_id?.phone || '—',
         txn.type ? txn.type.replace(/_/g, ' ') : '—',
         txn.amount != null ? txn.amount : '—',
-        txn.createdAt ? new Date(txn.createdAt).toLocaleDateString('en-IN') : '—',
+        txn.createdAt ? new Date(txn.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
         txn.status || '—',
       ])
     ];

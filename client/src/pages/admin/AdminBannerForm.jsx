@@ -71,6 +71,9 @@ export default function AdminBannerForm() {
     if (formData.image_url && !formData.image_url.startsWith('https://')) {
       setError('Image URL must start with https://.'); return;
     }
+    if (formData.start_date && formData.end_date && formData.start_date > formData.end_date) {
+      setError('Auto-publish date must be before the auto-expire date.'); return;
+    }
     setSaving(true);
     setError(null);
     try {

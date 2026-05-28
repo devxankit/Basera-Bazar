@@ -25,8 +25,9 @@ const ServiceProfile = () => {
   const [activeTab, setActiveTab] = useState('About');
   const [isModalOpen, setIsModalOpen] = useState(() => location.search.includes('enquire=true'));
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
-  useScrollLock(isModalOpen || showSuccessModal);
+  useScrollLock(isModalOpen || showSuccessModal || !!selectedImage);
   const [enquiryData, setEnquiryData] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
@@ -103,7 +104,7 @@ const ServiceProfile = () => {
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <h1 className="text-2xl font-semibold text-primary-900 tracking-tight leading-tight">{service.title}</h1>
-                <p className="text-sm font-semibold text-primary-700/70 uppercase tracking-wide">by {service.businessName}</p>
+                <p className="text-sm font-semibold text-primary-700/70 uppercase tracking-wide">by {service.details?.businessName || service.businessName}</p>
               </div>
               {service.featured && (
                 <span className="bg-[#fa8639] text-white px-3 py-1 rounded-full text-[10px] font-semibold uppercase shadow-lg shadow-orange-500/20">
@@ -122,19 +123,27 @@ const ServiceProfile = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <div className="flex text-yellow-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={16} fill={i < Math.floor(service.rating || 5) ? "currentColor" : "none"} />
-                  ))}
+              {service.rating > 0 && (
+                <>
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex text-yellow-400">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={16} fill={i < Math.floor(service.rating) ? "currentColor" : "none"} />
+                      ))}
+                    </div>
+                    <span className="text-sm font-semibold text-primary-900 mt-0.5">{service.rating.toFixed(1)}</span>
+                  </div>
+                  <div className="h-4 w-[1px] bg-slate-200" />
+                </>
+              )}
+              {(service.years_of_experience || service.experience) && (
+                <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">
+                  <Award size={14} className="text-indigo-600" />
+                  <span className="text-[11px] font-semibold text-indigo-700 uppercase tracking-wide">
+                    {service.years_of_experience || service.experience} yrs experience
+                  </span>
                 </div>
-                <span className="text-sm font-semibold text-primary-900 mt-0.5">{service.rating?.toFixed(1) || '5.0'}</span>
-              </div>
-              <div className="h-4 w-[1px] bg-slate-200" />
-              <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">
-                <Award size={14} className="text-indigo-600" />
-                <span className="text-[11px] font-semibold text-indigo-700 uppercase tracking-wide">{service.experience || '5 years experience'}</span>
-              </div>
+              )}
             </div>
 
             <div className="flex items-start gap-3 pt-2 text-slate-500">
@@ -146,11 +155,35 @@ const ServiceProfile = () => {
           {/* Action Boxes */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Call', icon: Phone, color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
-              { label: 'Message', icon: MessageSquare, color: 'bg-blue-50 text-blue-600 border-blue-100' },
-              { label: 'Direction', icon: Navigation, color: 'bg-purple-50 text-purple-600 border-purple-100' }
+              {
+                label: 'Call',
+                icon: Phone,
+                color: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                href: service.owner?.phone ? `tel:${service.owner.phone}` : null
+              },
+              {
+                label: 'WhatsApp',
+                icon: MessageSquare,
+                color: 'bg-green-50 text-green-600 border-green-100',
+                href: service.owner?.phone ? `https://wa.me/${service.owner.phone}` : null
+              },
+              {
+                label: 'Direction',
+                icon: Navigation,
+                color: 'bg-purple-50 text-purple-600 border-purple-100',
+                href: (() => {
+                  const lat = service.location?.coordinates?.[1];
+                  const lng = service.location?.coordinates?.[0];
+                  return lat && lng ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}` : null;
+                })()
+              }
             ].map((action, i) => (
-              <button key={i} className={cn("flex flex-col items-center justify-center p-4 rounded-3xl border transition-all active:scale-95 space-y-2", action.color)}>
+              <button
+                key={i}
+                onClick={() => action.href && window.open(action.href, '_blank')}
+                disabled={!action.href}
+                className={cn("flex flex-col items-center justify-center p-4 rounded-3xl border transition-all active:scale-95 space-y-2", action.color, !action.href && 'opacity-50 cursor-not-allowed')}
+              >
                 <action.icon size={22} />
                 <span className="text-[11px] font-semibold uppercase tracking-widest">{action.label}</span>
               </button>
@@ -211,7 +244,7 @@ const ServiceProfile = () => {
                 <h3 className="text-lg font-semibold text-primary-900 tracking-tight">Portfolio Gallery</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {(service.portfolio_images && service.portfolio_images.length > 0 ? service.portfolio_images : [service.image]).map((img, i) => (
-                    <div key={i} className="aspect-square rounded-3xl h-36 overflow-hidden border border-slate-100 shadow-sm shadow-slate-100">
+                    <div key={i} onClick={() => setSelectedImage(img)} className="aspect-square rounded-3xl h-36 overflow-hidden border border-slate-100 shadow-sm shadow-slate-100 cursor-pointer active:scale-95 transition-all">
                       <img src={img} className="w-full h-full object-cover transition-transform hover:scale-110" alt="Portfolio" />
                     </div>
                   ))}
@@ -224,12 +257,12 @@ const ServiceProfile = () => {
                 <h3 className="text-lg font-semibold text-primary-900 tracking-tight">Contact Information</h3>
                 <div className="bg-slate-50/50 rounded-[32px] border border-slate-100 p-6 space-y-6">
                   {[
-                    { label: 'Phone', value: service.owner?.phone, icon: Phone, color: 'bg-emerald-100 text-emerald-600' },
-                    { label: 'Email', value: service.owner?.email, icon: Mail, color: 'bg-blue-100 text-blue-600' },
-                    { label: 'Service Area', value: `${service.address?.district}, ${service.address?.state}`, icon: MapPin, color: 'bg-orange-100 text-orange-600' },
-                    { label: 'Operational Hub', value: service.address?.full_address, icon: Building2, color: 'bg-indigo-100 text-indigo-600' }
+                    { label: 'Phone', value: service.owner?.phone, icon: Phone, color: 'bg-emerald-100 text-emerald-600', action: () => service.owner?.phone && window.open(`tel:${service.owner.phone}`) },
+                    { label: 'Email', value: service.owner?.email, icon: Mail, color: 'bg-blue-100 text-blue-600', action: () => service.owner?.email && window.open(`mailto:${service.owner.email}`) },
+                    { label: 'Service Area', value: `${service.address?.district || ''}, ${service.address?.state || ''}`.replace(/^, |, $/, '') || 'N/A', icon: MapPin, color: 'bg-orange-100 text-orange-600', action: () => { const q = [service.address?.district, service.address?.state].filter(Boolean).join(', '); if (q) window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`, '_blank'); } },
+                    { label: 'Operational Hub', value: service.address?.full_address, icon: Building2, color: 'bg-indigo-100 text-indigo-600', action: () => { const q = service.address?.full_address; if (q) window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`, '_blank'); } }
                   ].map((contact, i) => (
-                    <button key={i} className="flex items-center justify-between w-full group">
+                    <button key={i} onClick={contact.action} className="flex items-center justify-between w-full group active:scale-95 transition-all">
                       <div className="flex items-center gap-4">
                         <div className={cn("p-3 rounded-2xl", contact.color)}>
                           <contact.icon size={22} />
@@ -413,6 +446,16 @@ const ServiceProfile = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Portfolio Fullscreen Viewer */}
+      {selectedImage && (
+        <div className="fixed inset-0 z-150 bg-black/90 flex items-center justify-center p-4" onClick={() => setSelectedImage(null)}>
+          <img src={selectedImage} className="max-w-full max-h-full object-contain rounded-xl" alt="Portfolio" />
+          <button className="absolute top-4 right-4 p-2 bg-white/10 rounded-full text-white border border-white/20 active:scale-90 transition-all">
+            <X size={24} />
+          </button>
         </div>
       )}
 

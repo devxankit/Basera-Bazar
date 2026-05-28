@@ -123,7 +123,8 @@ export default function AddMandiProduct() {
         images: item.images || [],
         type_name: item.type_name || '',
         sub_type_name: item.sub_type_name || '',
-        brand_name: item.brand_name || item.brand || ''
+        brand_name: item.brand_name || item.brand || '',
+        is_featured: item.is_featured || false
       });
     }
   }, [editProductData]);

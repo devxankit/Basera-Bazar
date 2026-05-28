@@ -16,15 +16,22 @@ export default function PartnerBottomNav({ role }) {
   const normalizedRole = (role || '').toLowerCase();
   const isMandi = normalizedRole.includes('mandi');
 
+  const isSupplier = normalizedRole.includes('supplier');
+  const isService = normalizedRole.includes('service');
+
   const navItems = isMandi ? [
     { label: 'Home', icon: <Home size={22} />, path: '/partner/home' },
     { label: 'Stocks', icon: <Package size={22} />, path: '/partner/inventory' },
     { label: 'Orders', icon: <ShoppingBag size={22} />, path: '/partner/orders' },
     { label: 'Leads', icon: <TrendingUp size={22} />, path: '/partner/leads' },
     { label: 'Profile', icon: <UserCircle size={22} />, path: '/partner/profile' }
+  ] : isSupplier ? [
+    { label: 'Home', icon: <Home size={24} />, path: '/partner/home' },
+    { label: 'Leads', icon: <TrendingUp size={24} />, path: '/partner/leads' },
+    { label: 'Profile', icon: <UserCircle size={24} />, path: '/partner/profile' }
   ] : [
     { label: 'Home', icon: <Home size={24} />, path: '/partner/home' },
-    { label: 'Inventory', icon: <Package size={24} />, path: '/partner/inventory' },
+    { label: isService ? 'Services' : 'Inventory', icon: <Package size={24} />, path: '/partner/inventory' },
     { label: 'Leads', icon: <TrendingUp size={24} />, path: '/partner/leads' },
     { label: 'Profile', icon: <UserCircle size={24} />, path: '/partner/profile' }
   ];

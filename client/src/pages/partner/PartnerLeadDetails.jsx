@@ -3,7 +3,7 @@ import {
   ArrowLeft, Phone, Mail, MessageSquare,
   Calendar, Trash2, CheckCircle2, AlertTriangle,
   Package, User, ExternalLink, Tag, Loader2,
-  ShieldCheck, Zap
+  ShieldCheck, Zap, Eye
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,6 +39,8 @@ export default function PartnerLeadDetails() {
           if (!old) return old;
           return { ...old, data: res.data.data };
         });
+        queryClient.invalidateQueries({ queryKey: ['partnerEnquiries'] });
+        queryClient.invalidateQueries({ queryKey: ['partnerStats'] });
       }
     } catch (err) {
     } finally {
@@ -49,7 +51,9 @@ export default function PartnerLeadDetails() {
   const handleDelete = async () => {
     try {
       await api.delete(`/partners/enquiries/${id}`);
-      navigate('/partner/inquiries');
+      queryClient.invalidateQueries({ queryKey: ['partnerEnquiries'] });
+      queryClient.invalidateQueries({ queryKey: ['partnerStats'] });
+      navigate('/partner/leads');
     } catch (err) {
     }
   };
@@ -66,7 +70,7 @@ export default function PartnerLeadDetails() {
        <AlertTriangle className="w-12 h-12 text-rose-400 mb-4" />
        <h3 className="text-[16px] font-black text-[#001b4e] uppercase tracking-widest mb-2">Lead Not Found</h3>
        <p className="text-slate-400 text-[12px] font-bold uppercase tracking-tight opacity-70 leading-relaxed mb-8 max-w-xs">This lead no longer exists or may have been deleted.</p>
-       <button onClick={() => navigate('/partner/inquiries')} className="px-6 py-3 bg-[#001b4e] text-white rounded-xl font-black text-[12px] uppercase tracking-widest active:scale-95 transition-all">Back to Leads</button>
+       <button onClick={() => navigate('/partner/leads')} className="px-6 py-3 bg-[#001b4e] text-white rounded-xl font-black text-[12px] uppercase tracking-widest active:scale-95 transition-all">Back to Leads</button>
     </div>
   );
 
@@ -116,13 +120,22 @@ export default function PartnerLeadDetails() {
               </div>
               <div className="text-right">
                  <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm ${
-                   lead.status === 'contacted' ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white'
+                   lead.status === 'contacted' ? 'bg-emerald-500 text-white' :
+                   lead.status === 'read' ? 'bg-amber-400 text-white' :
+                   'bg-blue-600 text-white'
                  }`}>
                    {lead.status}
                  </div>
                  <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-2 opacity-60">{new Date(lead.createdAt).toLocaleDateString()}</div>
               </div>
            </div>
+
+           {lead.user_details?.email && (
+             <div className="flex items-center gap-2 mb-4 relative z-10">
+               <Mail size={13} className="text-blue-400 shrink-0" />
+               <span className="text-[11px] font-bold text-slate-400 tracking-wide">{lead.user_details.email}</span>
+             </div>
+           )}
 
            <div className="grid grid-cols-2 gap-3 relative z-10">
               {lead.limitReached ? (
@@ -167,6 +180,11 @@ export default function PartnerLeadDetails() {
               <h3 className="text-[10px] font-black text-[#001b4e] uppercase tracking-widest">Inquiry Content</h3>
            </div>
            <div className="p-5">
+              {lead.inquiry_type && (
+                <div className="mb-3">
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[8px] font-black uppercase tracking-widest border border-blue-100/50">{lead.inquiry_type}</span>
+                </div>
+              )}
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 italic text-[14px] font-bold text-slate-500 leading-relaxed shadow-inner">
                  "{lead.content || 'Customer is interested and waiting for your response.'}"
               </div>
@@ -184,7 +202,15 @@ export default function PartnerLeadDetails() {
                 <Tag size={14} className="text-amber-500" />
                 <h3 className="text-[10px] font-black text-[#001b4e] uppercase tracking-widest">Reference Object</h3>
              </div>
-             <div className="p-4 flex gap-4 items-center bg-white">
+             <div
+                onClick={() => {
+                  const cat = listing.category;
+                  if (cat === 'service') navigate(`/service/${listing.id}`);
+                  else if (cat === 'supplier') navigate(`/agent/${listing.id}`);
+                  else navigate(`/products/${listing.id}`);
+                }}
+                className="p-4 flex gap-4 items-center bg-white cursor-pointer active:scale-[0.99] transition-all hover:bg-slate-50/50"
+             >
                 <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-100 overflow-hidden shrink-0 shadow-sm">
                    {listing.image ? <img src={listing.image} className="w-full h-full object-cover" alt="" /> : <Package size={24} className="m-auto text-slate-200" />}
                 </div>
@@ -197,6 +223,7 @@ export default function PartnerLeadDetails() {
                       <div className="text-[10px] font-black text-blue-600 tracking-tighter opacity-60">#{listing.id?.slice(-6).toUpperCase()}</div>
                    </div>
                 </div>
+                <ExternalLink size={14} className="text-slate-300 shrink-0 ml-auto" />
              </div>
           </div>
         )}
@@ -222,17 +249,38 @@ export default function PartnerLeadDetails() {
                    Initiate Call
                 </a>
               )}
-              <button 
-                onClick={() => updateStatus(lead.status === 'contacted' ? 'new' : 'contacted')}
-                disabled={updating}
-                className={`flex-1 h-12 rounded-xl flex items-center justify-center shadow-md active:scale-95 transition-all border ${
-                   lead.status === 'contacted' 
-                   ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/10' 
-                   : 'bg-white text-slate-300 border-slate-100'
-                }`}
-              >
-                 {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 size={20} />}
-              </button>
+              {lead.status === 'contacted' ? (
+                <div className="flex-1 h-12 rounded-xl flex items-center justify-center gap-2 bg-emerald-500 text-white border border-emerald-400 shadow-md shadow-emerald-500/10">
+                  <CheckCircle2 size={18} />
+                  <span className="text-[11px] font-black uppercase tracking-widest">Contacted</span>
+                </div>
+              ) : lead.status === 'read' ? (
+                <button
+                  onClick={() => updateStatus('contacted')}
+                  disabled={updating}
+                  className="flex-1 h-12 rounded-xl flex items-center justify-center gap-2 bg-blue-500 text-white border border-blue-400 shadow-md shadow-blue-500/10 active:scale-95 transition-all"
+                >
+                  {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                    <>
+                      <CheckCircle2 size={18} />
+                      <span className="text-[11px] font-black uppercase tracking-widest">Mark Contacted</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={() => updateStatus('read')}
+                  disabled={updating}
+                  className="flex-1 h-12 rounded-xl flex items-center justify-center gap-2 bg-white text-slate-500 border border-slate-200 shadow-md active:scale-95 transition-all"
+                >
+                  {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                    <>
+                      <Eye size={18} />
+                      <span className="text-[11px] font-black uppercase tracking-widest">Mark Read</span>
+                    </>
+                  )}
+                </button>
+              )}
           </div>
       </div>
 

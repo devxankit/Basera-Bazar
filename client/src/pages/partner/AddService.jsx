@@ -205,6 +205,8 @@ export default function AddService() {
         queueUpload(uploadKey, file);
       }
     }
+    // Reset so the same file can be re-selected after removing
+    e.target.value = '';
   };
 
   const removePortfolioImage = (index) => {
@@ -276,6 +278,7 @@ export default function AddService() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['editService', editId] });
+      queryClient.invalidateQueries({ queryKey: ['myListings'] });
       setShowSuccessModal(true);
     },
     onError: (error) => {
@@ -540,12 +543,13 @@ export default function AddService() {
         {/* Additional Details Section */}
         <section className="space-y-4">
           <SectionHeader icon={<Info size={18} />} title="Additional Details" />
-          <InputField 
+          <InputField
             icon={<Briefcase size={18} />}
             label="Years of Experience (Optional)"
             name="experience"
+            type="number"
             value={formData.experience}
-            placeholder="e.g. 5 Years"
+            placeholder="e.g. 5"
             onChange={handleChange}
           />
         </section>

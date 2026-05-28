@@ -39,7 +39,12 @@ export default function PartnerInquiries() {
   const baseInquiries = inquiries.filter(item => {
     const activeRole = (user?.active_role || user?.partner_type || user?.role || '').toLowerCase();
     const type = (item.enquiry_type || '').toLowerCase();
-    const roleMap = { property_agent: 'property', service_provider: 'service', supplier: 'supplier', mandi_seller: 'mandi' };
+    const roleMap = {
+      property_agent: 'property', property: 'property', agent: 'property',
+      service_provider: 'service', service: 'service',
+      supplier: 'supplier', supplier_partner: 'supplier',
+      mandi_seller: 'mandi', mandi: 'mandi'
+    };
     const targetType = roleMap[activeRole];
     if (targetType && type !== targetType) return false;
     return true;
@@ -68,6 +73,7 @@ export default function PartnerInquiries() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'new': return { label: 'New Lead', className: 'bg-emerald-500 text-white' };
+      case 'read': return { label: 'Read', className: 'bg-amber-400 text-white' };
       case 'contacted': return { label: 'Contacted', className: 'bg-blue-600 text-white' };
       case 'closed': return { label: 'Closed', className: 'bg-slate-300 text-white' };
       default: return { label: status, className: 'bg-slate-100 text-slate-600' };
@@ -127,6 +133,7 @@ export default function PartnerInquiries() {
           <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-5 pb-1">
             <FilterTab active={filter === 'all'} label="All" count={baseInquiries.length} onClick={() => setFilter('all')} />
             <FilterTab active={filter === 'new'} label="New" count={baseInquiries.filter(i => i.status === 'new').length} onClick={() => setFilter('new')} />
+            <FilterTab active={filter === 'read'} label="Read" count={baseInquiries.filter(i => i.status === 'read').length} onClick={() => setFilter('read')} />
             <FilterTab active={filter === 'contacted'} label="Contacted" count={baseInquiries.filter(i => i.status === 'contacted').length} onClick={() => setFilter('contacted')} />
           </div>
         )}

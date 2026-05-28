@@ -50,7 +50,8 @@ export default function PartnerHome() {
   const { data: statsRaw, isLoading: statsLoading } = useQuery({
     queryKey: ['partnerStats'],
     queryFn: () => api.get('/partners/stats').then(r => r.data),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
     enabled: !!user,
   });
 
@@ -129,8 +130,8 @@ export default function PartnerHome() {
       title: 'Partner Dashboard',
       primaryIcon: <LayoutGrid className="text-blue-500" />,
       stats: [
-        { label: 'My Listings', value: stats.total_listings, icon: <Building2 size={20} />, color: 'bg-blue-50 text-blue-600' },
-        { label: 'Total Leads', value: stats.total_leads, icon: <Users size={20} />, color: 'bg-orange-50 text-orange-600' },
+        { label: 'My Listings', value: stats.total_listings, icon: <Building2 size={20} />, color: 'bg-blue-50 text-blue-600', href: '/partner/inventory' },
+        { label: 'Total Leads', value: stats.total_leads, icon: <Users size={20} />, color: 'bg-orange-50 text-orange-600', href: '/partner/leads' },
         { label: 'Active Tasks', value: 0, icon: <Zap size={20} />, color: 'bg-amber-50 text-amber-600' },
         { label: 'Performance', value: '100%', icon: <Star size={20} />, color: 'bg-emerald-50 text-emerald-600' }
       ]
@@ -212,13 +213,13 @@ export default function PartnerHome() {
                </div>
                
                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                     <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                  <div className="flex items-center gap-2 min-w-0">
+                     <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
                         <Zap size={16} fill="currentColor" />
                      </div>
-                     <span className="text-[12px] font-black text-[#001b4e] uppercase tracking-widest">{subscriptionLimits.planName || 'Active Plan'}</span>
+                     <span className="text-[12px] font-black text-[#001b4e] uppercase tracking-widest truncate">{subscriptionLimits.planName || 'Active Plan'}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-blue-600 font-bold text-[10px] uppercase tracking-widest">
+                  <div className="flex items-center gap-1 text-blue-600 font-bold text-[10px] uppercase tracking-widest shrink-0 ml-2">
                      Upgrade <ArrowUpRight size={12} />
                   </div>
                </div>
