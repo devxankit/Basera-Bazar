@@ -35,15 +35,18 @@ export default function MandiOrderDetails() {
   const { data: reviewRaw } = useQuery({
     queryKey: ['mandiOrderReview', id],
     queryFn: () => api.get(`/orders/${id}/review`).then(r => r.data),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
     enabled: !!id,
   });
 
   const order = orderRaw?.success ? orderRaw.data : null;
   const review = (() => {
     if (!reviewRaw?.success || !reviewRaw.data?.length) return null;
-    const currentUserId = user?._id || user?.id;
-    return reviewRaw.data.find(r => r.partner_id?.toString() === currentUserId?.toString()) || null;
+    const currentUserId = (user?._id || user?.id)?.toString();
+    // Try to match by partner_id; fall back to the first review (seller gets one review per order)
+    return reviewRaw.data.find(r => r.partner_id?.toString() === currentUserId) || reviewRaw.data[0] || null;
   })();
 
   const sendOTP = async (itemId) => {
