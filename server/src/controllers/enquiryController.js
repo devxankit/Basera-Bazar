@@ -102,7 +102,9 @@ const getMyEnquiries = async (req, res) => {
   try {
     // Note: We use req.user.id to FORCE the query to only return their own data!
     // This is how we ensure data isolation.
-    const enquiries = await Enquiry.find({ user_id: req.user.id }).sort({ createdAt: -1 });
+    const enquiries = await Enquiry.find({ user_id: req.user.id })
+      .populate('partner_id', 'name phone')
+      .sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, count: enquiries.length, data: enquiries });
   } catch (error) {

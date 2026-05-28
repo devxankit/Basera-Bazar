@@ -200,6 +200,7 @@ class DataEngine {
   }
 
   _normalizeEnquiry(item) {
+    const partner = item.partner_id || {};
     return {
       id: item._id,
       category: item.enquiry_type,
@@ -212,7 +213,9 @@ class DataEngine {
       userId: item.user_id,
       phone: item.user_details?.phone,
       email: item.user_details?.email,
-      name: item.user_details?.name
+      name: item.user_details?.name,
+      partnerPhone: typeof partner === 'object' ? partner.phone : null,
+      partnerName: typeof partner === 'object' ? partner.name : null,
     };
   }
 

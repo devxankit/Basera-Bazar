@@ -5,7 +5,7 @@ import { db } from '../../services/DataEngine';
 import {
   ArrowLeft, MessageSquare, Building2, Wrench, Package,
   Clock, ExternalLink, Send, ChevronRight, Search,
-  Filter, Calendar, MapPin, Briefcase, ShoppingBag
+  Filter, Calendar, MapPin, Briefcase, ShoppingBag, Phone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -178,9 +178,21 @@ const MyEnquiriesPage = () => {
                  >
                     <ExternalLink size={14} strokeWidth={3} /> Details
                  </button>
-                 <button className="flex-1 flex items-center justify-center gap-2 py-3 bg-orange-500 text-white rounded-xl text-[12px] font-black uppercase tracking-wider active:scale-[0.98] transition-all shadow-lg shadow-orange-200">
-                    <MessageSquare size={14} strokeWidth={3} /> Contact
-                 </button>
+                 {enquiry.partnerPhone ? (
+                   <a
+                     href={`tel:${enquiry.partnerPhone}`}
+                     className="flex-1 flex items-center justify-center gap-2 py-3 bg-orange-500 text-white rounded-xl text-[12px] font-black uppercase tracking-wider active:scale-[0.98] transition-all shadow-lg shadow-orange-200"
+                   >
+                     <Phone size={14} strokeWidth={3} /> Call Seller
+                   </a>
+                 ) : (
+                   <button
+                     disabled
+                     className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-100 text-slate-400 rounded-xl text-[12px] font-black uppercase tracking-wider cursor-not-allowed"
+                   >
+                     <MessageSquare size={14} strokeWidth={3} /> Contact
+                   </button>
+                 )}
               </div>
             </motion.div>
           ))}

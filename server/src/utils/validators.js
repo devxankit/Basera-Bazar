@@ -425,7 +425,7 @@ const milestoneConfigSchema = z.object({
 
 const enquirySchema = z.object({
   listing_id: mongoId.optional(),
-  enquiry_type: z.enum(['service', 'property', 'supplier', 'general']).optional(),
+  enquiry_type: z.enum(['service', 'property', 'supplier', 'mandi', 'general']).optional(),
   inquiry_type: z.string().optional(),
   content: z.string().min(5, 'Message must be at least 5 characters').max(2000, 'Message too long'),
 }).passthrough();
