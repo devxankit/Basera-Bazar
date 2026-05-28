@@ -213,7 +213,7 @@ export default function AdminUserDetails() {
     ["Agent", "Supplier", "Service Provider"].includes(user.role);
 
   return (
-    <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in duration-700 text-left">
+    <div className="bg-slate-50 pb-20 animate-in fade-in duration-700 text-left">
       <ConfirmationModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal((m) => ({ ...m, isOpen: false }))}
