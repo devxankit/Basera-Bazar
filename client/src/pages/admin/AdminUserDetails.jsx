@@ -690,7 +690,7 @@ function ListingsSection({ properties, services, products }) {
       headerCls: "text-orange-600",
       badgeCls: "bg-orange-50 text-orange-700",
       items: products,
-      pathPrefix: "/admin/mandi",
+      pathPrefix: "/admin/mandi-bazar",
     },
   ];
 

@@ -242,13 +242,15 @@ export default function MandiCheckout() {
                            type="text" placeholder="City *"
                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-[15px] font-medium placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all"
                            value={address.city}
-                           onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                           onChange={(e) => setAddress({ ...address, city: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
                         />
                         <input
                            type="text" placeholder="Pincode *"
+                           inputMode="numeric"
+                           maxLength={6}
                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-[15px] font-medium placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all"
                            value={address.pincode}
-                           onChange={(e) => setAddress({ ...address, pincode: e.target.value })}
+                           onChange={(e) => setAddress({ ...address, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
                         />
                      </div>
                   </div>

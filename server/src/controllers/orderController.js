@@ -628,13 +628,35 @@ const addReview = async (req, res) => {
     );
 
     // 3. Mark items as reviewed in the order
-    const itemIds = item_ratings.map(r => r.item_id);
+    const itemIds = (item_ratings || []).map(r => r.item_id).filter(Boolean);
     order.items.forEach(item => {
       if (itemIds.includes(item._id.toString())) {
         item.isReviewed = true;
       }
     });
     await order.save();
+
+    // 4. Recalculate and update partner's avg_rating
+    const allReviews = await Review.find({ partner_id: partner_id });
+    if (allReviews.length > 0) {
+      const avgBehavior = allReviews.reduce((sum, r) => sum + (r.behavior_rating || 0), 0) / allReviews.length;
+      const roundedAvg = Math.round(avgBehavior * 10) / 10;
+      const partner = await Partner.findById(partner_id);
+      if (partner) {
+        const role = partner.active_role || partner.partner_type;
+        const profileMap = {
+          mandi_seller: 'mandi_profile',
+          service_provider: 'service_profile',
+          supplier: 'supplier_profile',
+          property_agent: 'property_profile',
+        };
+        const profileKey = profileMap[role];
+        if (profileKey && partner[profileKey] !== undefined) {
+          partner[profileKey].avg_rating = roundedAvg;
+          await partner.save();
+        }
+      }
+    }
 
     res.status(200).json({ success: true, message: 'Review saved successfully', data: newReview });
   } catch (error) {

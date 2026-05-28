@@ -30,6 +30,15 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
   const handleFileChange = (e, field) => {
     const file = e.target.files[0];
     if (!file) return;
+    // Check if same image used for both aadhar front and back
+    const otherField = field === 'aadharFront' ? 'aadharBack' : field === 'aadharBack' ? 'aadharFront' : null;
+    if (otherField) {
+      const otherFile = fileRefs.current[otherField];
+      if (otherFile && otherFile.name === file.name && otherFile.size === file.size) {
+        toast.error('Front and back Aadhaar images cannot be the same. Please upload different sides.');
+        return;
+      }
+    }
     // Store original File object for later upload
     fileRefs.current[field] = file;
     // Show local blob: preview immediately (no upload attempt)

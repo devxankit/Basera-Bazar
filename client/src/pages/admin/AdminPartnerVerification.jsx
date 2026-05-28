@@ -322,7 +322,7 @@ export default function AdminPartnerVerification() {
                     <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
                       <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Contact Information</h4>
                       <div className="space-y-4">
-                        <DetailItem icon={<User size={14} />} label="ID" value={selectedPartner._id} />
+                        <DetailItem icon={<User size={14} />} label="ID" value={`#${(selectedPartner._id || '').slice(-8).toUpperCase()}`} />
                         <DetailItem icon={<MapPin size={14} />} label="Location" value={`${selectedPartner.city || 'N/A'}, ${selectedPartner.state || 'N/A'}`} />
                         <DetailItem icon={<Clock size={14} />} label="Joined" value={new Date(selectedPartner.createdAt).toLocaleDateString()} />
                       </div>

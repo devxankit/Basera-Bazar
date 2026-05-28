@@ -118,10 +118,10 @@ export default function PartnerHome() {
         title: 'Mandi Dashboard',
         primaryIcon: <Package className="text-orange-500" />,
         stats: [
-          { label: 'Total Products', value: stats.total_listings, icon: <Package size={20} />, color: 'bg-orange-50 text-orange-600' },
-          { label: 'New Orders', value: stats.active_orders, icon: <Activity size={20} />, color: 'bg-blue-50 text-blue-600' },
-          { label: 'Total Leads', value: stats.total_leads, icon: <Users size={20} />, color: 'bg-emerald-50 text-emerald-600' },
-          { label: 'Earnings', value: `₹${stats.earnings}`, icon: <TrendingUp size={20} />, color: 'bg-purple-50 text-purple-600' }
+          { label: 'Total Products', value: stats.total_listings, icon: <Package size={20} />, color: 'bg-orange-50 text-orange-600', href: '/partner/inventory' },
+          { label: 'New Orders', value: stats.active_orders, icon: <Activity size={20} />, color: 'bg-blue-50 text-blue-600', href: '/partner/orders' },
+          { label: 'Total Leads', value: stats.total_leads, icon: <Users size={20} />, color: 'bg-emerald-50 text-emerald-600', href: '/partner/leads' },
+          { label: 'Earnings', value: `₹${stats.earnings}`, icon: <TrendingUp size={20} />, color: 'bg-purple-50 text-purple-600', href: '/partner/subscription' }
         ]
       };
     }
@@ -262,12 +262,13 @@ export default function PartnerHome() {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
           {config.stats.map((stat, idx) => (
-            <motion.div 
+            <motion.div
               key={idx}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.1 }}
-              className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm"
+              onClick={stat.href ? () => navigate(stat.href) : undefined}
+              className={`bg-white p-5 rounded-2xl border border-slate-100 shadow-sm ${stat.href ? 'cursor-pointer active:scale-95 transition-all hover:border-slate-200 hover:shadow-md' : ''}`}
             >
               <div className={`w-10 h-10 ${stat.color} rounded-xl flex items-center justify-center mb-4`}>
                 {stat.icon}

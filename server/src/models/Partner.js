@@ -35,11 +35,12 @@ const partnerProfileSchema = new mongoose.Schema({
   },
   mandi_profile: {
     material_types: [String],
-    commission_rate: { type: Number }, // Expected to be deprecated
+    commission_rate: { type: Number },
     business_name: { type: String },
     business_logo: { type: String },
     business_description: { type: String },
-    penalty_due: { type: Number, default: 0 } // Log due amount if they cancel an order
+    penalty_due: { type: Number, default: 0 },
+    avg_rating: { type: Number, default: 0 }
   }
 }, { _id: false });
 

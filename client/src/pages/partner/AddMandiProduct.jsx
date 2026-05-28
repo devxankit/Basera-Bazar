@@ -169,11 +169,15 @@ export default function AddMandiProduct() {
       }
       const res = await api.post('/listings/seller-attributes', payload);
       if (res.data.success) {
+        const newAttr = res.data.data;
         setNewItemName('');
         setAddingType(false); setAddingSubType(false); setAddingBrand(false);
-        queryClient.invalidateQueries({ queryKey: ['sellerAttributes', formData.material_id] });
-        // Auto-select the newly added attribute
-        const newAttr = res.data.data;
+        // Optimistically add to cache so the new item is visible immediately
+        // (server-side cache would otherwise return stale data for up to 10 minutes)
+        queryClient.setQueryData(['sellerAttributes', formData.material_id], (old) => {
+          if (!old?.success) return old;
+          return { ...old, data: [...(old.data || []), newAttr] };
+        });
         if (attrType === 'type') setFormData(prev => ({ ...prev, type_name: newAttr.name, sub_type_name: '' }));
         if (attrType === 'sub_type') setFormData(prev => ({ ...prev, sub_type_name: newAttr.name }));
         if (attrType === 'brand') setFormData(prev => ({ ...prev, brand_name: newAttr.name }));
@@ -182,6 +186,21 @@ export default function AddMandiProduct() {
       toast.error(err.response?.data?.message || "Failed to add. May already exist.");
     } finally {
       setSavingAttr(false);
+    }
+  };
+
+  const handleDeleteAttribute = async (attrId, attrType, attrName) => {
+    try {
+      await api.delete(`/listings/seller-attributes/${attrId}`);
+      queryClient.setQueryData(['sellerAttributes', formData.material_id], (old) => {
+        if (!old?.success) return old;
+        return { ...old, data: old.data.filter(a => a._id !== attrId) };
+      });
+      if (attrType === 'type' && formData.type_name === attrName) setFormData(prev => ({ ...prev, type_name: '', sub_type_name: '' }));
+      if (attrType === 'sub_type' && formData.sub_type_name === attrName) setFormData(prev => ({ ...prev, sub_type_name: '' }));
+      if (attrType === 'brand' && formData.brand_name === attrName) setFormData(prev => ({ ...prev, brand_name: '' }));
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to remove.");
     }
   };
 
@@ -325,7 +344,9 @@ export default function AddMandiProduct() {
                 <Plus size={12} /> Add New
               </button>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium -mt-1">e.g. Red Brick, Fly Ash Brick, PPC Cement</p>
+            <p className="text-[11px] text-slate-400 font-medium -mt-1">
+              {/gitti|aggregate/i.test(formData.material_name) ? 'e.g. 20mm, 40mm, 10mm, 6mm' : /sand|m.sand/i.test(formData.material_name) ? 'e.g. River Sand, M-Sand, Robo Sand' : 'e.g. Standard, Premium, Grade A'}
+            </p>
 
             {/* Inline add */}
             <AnimatePresence>
@@ -346,12 +367,16 @@ export default function AddMandiProduct() {
             {sellerTypes.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
                 {sellerTypes.map(t => (
-                  <button key={t._id} onClick={() => setFormData({...formData, type_name: t.name, sub_type_name: ''})}
-                    className={`p-3 rounded-xl border-2 text-[12px] font-bold transition-all ${
-                      formData.type_name === t.name ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 text-slate-400'
-                    }`}>
-                    {t.name}
-                  </button>
+                  <div key={t._id} className={`relative rounded-xl border-2 transition-all ${formData.type_name === t.name ? 'border-blue-600 bg-blue-50' : 'border-slate-100'}`}>
+                    <button onClick={() => setFormData({...formData, type_name: t.name, sub_type_name: ''})}
+                      className={`w-full p-3 pr-7 text-[12px] font-bold text-left ${formData.type_name === t.name ? 'text-blue-700' : 'text-slate-400'}`}>
+                      {t.name}
+                    </button>
+                    <button onClick={() => handleDeleteAttribute(t._id, 'type', t.name)}
+                      className="absolute top-1 right-1 p-1 text-slate-300 hover:text-red-500 transition-colors">
+                      <X size={11} />
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : !addingType && (
@@ -374,7 +399,9 @@ export default function AddMandiProduct() {
                 <Plus size={12} /> Add New
               </button>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium -mt-1">e.g. 9 inch, 10 inch, Grade A</p>
+            <p className="text-[11px] text-slate-400 font-medium -mt-1">
+              {/gitti|aggregate/i.test(formData.material_name) ? 'e.g. Washed, Crushed, Fine' : 'e.g. Grade A, Grade B, Fine'}
+            </p>
 
             <AnimatePresence>
               {addingSubType && (
@@ -394,12 +421,16 @@ export default function AddMandiProduct() {
             {filteredSubTypes.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
                 {filteredSubTypes.map(st => (
-                  <button key={st._id} onClick={() => setFormData({...formData, sub_type_name: st.name})}
-                    className={`p-3 rounded-xl border-2 text-[12px] font-bold transition-all ${
-                      formData.sub_type_name === st.name ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-slate-100 text-slate-400'
-                    }`}>
-                    {st.name}
-                  </button>
+                  <div key={st._id} className={`relative rounded-xl border-2 transition-all ${formData.sub_type_name === st.name ? 'border-orange-500 bg-orange-50' : 'border-slate-100'}`}>
+                    <button onClick={() => setFormData({...formData, sub_type_name: st.name})}
+                      className={`w-full p-3 pr-7 text-[12px] font-bold text-left ${formData.sub_type_name === st.name ? 'text-orange-700' : 'text-slate-400'}`}>
+                      {st.name}
+                    </button>
+                    <button onClick={() => handleDeleteAttribute(st._id, 'sub_type', st.name)}
+                      className="absolute top-1 right-1 p-1 text-slate-300 hover:text-red-500 transition-colors">
+                      <X size={11} />
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : !addingSubType && (
@@ -445,12 +476,16 @@ export default function AddMandiProduct() {
             {sellerBrands.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
                 {sellerBrands.map(b => (
-                  <button key={b._id} onClick={() => setFormData({...formData, brand_name: b.name})}
-                    className={`p-3 rounded-xl border-2 text-[12px] font-bold transition-all ${
-                      formData.brand_name === b.name ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-100 text-slate-400'
-                    }`}>
-                    {b.name}
-                  </button>
+                  <div key={b._id} className={`relative rounded-xl border-2 transition-all ${formData.brand_name === b.name ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100'}`}>
+                    <button onClick={() => setFormData({...formData, brand_name: b.name})}
+                      className={`w-full p-3 pr-7 text-[12px] font-bold text-left ${formData.brand_name === b.name ? 'text-emerald-700' : 'text-slate-400'}`}>
+                      {b.name}
+                    </button>
+                    <button onClick={() => handleDeleteAttribute(b._id, 'brand', b.name)}
+                      className="absolute top-1 right-1 p-1 text-slate-300 hover:text-red-500 transition-colors">
+                      <X size={11} />
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : !addingBrand && (
@@ -536,17 +571,26 @@ export default function AddMandiProduct() {
         {formData.material_id && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4">
             <h3 className="text-[#001b4e] font-bold text-[13px] uppercase tracking-wider">Photo & Description <span className="text-slate-300 font-medium normal-case">(Optional)</span></h3>
-            <div onClick={() => fileInputRef.current.click()}
-              className="bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 h-32 flex items-center justify-center overflow-hidden cursor-pointer active:scale-[0.98] transition-all">
-              {formData.thumbnail ? (
-                <img src={formData.thumbnail} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="flex flex-col items-center text-slate-300">
-                  <Camera size={28} className="mb-1" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Tap to upload</span>
-                </div>
+            <div className="relative">
+              <div onClick={() => fileInputRef.current.click()}
+                className="bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 h-32 flex items-center justify-center overflow-hidden cursor-pointer active:scale-[0.98] transition-all">
+                {formData.thumbnail ? (
+                  <img src={formData.thumbnail} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="flex flex-col items-center text-slate-300">
+                    <Camera size={28} className="mb-1" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Tap to upload</span>
+                  </div>
+                )}
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={handleFileChange} />
+              </div>
+              {formData.thumbnail && (
+                <button
+                  onClick={() => setFormData(prev => ({ ...prev, thumbnail: null }))}
+                  className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
+                  <X size={12} />
+                </button>
               )}
-              <input type="file" ref={fileInputRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={handleFileChange} />
             </div>
             <textarea className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-[13px] font-medium text-[#001b4e] min-h-[80px] outline-none focus:bg-white focus:border-blue-500/20"
               placeholder="Any additional details about this product..."

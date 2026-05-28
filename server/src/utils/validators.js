@@ -361,8 +361,10 @@ const orderReviewSchema = z.object({
   partner_id: mongoId,
   behavior_rating: z.number({ invalid_type_error: 'Rating must be a number' }).int().min(1).max(5),
   item_ratings: z.array(z.object({
-    item_id: z.string(),
-    rating: z.number().int().min(1).max(5),
+    item_id: z.string().optional(),
+    productId: z.string().optional(),
+    quality: z.number().int().min(1).max(5).optional(),
+    quantity: z.number().int().min(1).max(5).optional(),
   })).optional(),
   comment: z.string().max(1000).optional(),
 });
