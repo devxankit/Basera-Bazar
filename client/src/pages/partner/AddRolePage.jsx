@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import toast from '../../mockToast';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Building2, Wrench, Package, Store, Check, 
-  ChevronRight, Loader2, CheckCircle2, Upload, FileText, 
-  CreditCard, Info, Zap, Activity, ShieldCheck, Gift
+import {
+  ArrowLeft, Building2, Wrench, Package, Store, Check,
+  ChevronRight, Loader2, CheckCircle2, Upload, FileText,
+  CreditCard, Info, Zap, Activity, ShieldCheck, Gift, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -156,9 +156,9 @@ export default function AddRolePage() {
     if (!selectedRole) return;
     
     if (step === 1) {
-      if (selectedRole === 'supplier' || selectedRole === 'mandi_seller') {
-        setStep(3); 
-      } else if (selectedRole === 'property_agent') {
+      if (selectedRole === 'supplier') {
+        setStep(3);
+      } else if (selectedRole === 'mandi_seller' || selectedRole === 'property_agent') {
         setStep(2);
       } else {
         handleAddRole();
@@ -320,7 +320,7 @@ export default function AddRolePage() {
       <div className="px-5 py-4 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-50 border-b border-slate-100">
         <button 
           onClick={() => {
-            if (step === 3) setStep(selectedRole === 'mandi_seller' ? 2 : 1);
+            if (step === 3) setStep(selectedRole === 'supplier' ? 1 : 2);
             else if (step === 2) setStep(1);
             else navigate(-1);
           }}
@@ -329,7 +329,7 @@ export default function AddRolePage() {
           <ArrowLeft size={22} />
         </button>
         <h2 className="text-[17px] font-bold text-[#001b4e] uppercase tracking-tight">
-          {step === 1 ? 'Add or Switch Role' : step === 2 ? 'Role Details' : step === 3 ? 'Verification' : 'Activation'}
+          {step === 1 ? 'Add or Switch Role' : step === 2 ? 'Role Details' : step === 3 ? (selectedRole === 'supplier' ? "Supplier's Verification" : selectedRole === 'mandi_seller' ? "Mandi Seller's Verification" : 'Verification') : 'Activation'}
         </h2>
         <div className="w-8" />
       </div>
@@ -609,7 +609,18 @@ export default function AddRolePage() {
                 />
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">GST Certificate</label>
+                  <div className="flex items-center justify-between ml-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">GST Certificate</label>
+                    {gstData.image && !gstData.uploading && (
+                      <button
+                        type="button"
+                        onClick={() => setGstData(prev => ({ ...prev, image: null }))}
+                        className="flex items-center gap-1 text-[10px] font-bold text-rose-500 hover:text-rose-700 transition-colors"
+                      >
+                        <X size={11} /> Remove
+                      </button>
+                    )}
+                  </div>
                   <div className="relative">
                     <input
                       type="file"
@@ -622,7 +633,7 @@ export default function AddRolePage() {
                         gstData.image ? <CheckCircle2 size={40} className="text-emerald-500" /> : <Upload size={40} className="text-slate-200" />
                       )}
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-3">
-                        {gstData.image ? 'Verified Certificate' : 'Click to Upload'}
+                        {gstData.image ? 'Certificate Uploaded — Tap to Change' : 'Click to Upload'}
                       </span>
                     </div>
                   </div>

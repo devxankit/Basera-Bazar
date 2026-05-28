@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, Eye, EyeOff, Loader2, Phone, Bell, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logo from '../../assets/baseralogo.png';
@@ -12,7 +12,9 @@ import TestingModeBanner from '../../components/common/TestingModeBanner';
 
 export default function PartnerLogin() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
+  const redirectTo = location.state?.redirectTo || '/partner/home';
 
   // Auth method
   const [loginMethod, setLoginMethod] = useState('otp'); // 'otp' or 'password'
@@ -45,7 +47,7 @@ export default function PartnerLogin() {
       return;
     }
     registerFCMToken(true);
-    navigate('/partner/home');
+    navigate(redirectTo);
   };
 
   const handleEnableNotifications = async () => {
@@ -55,7 +57,7 @@ export default function PartnerLogin() {
     } catch (err) {
     } finally {
       setShowNotificationPrompt(false);
-      navigate('/partner/home');
+      navigate(redirectTo);
     }
   };
 

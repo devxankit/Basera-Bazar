@@ -298,6 +298,9 @@ export default function AddService() {
     if (!formData.category_id) errs.category_id = 'Please select a service category.';
     const nameErr = v.title(formData.serviceName);
     if (nameErr) errs.serviceName = nameErr;
+    if (!formData.businessName?.trim()) errs.businessName = 'Business name is required.';
+    if (!formData.serviceType) errs.serviceType = 'Please select a service type.';
+    if (!formData.state) errs.state = 'Please select your state.';
     const radiusErr = v.radius(formData.serviceRadiusKm);
     if (radiusErr) errs.serviceRadiusKm = radiusErr;
     const videoErr = v.urlOptional(formData.videoLink);
@@ -704,7 +707,9 @@ export default function AddService() {
                 </div>
                 <div>
                   <h4 className="text-[16px] font-medium text-[#001b4e]">Portfolio Images</h4>
-                  <p className="text-[11px] text-slate-400 font-medium italic">You can add 10 more images</p>
+                  <p className="text-[11px] text-slate-400 font-medium italic">
+                    {formData.portfolio.length >= 10 ? 'Maximum reached' : `You can add ${10 - formData.portfolio.length} more image${10 - formData.portfolio.length === 1 ? '' : 's'}`}
+                  </p>
                 </div>
               </div>
               <div className="bg-slate-50 px-3 py-1 rounded-full text-[12px] font-medium text-[#001b4e] border border-slate-100">
@@ -813,8 +818,8 @@ export default function AddService() {
                   {editId ? 'Your service details have been updated successfully.' : 'Your professional service has been successfully added to your inventory.'}
                 </p>
 
-                <button 
-                  onClick={() => navigate('/partner/services')}
+                <button
+                  onClick={() => navigate('/partner/inventory')}
                   className="w-full bg-[#001b4e] text-white py-4.5 rounded-[20px] font-medium text-[16px] shadow-lg shadow-blue-900/20 active:scale-95 transition-all"
                 >
                   Okay

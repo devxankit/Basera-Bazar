@@ -363,7 +363,8 @@ export default function AdminRoleRequests() {
                   </div>
                 </div>
 
-                {/* Right Side: Document Preview */}
+                {/* Right Side: Document Preview — only for roles that require documents */}
+                {(['supplier', 'mandi_seller', 'property_agent'].includes(selectedRequest.role) || selectedRequest.gst_image || selectedRequest.rera_certificate_image) && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Supporting Document</p>
@@ -412,6 +413,7 @@ export default function AdminRoleRequests() {
                     </div>
                   )}
                 </div>
+                )}
               </div>
 
               {selectedRequest.status === 'pending' && (

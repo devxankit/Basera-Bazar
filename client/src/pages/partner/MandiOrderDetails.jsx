@@ -371,34 +371,30 @@ export default function MandiOrderDetails() {
 
               {item?.status === 'shipped' && (
                 <div className="flex flex-col gap-3">
-                  <div className="flex gap-2 items-center">
-                    <button
-                      onClick={() => sendOTP(item._id)}
-                      disabled={sendingOTP || updating}
-                      className="flex-1 h-10 border border-blue-100 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-sm"
-                    >
-                      {sendingOTP ? <Loader2 className="animate-spin" size={14} /> : <MessageSquare size={14} />}
-                      Verify
-                    </button>
-                    <div className="flex-[2] text-[9px] font-black text-slate-300 uppercase tracking-widest px-2 text-center opacity-60">
-                      Deliver via OTP Auth
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <input 
-                      type="text" 
+                  <button
+                    onClick={() => sendOTP(item._id)}
+                    disabled={sendingOTP || updating}
+                    className="w-full h-10 border border-blue-100 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-sm"
+                  >
+                    {sendingOTP ? <Loader2 className="animate-spin" size={14} /> : <MessageSquare size={14} />}
+                    Send OTP to Customer
+                  </button>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
                       placeholder="AUTH CODE"
                       maxLength={6}
                       value={deliveryOTP}
                       onChange={(e) => setDeliveryOTP(e.target.value)}
-                      className="flex-1 h-12 bg-slate-50 border border-slate-200 rounded-xl text-center text-[15px] font-black tracking-[0.4em] outline-none focus:border-emerald-500/30 transition-all placeholder:text-[10px] placeholder:tracking-widest"
+                      className="min-w-0 flex-1 h-12 bg-slate-50 border border-slate-200 rounded-xl text-center text-[15px] font-black tracking-[0.4em] outline-none focus:border-emerald-500/30 transition-all placeholder:text-[10px] placeholder:tracking-widest"
                     />
                     <button
                       onClick={() => updateStatus(item._id, 'delivered', 'cod', deliveryOTP)}
-                      disabled={updating}
-                      className="px-6 h-12 bg-emerald-600 text-white rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 font-black text-[13px] uppercase tracking-widest active:scale-95 transition-all"
+                      disabled={updating || !deliveryOTP}
+                      className="shrink-0 px-4 h-12 bg-emerald-600 text-white rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 font-black text-[12px] uppercase tracking-wide active:scale-95 transition-all disabled:opacity-50"
                     >
-                      {updating ? <Loader2 className="animate-spin" size={20} /> : <ShieldCheck size={18} />}
+                      {updating ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={16} />}
                       Confirm
                     </button>
                   </div>

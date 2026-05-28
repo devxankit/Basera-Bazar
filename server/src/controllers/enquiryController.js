@@ -75,7 +75,8 @@ const createEnquiry = async (req, res) => {
         {
           type: 'enquiry',
           enquiry_id: newEnquiry._id,
-          listing_id: targetListing._id
+          listing_id: targetListing._id,
+          enquiry_type: enquiry_type || 'general'
         }
       );
     }

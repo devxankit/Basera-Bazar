@@ -8,10 +8,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PartnerNotifications() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
@@ -21,7 +24,22 @@ export default function PartnerNotifications() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const notifications = rawData?.success ? rawData.data : [];
+  const rawNotifications = rawData?.success ? rawData.data : [];
+
+  // Filter enquiry notifications by active role so a multi-role partner
+  // doesn't see leads meant for a different role type (#174)
+  const roleEnquiryTypeMap = {
+    property_agent: 'property', service_provider: 'service',
+    supplier: 'supplier', mandi_seller: 'mandi'
+  };
+  const activeRole = user?.active_role || user?.partner_type;
+  const expectedEnquiryType = roleEnquiryTypeMap[activeRole];
+  const notifications = rawNotifications.filter(n => {
+    if (n.data?.type === 'enquiry' && expectedEnquiryType && n.data?.enquiry_type) {
+      return n.data.enquiry_type === expectedEnquiryType;
+    }
+    return true;
+  });
 
   const handleDelete = async (id) => {
     try {
@@ -110,7 +128,7 @@ export default function PartnerNotifications() {
                   <div className="flex-grow min-w-0">
                     <div className="flex items-center justify-between gap-2">
                        <div className="text-[13px] font-black text-[#001b4e] uppercase tracking-tight truncate leading-tight">{n.title}</div>
-                       <button onClick={(e) => { e.stopPropagation(); handleDelete(n._id); }} className="text-slate-300 hover:text-rose-500 p-1">
+                       <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(n._id); }} className="text-slate-300 hover:text-rose-500 p-1">
                           <Trash2 size={12} />
                        </button>
                     </div>
@@ -126,6 +144,51 @@ export default function PartnerNotifications() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AnimatePresence>
+        {confirmDeleteId && (
+          <div className="fixed inset-0 z-200 flex items-end justify-center p-4 pb-8">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmDeleteId(null)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center shrink-0">
+                  <Trash2 size={18} className="text-rose-500" />
+                </div>
+                <div>
+                  <p className="text-[14px] font-black text-[#001b4e]">Delete Notification?</p>
+                  <p className="text-[11px] font-medium text-slate-400">This action cannot be undone.</p>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-2xl text-[13px] font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => { handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
+                  className="flex-1 py-3 bg-rose-600 text-white rounded-2xl text-[13px] font-bold shadow-lg shadow-rose-600/20"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -258,6 +258,11 @@ export default function PartnerRegistration() {
       });
       window.location.replace(`/payment/status?${params.toString()}`);
     } catch (error) {
+      if (error.response?.data?.code === 'PHONE_EXISTS') {
+        toast.error('This phone is already registered. Please login to add a new role.');
+        navigate('/partner/login', { state: { redirectTo: '/partner/add-role' } });
+        return;
+      }
       toast.error(error.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -369,6 +374,11 @@ export default function PartnerRegistration() {
     } catch (error) {
       // Clean up the auth header if it was set before the failure
       delete api.defaults.headers.common['Authorization'];
+      if (error.response?.data?.code === 'PHONE_EXISTS') {
+        toast.error('This phone is already registered. Please login to add a new role.');
+        navigate('/partner/login', { state: { redirectTo: '/partner/add-role' } });
+        return;
+      }
       toast.error(error.response?.data?.message || "Failed to start payment. Please try again.");
       setIsSubmitting(false);
     }
@@ -423,7 +433,13 @@ export default function PartnerRegistration() {
           >
             <ArrowLeft size={24} />
           </button>
-          <h2 className="text-[17px] font-bold text-[#001b4e]">Partner Registration</h2>
+          <h2 className="text-[17px] font-bold text-[#001b4e]">
+            {selectedRole === 'agent' ? 'Agent Registration'
+              : selectedRole === 'service' ? 'Service Provider Registration'
+              : selectedRole === 'supplier' ? 'Supplier Registration'
+              : selectedRole === 'mandi' ? 'Mandi Seller Registration'
+              : 'Partner Registration'}
+          </h2>
           <div className="w-8" /> {/* Spacer */}
         </div>
 
