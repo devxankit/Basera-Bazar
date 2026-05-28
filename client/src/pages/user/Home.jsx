@@ -37,10 +37,10 @@ const Home = () => {
       cacheService.invalidate('all_partners_');
 
       const [props, servs, supps, mandi] = await Promise.all([
-        db.getAll('listings', { category: 'property', is_featured: 'true', limit: 8, ...locationParams }),
-        db.getAll('listings', { category: 'service', is_featured: 'true', limit: 8, ...locationParams }),
-        db.getAll('partners', { category: 'supplier', is_featured: 'true', limit: 8, ...locationParams }),
-        db.getAll('listings', { category: 'mandi', is_featured: 'true', limit: 8, ...locationParams })
+        db.getAll('listings', { category: 'property', limit: 8, ...locationParams }),
+        db.getAll('listings', { category: 'service', limit: 8, ...locationParams }),
+        db.getAll('partners', { category: 'supplier', limit: 8, ...locationParams }),
+        db.getAll('listings', { category: 'mandi', limit: 8, ...locationParams })
       ]).catch(() => [[], [], [], []]);
       return { props, servs, supps, mandi };
     },

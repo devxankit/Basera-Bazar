@@ -353,9 +353,10 @@ const LeadSubmission = () => {
           <div className="space-y-3">
              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Requirement Sheet / Photo</label>
              <div className="relative">
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   accept="image/jpeg, image/png, image/webp, application/pdf"
+                  capture="environment"
                   onChange={handleFileUpload}
                   className="absolute inset-0 opacity-0 cursor-pointer z-10"
                 />
@@ -367,8 +368,13 @@ const LeadSubmission = () => {
                     <Loader2 size={24} className="text-[#1f2355] animate-spin" />
                   ) : formData.document_url ? (
                     <>
-                      <CheckCircle2 size={24} className="text-emerald-500" />
+                      {/\.(jpg|jpeg|png|webp)$/i.test(formData.document_url) ? (
+                        <img src={formData.document_url} alt="Uploaded preview" className="w-24 h-24 object-cover rounded-xl border border-emerald-200" />
+                      ) : (
+                        <CheckCircle2 size={24} className="text-emerald-500" />
+                      )}
                       <span className="text-[11px] font-black text-emerald-600 uppercase">File Uploaded Successfully</span>
+                      <span className="text-[10px] text-emerald-500 font-medium">Tap to replace</span>
                     </>
                   ) : (
                     <>

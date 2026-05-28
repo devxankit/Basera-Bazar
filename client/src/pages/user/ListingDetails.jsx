@@ -696,7 +696,7 @@ const ListingDetails = () => {
                     </div>
 
                     <button 
-                      onClick={() => navigate(isMandi ? `/seller/${listing.owner?.id}` : `/agent/${listing.owner?.id}`)}
+                      onClick={() => navigate(`/agent/${listing.owner?.id}`)}
                       className="w-full mt-4 bg-slate-50 border border-slate-100 py-3 rounded-2xl text-[13px] font-bold text-[#1f2355] hover:bg-slate-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
                       <LayoutGrid size={16} />

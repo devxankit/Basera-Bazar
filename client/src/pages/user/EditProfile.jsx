@@ -5,7 +5,7 @@ import api from '../../services/api';
 import { useMutation } from '@tanstack/react-query';
 import {
   ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff,
-  Loader2, CheckCircle2, ShieldCheck, Key, Smartphone, AlertCircle
+  Loader2, CheckCircle2, ShieldCheck, Key, Smartphone, AlertCircle, Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -46,6 +46,33 @@ const EditProfile = () => {
   const [otp, setOtp] = useState('');
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [phoneStatus, setPhoneStatus] = useState(null);
+
+  // ── Section 0: Profile Photo ─────────────────────────────────────────────
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageStatus, setImageStatus] = useState(null);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    setImageStatus(null);
+    try {
+      const { compressImage } = await import('../../utils/imageUtils');
+      const optimized = await compressImage(file);
+      const formData = new FormData();
+      formData.append('image', optimized);
+      const uploadRes = await api.post('/upload', formData);
+      if (uploadRes.data.success) {
+        await api.put('/auth/profile', { profileImage: uploadRes.data.url });
+        updateUser({ profileImage: uploadRes.data.url });
+        setImageStatus({ type: 'success', message: 'Profile photo updated!' });
+      }
+    } catch (err) {
+      setImageStatus({ type: 'error', message: err.response?.data?.message || 'Upload failed. Please try again.' });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // ── Section 3: Password ──────────────────────────────────────────────────
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
@@ -164,6 +191,50 @@ const EditProfile = () => {
       </div>
 
       <div className="p-6 space-y-8 max-w-md mx-auto w-full overflow-x-hidden">
+
+        {/* ── SECTION 0: Profile Photo ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm space-y-5"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
+              <Camera size={20} />
+            </div>
+            <h3 className="text-[17px] font-bold text-[#1f2355]">Profile Photo</h3>
+          </div>
+          <div className="flex items-center gap-5">
+            <div className="relative shrink-0">
+              <img
+                src={user.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=f1f5f9&color=64748b`}
+                alt="Profile"
+                className="w-20 h-20 rounded-3xl object-cover border-2 border-slate-100"
+              />
+              {uploadingImage && (
+                <div className="absolute inset-0 bg-white/80 rounded-3xl flex items-center justify-center">
+                  <Loader2 size={20} className="animate-spin text-[#1f2355]" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <label className="relative cursor-pointer block">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  capture="environment"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                />
+                <span className="flex items-center gap-2 px-5 py-3 bg-[#1f2355] text-white rounded-2xl text-[13px] font-bold w-fit shadow-sm">
+                  <Camera size={16} /> Change Photo
+                </span>
+              </label>
+              <p className="text-[11px] text-slate-400 font-medium mt-2">JPEG, PNG or WebP · Max 5MB</p>
+            </div>
+          </div>
+          <StatusMsg type={imageStatus?.type} message={imageStatus?.message} />
+        </motion.div>
 
         {/* ── SECTION 1: Basic Information ── */}
         <motion.div

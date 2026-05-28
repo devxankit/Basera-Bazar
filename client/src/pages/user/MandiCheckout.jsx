@@ -45,15 +45,34 @@ export default function MandiCheckout() {
 
    const config = configRaw?.success ? configRaw.data : { token_amount: 500 };
 
-   const [address, setAddress] = useState({
-      receiver_name: '',
-      receiver_phone: '',
-      street: '',
-      city: '',
-      state: 'Bihar',
-      pincode: '',
-      landmark: ''
+   const [address, setAddress] = useState(() => {
+      try {
+         const saved = sessionStorage.getItem('mandiCheckoutAddress');
+         return saved ? JSON.parse(saved) : {
+            receiver_name: '',
+            receiver_phone: '',
+            street: '',
+            city: '',
+            state: 'Bihar',
+            pincode: '',
+            landmark: ''
+         };
+      } catch {
+         return {
+            receiver_name: '',
+            receiver_phone: '',
+            street: '',
+            city: '',
+            state: 'Bihar',
+            pincode: '',
+            landmark: ''
+         };
+      }
    });
+
+   useEffect(() => {
+      sessionStorage.setItem('mandiCheckoutAddress', JSON.stringify(address));
+   }, [address]);
 
    const getUniqueSellersCount = () => {
       const sellerIds = Object.values(cart).map(c => c.item.owner?.id || c.item.partner_id || c.item.seller_id);
@@ -105,25 +124,29 @@ export default function MandiCheckout() {
             }
          });
 
-         if (res.data.success) {
-            const { razorpay_order_id, payment_amount, key } = res.data.data;
+         if (!res.data.success) {
+            toast.error(res.data.message || 'Failed to create order. Please try again.');
+            return;
+         }
 
-            // Testing/mock mode: skip Razorpay, verify directly to show success screen
-            if (key === 'rzp_test_mock' || razorpay_order_id.startsWith('order_mock_')) {
-               const verifyRes = await api.post('/orders/payment/verify', {
-                  razorpay_order_id,
-                  razorpay_payment_id: `pay_mock_${Date.now()}`,
-                  razorpay_signature: 'mock'
-               });
-               if (verifyRes.data.success) {
-                  const confirmedOrder = verifyRes.data.data;
-                  setOrderData({ order: confirmedOrder });
-                  setDeliveryOtp(confirmedOrder.items?.[0]?.delivery_otp || '');
-                  clearCart();
-                  setStep(3);
-               }
-               return;
+         const { razorpay_order_id, payment_amount, key } = res.data.data;
+
+         // Testing/mock mode: skip Razorpay, verify directly to show success screen
+         if (key === 'rzp_test_mock' || razorpay_order_id.startsWith('order_mock_')) {
+            const verifyRes = await api.post('/orders/payment/verify', {
+               razorpay_order_id,
+               razorpay_payment_id: `pay_mock_${Date.now()}`,
+               razorpay_signature: 'mock'
+            });
+            if (verifyRes.data.success) {
+               const confirmedOrder = verifyRes.data.data;
+               setOrderData({ order: confirmedOrder });
+               setDeliveryOtp(confirmedOrder.items?.[0]?.delivery_otp || '');
+               clearCart();
+               setStep(3);
             }
+            return;
+         }
 
             // Real Razorpay flow — load SDK and open modal
             await loadScript('https://checkout.razorpay.com/v1/checkout.js');
@@ -153,7 +176,6 @@ export default function MandiCheckout() {
 
             const rzp = new window.Razorpay(options);
             rzp.open();
-         }
       } catch (err) {
          const errorMsg = err.response?.data?.message || err.message || "Order failed";
          toast.error(errorMsg);
