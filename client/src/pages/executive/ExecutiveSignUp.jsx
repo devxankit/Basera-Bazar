@@ -122,6 +122,14 @@ export default function ExecutiveSignUp() {
     const file = e.target.files[0];
     if (!file) return;
 
+    const docLabel = field === 'aadhar_image' ? 'Aadhaar' : 'PAN card';
+
+    // Only allow images (camera capture or gallery photos)
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image (JPG or PNG).');
+      return;
+    }
+
     // Client-side size guard: camera photos can be huge; reject above 20 MB before even trying
     if (file.size > 20 * 1024 * 1024) {
       toast.error('Photo is too large (>20 MB). Please choose a photo under 20 MB.');
@@ -135,10 +143,18 @@ export default function ExecutiveSignUp() {
     const localPreview = URL.createObjectURL(file);
     setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, [field]: localPreview } }));
 
-    // Compress + upload in the background; surface errors to the user
+    // Persistent loading toast while we optimise + upload
+    const loadingToastId = toast.loading(`Optimising & uploading ${docLabel} image…`);
+
+    // Compress + upload in the background; surface progress, success and errors to the user
     queueUpload(field, file, {
+      onSuccess: () => {
+        toast.dismiss(loadingToastId);
+        toast.success(`${docLabel} uploaded successfully!`);
+      },
       onError: (msg) => {
-        toast.error(`${field === 'aadhar_image' ? 'Aadhaar' : 'PAN'} photo upload failed: ${msg} — please re-upload.`);
+        toast.dismiss(loadingToastId);
+        toast.error(`${docLabel} upload failed: ${msg} — please re-upload.`);
         setUploadErrors(prev => ({ ...prev, [field]: msg }));
         // Remove the broken preview so the user can try again
         setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, [field]: null } }));
@@ -741,12 +757,12 @@ const DocUpload = ({ label, value, onChange, onRemove, error, uploadError }) => 
   return (
     <div className="space-y-1.5">
       <div className="relative">
-        {/* File extension-based accept prevents camera from appearing in Android's file chooser.
-            No capture attribute so iOS does not force-open camera. */}
+        {/* Accept any image — lets the user pick from gallery OR capture directly with camera.
+            Captured/selected photo is optimised then uploaded with toast feedback. */}
         {(!value || uploadError) && (
           <input
             type="file"
-            accept=".jpg,.jpeg,.png"
+            accept="image/*"
             onChange={onChange}
             className="absolute inset-0 opacity-0 cursor-pointer z-10"
           />
@@ -772,7 +788,7 @@ const DocUpload = ({ label, value, onChange, onRemove, error, uploadError }) => 
               <p className="text-xs mt-0.5 text-slate-400">
                 {isUploaded   ? '✓ Uploaded — tap × to remove'
                  : uploadError ? 'Upload failed — tap to retry'
-                 :               'Select from gallery or files'}
+                 :               'Tap to capture or choose a photo'}
               </p>
               {!isUploaded && !uploadError && (
                 <p className="text-[10px] text-slate-300 mt-0.5 uppercase tracking-widest">JPG · PNG</p>

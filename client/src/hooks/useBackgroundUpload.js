@@ -99,7 +99,7 @@ export function useBackgroundUpload() {
    * @param {string} field   - Unique field identifier (e.g. 'aadhar_image')
    * @param {File}   file    - The raw File object from input[type=file]
    */
-  const queueUpload = useCallback((field, file, { onError } = {}) => {
+  const queueUpload = useCallback((field, file, { onError, onSuccess } = {}) => {
     // Cancel any previous upload for this field
     if (uploadMap.current[field]) {
       _cancelField(field, uploadMap.current);
@@ -133,6 +133,9 @@ export function useBackgroundUpload() {
           if (url) _deleteFromCloudinary(url);
           return null;
         }
+
+        if (url && onSuccess) onSuccess(url);
+        else if (!url) throw new Error('Upload did not return a valid image URL.');
 
         return url;
       } catch (err) {
