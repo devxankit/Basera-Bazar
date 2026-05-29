@@ -1,46 +1,74 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
 const router = express.Router();
 const { upload, cloudinary } = require('../config/cloudinary');
 const { protect } = require('../middlewares/authMiddleware');
+
+// Shared Multer wrapper — runs upload.single('image') and surfaces a clean 400 on error
+const handleMulter = (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      logger.error({ err }, '[Upload] Multer error:');
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'Error during file upload. Ensure format is jpg/png/webp.',
+      });
+    }
+    next();
+  });
+};
+
+// Shared success handler — returns the Cloudinary URL
+const sendUploadResult = (req, res) => {
+  try {
+    if (!req.file) {
+      logger.warn({ contentType: req.headers['content-type'] }, '[Upload] Missing req.file.');
+      return res.status(400).json({ success: false, message: 'Please upload a valid image file.' });
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Image uploaded successfully!',
+      url: req.file.path,
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Upload error:');
+    res.status(500).json({ success: false, message: 'Server error during upload.' });
+  }
+};
+
+// Verify a short-lived signup token (e.g. exec_phone_verified) so KYC images can be
+// uploaded during registration, before the account exists / the user is logged in.
+const verifySignupToken = (req, res, next) => {
+  const token = req.headers['x-signup-token'] || req.body?.signup_token;
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Signup verification required to upload.' });
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.type !== 'exec_phone_verified') {
+      return res.status(401).json({ success: false, message: 'Invalid signup token.' });
+    }
+    req.signupPhone = decoded.phone;
+    next();
+  } catch (err) {
+    return res.status(401).json({ success: false, message: 'Signup session expired. Please restart registration.' });
+  }
+};
 
 /**
  * @desc    Upload an image to Cloudinary and get the URL back
  * @route   POST /api/upload
  * @access  Private (Must be logged in to prevent spam uploads)
  */
-// We use the `upload.single('image')` middleware from Multer.
-// `image` must match the key name the frontend uses in the FormData object.
-router.post('/', protect, (req, res, next) => {
-  logger.info(`[Upload] Request received from user: ${req.user?._id}`)
-  upload.single('image')(req, res, (err) => {
-    if (err) {
-      logger.error({ err: err }, "[Upload] Multer error:")
-      return res.status(400).json({ 
-        success: false, 
-        message: err.message || 'Error during file upload. Ensure format is jpg/png/webp.' 
-      });
-    }
-    next();
-  });
-}, (req, res) => {
-  try {
-    if (!req.file) {
-      logger.warn({ err: req.body }, "[Upload] Missing req.file. Body:")
-      logger.warn("[Upload] Headers:", req.headers['content-type'])
-      return res.status(400).json({ success: false, message: 'Please upload a valid image file.' });
-    }
+router.post('/', protect, handleMulter, sendUploadResult);
 
-    res.status(200).json({
-      success: true,
-      message: 'Image uploaded successfully!',
-      url: req.file.path
-    });
-  } catch (error) {
-    logger.error({ err: error }, "Upload error:")
-    res.status(500).json({ success: false, message: 'Server error during upload.' });
-  }
-});
+/**
+ * @desc    Upload a KYC image during signup (before the account exists)
+ * @route   POST /api/upload/signup
+ * @access  Signup-scoped — requires a valid phone-verified signup token
+ */
+router.post('/signup', verifySignupToken, handleMulter, sendUploadResult);
 
 /**
  * @desc    Delete an image from Cloudinary by its URL

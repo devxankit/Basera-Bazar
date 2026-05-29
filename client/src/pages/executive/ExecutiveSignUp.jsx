@@ -37,6 +37,12 @@ export default function ExecutiveSignUp() {
   const [errors, setErrors] = useState({});
   const [phoneVerifiedToken, setPhoneVerifiedToken] = useState(null);
 
+  // Uploads during signup hit a signup-scoped endpoint (account doesn't exist yet),
+  // authorised by the short-lived phone-verified token.
+  const signupUploadOpts = phoneVerifiedToken
+    ? { uploadUrl: '/upload/signup', headers: { 'X-Signup-Token': phoneVerifiedToken } }
+    : {};
+
   // Field-level validators — schema-like for clarity and reuse
   const VALIDATORS = {
     name: (v) => !v?.trim() ? 'Full name is required' : !/^[a-zA-Z\s]+$/.test(v.trim()) ? 'Name can only contain letters' : '',
@@ -136,6 +142,12 @@ export default function ExecutiveSignUp() {
       return;
     }
 
+    if (!phoneVerifiedToken) {
+      toast.error('Session expired. Please restart registration.');
+      setStep(1);
+      return;
+    }
+
     // Clear any prior upload error for this field
     setUploadErrors(prev => ({ ...prev, [field]: null }));
 
@@ -148,6 +160,7 @@ export default function ExecutiveSignUp() {
 
     // Compress + upload in the background; surface progress, success and errors to the user
     queueUpload(field, file, {
+      ...signupUploadOpts,
       onSuccess: () => {
         toast.dismiss(loadingToastId);
         toast.success(`${docLabel} uploaded successfully!`);
@@ -245,13 +258,18 @@ export default function ExecutiveSignUp() {
       setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, live_photo: dataUrl } }));
       stopCamera();
       // Convert dataURL to File and queue background upload
+      const loadingToastId = toast.loading('Optimising & uploading selfie…');
       fetch(dataUrl)
         .then(r => r.blob())
         .then(blob => {
           const file = new File([blob], 'live_photo.jpg', { type: 'image/jpeg' });
-          queueUpload('live_photo', file);
+          queueUpload('live_photo', file, {
+            ...signupUploadOpts,
+            onSuccess: () => { toast.dismiss(loadingToastId); toast.success('Selfie uploaded successfully!'); },
+            onError: (msg) => { toast.dismiss(loadingToastId); toast.error(`Selfie upload failed: ${msg} — please retake.`); },
+          });
         })
-        .catch(() => {}); // non-fatal
+        .catch(() => { toast.dismiss(loadingToastId); }); // non-fatal
     }
   };
 
@@ -700,7 +718,12 @@ export default function ExecutiveSignUp() {
         if (file) {
           const localUrl = URL.createObjectURL(file);
           setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, live_photo: localUrl } }));
-          queueUpload('live_photo', file);
+          const loadingToastId = toast.loading('Optimising & uploading selfie…');
+          queueUpload('live_photo', file, {
+            ...signupUploadOpts,
+            onSuccess: () => { toast.dismiss(loadingToastId); toast.success('Selfie uploaded successfully!'); },
+            onError: (msg) => { toast.dismiss(loadingToastId); toast.error(`Selfie upload failed: ${msg} — please retake.`); },
+          });
         }
       }} />
     </div>

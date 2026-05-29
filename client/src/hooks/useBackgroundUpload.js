@@ -99,7 +99,7 @@ export function useBackgroundUpload() {
    * @param {string} field   - Unique field identifier (e.g. 'aadhar_image')
    * @param {File}   file    - The raw File object from input[type=file]
    */
-  const queueUpload = useCallback((field, file, { onError, onSuccess } = {}) => {
+  const queueUpload = useCallback((field, file, { onError, onSuccess, uploadUrl = '/upload', headers } = {}) => {
     // Cancel any previous upload for this field
     if (uploadMap.current[field]) {
       _cancelField(field, uploadMap.current);
@@ -121,7 +121,7 @@ export function useBackgroundUpload() {
         // 2. Upload
         const formData = new FormData();
         formData.append('image', optimizedFile);
-        const response = await api.post('/upload', formData);
+        const response = await api.post(uploadUrl, formData, headers ? { headers } : undefined);
         const url = response.data?.url || null;
 
         // Store URL so cancelUpload can delete it from Cloudinary
