@@ -99,7 +99,7 @@ export function useBackgroundUpload() {
    * @param {string} field   - Unique field identifier (e.g. 'aadhar_image')
    * @param {File}   file    - The raw File object from input[type=file]
    */
-  const queueUpload = useCallback((field, file) => {
+  const queueUpload = useCallback((field, file, { onError } = {}) => {
     // Cancel any previous upload for this field
     if (uploadMap.current[field]) {
       _cancelField(field, uploadMap.current);
@@ -112,6 +112,11 @@ export function useBackgroundUpload() {
 
         // Check if this field was cancelled during compression
         if (uploadMap.current[field]?.status === 'cancelled') return null;
+
+        // If compression fell back to original and it exceeds server limit, reject early
+        if (optimizedFile.size > 4.5 * 1024 * 1024) {
+          throw new Error('Image is too large. Please choose a smaller photo (max 5 MB).');
+        }
 
         // 2. Upload
         const formData = new FormData();
@@ -131,7 +136,13 @@ export function useBackgroundUpload() {
 
         return url;
       } catch (err) {
-        console.error(`[useBackgroundUpload] Upload failed for field "${field}":`, err);
+        const message = err.response?.data?.message || err.message || 'Upload failed. Please re-upload.';
+        console.error(`[useBackgroundUpload] Upload failed for field "${field}":`, message);
+        if (uploadMap.current[field]) {
+          uploadMap.current[field].status = 'error';
+          uploadMap.current[field].error = message;
+        }
+        if (onError) onError(message);
         return null;
       }
     })();
@@ -140,6 +151,7 @@ export function useBackgroundUpload() {
       promise: uploadPromise,
       status: 'uploading',
       url: null,
+      error: null,
     };
   }, [compressFile]);
 
@@ -185,7 +197,15 @@ export function useBackgroundUpload() {
     });
   }, []);
 
-  return { queueUpload, awaitUpload, getLocalPreview, cancelUpload, cancelAll };
+  const getUploadStatus = useCallback((field) => {
+    return uploadMap.current[field]?.status || null; // 'uploading' | 'done' | 'error' | 'cancelled' | null
+  }, []);
+
+  const getUploadError = useCallback((field) => {
+    return uploadMap.current[field]?.error || null;
+  }, []);
+
+  return { queueUpload, awaitUpload, getLocalPreview, cancelUpload, cancelAll, getUploadStatus, getUploadError };
 }
 
 // ─── Private Helpers ──────────────────────────────────────────────────────────

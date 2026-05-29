@@ -19,7 +19,8 @@ export default function ExecutiveSignUp() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const fallbackCameraRef = useRef(null);
-  const { queueUpload, awaitUpload, cancelUpload } = useBackgroundUpload();
+  const { queueUpload, awaitUpload, cancelUpload, getUploadStatus } = useBackgroundUpload();
+  const [uploadErrors, setUploadErrors] = useState({});
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -121,17 +122,33 @@ export default function ExecutiveSignUp() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Show local preview immediately (fast — no upload needed for preview)
+    // Client-side size guard: camera photos can be huge; reject above 20 MB before even trying
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Photo is too large (>20 MB). Please choose a photo under 20 MB.');
+      return;
+    }
+
+    // Clear any prior upload error for this field
+    setUploadErrors(prev => ({ ...prev, [field]: null }));
+
+    // Show local preview immediately
     const localPreview = URL.createObjectURL(file);
     setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, [field]: localPreview } }));
 
-    // Compress + upload to Cloudinary in the background right now
-    queueUpload(field, file);
+    // Compress + upload in the background; surface errors to the user
+    queueUpload(field, file, {
+      onError: (msg) => {
+        toast.error(`${field === 'aadhar_image' ? 'Aadhaar' : 'PAN'} photo upload failed: ${msg} — please re-upload.`);
+        setUploadErrors(prev => ({ ...prev, [field]: msg }));
+        // Remove the broken preview so the user can try again
+        setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, [field]: null } }));
+      },
+    });
   };
 
   const handleRemoveKycImage = (field) => {
-    // Cancel background upload and delete from Cloudinary if already done
     cancelUpload(field);
+    setUploadErrors(prev => ({ ...prev, [field]: null }));
     setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, [field]: null } }));
   };
 
@@ -353,7 +370,7 @@ export default function ExecutiveSignUp() {
       return;
     }
     setIsSubmitting(true);
-    const loadingToastId = toast.loading('Submitting registration…');
+    const loadingToastId = toast.loading('Uploading documents…');
     try {
       // Await background uploads — resolves instantly if already done
       const [aadharUrl, panUrl, livePhotoUrl] = await Promise.all([
@@ -362,11 +379,36 @@ export default function ExecutiveSignUp() {
         awaitUpload('live_photo'),
       ]);
 
+      // Validate every URL is a real Cloudinary URL — not a blob:// or null
+      const isCloudinaryUrl = (url) =>
+        typeof url === 'string' && url.startsWith('https://res.cloudinary.com');
+
+      if (!isCloudinaryUrl(aadharUrl)) {
+        toast.dismiss(loadingToastId);
+        toast.error('Aadhaar photo upload failed. Please remove it and re-upload.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!isCloudinaryUrl(panUrl)) {
+        toast.dismiss(loadingToastId);
+        toast.error('PAN card photo upload failed. Please remove it and re-upload.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!isCloudinaryUrl(livePhotoUrl)) {
+        toast.dismiss(loadingToastId);
+        toast.error('Live photo upload failed. Please retake your selfie.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      toast.loading('Submitting registration…', { id: loadingToastId });
+
       const kyc = {
         ...formData.kyc,
-        aadhar_image: aadharUrl || formData.kyc.aadhar_image,
-        pan_image: panUrl || formData.kyc.pan_image,
-        live_photo: livePhotoUrl || formData.kyc.live_photo,
+        aadhar_image: aadharUrl,
+        pan_image: panUrl,
+        live_photo: livePhotoUrl,
       };
 
       // Single DB write — creates executive with pending status
@@ -607,7 +649,7 @@ export default function ExecutiveSignUp() {
                 </div>
                 <div className="p-5 space-y-4">
                   <InputField label="Aadhaar Number" name="aadhar_number" inputMode="numeric" maxLength={12} value={formData.kyc.aadhar_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="12-digit UIDAI number" error={errors.aadhar_number} />
-                  <DocUpload label="Aadhaar Front Side" value={formData.kyc.aadhar_image} onChange={(e) => handleFileUpload(e, 'aadhar_image')} onRemove={() => handleRemoveKycImage('aadhar_image')} error={errors.aadhar_image} />
+                  <DocUpload label="Aadhaar Front Side" value={formData.kyc.aadhar_image} onChange={(e) => handleFileUpload(e, 'aadhar_image')} onRemove={() => handleRemoveKycImage('aadhar_image')} error={errors.aadhar_image} uploadError={uploadErrors.aadhar_image} />
                 </div>
               </div>
 
@@ -621,7 +663,7 @@ export default function ExecutiveSignUp() {
                 </div>
                 <div className="p-5 space-y-4">
                   <InputField label="PAN Number" name="pan_number" maxLength={10} value={formData.kyc.pan_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="ABCDE1234F" error={errors.pan_number} />
-                  <DocUpload label="PAN Card Photo" value={formData.kyc.pan_image} onChange={(e) => handleFileUpload(e, 'pan_image')} onRemove={() => handleRemoveKycImage('pan_image')} error={errors.pan_image} />
+                  <DocUpload label="PAN Card Photo" value={formData.kyc.pan_image} onChange={(e) => handleFileUpload(e, 'pan_image')} onRemove={() => handleRemoveKycImage('pan_image')} error={errors.pan_image} uploadError={uploadErrors.pan_image} />
                 </div>
               </div>
 
@@ -693,31 +735,56 @@ const InputField = ({ label, icon: Icon, prefix, error, ...props }) => (
   </div>
 );
 
-const DocUpload = ({ label, value, onChange, onRemove, error }) => (
-  <div className="space-y-1.5">
-    <div className="relative">
-      {!value && <input type="file" accept="image/*" onChange={onChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />}
-      <div className={`w-full py-4 px-5 rounded-2xl border-2 border-dashed flex items-center justify-between transition-all ${value ? 'border-green-400 bg-green-50' : error ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50 hover:border-[#001b4e] hover:bg-blue-50'}`}>
-        <div className="flex items-center gap-4">
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden ${value ? 'bg-green-500 text-white' : error ? 'bg-red-100 text-red-500' : 'bg-white text-slate-400 border border-slate-200'}`}>
-            {value ? <img src={value} alt={label} className="w-full h-full object-cover" /> : <Camera size={20} />}
+const DocUpload = ({ label, value, onChange, onRemove, error, uploadError }) => {
+  const hasError = error || uploadError;
+  const isUploaded = value && !uploadError;
+  return (
+    <div className="space-y-1.5">
+      <div className="relative">
+        {/* Always show the file input when there's an upload error (so user can retry) */}
+        {(!value || uploadError) && (
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/*" onChange={onChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+        )}
+        <div className={`w-full py-4 px-5 rounded-2xl border-2 border-dashed flex items-center justify-between transition-all ${
+          isUploaded ? 'border-green-400 bg-green-50'
+          : uploadError ? 'border-red-400 bg-red-50'
+          : error ? 'border-red-300 bg-red-50'
+          : 'border-slate-200 bg-slate-50 hover:border-[#001b4e] hover:bg-blue-50'
+        }`}>
+          <div className="flex items-center gap-4">
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden ${
+              isUploaded ? 'bg-green-500 text-white'
+              : hasError ? 'bg-red-100 text-red-500'
+              : 'bg-white text-slate-400 border border-slate-200'
+            }`}>
+              {isUploaded ? <img src={value} alt={label} className="w-full h-full object-cover" /> : <Camera size={20} />}
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-700">{label}</p>
+              <p className="text-xs mt-0.5 text-slate-400">
+                {isUploaded ? '✓ Uploaded — tap × to remove'
+                  : uploadError ? 'Upload failed — tap to retry'
+                  : 'Tap to upload photo'}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-bold text-slate-700">{label}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{value ? '✓ Uploaded — tap × to remove' : 'Tap to upload photo'}</p>
-          </div>
+          {isUploaded ? (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
+              className="p-2 rounded-xl bg-red-100 text-red-500 hover:bg-red-200 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          ) : (
+            <span className={`text-xs font-bold px-3 py-1.5 rounded-lg border ${uploadError ? 'bg-red-100 text-red-600 border-red-200' : 'bg-white text-slate-400 border-slate-200'}`}>
+              {uploadError ? 'Retry' : 'Upload'}
+            </span>
+          )}
         </div>
-        {value ? (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
-            className="p-2 rounded-xl bg-red-100 text-red-500 hover:bg-red-200 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-        ) : <span className="text-xs font-bold text-slate-400 bg-white border border-slate-200 px-3 py-1.5 rounded-lg">Upload</span>}
       </div>
+      {error && !uploadError && <p className="text-xs text-red-500 font-semibold ml-0.5">{error}</p>}
+      {uploadError && <p className="text-xs text-red-500 font-semibold ml-0.5">Upload failed — tap the box above to retry with a different photo.</p>}
     </div>
-    {error && <p className="text-xs text-red-500 font-semibold ml-0.5">{error}</p>}
-  </div>
-);
+  );
+};
