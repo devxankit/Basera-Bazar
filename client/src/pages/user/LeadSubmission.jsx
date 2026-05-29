@@ -54,12 +54,14 @@ const LeadSubmission = () => {
   const handleRemoveProduct = (index) => {
     if (products.length > 1) {
       setProducts(products.filter((_, i) => i !== index));
+    } else {
+      setProducts([{ item_name: '', quantity: '', unit: 'Unit' }]);
     }
   };
 
   const handleProductChange = (index, field, value) => {
     const newProducts = [...products];
-    newProducts[index][field] = value;
+    newProducts[index][field] = field === 'item_name' ? value.replace(/[0-9]/g, '') : value;
     setProducts(newProducts);
   };
 
@@ -71,7 +73,7 @@ const LeadSubmission = () => {
     try {
       const res = await db.uploadFile(file);
       if (res.success) {
-        setFormData({ ...formData, document_url: res.url });
+        setFormData(prev => ({ ...prev, document_url: res.url }));
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message || "Unknown error";
@@ -286,7 +288,7 @@ const LeadSubmission = () => {
               </div>
               <h2 className="font-black text-[#1f2355] uppercase text-sm tracking-wide">Requirement Table</h2>
             </div>
-            <button 
+            <button
               type="button" onClick={handleAddProduct}
               className="p-2 bg-indigo-50 text-indigo-600 rounded-xl active:scale-90 transition-all"
             >
@@ -298,36 +300,42 @@ const LeadSubmission = () => {
             {products.map((p, index) => (
               <div key={index} className="flex gap-2 items-end group animate-in slide-in-from-right-4 duration-300">
                 <div className="flex-grow space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-tighter ml-1">Item Name</label>
-                  <input 
-                    type="text" placeholder="Ex: Red Bricks"
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-tighter ml-1">
+                    {targetCategory === 'service' ? 'Service Name' : 'Item Name'}
+                  </label>
+                  <input
+                    type="text" placeholder={targetCategory === 'service' ? 'Ex: House Painting' : 'Ex: Red Bricks'}
                     value={p.item_name} onChange={(e) => handleProductChange(index, 'item_name', e.target.value)}
                     className="w-full bg-slate-50 rounded-xl px-3 py-2.5 text-xs font-bold text-[#1f2355] border border-transparent focus:border-indigo-500/20 outline-none"
                   />
                 </div>
-                <div className="w-20 space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-tighter ml-1">Qty</label>
-                  <input 
-                    type="number" placeholder="0"
-                    value={p.quantity} onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
-                    className="w-full bg-slate-50 rounded-xl px-3 py-2.5 text-xs font-bold text-[#1f2355] border border-transparent focus:border-indigo-500/20 outline-none"
-                  />
-                </div>
-                <div className="w-20 space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-tighter ml-1">Unit</label>
-                  <select 
-                    value={p.unit} onChange={(e) => handleProductChange(index, 'unit', e.target.value)}
-                    className="w-full bg-slate-50 rounded-xl px-2 py-2.5 text-xs font-bold text-[#1f2355] outline-none"
-                  >
-                    <option>Unit</option>
-                    <option>Ton</option>
-                    <option>Piece</option>
-                    <option>Sqft</option>
-                    <option>Bags</option>
-                    <option>Day</option>
-                  </select>
-                </div>
-                <button 
+                {targetCategory !== 'service' && (
+                  <>
+                    <div className="w-20 space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-tighter ml-1">Qty</label>
+                      <input
+                        type="number" placeholder="0"
+                        value={p.quantity} onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
+                        className="w-full bg-slate-50 rounded-xl px-3 py-2.5 text-xs font-bold text-[#1f2355] border border-transparent focus:border-indigo-500/20 outline-none"
+                      />
+                    </div>
+                    <div className="w-20 space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-tighter ml-1">Unit</label>
+                      <select
+                        value={p.unit} onChange={(e) => handleProductChange(index, 'unit', e.target.value)}
+                        className="w-full bg-slate-50 rounded-xl px-2 py-2.5 text-xs font-bold text-[#1f2355] outline-none"
+                      >
+                        <option>Unit</option>
+                        <option>Ton</option>
+                        <option>Piece</option>
+                        <option>Sqft</option>
+                        <option>Bags</option>
+                        <option>Day</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+                <button
                   type="button" onClick={() => handleRemoveProduct(index)}
                   className="mb-1 p-2.5 text-slate-300 hover:text-red-500 transition-colors"
                 >
@@ -356,7 +364,6 @@ const LeadSubmission = () => {
                 <input
                   type="file"
                   accept="image/jpeg, image/png, image/webp, application/pdf"
-                  capture="environment"
                   onChange={handleFileUpload}
                   className="absolute inset-0 opacity-0 cursor-pointer z-10"
                 />
