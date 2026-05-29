@@ -36,6 +36,9 @@ export default function StaffForgotPassword() {
     e.preventDefault();
     if (!otp || !newPassword) return toast.error('OTP and new password are required.');
     if (newPassword.length < 8) return toast.error('Password must be at least 8 characters.');
+    if (!/[A-Z]/.test(newPassword)) return toast.error('Password must contain at least one uppercase letter.');
+    if (!/[0-9]/.test(newPassword)) return toast.error('Password must contain at least one number.');
+    if (!/[^A-Za-z0-9]/.test(newPassword)) return toast.error('Password must contain at least one special character (e.g. @, #, !).');
 
     setLoading(true);
     try {
@@ -129,7 +132,7 @@ export default function StaffForgotPassword() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Minimum 8 characters"
+                  placeholder="Min 8 chars, 1 uppercase, 1 number, 1 special"
                   required
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
                 />

@@ -184,7 +184,7 @@ export default function AdminTeamLeaderForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Full Name *</label>
-              <input type="text" value={form.name} onChange={(e) => set('name', e.target.value)} required placeholder="e.g. Rajesh Kumar" className={inputCls} />
+              <input type="text" value={form.name} onChange={(e) => set('name', e.target.value.replace(/[0-9]/g, ''))} required placeholder="e.g. Rajesh Kumar" className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Phone Number *</label>
@@ -266,7 +266,7 @@ export default function AdminTeamLeaderForm() {
             </div>
             <div>
               <label className={labelCls}>City</label>
-              <input type="text" value={form.address.city} onChange={(e) => setAddress('city', e.target.value)} className={inputCls} />
+              <input type="text" value={form.address.city} onChange={(e) => setAddress('city', e.target.value.replace(/[0-9]/g, ''))} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Pincode</label>

@@ -61,7 +61,7 @@ export default function ExecutiveLogin() {
       ) {
         setShowNotFoundModal(true);
       } else {
-        toast.error(error.response?.data?.message || "Invalid credentials");
+        toast.error(error.response?.data?.message || "Incorrect password. Please check and try again.");
       }
     } finally {
       setIsSubmitting(false);

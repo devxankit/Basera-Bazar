@@ -34,6 +34,7 @@ export default function ExecutiveProfile() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [showFullPhoto, setShowFullPhoto] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', email: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [showBankForm, setShowBankForm] = useState(false);
@@ -160,7 +161,10 @@ export default function ExecutiveProfile() {
         {/* Centered Identity Section */}
         <motion.div variants={itemVariants} className="flex flex-col items-center text-center space-y-6">
           <div className="relative">
-            <div className="w-32 h-32 bg-emerald-600 rounded-[2.5rem] flex items-center justify-center text-white text-4xl font-medium shadow-2xl shadow-emerald-200 relative z-10 overflow-hidden">
+            <div
+              onClick={() => { if (profile?.kyc?.live_photo || profile?.image) setShowFullPhoto(true); }}
+              className={`w-32 h-32 bg-emerald-600 rounded-[2.5rem] flex items-center justify-center text-white text-4xl font-medium shadow-2xl shadow-emerald-200 relative z-10 overflow-hidden ${(profile?.kyc?.live_photo || profile?.image) ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
+            >
               {(profile?.kyc?.live_photo || profile?.image) ? (
                 <img src={profile?.kyc?.live_photo || profile?.image} alt={profile?.name} className="w-full h-full object-cover" />
               ) : (
@@ -170,9 +174,40 @@ export default function ExecutiveProfile() {
             <div className="absolute inset-0 bg-emerald-600/20 blur-3xl rounded-full scale-150 -z-0" />
           </div>
 
+          {/* Fullscreen photo modal */}
+          <AnimatePresence>
+            {showFullPhoto && (
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setShowFullPhoto(false)}
+                className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-6"
+              >
+                <img
+                  src={profile?.kyc?.live_photo || profile?.image}
+                  alt={profile?.name}
+                  className="max-w-full max-h-full rounded-2xl object-contain"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="space-y-1">
             <h2 className="text-3xl font-medium text-slate-900 tracking-tight">{profile?.name}</h2>
-            <p className="text-slate-400 font-medium text-[15px]">+91 {profile?.phone}</p>
+            <p className="text-slate-400 font-medium text-[15px]">Field Executive</p>
+          </div>
+
+          {/* Contact info chips */}
+          <div className="flex flex-wrap justify-center gap-2">
+            {profile?.phone && (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-full text-[11px] font-medium text-slate-600">
+                <Phone size={11} className="text-slate-400" /> +91 {profile.phone}
+              </span>
+            )}
+            {profile?.email && (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-full text-[11px] font-medium text-slate-600">
+                <Mail size={11} className="text-slate-400" /> {profile.email}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -195,82 +230,6 @@ export default function ExecutiveProfile() {
               </span>
             )}
           </div>
-        </motion.div>
-
-        {/* KYC / Verification Status Card — Dynamic */}
-        <motion.div variants={itemVariants} className="bg-white rounded-[2rem] border border-slate-100 p-6 shadow-sm shadow-slate-200/50">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-xs font-medium text-slate-900 uppercase tracking-widest">Account Status</h3>
-            {(kycStatus === 'verified' || kycStatus === 'approved') && (
-              <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-medium uppercase tracking-widest rounded-lg border border-emerald-100">Verified</span>
-            )}
-            {(kycStatus === 'pending' || kycStatus === 'pending_approval') && (
-              <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[9px] font-medium uppercase tracking-widest rounded-lg border border-amber-100">Under Review</span>
-            )}
-            {kycStatus === 'rejected' && (
-              <span className="px-3 py-1 bg-rose-50 text-rose-600 text-[9px] font-medium uppercase tracking-widest rounded-lg border border-rose-100">Rejected</span>
-            )}
-            {kycStatus === 'incomplete' && (
-              <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[9px] font-medium uppercase tracking-widest rounded-lg border border-blue-100">Incomplete</span>
-            )}
-          </div>
-
-          {/* VERIFIED / APPROVED */}
-          {(kycStatus === 'verified' || kycStatus === 'approved') && (
-            <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-5 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0">
-                  <CheckCircle2 size={20} className="text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-[13px] font-medium text-emerald-900 leading-tight">Your account is fully verified!</p>
-                  <p className="text-[11px] text-emerald-600 mt-0.5">You can now onboard sellers using your referral code.</p>
-                </div>
-              </div>
-              {profile?.referral_code && (
-                <div className="mt-3 bg-white border border-emerald-100 rounded-xl px-4 py-3 flex items-center justify-between">
-                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Your Referral Code</span>
-                  <span className="text-[15px] font-medium text-emerald-700 tracking-widest">{profile.referral_code}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* PENDING KYC / PENDING APPROVAL */}
-          {(kycStatus === 'pending' || kycStatus === 'pending_approval') && (
-            <div className="bg-amber-50/50 border border-amber-100/50 rounded-2xl p-5 space-y-3">
-              <p className="text-[13px] font-medium text-amber-900 leading-relaxed">
-                KYC verification is in progress. Admin will review your documents shortly.
-              </p>
-              <p className="text-[11px] font-medium text-amber-600 italic">Usually takes 24–48 working hours.</p>
-            </div>
-          )}
-
-          {/* REJECTED */}
-          {kycStatus === 'rejected' && (
-            <div className="bg-rose-50/50 border border-rose-100 rounded-2xl p-5 space-y-3">
-              <div className="flex items-start gap-3">
-                <ShieldAlert size={18} className="text-rose-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[13px] font-medium text-rose-900 leading-relaxed">Your application was rejected.</p>
-                  {profile?.kyc?.rejection_reason && (
-                    <p className="text-[11px] text-rose-600 mt-1 italic">Reason: {profile.kyc.rejection_reason}</p>
-                  )}
-                  <p className="text-[11px] text-rose-500 mt-2">Please contact support for assistance.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* INCOMPLETE */}
-          {kycStatus === 'incomplete' && (
-            <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 space-y-3">
-              <p className="text-[13px] font-medium text-blue-900 leading-relaxed">
-                Your profile is incomplete. Please complete your KYC to proceed.
-              </p>
-              <p className="text-[11px] text-blue-600">Contact support or re-register to complete your KYC documents.</p>
-            </div>
-          )}
         </motion.div>
 
         {/* Unverified notice */}

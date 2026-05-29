@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useScrollLock } from '../../hooks/useScrollLock';
+import { useNavigate } from 'react-router-dom';
 import {
   Users, Search, Filter, Phone, Building2, Calendar,
-  Zap, Globe, X, MapPin, Clock, AlertTriangle, CheckCircle2,
-  ChevronRight, ArrowRight, Tag, RefreshCw
+  Zap, Globe, MapPin, Clock, AlertTriangle, CheckCircle2,
+  ChevronRight, Tag, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -245,10 +245,10 @@ function PartnerDetailModal({ partnerId, onClose }) {
 }
 
 export default function ExecutivePartners() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedPartnerId, setSelectedPartnerId] = useState(null);
 
   const { data: rawData, isLoading: loading, refetch: fetchPartners, error: partnersListError } = useQuery({
     queryKey: ['executiveMyPartners'],
@@ -380,7 +380,7 @@ export default function ExecutivePartners() {
               <motion.div
                 variants={itemVariants}
                 key={partner._id}
-                onClick={() => setSelectedPartnerId(partner._id)}
+                onClick={() => navigate(`/executive/partners/${partner._id}`)}
                 className="bg-white/40 backdrop-blur-md p-6 rounded-[2.5rem] border border-white/80 shadow-sm relative overflow-hidden group hover:shadow-xl hover:shadow-slate-200/50 hover:bg-white transition-all duration-300 cursor-pointer active:scale-[0.98]"
               >
                 <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl -mr-16 -mt-16 opacity-10 group-hover:opacity-20 transition-opacity ${
@@ -448,15 +448,6 @@ export default function ExecutivePartners() {
         )}
       </motion.div>
 
-      {/* Detail Modal */}
-      <AnimatePresence>
-        {selectedPartnerId && (
-          <PartnerDetailModal
-            partnerId={selectedPartnerId}
-            onClose={() => setSelectedPartnerId(null)}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

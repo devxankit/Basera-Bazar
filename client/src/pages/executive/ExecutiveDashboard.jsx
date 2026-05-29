@@ -328,61 +328,73 @@ export default function ExecutiveDashboard() {
 
         {/* ── Stats Grid ── */}
         <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+          <button
+            onClick={() => { if (isVerified) navigate('/executive/partners'); else handleLockedClick('My Network'); }}
+            className={`bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-left transition-all active:scale-[0.98] ${isVerified ? 'hover:border-slate-200' : 'opacity-60 cursor-default'}`}
+          >
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">My Network</p>
             <p className="text-2xl font-bold text-slate-900 mt-1">{isVerified ? (stats?.totalSellers || 0) : '—'}</p>
             <p className="text-[9px] text-slate-300 uppercase font-medium mt-0.5">Total Partners</p>
-          </div>
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+          </button>
+          <button
+            onClick={() => { if (isVerified) navigate('/executive/partners'); else handleLockedClick('Active Partners'); }}
+            className={`bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-left transition-all active:scale-[0.98] ${isVerified ? 'hover:border-slate-200' : 'opacity-60 cursor-default'}`}
+          >
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active</p>
             <p className="text-2xl font-bold text-slate-900 mt-1">{isVerified ? (stats?.paidSellers || 0) : '—'}</p>
             <p className="text-[9px] text-slate-300 uppercase font-medium mt-0.5">Paid Sellers</p>
-          </div>
+          </button>
         </motion.div>
 
         {/* ── Daily Task Progress ── */}
-        <AnimatePresence>
-          {isVerified && dailyTask?.exists && (
-            <motion.div
-              variants={itemVariants}
-              className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4 relative overflow-hidden"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                    <Target size={16} />
-                  </div>
-                  <div>
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">Today's Target</h3>
-                    <p className="text-[9px] font-bold text-slate-400">{dailyTask.date}</p>
-                  </div>
+        {isVerified && (
+          <motion.div
+            variants={itemVariants}
+            className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4 relative overflow-hidden"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                  <Target size={16} />
                 </div>
+                <div>
+                  <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">Today's Target</h3>
+                  {dailyTask?.exists && <p className="text-[9px] font-bold text-slate-400">{dailyTask.date}</p>}
+                </div>
+              </div>
+              {dailyTask?.exists && (
                 <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border ${
-                  dailyTask.percentage >= 50 
-                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                  dailyTask.percentage >= 50
+                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                     : 'bg-rose-50 text-rose-600 border-rose-100'
                 }`}>
                   {dailyTask.percentage}%
                 </span>
-              </div>
-              <div className="h-2.5 bg-slate-50 rounded-full overflow-hidden p-0.5 border border-slate-100">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(100, dailyTask.percentage)}%` }}
-                  transition={{ duration: 1, ease: 'easeOut' }}
-                  className={`h-full rounded-full ${
-                    dailyTask.percentage >= 50 
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500' 
-                      : 'bg-gradient-to-r from-amber-500 to-orange-500'
-                  }`}
-                />
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium">
-                {dailyTask.completed} / {dailyTask.target_count} sellers completed
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              )}
+            </div>
+            {dailyTask?.exists ? (
+              <>
+                <div className="h-2.5 bg-slate-50 rounded-full overflow-hidden p-0.5 border border-slate-100">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, dailyTask.percentage)}%` }}
+                    transition={{ duration: 1, ease: 'easeOut' }}
+                    className={`h-full rounded-full ${
+                      dailyTask.percentage >= 50
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                        : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                    }`}
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {dailyTask.completed} / {dailyTask.target_count} sellers completed
+                </p>
+              </>
+            ) : (
+              <p className="text-[11px] text-slate-400 font-medium">No target assigned for today.</p>
+            )}
+          </motion.div>
+        )}
 
         {/* ── Referral Hub ── */}
         <motion.div variants={itemVariants} className="bg-slate-50 p-5 rounded-2xl border border-slate-100">

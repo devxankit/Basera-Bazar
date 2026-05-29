@@ -161,7 +161,7 @@ export default function StaffLogin() {
             </div>
             <h3 className="text-[20px] font-bold text-slate-900 mb-2">Incorrect Credentials</h3>
             <p className="text-slate-500 text-[14px] mb-7 leading-relaxed">
-              The phone number or password you entered is wrong. Please check your credentials and try again.
+              The password you entered is incorrect. Your phone number was found — please double-check your password and try again.
             </p>
             <button
               onClick={() => {

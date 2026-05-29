@@ -118,6 +118,9 @@ const ExecutiveDashboard = lazy(
 const ExecutivePartners = lazy(
   () => import("./pages/executive/ExecutivePartners"),
 );
+const ExecutivePartnerDetail = lazy(
+  () => import("./pages/executive/ExecutivePartnerDetail"),
+);
 const ExecutiveWallet = lazy(() => import("./pages/executive/ExecutiveWallet"));
 const ExecutiveProfile = lazy(
   () => import("./pages/executive/ExecutiveProfile"),
@@ -1204,6 +1207,16 @@ function App() {
                             <VerifiedExecutiveRoute>
                               <ExecutiveLayout>
                                 <ExecutivePartners />
+                              </ExecutiveLayout>
+                            </VerifiedExecutiveRoute>
+                          }
+                        />
+                        <Route
+                          path="/executive/partners/:id"
+                          element={
+                            <VerifiedExecutiveRoute>
+                              <ExecutiveLayout>
+                                <ExecutivePartnerDetail />
                               </ExecutiveLayout>
                             </VerifiedExecutiveRoute>
                           }
