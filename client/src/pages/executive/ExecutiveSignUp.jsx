@@ -18,13 +18,14 @@ const steps = [
 export default function ExecutiveSignUp() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const fallbackCameraRef = useRef(null);
-  const { queueUpload, awaitUpload, cancelUpload, getUploadStatus } = useBackgroundUpload();
+  const { queueUpload, awaitUpload, cancelUpload } = useBackgroundUpload();
   const [uploadErrors, setUploadErrors] = useState({});
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
-  
+  // Which KYC field the in-app camera is capturing for: null | 'live_photo' | 'aadhar_image' | 'pan_image'
+  const [cameraField, setCameraField] = useState(null);
+  const [cameraReady, setCameraReady] = useState(false);
+
   // Camera Refs
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -124,24 +125,27 @@ export default function ExecutiveSignUp() {
     setErrors(prev => ({ ...prev, [name]: fieldError || undefined }));
   };
 
-  const handleFileUpload = (e, field) => {
-    const file = e.target.files[0];
+  const KYC_LABELS = {
+    aadhar_image: 'Aadhaar',
+    pan_image: 'PAN card',
+    live_photo: 'Selfie',
+  };
+
+  // Shared optimise + upload flow used by BOTH gallery selection and in-app camera capture.
+  const uploadKycFile = (field, file) => {
     if (!file) return;
+    const docLabel = KYC_LABELS[field] || 'Document';
 
-    const docLabel = field === 'aadhar_image' ? 'Aadhaar' : 'PAN card';
-
-    // Only allow images (camera capture or gallery photos)
+    // Only allow images
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image (JPG or PNG).');
       return;
     }
-
     // Client-side size guard: camera photos can be huge; reject above 20 MB before even trying
     if (file.size > 20 * 1024 * 1024) {
       toast.error('Photo is too large (>20 MB). Please choose a photo under 20 MB.');
       return;
     }
-
     if (!phoneVerifiedToken) {
       toast.error('Session expired. Please restart registration.');
       setStep(1);
@@ -158,7 +162,6 @@ export default function ExecutiveSignUp() {
     // Persistent loading toast while we optimise + upload
     const loadingToastId = toast.loading(`Optimising & uploading ${docLabel} image…`);
 
-    // Compress + upload in the background; surface progress, success and errors to the user
     queueUpload(field, file, {
       ...signupUploadOpts,
       onSuccess: () => {
@@ -169,10 +172,16 @@ export default function ExecutiveSignUp() {
         toast.dismiss(loadingToastId);
         toast.error(`${docLabel} upload failed: ${msg} — please re-upload.`);
         setUploadErrors(prev => ({ ...prev, [field]: msg }));
-        // Remove the broken preview so the user can try again
         setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, [field]: null } }));
       },
     });
+  };
+
+  const handleFileUpload = (e, field) => {
+    const file = e.target.files[0];
+    // Reset the input so re-selecting the same file still fires onChange
+    e.target.value = '';
+    uploadKycFile(field, file);
   };
 
   const handleRemoveKycImage = (field) => {
@@ -183,29 +192,30 @@ export default function ExecutiveSignUp() {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      // Front camera for the selfie, rear camera for documents
+      const facingMode = cameraField === 'live_photo' ? 'user' : { ideal: 'environment' };
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
+      streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        streamRef.current = stream;
         await videoRef.current.play();
+        setCameraReady(true);
       }
-    } catch (err) {
-      toast.error('Camera access failed. Please upload a photo instead.');
-      setIsCameraOpen(false);
-      // Automatically trigger file input for fallback
-      if (fallbackCameraRef.current) {
-        fallbackCameraRef.current.click();
-      }
+    } catch {
+      toast.error('Camera access failed. Please choose a photo from your gallery instead.');
+      setCameraField(null);
     }
   };
 
   useEffect(() => {
-    if (isCameraOpen) {
+    if (cameraField) {
+      setCameraReady(false);
       startCamera();
     } else {
       stopCamera();
     }
-  }, [isCameraOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraField]);
 
   useEffect(() => {
     if (resendTimer <= 0) return;
@@ -241,36 +251,41 @@ export default function ExecutiveSignUp() {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
-    setIsCameraOpen(false);
+    setCameraReady(false);
   };
 
+  // Capture the current video frame, convert to a JPEG File, and run it through
+  // the shared optimise + upload flow. Works for selfie (mirrored) and documents.
   const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
+    const field = cameraField;
+    if (!videoRef.current || !canvasRef.current || !field) return;
+
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    if (!video.videoWidth || !video.videoHeight) {
+      toast.error('Camera is still starting — please wait a moment and try again.');
+      return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (field === 'live_photo') {
+      // Mirror the selfie so it matches the on-screen preview
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
-      ctx.drawImage(video, 0, 0);
-      const dataUrl = canvas.toDataURL('image/jpeg');
-      setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, live_photo: dataUrl } }));
-      stopCamera();
-      // Convert dataURL to File and queue background upload
-      const loadingToastId = toast.loading('Optimising & uploading selfie…');
-      fetch(dataUrl)
-        .then(r => r.blob())
-        .then(blob => {
-          const file = new File([blob], 'live_photo.jpg', { type: 'image/jpeg' });
-          queueUpload('live_photo', file, {
-            ...signupUploadOpts,
-            onSuccess: () => { toast.dismiss(loadingToastId); toast.success('Selfie uploaded successfully!'); },
-            onError: (msg) => { toast.dismiss(loadingToastId); toast.error(`Selfie upload failed: ${msg} — please retake.`); },
-          });
-        })
-        .catch(() => { toast.dismiss(loadingToastId); }); // non-fatal
     }
+    ctx.drawImage(video, 0, 0);
+
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        toast.error('Could not capture the photo. Please try again.');
+        return;
+      }
+      const file = new File([blob], `${field}.jpg`, { type: 'image/jpeg' });
+      setCameraField(null); // closes camera + stops stream via effect
+      uploadKycFile(field, file);
+    }, 'image/jpeg', 0.92);
   };
 
   const validateStep = (fields) => {
@@ -645,23 +660,14 @@ export default function ExecutiveSignUp() {
                   {formData.kyc.live_photo && <CheckCircle2 size={18} className="text-green-500" />}
                 </div>
                 <div className="p-4">
-                  <div className={`relative h-56 rounded-2xl border-2 border-dashed overflow-hidden transition-all ${formData.kyc.live_photo || isCameraOpen ? 'border-indigo-400 bg-black' : 'border-slate-200 bg-slate-50 hover:border-indigo-300'}`}>
-                    {isCameraOpen ? (
-                      <div className="relative w-full h-full">
-                        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
-                        <canvas ref={canvasRef} className="hidden" />
-                        <div className="absolute bottom-4 inset-x-0 flex justify-center gap-3">
-                          <button onClick={stopCamera} className="px-5 py-2.5 bg-white/15 backdrop-blur text-white text-xs font-bold rounded-xl border border-white/20 uppercase tracking-wider">Cancel</button>
-                          <button onClick={capturePhoto} className="px-7 py-2.5 bg-white text-slate-900 text-xs font-bold rounded-xl shadow-xl uppercase tracking-wider">Capture</button>
-                        </div>
-                      </div>
-                    ) : formData.kyc.live_photo ? (
+                  <div className={`relative h-56 rounded-2xl border-2 border-dashed overflow-hidden transition-all ${formData.kyc.live_photo ? 'border-indigo-400 bg-black' : 'border-slate-200 bg-slate-50 hover:border-indigo-300'}`}>
+                    {formData.kyc.live_photo ? (
                       <div className="relative w-full h-full">
                         <img src={formData.kyc.live_photo} alt="Selfie" className="w-full h-full object-cover" />
-                        <button onClick={() => setIsCameraOpen(true)} className="absolute bottom-3 right-3 p-3 bg-indigo-600 text-white rounded-2xl shadow-xl"><Camera size={18} /></button>
+                        <button onClick={() => setCameraField('live_photo')} className="absolute bottom-3 right-3 p-3 bg-indigo-600 text-white rounded-2xl shadow-xl"><Camera size={18} /></button>
                       </div>
                     ) : (
-                      <button type="button" onClick={() => setIsCameraOpen(true)} className="w-full h-full flex flex-col items-center justify-center gap-3">
+                      <button type="button" onClick={() => setCameraField('live_photo')} className="w-full h-full flex flex-col items-center justify-center gap-3">
                         <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center"><Camera size={28} /></div>
                         <div className="text-center">
                           <p className="text-sm font-bold text-slate-700">Take Live Photo</p>
@@ -683,7 +689,7 @@ export default function ExecutiveSignUp() {
                 </div>
                 <div className="p-5 space-y-4">
                   <InputField label="Aadhaar Number" name="aadhar_number" inputMode="numeric" maxLength={12} value={formData.kyc.aadhar_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="12-digit UIDAI number" error={errors.aadhar_number} />
-                  <DocUpload label="Aadhaar Front Side" value={formData.kyc.aadhar_image} onChange={(e) => handleFileUpload(e, 'aadhar_image')} onRemove={() => handleRemoveKycImage('aadhar_image')} error={errors.aadhar_image} uploadError={uploadErrors.aadhar_image} />
+                  <DocUpload label="Aadhaar Front Side" value={formData.kyc.aadhar_image} onChange={(e) => handleFileUpload(e, 'aadhar_image')} onCapture={() => setCameraField('aadhar_image')} onRemove={() => handleRemoveKycImage('aadhar_image')} error={errors.aadhar_image} uploadError={uploadErrors.aadhar_image} />
                 </div>
               </div>
 
@@ -697,7 +703,7 @@ export default function ExecutiveSignUp() {
                 </div>
                 <div className="p-5 space-y-4">
                   <InputField label="PAN Number" name="pan_number" maxLength={10} value={formData.kyc.pan_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="ABCDE1234F" error={errors.pan_number} />
-                  <DocUpload label="PAN Card Photo" value={formData.kyc.pan_image} onChange={(e) => handleFileUpload(e, 'pan_image')} onRemove={() => handleRemoveKycImage('pan_image')} error={errors.pan_image} uploadError={uploadErrors.pan_image} />
+                  <DocUpload label="PAN Card Photo" value={formData.kyc.pan_image} onChange={(e) => handleFileUpload(e, 'pan_image')} onCapture={() => setCameraField('pan_image')} onRemove={() => handleRemoveKycImage('pan_image')} error={errors.pan_image} uploadError={uploadErrors.pan_image} />
                 </div>
               </div>
 
@@ -713,19 +719,65 @@ export default function ExecutiveSignUp() {
         </AnimatePresence>
       </div>
 
-      <input type="file" ref={fallbackCameraRef} accept="image/*" capture="user" className="hidden" onChange={(e) => {
-        const file = e.target.files[0];
-        if (file) {
-          const localUrl = URL.createObjectURL(file);
-          setFormData(prev => ({ ...prev, kyc: { ...prev.kyc, live_photo: localUrl } }));
-          const loadingToastId = toast.loading('Optimising & uploading selfie…');
-          queueUpload('live_photo', file, {
-            ...signupUploadOpts,
-            onSuccess: () => { toast.dismiss(loadingToastId); toast.success('Selfie uploaded successfully!'); },
-            onError: (msg) => { toast.dismiss(loadingToastId); toast.error(`Selfie upload failed: ${msg} — please retake.`); },
-          });
-        }
-      }} />
+      {/* Unified full-screen in-app camera — used for selfie + Aadhaar + PAN.
+          Stays inside the page (getUserMedia), so it never loses state like the
+          native camera-via-file-input does on Android. */}
+      <AnimatePresence>
+        {cameraField && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-100 bg-black flex flex-col"
+          >
+            <div className="flex items-center justify-between px-5 py-4 text-white">
+              <span className="text-sm font-bold uppercase tracking-wider">
+                {cameraField === 'live_photo' ? 'Take Selfie'
+                 : cameraField === 'aadhar_image' ? 'Capture Aadhaar Card'
+                 : 'Capture PAN Card'}
+              </span>
+              <button onClick={() => setCameraField(null)} className="p-2 bg-white/10 rounded-xl">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="relative flex-1 flex items-center justify-center overflow-hidden">
+              <video
+                ref={videoRef}
+                autoPlay playsInline muted
+                className={`w-full h-full object-contain ${cameraField === 'live_photo' ? 'scale-x-[-1]' : ''}`}
+              />
+              {!cameraReady && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70 gap-2">
+                  <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="text-xs uppercase tracking-widest">Starting camera…</span>
+                </div>
+              )}
+              {cameraField !== 'live_photo' && cameraReady && (
+                <div className="absolute inset-6 border-2 border-white/40 rounded-2xl pointer-events-none" />
+              )}
+            </div>
+
+            <div className="px-5 py-6 flex items-center justify-center gap-6 bg-black">
+              <button
+                onClick={() => setCameraField(null)}
+                className="px-6 py-3 bg-white/10 text-white text-xs font-bold rounded-xl uppercase tracking-wider"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={capturePhoto}
+                disabled={!cameraReady}
+                className="w-16 h-16 rounded-full bg-white ring-4 ring-white/30 active:scale-95 transition-transform disabled:opacity-40 flex items-center justify-center"
+              >
+                <Camera size={26} className="text-slate-900" />
+              </button>
+              <div className="w-[72px]" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hidden canvas used to grab the captured video frame */}
+      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 }
@@ -774,67 +826,70 @@ const InputField = ({ label, icon: Icon, prefix, error, ...props }) => (
   </div>
 );
 
-const DocUpload = ({ label, value, onChange, onRemove, error, uploadError }) => {
+const DocUpload = ({ label, value, onChange, onCapture, onRemove, error, uploadError }) => {
   const hasError = error || uploadError;
   const isUploaded = value && !uploadError;
   return (
-    <div className="space-y-1.5">
-      <div className="relative">
-        {/* Accept any image — lets the user pick from gallery OR capture directly with camera.
-            Captured/selected photo is optimised then uploaded with toast feedback. */}
-        {(!value || uploadError) && (
-          <input
-            type="file"
-            accept="image/*"
-            onChange={onChange}
-            className="absolute inset-0 opacity-0 cursor-pointer z-10"
-          />
-        )}
-        <div className={`w-full py-4 px-5 rounded-2xl border-2 border-dashed flex items-center justify-between transition-all ${
-          isUploaded   ? 'border-green-400 bg-green-50'
-          : uploadError ? 'border-red-400 bg-red-50'
-          : error       ? 'border-red-300 bg-red-50'
-          :               'border-slate-200 bg-slate-50 hover:border-[#001b4e] hover:bg-blue-50'
-        }`}>
-          <div className="flex items-center gap-4">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden ${
-              isUploaded ? 'bg-green-500 text-white'
-              : hasError  ? 'bg-red-100 text-red-500'
-              :             'bg-white text-slate-400 border border-slate-200'
-            }`}>
-              {isUploaded
-                ? <img src={value} alt={label} className="w-full h-full object-cover" />
-                : <Upload size={20} />}
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-700">{label}</p>
-              <p className="text-xs mt-0.5 text-slate-400">
-                {isUploaded   ? '✓ Uploaded — tap × to remove'
-                 : uploadError ? 'Upload failed — tap to retry'
-                 :               'Tap to capture or choose a photo'}
-              </p>
-              {!isUploaded && !uploadError && (
-                <p className="text-[10px] text-slate-300 mt-0.5 uppercase tracking-widest">JPG · PNG</p>
-              )}
-            </div>
+    <div className="space-y-2">
+      {/* Status / preview row */}
+      <div className={`w-full py-4 px-5 rounded-2xl border-2 border-dashed flex items-center justify-between transition-all ${
+        isUploaded   ? 'border-green-400 bg-green-50'
+        : uploadError ? 'border-red-400 bg-red-50'
+        : error       ? 'border-red-300 bg-red-50'
+        :               'border-slate-200 bg-slate-50'
+      }`}>
+        <div className="flex items-center gap-4">
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden ${
+            isUploaded ? 'bg-green-500 text-white'
+            : hasError  ? 'bg-red-100 text-red-500'
+            :             'bg-white text-slate-400 border border-slate-200'
+          }`}>
+            {isUploaded
+              ? <img src={value} alt={label} className="w-full h-full object-cover" />
+              : <Upload size={20} />}
           </div>
-          {isUploaded ? (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
-              className="p-2 rounded-xl bg-red-100 text-red-500 hover:bg-red-200 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          ) : (
-            <span className={`text-xs font-bold px-3 py-1.5 rounded-lg border ${uploadError ? 'bg-red-100 text-red-600 border-red-200' : 'bg-white text-slate-400 border-slate-200'}`}>
-              {uploadError ? 'Retry' : 'Browse'}
-            </span>
-          )}
+          <div>
+            <p className="text-sm font-bold text-slate-700">{label}</p>
+            <p className="text-xs mt-0.5 text-slate-400">
+              {isUploaded   ? '✓ Uploaded'
+               : uploadError ? 'Upload failed — try again'
+               :               'Use camera or pick from gallery'}
+            </p>
+            {!isUploaded && !uploadError && (
+              <p className="text-[10px] text-slate-300 mt-0.5 uppercase tracking-widest">JPG · PNG</p>
+            )}
+          </div>
         </div>
+        {isUploaded && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
+            className="p-2 rounded-xl bg-red-100 text-red-500 hover:bg-red-200 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        )}
       </div>
+
+      {/* Action buttons — only when nothing uploaded yet (or after a failure) */}
+      {(!isUploaded) && (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onCapture}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#001b4e] text-white text-xs font-bold rounded-xl uppercase tracking-wider active:scale-[0.98] transition-transform"
+          >
+            <Camera size={15} /> Camera
+          </button>
+          <label className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white border-2 border-slate-200 text-slate-600 text-xs font-bold rounded-xl uppercase tracking-wider active:scale-[0.98] transition-transform cursor-pointer">
+            <Upload size={15} /> Gallery
+            <input type="file" accept="image/*" onChange={onChange} className="hidden" />
+          </label>
+        </div>
+      )}
+
       {error && !uploadError && <p className="text-xs text-red-500 font-semibold ml-0.5">{error}</p>}
-      {uploadError && <p className="text-xs text-red-500 font-semibold ml-0.5">Upload failed — tap the box above to retry with a different file.</p>}
+      {uploadError && <p className="text-xs text-red-500 font-semibold ml-0.5">Upload failed — use Camera or Gallery to try again.</p>}
     </div>
   );
 };
