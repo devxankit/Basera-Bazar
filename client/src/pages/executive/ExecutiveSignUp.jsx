@@ -741,11 +741,12 @@ const DocUpload = ({ label, value, onChange, onRemove, error, uploadError }) => 
   return (
     <div className="space-y-1.5">
       <div className="relative">
-        {/* File input: no capture attribute — opens gallery/files only, not camera */}
+        {/* File extension-based accept prevents camera from appearing in Android's file chooser.
+            No capture attribute so iOS does not force-open camera. */}
         {(!value || uploadError) && (
           <input
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept=".jpg,.jpeg,.png"
             onChange={onChange}
             className="absolute inset-0 opacity-0 cursor-pointer z-10"
           />
@@ -774,7 +775,7 @@ const DocUpload = ({ label, value, onChange, onRemove, error, uploadError }) => 
                  :               'Select from gallery or files'}
               </p>
               {!isUploaded && !uploadError && (
-                <p className="text-[10px] text-slate-300 mt-0.5 uppercase tracking-widest">JPG · PNG · WEBP</p>
+                <p className="text-[10px] text-slate-300 mt-0.5 uppercase tracking-widest">JPG · PNG</p>
               )}
             </div>
           </div>

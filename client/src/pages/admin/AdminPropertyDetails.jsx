@@ -34,7 +34,15 @@ export default function AdminPropertyDetails() {
    const [isRejecting, setIsRejecting] = useState(false);
    const [rejectReason, setRejectReason] = useState('');
 
-   // Keyboard left/right navigation for gallery
+   const { data: rawData, isLoading: loading, error: queryError } = useQuery({
+      queryKey: ['adminPropertyDetail', id],
+      queryFn: () => api.get(`/admin/listings/detail/${id}`).then(r => r.data),
+      staleTime: 5 * 60 * 1000,
+   });
+   const listing = rawData?.data || null;
+   const error = queryError ? "Property record not found in database." : null;
+
+   // Keyboard left/right navigation for the gallery — placed after rawData is declared
    useEffect(() => {
      const images = [rawData?.data?.thumbnail, ...(rawData?.data?.images || [])].filter(Boolean);
      const unique = [...new Set(images)];
@@ -46,14 +54,6 @@ export default function AdminPropertyDetails() {
      window.addEventListener('keydown', onKey);
      return () => window.removeEventListener('keydown', onKey);
    }, [rawData]);
-
-   const { data: rawData, isLoading: loading, error: queryError } = useQuery({
-      queryKey: ['adminPropertyDetail', id],
-      queryFn: () => api.get(`/admin/listings/detail/${id}`).then(r => r.data),
-      staleTime: 5 * 60 * 1000,
-   });
-   const listing = rawData?.data || null;
-   const error = queryError ? "Property record not found in database." : null;
 
    const statusMutation = useMutation({
       mutationFn: ({ status, status_reason }) =>
