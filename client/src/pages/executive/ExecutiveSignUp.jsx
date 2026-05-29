@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Landmark, Camera, ShieldCheck, Mail, Phone, Lock, CheckCircle2, ChevronRight, MapPinned, CreditCard, Building2, UserCircle, Eye, EyeOff, Upload } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Landmark, Camera, ShieldCheck, Mail, Phone, Lock, CheckCircle2, ChevronRight, MapPinned, CreditCard, Building2, UserCircle, Eye, EyeOff, Upload, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -30,6 +30,33 @@ export default function ExecutiveSignUp() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+
+  // Native camera-capture fallback (used when the in-app getUserMedia camera is
+  // unavailable — e.g. insecure HTTP context — or fails to start).
+  const nativeCameraRef = useRef(null);
+  const pendingNativeFieldRef = useRef(null);
+
+  // Entry point for "Camera" actions: prefer the in-app camera, fall back to native capture.
+  const openCameraFor = (field) => {
+    const hasInAppCamera =
+      typeof navigator !== 'undefined' &&
+      navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === 'function';
+    if (hasInAppCamera) {
+      setCameraField(field);
+    } else {
+      triggerNativeCamera(field);
+    }
+  };
+
+  const triggerNativeCamera = (field) => {
+    if (!nativeCameraRef.current) return;
+    pendingNativeFieldRef.current = field;
+    // Front camera for selfie, rear camera for documents
+    nativeCameraRef.current.setAttribute('capture', field === 'live_photo' ? 'user' : 'environment');
+    nativeCameraRef.current.value = '';
+    nativeCameraRef.current.click();
+  };
 
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState('');
@@ -201,9 +228,16 @@ export default function ExecutiveSignUp() {
         await videoRef.current.play();
         setCameraReady(true);
       }
-    } catch {
-      toast.error('Camera access failed. Please choose a photo from your gallery instead.');
+    } catch (err) {
+      // Permission denied → tell the user; anything else (insecure context, no camera,
+      // browser quirk) → fall back to the device's native camera capture.
+      const field = cameraField;
       setCameraField(null);
+      if (err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
+        toast.error('Camera permission denied. Enable it in settings or use Gallery instead.');
+      } else if (field) {
+        triggerNativeCamera(field);
+      }
     }
   };
 
@@ -664,10 +698,10 @@ export default function ExecutiveSignUp() {
                     {formData.kyc.live_photo ? (
                       <div className="relative w-full h-full">
                         <img src={formData.kyc.live_photo} alt="Selfie" className="w-full h-full object-cover" />
-                        <button onClick={() => setCameraField('live_photo')} className="absolute bottom-3 right-3 p-3 bg-indigo-600 text-white rounded-2xl shadow-xl"><Camera size={18} /></button>
+                        <button onClick={() => openCameraFor('live_photo')} className="absolute bottom-3 right-3 p-3 bg-indigo-600 text-white rounded-2xl shadow-xl"><Camera size={18} /></button>
                       </div>
                     ) : (
-                      <button type="button" onClick={() => setCameraField('live_photo')} className="w-full h-full flex flex-col items-center justify-center gap-3">
+                      <button type="button" onClick={() => openCameraFor('live_photo')} className="w-full h-full flex flex-col items-center justify-center gap-3">
                         <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center"><Camera size={28} /></div>
                         <div className="text-center">
                           <p className="text-sm font-bold text-slate-700">Take Live Photo</p>
@@ -689,7 +723,7 @@ export default function ExecutiveSignUp() {
                 </div>
                 <div className="p-5 space-y-4">
                   <InputField label="Aadhaar Number" name="aadhar_number" inputMode="numeric" maxLength={12} value={formData.kyc.aadhar_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="12-digit UIDAI number" error={errors.aadhar_number} />
-                  <DocUpload label="Aadhaar Front Side" value={formData.kyc.aadhar_image} onChange={(e) => handleFileUpload(e, 'aadhar_image')} onCapture={() => setCameraField('aadhar_image')} onRemove={() => handleRemoveKycImage('aadhar_image')} error={errors.aadhar_image} uploadError={uploadErrors.aadhar_image} />
+                  <DocUpload label="Aadhaar Front Side" value={formData.kyc.aadhar_image} onChange={(e) => handleFileUpload(e, 'aadhar_image')} onCapture={() => openCameraFor('aadhar_image')} onRemove={() => handleRemoveKycImage('aadhar_image')} error={errors.aadhar_image} uploadError={uploadErrors.aadhar_image} />
                 </div>
               </div>
 
@@ -703,7 +737,7 @@ export default function ExecutiveSignUp() {
                 </div>
                 <div className="p-5 space-y-4">
                   <InputField label="PAN Number" name="pan_number" maxLength={10} value={formData.kyc.pan_number} onChange={(e) => handleInputChange(e, 'kyc')} placeholder="ABCDE1234F" error={errors.pan_number} />
-                  <DocUpload label="PAN Card Photo" value={formData.kyc.pan_image} onChange={(e) => handleFileUpload(e, 'pan_image')} onCapture={() => setCameraField('pan_image')} onRemove={() => handleRemoveKycImage('pan_image')} error={errors.pan_image} uploadError={uploadErrors.pan_image} />
+                  <DocUpload label="PAN Card Photo" value={formData.kyc.pan_image} onChange={(e) => handleFileUpload(e, 'pan_image')} onCapture={() => openCameraFor('pan_image')} onRemove={() => handleRemoveKycImage('pan_image')} error={errors.pan_image} uploadError={uploadErrors.pan_image} />
                 </div>
               </div>
 
@@ -778,6 +812,22 @@ export default function ExecutiveSignUp() {
 
       {/* Hidden canvas used to grab the captured video frame */}
       <canvas ref={canvasRef} className="hidden" />
+
+      {/* Native camera-capture fallback — used when the in-app camera can't run
+          (e.g. insecure HTTP context). `capture` is set dynamically per field. */}
+      <input
+        ref={nativeCameraRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files[0];
+          e.target.value = '';
+          const field = pendingNativeFieldRef.current;
+          pendingNativeFieldRef.current = null;
+          if (file && field) uploadKycFile(field, file);
+        }}
+      />
     </div>
   );
 }
