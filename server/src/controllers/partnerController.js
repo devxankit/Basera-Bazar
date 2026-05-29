@@ -2,7 +2,7 @@ const { Partner } = require('../models/Partner');
 const logger = require('../utils/logger');
 const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const { Enquiry } = require('../models/Enquiry');
-const { SubscriptionPlan } = require('../models/Finance');
+const { SubscriptionPlan, Subscription } = require('../models/Finance');
 const Order = require('../models/Order');
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -689,6 +689,76 @@ const updatePartnerMedia = async (req, res) => {
   }
 };
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const MAX_SKIP_DAYS_PER_MONTH = 3;
+
+/**
+ * @desc    Skip today from subscription (extends ends_at by 1 day, max 3/month)
+ * @route   POST /api/partners/subscription/skip-day
+ * @access  Private (Partner)
+ */
+const skipSubscriptionDay = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+
+    const sub = await Subscription.findOne({
+      partner_id: partnerId,
+      status: { $in: ['active', 'trial'] },
+    });
+
+    if (!sub) {
+      return res.status(400).json({ success: false, message: 'No active subscription found.' });
+    }
+
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // Reset monthly counter when a new month starts
+    if (sub.skip_month !== currentMonth) {
+      sub.skip_days_this_month = 0;
+      sub.skip_month = currentMonth;
+    }
+
+    if (sub.skip_days_this_month >= MAX_SKIP_DAYS_PER_MONTH) {
+      return res.status(400).json({
+        success: false,
+        message: `You have used all ${MAX_SKIP_DAYS_PER_MONTH} skip days for this month. Skips reset on the 1st of next month.`,
+      });
+    }
+
+    // Prevent double-skipping the same calendar day
+    const todayStr = now.toISOString().split('T')[0];
+    const alreadySkipped = sub.skip_days.some(
+      (d) => new Date(d).toISOString().split('T')[0] === todayStr
+    );
+    if (alreadySkipped) {
+      return res.status(400).json({ success: false, message: 'You have already skipped today.' });
+    }
+
+    // Extend subscription by 1 day so this skipped day doesn't cost the customer
+    sub.ends_at = new Date(sub.ends_at.getTime() + MS_PER_DAY);
+    sub.skip_days.push(now);
+    sub.skip_days_this_month += 1;
+
+    await sub.save();
+
+    const skipsRemaining = MAX_SKIP_DAYS_PER_MONTH - sub.skip_days_this_month;
+
+    logger.info(`[SKIP] Partner ${partnerId} skipped today. ends_at extended to ${sub.ends_at.toISOString()}. Skips remaining this month: ${skipsRemaining}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `Skip applied! Your subscription has been extended by 1 day. You have ${skipsRemaining} skip${skipsRemaining !== 1 ? 's' : ''} remaining this month.`,
+      ends_at: sub.ends_at,
+      skip_days_used: sub.skip_days_this_month,
+      skip_days_remaining: skipsRemaining,
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'skipSubscriptionDay error:');
+    res.status(500).json({ success: false, message: 'Server error. Please try again.' });
+  }
+};
+
 module.exports = {
   onboardPartner,
   getMyPartnerProfile,
@@ -703,4 +773,5 @@ module.exports = {
   toggleFeature,
   getPartnerSubscriptionLimits,
   updatePartnerMedia,
+  skipSubscriptionDay,
 };

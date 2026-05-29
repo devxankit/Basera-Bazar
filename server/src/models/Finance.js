@@ -42,7 +42,10 @@ const subscriptionSchema = new mongoose.Schema({
   },
   razorpay_subscription_id: { type: String },
   granted_by_admin: { type: Boolean, default: false }, // Manual bypass
-  cancel_at_period_end: { type: Boolean, default: false } // For proper cancellation flow
+  cancel_at_period_end: { type: Boolean, default: false }, // For proper cancellation flow
+  skip_days: { type: [Date], default: [] }, // Dates the customer has skipped
+  skip_days_this_month: { type: Number, default: 0 }, // Counter resets each month
+  skip_month: { type: String, default: null } // YYYY-MM of the month skip_days_this_month belongs to
 }, { timestamps: true });
 subscriptionSchema.index({ ends_at: 1 }); // Expiry cron index
 
