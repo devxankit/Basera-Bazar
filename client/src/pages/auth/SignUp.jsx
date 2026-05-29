@@ -82,7 +82,7 @@ export default function SignUp() {
   const [popup, setPopup] = useState(null);
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
-  const { errors, validateAll, setError, clearError } = useFormValidation();
+  const { errors, validateAll, setError, clearError, register } = useFormValidation();
 
   useScrollLock(isLocationModalOpen || showTerms || showPrivacy || !!popup);
 
@@ -272,6 +272,7 @@ export default function SignUp() {
             <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '18px' }}>
               <span style={iconStyle}><User size={22} strokeWidth={1.8} /></span>
               <input
+                ref={register('fullName')}
                 type="text" placeholder="Full Name" required
                 value={form.fullName}
                 onChange={e => { setForm({ ...form, fullName: e.target.value.replace(/[^A-Za-z\s'\-]/g, '') }); clearError('fullName'); }}
@@ -284,6 +285,7 @@ export default function SignUp() {
             <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: '18px' }}>
               <span style={iconStyle}><Mail size={22} strokeWidth={1.8} /></span>
               <input
+                ref={register('email')}
                 type="email" placeholder="Email Address" required
                 value={form.email}
                 onChange={e => { setForm({ ...form, email: e.target.value }); clearError('email'); }}
@@ -297,6 +299,7 @@ export default function SignUp() {
               <div style={{ position: 'relative' }}>
                 <span style={iconStyle}><Lock size={22} strokeWidth={1.8} /></span>
                 <input
+                  ref={register('password')}
                   type={showPassword ? 'text' : 'password'} placeholder="Password (uppercase, lowercase, digit, special char)" required
                   value={form.password}
                   onChange={e => { setForm({ ...form, password: e.target.value }); clearError('password'); }}
@@ -319,6 +322,7 @@ export default function SignUp() {
               </div>
               {errors.location && <p style={{ fontSize: '12px', color: '#e11d48', marginTop: '-4px', marginBottom: '6px', fontWeight: '500' }}>{errors.location}</p>}
               <button
+                ref={register('location')}
                 type="button"
                 onClick={() => { setIsLocationModalOpen(true); clearError('location'); }}
                 style={{
@@ -346,6 +350,7 @@ export default function SignUp() {
                 <div style={{ position: 'relative' }}>
                   <span style={iconStyle}><AlertCircle size={20} strokeWidth={1.8} /></span>
                   <input
+                    ref={register('address')}
                     type="text" placeholder="Full Address / Landmark" required
                     value={form.address}
                     onChange={e => { setForm({ ...form, address: e.target.value }); clearError('address'); }}
@@ -355,7 +360,8 @@ export default function SignUp() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
                   <input
-                    type="text" placeholder="Pincode" required maxLength={6}
+                    ref={register('pincode')}
+                    type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Pincode" required maxLength={6}
                     value={form.pincode}
                     onChange={e => { setForm({ ...form, pincode: sanitize.pincode(e.target.value) }); clearError('pincode'); }}
                     style={{ ...inputStyle, paddingLeft: '18px', borderColor: errors.pincode ? '#f87171' : '#dde1f0' }}
@@ -369,10 +375,13 @@ export default function SignUp() {
             <motion.div variants={fadeInUp} style={{ position: 'relative', marginBottom: showOtpInput ? '10px' : '18px' }}>
               <span style={iconStyle}><Phone size={22} strokeWidth={1.8} /></span>
               <input
+                ref={register('phone')}
                 type="tel" placeholder="Phone Number" required
                 disabled={showOtpInput}
                 value={form.phone}
                 inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={10}
                 autoComplete="tel-national"
                 onChange={e => {
                   const val = sanitize.phone(e.target.value.replace(/^\+91/, ''));

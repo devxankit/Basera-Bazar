@@ -42,7 +42,7 @@ const LeadSubmission = () => {
     document_url: ''
   });
 
-  const { errors, validateAll, clearError } = useFormValidation();
+  const { errors, validateAll, clearError, register } = useFormValidation();
   const [products, setProducts] = useState([
     { item_name: '', quantity: '', unit: 'Unit' }
   ]);
@@ -205,7 +205,8 @@ const LeadSubmission = () => {
           <div className="space-y-4">
             <div className="relative">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest absolute -top-2 left-3 bg-white px-1">Full Name</label>
-              <input 
+              <input
+                ref={register('name')}
                 type="text" required
                 value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
                 placeholder="Ex: Rajesh Kumar"
@@ -216,8 +217,9 @@ const LeadSubmission = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="relative">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest absolute -top-2 left-3 bg-white px-1">Mobile</label>
-                <input 
-                  type="tel" required
+                <input
+                  ref={register('phone')}
+                  type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10} required
                   value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})}
                   placeholder="10-digit number"
                   className="w-full border-2 border-slate-50 bg-slate-50/30 rounded-2xl px-4 py-3.5 text-sm font-bold text-[#1f2355] outline-none focus:border-indigo-500/20 focus:bg-white transition-all"
@@ -225,7 +227,8 @@ const LeadSubmission = () => {
               </div>
               <div className="relative">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest absolute -top-2 left-3 bg-white px-1">Email</label>
-                <input 
+                <input
+                  ref={register('email')}
                   type="email"
                   value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})}
                   placeholder="Optional"
@@ -270,7 +273,8 @@ const LeadSubmission = () => {
              </div>
              <div className="relative">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest absolute -top-2 left-3 bg-white px-1">Full Address / Landmark</label>
-                <textarea 
+                <textarea
+                  ref={register('full_address')}
                   rows="2"
                   value={formData.full_address} onChange={(e) => setFormData({...formData, full_address: e.target.value})}
                   className="w-full border-2 border-slate-50 bg-slate-50/30 rounded-2xl px-4 py-3.5 text-sm font-bold text-[#1f2355] outline-none focus:border-indigo-500/20 focus:bg-white transition-all resize-none"
@@ -350,7 +354,8 @@ const LeadSubmission = () => {
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-5">
           <div className="relative">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest absolute -top-2 left-3 bg-white px-1">Specific Details (Optional)</label>
-            <textarea 
+            <textarea
+              ref={register('requirement_details')}
               rows="3"
               value={formData.requirement_details} onChange={(e) => setFormData({...formData, requirement_details: e.target.value})}
               placeholder="Tell us more about your needs..."

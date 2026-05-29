@@ -141,9 +141,11 @@ const getCategoryListings = async (req, res) => {
   try {
     const { id } = req.params;
     const { district, state } = req.query;
-    const query = { 
-      category_id: id, 
-      status: 'active'
+    // Match products whose category OR sub-category is the requested id, so items
+    // listed under a sub-category still appear on the parent category page.
+    const query = {
+      status: 'active',
+      $or: [{ category_id: id }, { subcategory_id: id }]
     };
 
     if (district) {

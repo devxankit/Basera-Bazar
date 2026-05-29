@@ -43,7 +43,7 @@ export default function AdminAttendanceMonitor() {
   const records = rawData?.data || [];
 
   const verifyMutation = useMutation({
-    mutationFn: (id) => api.put(`/admin/staff/attendance/${id}/verify`).then((r) => r.data),
+    mutationFn: (id) => api.put(`/admin/staff/attendance/${id}/verify`, { action: 'approve' }).then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-attendance-monitor'] });
       toast.success('Attendance verified.');

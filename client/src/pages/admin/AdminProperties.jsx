@@ -64,7 +64,8 @@ export default function AdminProperties() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const categories = categoriesRaw?.data || [];
+  // Safety net: only show true top-level categories (no parent), even if the API returns a flat list.
+  const categories = (categoriesRaw?.data || []).filter(c => !c.parent_id);
   const subcategories = subcategoriesRaw?.data || [];
   const properties = rawData?.data || [];
 

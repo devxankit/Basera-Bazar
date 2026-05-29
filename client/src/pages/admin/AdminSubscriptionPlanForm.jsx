@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import { v } from '../../utils/validators';
+import useFormValidation from '../../hooks/useFormValidation';
 
 export default function AdminSubscriptionPlanForm() {
   const { id } = useParams();
@@ -29,6 +30,8 @@ export default function AdminSubscriptionPlanForm() {
     featured: false,
     leads: false
   });
+
+  const { errors, validateAll, register, clearError } = useFormValidation();
 
   // Fetch existing plan for edit mode
   const { isLoading: loading, data: planListData } = useQuery({
@@ -71,10 +74,14 @@ export default function AdminSubscriptionPlanForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name?.trim()) { toast.error('Plan name is required.'); return; }
-    if (formData.price < 0) { toast.error('Price cannot be negative.'); return; }
-    const daysErr = v.positiveInt(formData.duration_days, { label: 'Duration' });
-    if (daysErr) { toast.error(daysErr); return; }
+    const rolesSelected = Array.isArray(formData.applicable_to) ? formData.applicable_to.length > 0 : !!formData.applicable_to;
+    const ok = validateAll({
+      name: v.required(formData.name, 'Plan name'),
+      applicable_to: rolesSelected ? null : 'Select at least one target user role.',
+      price: (formData.price === '' || formData.price === null || Number(formData.price) < 0) ? 'Enter a valid price (0 or more).' : null,
+      duration_days: v.positiveInt(formData.duration_days, { label: 'Duration' }),
+    });
+    if (!ok) return; // first invalid field scrolled into view + focused
     const payload = {
       ...formData,
       applicable_to: Array.isArray(formData.applicable_to) ? formData.applicable_to : [formData.applicable_to],
@@ -141,14 +148,15 @@ export default function AdminSubscriptionPlanForm() {
                  <div className="space-y-6">
                     <div className="space-y-2">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Plan Name <span className="text-rose-500 font-black">*</span></label>
-                       <input 
-                        type="text" 
-                        required
+                       <input
+                        ref={register('name')}
+                        type="text"
                         placeholder="e.g. Silver Package"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-300"
+                        onChange={(e) => { setFormData({ ...formData, name: e.target.value }); clearError('name'); }}
+                        className={`w-full bg-white border rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-300 ${errors.name ? 'border-rose-400 ring-1 ring-rose-300' : 'border-slate-200'}`}
                        />
+                       {errors.name && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.name}</p>}
                     </div>
 
                     <div className="space-y-4">
@@ -180,6 +188,7 @@ export default function AdminSubscriptionPlanForm() {
                         </label>
                       ))}
                     </div>
+                    {errors.applicable_to && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.applicable_to}</p>}
                   </div>
 
                   {/* Price & Duration */}
@@ -188,24 +197,26 @@ export default function AdminSubscriptionPlanForm() {
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Price (₹) <span className="text-rose-500 font-black">*</span></label>
                        <div className="relative">
                           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-xs">₹</div>
-                          <input 
-                            type="number" 
-                            required
+                          <input
+                            ref={register('price')}
+                            type="number"
                             value={formData.price}
-                            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                            className="w-full bg-white border border-slate-200 rounded-lg py-3 pl-8 pr-4 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all"
+                            onChange={(e) => { setFormData({ ...formData, price: e.target.value }); clearError('price'); }}
+                            className={`w-full bg-white border rounded-lg py-3 pl-8 pr-4 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all ${errors.price ? 'border-rose-400 ring-1 ring-rose-300' : 'border-slate-200'}`}
                           />
                        </div>
+                       {errors.price && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.price}</p>}
                     </div>
                     <div className="space-y-2">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Duration (Days) <span className="text-rose-500 font-black">*</span></label>
-                       <input 
-                        type="number" 
-                        required
+                       <input
+                        ref={register('duration_days')}
+                        type="number"
                         value={formData.duration_days}
-                        onChange={(e) => setFormData({ ...formData, duration_days: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all"
+                        onChange={(e) => { setFormData({ ...formData, duration_days: e.target.value }); clearError('duration_days'); }}
+                        className={`w-full bg-white border rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all ${errors.duration_days ? 'border-rose-400 ring-1 ring-rose-300' : 'border-slate-200'}`}
                        />
+                       {errors.duration_days && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.duration_days}</p>}
                        <p className="text-[10px] text-slate-400 italic">Typical values: 30 (1 month), 90 (3 months), 180 (6 months), 365 (1 year)</p>
                     </div>
                  </div>

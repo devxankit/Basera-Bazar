@@ -223,6 +223,10 @@ export default function AddRolePage() {
       const gstErr = v.gst(gstData.number);
       if (gstErr) { toast.error(gstErr); return; }
     }
+    if (selectedRole === 'property_agent' && profileData.rera_number) {
+      const reraErr = v.reraOptional(profileData.rera_number);
+      if (reraErr) { toast.error(reraErr); return; }
+    }
     if (profileData.business_name && profileData.business_description && profileData.business_description.trim().length > 0 && profileData.business_description.trim().length < 10) {
       toast.error('Business description must be at least 10 characters.'); return;
     }

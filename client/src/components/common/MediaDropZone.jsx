@@ -28,8 +28,13 @@ export default function MediaDropZone({
   const onDrop = useCallback(async (e) => {
     e.preventDefault();
     setIsDragging(false);
-    
-    const files = Array.from(e.dataTransfer?.files || e.target.files);
+
+    const inputEl = e.target; // capture so we can reset the native input afterwards
+    let files = Array.from(e.dataTransfer?.files || e.target.files);
+    // Reset the file input immediately so re-selecting the SAME file after a
+    // removal still fires onChange (otherwise the browser treats it as no-change).
+    if (inputEl && 'value' in inputEl) inputEl.value = '';
+
     if (files.length === 0) return;
 
     // Reset error at start of new attempt
@@ -40,9 +45,18 @@ export default function MediaDropZone({
       return;
     }
 
-    if (multiple && (value.length + files.length > maxFiles)) {
-      setError(`Max ${maxFiles} files allowed`);
-      return;
+    if (multiple) {
+      const remaining = maxFiles - value.length;
+      if (remaining <= 0) {
+        setError(`Max ${maxFiles} files allowed`);
+        return;
+      }
+      // Fill only the remaining slots instead of rejecting the whole batch —
+      // keeps the count exact (fixes the off-by-one "still counting 10" report).
+      if (files.length > remaining) {
+        files = files.slice(0, remaining);
+        setError(`Only ${remaining} more file(s) could be added (max ${maxFiles}).`);
+      }
     }
 
     setUploading(true);
@@ -56,7 +70,7 @@ export default function MediaDropZone({
 
         const formData = new FormData();
         formData.append('image', file);
-        
+
         const response = await api.post('/upload', formData);
 
         if (response.data.success) {

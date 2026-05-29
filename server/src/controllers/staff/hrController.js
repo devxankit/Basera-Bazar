@@ -464,8 +464,8 @@ const processMonthlyStaffSalary = async (req, res) => {
         { staff_id: tl._id, month, staff_type: 'team_leader' },
         {
           $set: {
-            base_salary: tl.fixed_salary,
-            effective_salary: tl.fixed_salary - deduction + commission + incentive,
+            base_salary: Number(tl.fixed_salary) || 0,
+            effective_salary: (Number(tl.fixed_salary) || 0) - deduction + commission + incentive,
             team_commission_amount: commission,
             incentive_amount: incentive,
             deduction_applied: deduction > 0,
@@ -496,8 +496,8 @@ const processMonthlyStaffSalary = async (req, res) => {
         { staff_id: os._id, month, staff_type: 'office_staff' },
         {
           $set: {
-            base_salary: os.fixed_salary,
-            effective_salary: os.fixed_salary - deduction + incentive,
+            base_salary: Number(os.fixed_salary) || 0,
+            effective_salary: (Number(os.fixed_salary) || 0) - deduction + incentive,
             incentive_amount: incentive,
             deduction_applied: deduction > 0,
             deduction_amount: deduction,
@@ -620,6 +620,9 @@ const adminVerifyAttendance = async (req, res) => {
       { new: true }
     );
     if (!record) return res.status(404).json({ success: false, message: 'Attendance record not found.' });
+
+    // Bust the cached attendance list so the verified state shows immediately
+    await invalidate.adminStaff();
 
     await AuditLog.create({
       admin_id: req.user.id,

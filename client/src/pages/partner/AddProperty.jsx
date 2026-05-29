@@ -39,6 +39,9 @@ export default function AddProperty() {
   const { queueUpload, awaitUpload, cancelUpload } = useBackgroundUpload();
   // Track local-preview URLs so we can match them to queued uploads
   const localPreviewKeys = useRef({});
+  // Track a signature (name+size+lastModified) per added image so the same file
+  // can't be added twice — while still allowing re-upload after it is removed.
+  const imageSigs = useRef({});
   
   const [formData, setFormData] = useState({
     // Step 1: Essential Details
@@ -279,16 +282,26 @@ export default function AddProperty() {
         queueUpload('thumbnail', file);
       } else if (field === 'images') {
         const maxSlots = 10 - formData.images.length;
-        const count = Math.min(files.length, maxSlots);
-        for (let i = 0; i < count; i++) {
+        // Signatures of images currently in the list — skip files that match one
+        // (prevents the same image being uploaded twice; re-upload after removal still works).
+        const existingSigs = new Set(formData.images.map(u => imageSigs.current[u]).filter(Boolean));
+        let added = 0;
+        let skipped = 0;
+        for (let i = 0; i < files.length && added < maxSlots; i++) {
           const file = files[i];
+          const sig = `${file.name}_${file.size}_${file.lastModified}`;
+          if (existingSigs.has(sig)) { skipped++; continue; }
+          existingSigs.add(sig);
           const localUrl = URL.createObjectURL(file);
+          imageSigs.current[localUrl] = sig;
           const uploadKey = `image_${Date.now()}_${i}`;
           // Record the mapping so we can resolve the URL at submit time
           localPreviewKeys.current[localUrl] = uploadKey;
           setFormData(prev => ({ ...prev, images: [...prev.images, localUrl] }));
           queueUpload(uploadKey, file);
+          added++;
         }
+        if (added === 0 && skipped > 0) toast.error('That image has already been added.');
       }
     } catch (err) {
       toast.error('Failed to process image. Please try again.');
@@ -512,6 +525,12 @@ export default function AddProperty() {
 
     if (activeStep === 2) {
       if (!formData.listedBy) { toast.error('Please select who is listing this property.'); return; }
+      const carpet = parseFloat(formData.carpetArea);
+      const superBuilt = parseFloat(formData.superBuiltUpArea);
+      if (!isNaN(carpet) && !isNaN(superBuilt) && carpet > superBuilt) {
+        toast.error('Carpet area cannot be more than the super built-up area.');
+        return;
+      }
     }
 
     if (activeStep === 3) {

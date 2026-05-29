@@ -1006,9 +1006,9 @@ const ListingDetails = () => {
                 <label className="text-[13px] font-medium text-[#1f2355]">Phone Number</label>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Phone size={18} className="text-[#1f2355]/40" /></div>
-                   <input 
-                    type="tel" 
-                    placeholder="Enter 10-digit number" 
+                   <input
+                    type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10}
+                    placeholder="Enter 10-digit number"
                     className={cn(
                       "w-full pl-10 pr-24 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px]",
                       isVerified && "bg-green-50 border-green-200 text-green-700"

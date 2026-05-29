@@ -561,7 +561,8 @@ const updateListing = async (req, res) => {
       if (updateData.price) {
         updateData.pricing = {
           amount: Number(updateData.price?.value || updateData.price || 0),
-          currency: 'INR'
+          currency: 'INR',
+          negotiable: !!(updateData.price?.negotiable ?? updateData.negotiable),
         };
       }
 

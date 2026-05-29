@@ -60,7 +60,8 @@ export default function AdminPropertyForm() {
     queryFn: () => api.get('/admin/system/categories?type=property&parent_id=null').then(r => r.data),
     staleTime: 5 * 60 * 1000,
   });
-  const categories = catData?.data || [];
+  // Safety net: only show true top-level categories (no parent), even if the API returns a flat list.
+  const categories = (catData?.data || []).filter(c => !c.parent_id);
 
   const { data: partnerData } = useQuery({
     queryKey: ['adminUsersForProperty'],

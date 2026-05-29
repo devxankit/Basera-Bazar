@@ -12,6 +12,7 @@ import api from '../../services/api';
 import { db } from '../../services/DataEngine';
 import { v } from '../../utils/validators';
 import toast from '../../mockToast';
+import useFormValidation from '../../hooks/useFormValidation';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useBackgroundUpload } from '../../hooks/useBackgroundUpload';
 
@@ -25,6 +26,7 @@ export default function AddMandiProduct() {
   const { queueUpload, awaitUpload } = useBackgroundUpload();
 
   const [loading, setLoading] = useState(false);
+  const { errors, validateAll, register, clearError } = useFormValidation();
 
   // Inline add state
   const [addingType, setAddingType] = useState(false);
@@ -221,8 +223,8 @@ export default function AddMandiProduct() {
       toast.error("Please select a product category.");
       return;
     }
-    const priceErr = v.price(formData.price);
-    if (priceErr) { toast.error(priceErr); return; }
+    const ok = validateAll({ price: v.price(formData.price) });
+    if (!ok) return; // price field scrolled into view + focused
     try {
       setLoading(true);
       // Resolve background thumbnail upload — near-instant if already done
@@ -510,10 +512,11 @@ export default function AddMandiProduct() {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">Price *</label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><IndianRupee size={16} /></div>
-                  <input type="number" placeholder="0.00" value={formData.price}
-                    onChange={e => setFormData({...formData, price: e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 pl-10 pr-3 text-[14px] font-bold text-[#001b4e] outline-none focus:bg-white focus:border-blue-500/20" />
+                  <input ref={register('price')} type="number" inputMode="decimal" placeholder="0.00" value={formData.price}
+                    onChange={e => { setFormData({...formData, price: e.target.value}); clearError('price'); }}
+                    className={`w-full bg-slate-50 border rounded-xl py-3 pl-10 pr-3 text-[14px] font-bold text-[#001b4e] outline-none focus:bg-white focus:border-blue-500/20 ${errors.price ? 'border-rose-400 ring-1 ring-rose-300' : 'border-slate-100'}`} />
                 </div>
+                {errors.price && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.price}</p>}
               </div>
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">Unit</label>

@@ -384,9 +384,9 @@ const ServiceProfile = () => {
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Phone size={18} className="text-[#1f2355]/40" />
                   </div>
-                  <input 
-                    type="tel" 
-                    placeholder="Enter 10-digit phone number" 
+                  <input
+                    type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10}
+                    placeholder="Enter 10-digit phone number"
                     className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#1f2355] focus:ring-1 focus:ring-[#1f2355] transition-all text-[15px] text-[#1f2355] placeholder:text-slate-400" 
                     required 
                     maxLength={10}

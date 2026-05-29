@@ -3,7 +3,7 @@ const router = express.Router();
 const { protect, authorizeRoles, verifyApproved } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
 const validate = require('../middlewares/validateMiddleware');
-const { leaveApprovalSchema } = require('../utils/validators');
+const { leaveApprovalSchema, leaveRequestSchema } = require('../utils/validators');
 const {
   getTLDashboard,
   getTLExecutives,
@@ -48,7 +48,7 @@ router.put('/attendance/:id/verify', tlVerifyAttendance);
 router.get('/leaves/team', cacheMiddleware(10, true), tlGetTeamLeaves);
 router.put('/leaves/:id', validate(leaveApprovalSchema), tlApproveLeave);
 router.get('/leaves/my', cacheMiddleware(10, true), getMyLeaves);
-router.post('/leaves', submitLeaveRequest);
+router.post('/leaves', validate(leaveRequestSchema), submitLeaveRequest);
 
 // ─── Daily Reports ──────────────────────────────────────────────────────────
 router.get('/reports', cacheMiddleware(10, true), tlGetDailyReports);

@@ -325,7 +325,9 @@ export default function PartnerEditProfile() {
   );
 }
 
-function InputField({ icon, label, value, onChange, placeholder, type = "text" }) {
+function InputField({ icon, label, value, onChange, placeholder, type = "text", inputMode, maxLength }) {
+  // Digit-only fields (type="tel") get the numeric keypad on mobile.
+  const isTel = type === 'tel';
   return (
     <div className="space-y-1.5">
       <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">{label}</label>
@@ -333,8 +335,11 @@ function InputField({ icon, label, value, onChange, placeholder, type = "text" }
         <div className="absolute inset-y-0 left-4 flex items-center text-slate-400 group-focus-within:text-[#001b4e] transition-colors">
           {React.cloneElement(icon, { size: 16 })}
         </div>
-        <input 
+        <input
           type={type}
+          inputMode={inputMode || (isTel ? 'numeric' : undefined)}
+          pattern={isTel ? '[0-9]*' : undefined}
+          maxLength={maxLength || (isTel ? 10 : undefined)}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}

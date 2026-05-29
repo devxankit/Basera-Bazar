@@ -429,8 +429,8 @@ const AgentDetails = () => {
                 <label className="text-[12px] font-bold text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
                 <div className="relative">
                   <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                  <input 
-                    type="tel" 
+                  <input
+                    type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10}
                     placeholder="10-digit number"
                     className="w-full pl-12 pr-28 h-14 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-[#124db5] focus:ring-4 focus:ring-blue-50 outline-none transition-all font-bold text-[#1f2355]"
                     required

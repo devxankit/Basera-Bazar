@@ -72,10 +72,9 @@ const submitOSDailyReport = async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     const os = await OfficeStaff.findById(req.user.id).select('team_leader_id').lean();
 
+    // Allow re-submitting today's report — it overrides the previous one (bug #354).
+    // Only today's record is affected; past days are keyed by their own date.
     const existing = await DailyReport.findOne({ staff_id: req.user.id, date: today });
-    if (existing && existing.status !== 'draft') {
-      return res.status(400).json({ success: false, message: 'Daily report already submitted for today.' });
-    }
 
     const report = await DailyReport.findOneAndUpdate(
       { staff_id: req.user.id, date: today },
@@ -92,7 +91,11 @@ const submitOSDailyReport = async (req, res) => {
 
     await invalidate.officeStaffProfile(req.user.id);
 
-    res.status(200).json({ success: true, data: report, message: 'Daily report submitted.' });
+    res.status(200).json({
+      success: true,
+      data: report,
+      message: existing ? 'Daily report updated.' : 'Daily report submitted.',
+    });
   } catch (err) {
     logger.error({ err }, 'submitOSDailyReport Error');
     res.status(500).json({ success: false, message: 'Server error.' });

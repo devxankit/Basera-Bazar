@@ -77,11 +77,11 @@ export default function OfficeStaffAttendance() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Today</p>
-            <p className={`text-base font-black mt-0.5 ${isIn ? 'text-green-700' : isOut ? 'text-slate-700' : 'text-amber-600'}`}>
-              {isIn ? 'In Office' : isOut ? 'Done for Today' : 'Not Yet Checked In'}
+            <p className={`text-base font-black mt-0.5 ${loading ? 'text-slate-400' : isIn ? 'text-green-700' : isOut ? 'text-slate-700' : 'text-amber-600'}`}>
+              {loading ? 'Checking status…' : isIn ? 'In Office' : isOut ? 'Done for Today' : 'Not Yet Checked In'}
             </p>
           </div>
-          <Clock size={20} className={isIn ? 'text-green-500' : 'text-slate-400'} />
+          <Clock size={20} className={loading ? 'text-slate-300 animate-pulse' : isIn ? 'text-green-500' : 'text-slate-400'} />
         </div>
         {today?.check_in_time && (
           <div className="flex gap-6 text-sm mb-4">
@@ -106,7 +106,7 @@ export default function OfficeStaffAttendance() {
         {!isOut && (
           <button
             onClick={isIn ? handleCheckOut : handleCheckIn}
-            disabled={checkingIn}
+            disabled={checkingIn || loading}
             className={`w-full py-3 rounded-lg text-sm font-black flex items-center justify-center gap-2 disabled:opacity-60 ${
               isIn ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-teal-600 text-white hover:bg-teal-700'
             }`}

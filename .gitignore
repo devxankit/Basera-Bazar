@@ -18,6 +18,20 @@ client/dist/
 client/dist-ssr/
 build/
 server/build/
+dev-dist/
+client/dev-dist/
+
+# ─── Test / E2E Artifacts ────────────────────────────────────────────────────
+test-results/
+client/test-results/
+playwright-report/
+client/playwright-report/
+blob-report/
+.playwright/
+coverage/
+client/coverage/
+server/coverage/
+.nyc_output/
 
 # ─── Logs ────────────────────────────────────────────────────────────────────
 logs/
@@ -85,6 +99,12 @@ scratch/
 test_write.txt
 *.tmp
 *.temp
+
+# ─── Local Working Docs (bug sheets / audit reports — never commit) ──────────
+Basera-Bazar-Bug-sheet.html
+Basera_Bazar Bug Sheet.xlsx
+BugSheet-Audit-Report.md
+BugSheet-Verification-Report.md
 
 # ─── Misc ────────────────────────────────────────────────────────────────────
 *.json.json

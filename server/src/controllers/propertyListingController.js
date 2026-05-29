@@ -61,7 +61,8 @@ const createPropertyListing = async (req, res) => {
 
     const pricing = {
       amount: Number(item.price?.value || item.price || 0),
-      currency: 'INR'
+      currency: 'INR',
+      negotiable: !!(item.price?.negotiable ?? item.negotiable),
     };
 
     const locationLng = parseFloat(item.longitude || item.location?.coordinates?.[0]) || 0;

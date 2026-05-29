@@ -147,8 +147,10 @@ export default function KYCStep({ formData, setFormData, onBack, onComplete, rol
         <div className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-[13px] font-bold text-slate-700 ml-1">Aadhar Card Number</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={formData.aadhar}
               onChange={(e) => { setFormData(prev => ({ ...prev, aadhar: sanitize.aadhar(e.target.value) })); setKycErrors(p => ({ ...p, aadhar: undefined })); }}
               maxLength={12}

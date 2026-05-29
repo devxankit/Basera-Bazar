@@ -220,6 +220,9 @@ const tlVerifyAttendance = async (req, res) => {
     record.team_leader_verified_at = new Date();
     await record.save();
 
+    // Bust the cached team-attendance list so the verified state shows immediately
+    await cacheInvalidator.teamLeaderAttendance(req.user.id);
+
     res.status(200).json({ success: true, message: 'Attendance verified.' });
   } catch (err) {
     logger.error({ err }, 'tlVerifyAttendance Error');

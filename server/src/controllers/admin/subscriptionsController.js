@@ -4,6 +4,7 @@ const { Enquiry } = require('../../models/Enquiry');
 const { PropertyListing, ServiceListing, MandiListing } = require('../../models/Listing');
 const { SubscriptionPlan } = require('../../models/Finance');
 const invalidate = require('../../utils/cacheInvalidator');
+const respondError = require('../../utils/respondError');
 
 const getSubscriptionPlans = async (req, res) => {
   try {
@@ -26,8 +27,7 @@ const createSubscriptionPlan = async (req, res) => {
     await invalidate.adminDashboard();
     res.status(201).json({ success: true, data: plan });
   } catch (error) {
-    logger.error({ err: error }, "Error creating plan:");
-    res.status(500).json({ success: false, message: 'Server error.' });
+    return respondError(res, error, 'Create subscription plan', 'Could not create subscription plan.');
   }
 };
 

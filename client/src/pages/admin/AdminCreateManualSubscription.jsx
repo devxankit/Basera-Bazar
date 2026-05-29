@@ -5,12 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 import { v } from '../../utils/validators';
+import useFormValidation from '../../hooks/useFormValidation';
 
 export default function AdminCreateManualSubscription() {
   const { userId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const { errors, validateAll, register, clearError } = useFormValidation();
 
   const [formData, setFormData] = useState({
     plan_id: '',
@@ -92,11 +94,12 @@ export default function AdminCreateManualSubscription() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.plan_id) { toast.error('Please select a subscription plan.'); return; }
-    const startErr = v.date(formData.starts_at, { label: 'Start date' });
-    if (startErr) { toast.error(startErr); return; }
-    const daysErr = v.positiveInt(formData.duration_days, { label: 'Duration' });
-    if (daysErr) { toast.error(daysErr); return; }
+    const ok = validateAll({
+      plan_id: formData.plan_id ? null : 'Please select a subscription plan.',
+      starts_at: v.date(formData.starts_at, { label: 'Start date' }),
+      duration_days: v.positiveInt(formData.duration_days, { label: 'Duration' }),
+    });
+    if (!ok) return; // first invalid field scrolled into view + focused
     setSaving(true);
     const payload = {
       partner_id: userId,
@@ -153,27 +156,29 @@ export default function AdminCreateManualSubscription() {
                     <div className="space-y-2">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Subscription Plan <span className="text-rose-500 font-black">*</span></label>
                        <select
-                        required
+                        ref={register('plan_id')}
                         value={formData.plan_id}
-                        onChange={(e) => setFormData({ ...formData, plan_id: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all"
+                        onChange={(e) => { setFormData({ ...formData, plan_id: e.target.value }); clearError('plan_id'); }}
+                        className={`w-full bg-white border rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all ${errors.plan_id ? 'border-rose-400 ring-1 ring-rose-300' : 'border-slate-200'}`}
                        >
                          <option value="">Select Plan</option>
                          {plans.map(plan => (
                            <option key={plan._id} value={plan._id}>{plan.name} (₹{plan.price})</option>
                          ))}
                        </select>
+                       {errors.plan_id && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.plan_id}</p>}
                        <p className="text-[10px] text-slate-400 italic">Select the subscription plan for this user</p>
                     </div>
                     <div className="space-y-2">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Start Date <span className="text-rose-500 font-black">*</span></label>
                        <input
+                        ref={register('starts_at')}
                         type="date"
-                        required
                         value={formData.starts_at}
-                        onChange={(e) => setFormData({ ...formData, starts_at: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all"
+                        onChange={(e) => { setFormData({ ...formData, starts_at: e.target.value }); clearError('starts_at'); }}
+                        className={`w-full bg-white border rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all ${errors.starts_at ? 'border-rose-400 ring-1 ring-rose-300' : 'border-slate-200'}`}
                        />
+                       {errors.starts_at && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.starts_at}</p>}
                        <p className="text-[10px] text-slate-400 italic">When does this subscription start?</p>
                     </div>
                  </div>
@@ -183,12 +188,14 @@ export default function AdminCreateManualSubscription() {
                     <div className="space-y-2">
                        <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Duration (Days) <span className="text-rose-500 font-black">*</span></label>
                        <input
+                        ref={register('duration_days')}
                         type="number"
-                        required
+                        inputMode="numeric"
                         value={formData.duration_days}
-                        onChange={(e) => setFormData({ ...formData, duration_days: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all"
+                        onChange={(e) => { setFormData({ ...formData, duration_days: e.target.value }); clearError('duration_days'); }}
+                        className={`w-full bg-white border rounded-lg p-3 text-sm font-medium text-slate-900 focus:border-indigo-500 outline-none transition-all ${errors.duration_days ? 'border-rose-400 ring-1 ring-rose-300' : 'border-slate-200'}`}
                        />
+                       {errors.duration_days && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.duration_days}</p>}
                        <p className="text-[10px] text-slate-400 italic">How many days will this subscription last?</p>
                     </div>
                     <div className="space-y-2">

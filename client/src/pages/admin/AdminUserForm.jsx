@@ -9,6 +9,7 @@ import {
 import api from '../../services/api';
 import { db } from '../../services/DataEngine';
 import { v, sanitize } from '../../utils/validators';
+import useFormValidation from '../../hooks/useFormValidation';
 
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "block text-sm font-bold text-slate-600 mb-1.5";
@@ -48,6 +49,7 @@ export default function AdminUserForm() {
 
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const { errors, validateAll, register, clearError } = useFormValidation();
 
   // Fetch reference data in parallel
   const { data: subData } = useQuery({
@@ -138,20 +140,16 @@ export default function AdminUserForm() {
     setError(null);
     setSuccess(null);
 
-    const nameErr = v.name(formData.name);
-    if (nameErr) { setError(nameErr); return; }
-    const emailErr = v.email(formData.email);
-    if (emailErr) { setError(emailErr); return; }
-    const phoneErr = v.phone(formData.phone);
-    if (phoneErr) { setError(phoneErr); return; }
-    if (!isEdit && !formData.password) { setError('Password is required.'); return; }
-    if (formData.delivery_radius_km) {
-      const radErr = v.radius(formData.delivery_radius_km);
-      if (radErr) { setError(radErr); return; }
-    }
-    if (formData.business_description && formData.business_description.trim().length > 0 && formData.business_description.trim().length < 10) {
-      setError('Business description must be at least 10 characters.'); return;
-    }
+    const ok = validateAll({
+      name: v.name(formData.name),
+      email: v.email(formData.email),
+      phone: v.phone(formData.phone),
+      password: (!isEdit && !formData.password) ? 'Password is required.' : null,
+      delivery_radius_km: formData.delivery_radius_km ? v.radius(formData.delivery_radius_km) : null,
+      business_description: (formData.business_description && formData.business_description.trim().length > 0 && formData.business_description.trim().length < 10)
+        ? 'Business description must be at least 10 characters.' : null,
+    });
+    if (!ok) return; // first invalid field scrolled into view + focused
 
     try {
       const updatedData = { ...formData };
@@ -326,23 +324,27 @@ export default function AdminUserForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className={labelClass}>Full Name <span className="text-rose-500">*</span></label>
-                  <input name="name" required value={formData.name} onChange={handleChange} className={inputClass} placeholder="e.g. Rahul Sharma" />
+                  <input ref={register('name')} name="name" value={formData.name} onChange={(e) => { handleChange(e); clearError('name'); }} className={`${inputClass} ${errors.name ? 'border-rose-400 ring-1 ring-rose-300' : ''}`} placeholder="e.g. Rahul Sharma" />
+                  {errors.name && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.name}</p>}
                 </div>
                 <div>
                   <label className={labelClass}>Email Address <span className="text-rose-500">*</span></label>
-                  <input type="email" name="email" required value={formData.email} onChange={handleChange} className={inputClass} placeholder="rahul@example.com" />
+                  <input ref={register('email')} type="email" name="email" value={formData.email} onChange={(e) => { handleChange(e); clearError('email'); }} className={`${inputClass} ${errors.email ? 'border-rose-400 ring-1 ring-rose-300' : ''}`} placeholder="rahul@example.com" />
+                  {errors.email && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.email}</p>}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className={labelClass}>Phone Number <span className="text-rose-500">*</span></label>
-                  <input name="phone" required maxLength={10} value={formData.phone} onChange={handleChange} className={inputClass} placeholder="10-digit primary contact" />
+                  <input ref={register('phone')} name="phone" type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10} value={formData.phone} onChange={(e) => { handleChange(e); clearError('phone'); }} className={`${inputClass} ${errors.phone ? 'border-rose-400 ring-1 ring-rose-300' : ''}`} placeholder="10-digit primary contact" />
+                  {errors.phone && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.phone}</p>}
                 </div>
                 {!isEdit && (
                   <div>
                     <label className={labelClass}>Account Password <span className="text-rose-500">*</span></label>
-                    <input type="password" name="password" required value={formData.password} onChange={handleChange} className={inputClass} placeholder="••••••••" />
+                    <input ref={register('password')} type="password" name="password" value={formData.password} onChange={(e) => { handleChange(e); clearError('password'); }} className={`${inputClass} ${errors.password ? 'border-rose-400 ring-1 ring-rose-300' : ''}`} placeholder="••••••••" />
+                    {errors.password && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.password}</p>}
                   </div>
                 )}
               </div>

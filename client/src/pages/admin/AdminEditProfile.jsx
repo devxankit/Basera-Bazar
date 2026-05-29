@@ -342,7 +342,7 @@ export default function AdminEditProfile() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className={labelClass}>Phone Number <span className="text-rose-500">*</span></label>
-                    <input type="tel" name="phone" value={profileForm.phone} onChange={handleProfileChange} className={inputClass} />
+                    <input type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10} name="phone" value={profileForm.phone} onChange={handleProfileChange} className={inputClass} />
                   </div>
                   <div>
                     <label className={labelClass}>Profile Image</label>

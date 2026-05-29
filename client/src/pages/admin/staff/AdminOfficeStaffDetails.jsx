@@ -7,6 +7,7 @@ import { toast } from '../../../mockToast';
 import AdminTable from '../../../components/common/AdminTable';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import Skeleton from '../../../components/common/Skeleton';
+import StaffKycDocuments from '../../../components/common/StaffKycDocuments';
 
 const TABS = ['Overview', 'Attendance', 'Salary'];
 
@@ -142,6 +143,7 @@ export default function AdminOfficeStaffDetails() {
               <div className="flex justify-between"><span className="text-slate-500">Status</span><span className={`px-2 py-0.5 rounded text-xs font-bold ${os.onboarding_status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{os.onboarding_status?.toUpperCase()}</span></div>
             </div>
           </div>
+          <StaffKycDocuments kyc={os.kyc} livePhoto={os.profile_image} />
         </div>
       )}
 

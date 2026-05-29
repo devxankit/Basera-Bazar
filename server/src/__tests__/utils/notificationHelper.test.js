@@ -25,6 +25,10 @@ const { createNotification } = require('../../utils/notificationHelper');
 
 const FAKE_NOTIF = { _id: 'notif_id_1', title: 'Test', body: 'Hello' };
 
+// The helper does `Partner.findById(id).select(...)`, so the mock must return a
+// query-like object whose .select() resolves to the recipient (or null).
+const asQuery = (val) => ({ select: jest.fn().mockResolvedValue(val) });
+
 beforeEach(() => {
   jest.clearAllMocks();
   Notification.create.mockResolvedValue(FAKE_NOTIF);
@@ -32,7 +36,7 @@ beforeEach(() => {
 
 describe('createNotification', () => {
   test('creates a Notification document and returns it', async () => {
-    Partner.findById.mockResolvedValue(null);
+    Partner.findById.mockReturnValue(asQuery(null));
     const result = await createNotification('partner', 'partner123', 'Hello', 'World');
     expect(Notification.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -47,7 +51,7 @@ describe('createNotification', () => {
 
   test('sends push notification when recipient has FCM tokens', async () => {
     const { sendPushNotification } = require('../../services/firebaseAdmin');
-    Partner.findById.mockResolvedValue({ fcmTokens: ['token1'], fcmTokenMobile: [] });
+    Partner.findById.mockReturnValue(asQuery({ fcmTokens: ['token1'], fcmTokenMobile: [] }));
 
     await createNotification('partner', 'p1', 'Title', 'Body');
     expect(sendPushNotification).toHaveBeenCalledWith(
@@ -58,7 +62,7 @@ describe('createNotification', () => {
 
   test('skips push notification when no FCM tokens', async () => {
     const { sendPushNotification } = require('../../services/firebaseAdmin');
-    Partner.findById.mockResolvedValue({ fcmTokens: [], fcmTokenMobile: [] });
+    Partner.findById.mockReturnValue(asQuery({ fcmTokens: [], fcmTokenMobile: [] }));
 
     await createNotification('partner', 'p1', 'T', 'B');
     expect(sendPushNotification).not.toHaveBeenCalled();
@@ -72,7 +76,7 @@ describe('createNotification', () => {
 
   test('de-duplicates FCM tokens before sending', async () => {
     const { sendPushNotification } = require('../../services/firebaseAdmin');
-    Partner.findById.mockResolvedValue({ fcmTokens: ['tok1', 'tok1'], fcmTokenMobile: ['tok1'] });
+    Partner.findById.mockReturnValue(asQuery({ fcmTokens: ['tok1', 'tok1'], fcmTokenMobile: ['tok1'] }));
 
     await createNotification('partner', 'p1', 'T', 'B');
     const tokens = sendPushNotification.mock.calls[0][0];

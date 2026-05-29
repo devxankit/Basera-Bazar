@@ -17,7 +17,7 @@ export default function OfficeStaffReports() {
 
   const { data: rawData, isLoading: loading, error } = useQuery({
     queryKey: ['office-staff-reports'],
-    queryFn: () => api.get('/office-staff/reports').then(r => r.data),
+    queryFn: () => api.get('/office-staff/reports/history').then(r => r.data),
     staleTime: 0, // always refetch when navigating back to this page
   });
 

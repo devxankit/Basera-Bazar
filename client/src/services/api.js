@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from '../mockToast';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
@@ -77,6 +78,37 @@ function isProtectedRoute(path) {
   );
 }
 
+// Surface a failed request to the user as an error toast. Centralising this here
+// means EVERY API call shows a clear message when something goes wrong, without
+// each call site needing its own catch/toast. Opt out per-request with
+// `{ skipErrorToast: true }` in the axios config (e.g. when a component renders
+// the error inline instead).
+function notifyError(error, originalRequest) {
+  if (originalRequest?.skipErrorToast || originalRequest?._isAuthCheck) return;
+  if (axios.isCancel?.(error) || error.code === 'ERR_CANCELED') return;
+
+  // When the device is offline the global OfflineBanner already communicates
+  // the state — skip the redundant per-request "Network error" toast so the
+  // user isn't spammed by every in-flight call failing at once.
+  if (!error.response && typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return;
+  }
+
+  let msg = error.response?.data?.message;
+  if (!msg) {
+    if (error.code === 'ECONNABORTED') {
+      msg = 'The request timed out. Please check your connection and try again.';
+    } else if (!error.response) {
+      msg = 'Network error — please check your internet connection.';
+    } else if (error.response.status >= 500) {
+      msg = 'Something went wrong on our end. Please try again shortly.';
+    } else {
+      msg = 'Something went wrong. Please try again.';
+    }
+  }
+  toast.error(msg);
+}
+
 function redirectToLogin() {
   localStorage.removeItem('baserabazar_token');
   localStorage.removeItem('baserabazar_user');
@@ -99,12 +131,15 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Not a 401, or marked as auth-check (startup /auth/me), or is a login request — don't touch it
+    // Not a 401, or marked as auth-check (startup /auth/me), or is a login request — don't
+    // run the token-refresh flow. Still surface the error to the user as a toast
+    // (the silent startup auth-check is excluded inside notifyError).
     if (
       error.response?.status !== 401 ||
       originalRequest?._isAuthCheck ||
       originalRequest?.url?.includes('/login')
     ) {
+      notifyError(error, originalRequest);
       return Promise.reject(error);
     }
 

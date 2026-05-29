@@ -5,6 +5,7 @@ const { logActivity } = require('../../utils/activityLogger');
 const { createNotification } = require('../../utils/notificationHelper');
 const invalidate = require('../../utils/cacheInvalidator');
 const pick = require('../../utils/pick');
+const respondError = require('../../utils/respondError');
 
 const getListings = async (req, res) => {
   try {
@@ -157,6 +158,9 @@ const createPropertyListing = async (req, res) => {
   try {
     const { title, description, property_type, listing_intent, partner_id, category_id, subcategory_id, images, thumbnail, is_featured, status, location, address, pricing, details, emi_available, emi_details } = req.body;
 
+    if (!title?.trim()) return res.status(400).json({ success: false, message: 'Property title is required.' });
+    if (!category_id) return res.status(400).json({ success: false, message: 'Property category is required.' });
+
     const newProperty = await PropertyListing.create({
       partner_id: partner_id || null, title, description: description || '',
       property_type: property_type || 'apartment', listing_intent: listing_intent || 'sell',
@@ -173,8 +177,7 @@ const createPropertyListing = async (req, res) => {
     res.status(201).json({ success: true, message: 'Property entry finalized in marketplace registry.', data: newProperty });
     await logActivity({ actor_name: req.user?.name || 'Admin', actor_id: req.user?._id, action: 'created', entity_type: 'property', entity_name: newProperty.title, entity_id: newProperty._id, description: `${req.user?.name || 'Admin'} listed new property: ${newProperty.title}` });
   } catch (error) {
-    logger.error({ err: error }, "Admin Property Creation Error:");
-    res.status(500).json({ success: false, message: 'Server error.' });
+    return respondError(res, error, 'Admin property creation', 'Could not create the property listing.');
   }
 };
 

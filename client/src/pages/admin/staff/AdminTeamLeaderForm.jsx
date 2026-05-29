@@ -188,7 +188,7 @@ export default function AdminTeamLeaderForm() {
             </div>
             <div>
               <label className={labelCls}>Phone Number *</label>
-              <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} required placeholder="10-digit mobile" className={inputCls} />
+              <input type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10} value={form.phone} onChange={(e) => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} required placeholder="10-digit mobile" className={inputCls} />
             </div>
             <div className="md:col-span-2">
               <label className={labelCls}>Email Address *</label>
@@ -282,7 +282,7 @@ export default function AdminTeamLeaderForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Password *</label>
-                <input type="password" value={form.password} onChange={(e) => set('password', e.target.value)} required placeholder="Min 8 chars" className={inputCls} />
+                <input type="password" autoComplete="new-password" value={form.password} onChange={(e) => set('password', e.target.value)} required placeholder="Min 8 chars" className={inputCls} />
                 {form.password && (
                   <div className="mt-2 space-y-1">
                     <div className="flex gap-1 h-1">
@@ -296,7 +296,7 @@ export default function AdminTeamLeaderForm() {
               </div>
               <div>
                 <label className={labelCls}>Confirm Password *</label>
-                <input type="password" value={form.confirm_password} onChange={(e) => set('confirm_password', e.target.value)} required placeholder="Re-enter password" className={inputCls} />
+                <input type="password" autoComplete="new-password" value={form.confirm_password} onChange={(e) => set('confirm_password', e.target.value)} required placeholder="Re-enter password" className={inputCls} />
               </div>
             </div>
             <p className="text-[10px] text-slate-400 mt-3 font-medium">Requirement: 8+ chars with uppercase, number and special character.</p>

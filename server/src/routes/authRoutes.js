@@ -10,6 +10,7 @@ const { protect } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
 const { loginSchema, otpVerifySchema } = require('../utils/validators');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 
 // -----------------------------------------------------
 // Rate limiters — moved from global index.js to here
@@ -27,7 +28,7 @@ const authLimiter = rateLimit({
 const sendOtpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 10,
-  keyGenerator: (req) => `${req.ip}-${req.body?.role || 'user'}`,
+  keyGenerator: (req) => `${ipKeyGenerator(req.ip)}-${req.body?.role || 'user'}`,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true' || process.env.JEST_WORKER_ID !== undefined || process.env.TESTING_MODE === 'true',
@@ -38,7 +39,7 @@ const sendOtpLimiter = rateLimit({
 const verifyOtpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 10,
-  keyGenerator: (req) => `${req.ip}-${req.body?.role || 'user'}`,
+  keyGenerator: (req) => `${ipKeyGenerator(req.ip)}-${req.body?.role || 'user'}`,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true' || process.env.JEST_WORKER_ID !== undefined || process.env.TESTING_MODE === 'true',

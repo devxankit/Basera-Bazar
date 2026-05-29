@@ -9,6 +9,8 @@ import {
   Navigate,
 } from "react-router-dom";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import OfflineBanner from "./components/common/OfflineBanner";
+import OfflineGate from "./components/common/OfflineGate";
 import api from "./services/api";
 import {
   LocationProvider,
@@ -710,6 +712,8 @@ function App() {
               <LocationSyncHandler>
                 <Router>
                   <ScrollToTop />
+                  <OfflineBanner />
+                  <OfflineGate>
                   <LocationGate>
                   <Suspense fallback={<PageSpinner />}>
                     <Routes>
@@ -2269,6 +2273,7 @@ function App() {
                     </Routes>
                   </Suspense>
                   </LocationGate>
+                  </OfflineGate>
                 </Router>
               </LocationSyncHandler>
             </FCMHandler>

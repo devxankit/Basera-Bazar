@@ -262,7 +262,7 @@ export default function OfficeStaffProfile() {
               </div>
               <div>
                 <label className={labelCls}>Phone</label>
-                <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} className={inputCls} />
+                <input type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10} value={form.phone} onChange={(e) => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Address Line</label>

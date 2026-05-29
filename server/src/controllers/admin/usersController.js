@@ -8,6 +8,7 @@ const { PropertyListing, ServiceListing, MandiListing } = require('../../models/
 const { logActivity } = require('../../utils/activityLogger');
 const { createNotification } = require('../../utils/notificationHelper');
 const { grantFreeTrial } = require('../../utils/trialHelper');
+const respondError = require('../../utils/respondError');
 
 const getUserDetail = async (req, res) => {
   try {
@@ -430,6 +431,8 @@ const createManualSubscription = async (req, res) => {
   try {
     const { partner_id, plan_id, starts_at, duration_days, amount_paid, listings_limit, featured_listings_limit, leads_limit, notes } = req.body;
 
+    if (!partner_id) return res.status(400).json({ success: false, message: 'A partner must be selected for the subscription.' });
+
     const plan = await mongoose.model('SubscriptionPlan').findById(plan_id);
     const subscription = await mongoose.model('Subscription').create({
       partner_id, plan_id,
@@ -444,8 +447,7 @@ const createManualSubscription = async (req, res) => {
 
     await logActivity({ actor_name: req.user?.name || 'Admin', actor_id: req.user?._id, action: 'created', entity_type: 'subscription', entity_name: partner?.name || 'Partner', entity_id: subscription._id, description: `${req.user?.name || 'Admin'} manually granted "${plan?.name || 'Manual'}" plan to ${partner?.name}` });
   } catch (error) {
-    logger.error({ err: error }, "Manual subscription error:");
-    res.status(500).json({ success: false, message: 'Server error.' });
+    return respondError(res, error, 'Manual subscription', 'Could not create the subscription.');
   }
 };
 

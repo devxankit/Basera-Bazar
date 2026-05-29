@@ -699,7 +699,7 @@ export default function Login() {
                   <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#4a567a', display: 'flex' }}>
                     <Phone size={20} strokeWidth={1.8} />
                   </span>
-                  <input type="tel" placeholder="10-digit phone number" maxLength={10}
+                  <input type="tel" inputMode="numeric" pattern="[0-9]*" placeholder="10-digit phone number" maxLength={10}
                     value={fpPhone} onChange={e => setFpPhone(e.target.value.replace(/\D/g, ''))}
                     style={{ width: '100%', boxSizing: 'border-box', padding: '16px 16px 16px 48px', border: '1.5px solid #dde1f0', borderRadius: '12px', fontSize: '16px', fontWeight: '500', color: '#1b2c7a', outline: 'none', backgroundColor: '#f8f9ff' }}
                   />

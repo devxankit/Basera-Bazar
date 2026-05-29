@@ -78,7 +78,7 @@ const EditProfile = () => {
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
   const [showPass, setShowPass] = useState({ current: false, next: false, confirm: false });
   const [passStatus, setPassStatus] = useState(null);
-  const { errors, validateAll, clearError } = useFormValidation();
+  const { errors, validateAll, clearError, register } = useFormValidation();
 
   if (!isAuthenticated) return null;
 
@@ -254,6 +254,7 @@ const EditProfile = () => {
               <div className="relative">
                 <div className={iconClass}><User size={18} /></div>
                 <input
+                  ref={register('name')}
                   type="text" value={basicInfo.name}
                   onChange={(e) => { setBasicInfo({ ...basicInfo, name: e.target.value.replace(/[^A-Za-z\s'\-]/g, '') }); clearError('name'); }}
                   className={cn(inputClass, errors.name && 'border-red-300')} placeholder="Enter full name" required
@@ -267,6 +268,7 @@ const EditProfile = () => {
               <div className="relative">
                 <div className={iconClass}><Mail size={18} /></div>
                 <input
+                  ref={register('email')}
                   type="email" value={basicInfo.email}
                   onChange={(e) => { setBasicInfo({ ...basicInfo, email: e.target.value }); clearError('email'); }}
                   className={cn(inputClass, errors.email && 'border-red-300')} placeholder="Enter email address" required
@@ -324,7 +326,7 @@ const EditProfile = () => {
                 <div className="relative">
                   <div className={iconClass}><Smartphone size={18} /></div>
                   <input
-                    type="tel" maxLength={10}
+                    type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10}
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value.replace(/\D/g, ''))}
                     disabled={isPhoneVerified || showOtpInput}

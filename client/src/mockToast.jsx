@@ -75,6 +75,12 @@ export const ToastProvider = ({ children }) => {
       if (exists) {
         return prev.map(t => t.id === id ? { ...t, message, type } : t);
       }
+      // De-dupe: if an identical message+type is already on screen, don't stack a
+      // second copy. This lets the global API interceptor and a component's own
+      // catch() both call toast.error(msg) without the message appearing twice.
+      if (type !== 'loading' && prev.some(t => t.message === message && t.type === type)) {
+        return prev;
+      }
       return [...prev, { id, message, type }];
     });
 

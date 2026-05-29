@@ -76,6 +76,12 @@ const cacheInvalidator = {
     await CacheManager.clearByPrefix(`__express__user:${officeStaffId}:/api/office-staff`);
   },
 
+  // Clears a team leader's cached team-attendance list (after verifying attendance)
+  teamLeaderAttendance: async (tlId) => {
+    if (!tlId) return;
+    await CacheManager.clearByPrefix(`__express__user:${tlId.toString()}:/api/team-leader/attendance`);
+  },
+
   staffProfile: async (staffId, staffType) => {
     if (!staffId) return;
     const id = staffId.toString();

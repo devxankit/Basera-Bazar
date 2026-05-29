@@ -6,6 +6,7 @@ import {
 import api from '../../services/api';
 import MediaDropZone from '../../components/common/MediaDropZone';
 import { v } from '../../utils/validators';
+import useFormValidation from '../../hooks/useFormValidation';
 
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "block text-sm font-bold text-slate-600 mb-1.5";
@@ -31,6 +32,8 @@ export default function AdminCategoryForm() {
   
   const [availableParents, setAvailableParents] = useState([]);
   const [fetchingParents, setFetchingParents] = useState(false);
+
+  const { errors, validateAll, register, clearError } = useFormValidation();
 
   // Fetch Parent Categories for the current type
   const fetchParents = async (type) => {
@@ -97,10 +100,12 @@ export default function AdminCategoryForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name?.trim()) { setError('Category name is required.'); return; }
-    if (formData.description && formData.description.trim().length > 0 && formData.description.trim().length < 3) {
-      setError('Description must be at least 3 characters.'); return;
-    }
+    const ok = validateAll({
+      name: v.required(formData.name, 'Category name'),
+      description: (formData.description && formData.description.trim().length > 0 && formData.description.trim().length < 3)
+        ? 'Description must be at least 3 characters.' : null,
+    });
+    if (!ok) return; // first invalid field is scrolled into view + focused
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -167,7 +172,8 @@ export default function AdminCategoryForm() {
                <div className="grid grid-cols-2 gap-6">
                   <div className="col-span-2">
                     <label className={labelClass}>Registry Name <span className="text-rose-500">*</span></label>
-                    <input required className={inputClass} placeholder="Ex: Residential Apartments, Plumbing, Brick Supplier..." value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                    <input ref={register('name')} className={`${inputClass} ${errors.name ? 'border-rose-400 ring-1 ring-rose-300' : ''}`} placeholder="Ex: Residential Apartments, Plumbing, Brick Supplier..." value={formData.name} onChange={(e) => { setFormData({ ...formData, name: e.target.value }); clearError('name'); }} />
+                    {errors.name && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.name}</p>}
                   </div>
 
                   <div>
@@ -203,7 +209,8 @@ export default function AdminCategoryForm() {
 
                <div>
                  <label className={labelClass}>Public Brief (SEO)</label>
-                 <textarea className={`${inputClass} resize-none`} rows={4} placeholder="Detailed description for this classification node..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                 <textarea ref={register('description')} className={`${inputClass} resize-none ${errors.description ? 'border-rose-400 ring-1 ring-rose-300' : ''}`} rows={4} placeholder="Detailed description for this classification node..." value={formData.description} onChange={(e) => { setFormData({ ...formData, description: e.target.value }); clearError('description'); }} />
+                 {errors.description && <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.description}</p>}
                </div>
              </div>
            </div>

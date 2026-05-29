@@ -207,7 +207,7 @@ const processMarketplacePaymentActivation = async ({ razorpay_order_id, razorpay
 
   if (rzOrder.status === 'paid') {
     const order = await Order.findOne({ 'token_payment.razorpay_order_id': razorpay_order_id });
-    return { order };
+    return { order, alreadyProcessed: true };
   }
 
   // 1. Update Razorpay record
@@ -238,14 +238,15 @@ const processMarketplacePaymentActivation = async ({ razorpay_order_id, razorpay
         { session, new: true }
       );
       if (!updated) {
-        await session.abortTransaction();
-        session.endSession();
+        // Don't abort/end here — let the single catch/finally below handle it.
+        // (Aborting twice on the same session throws a Mongo error that masks the
+        // real "Stock" message and turns a clean 409 into a 500.)
         throw new Error(`Stock no longer available for "${item.name}".`);
       }
     }
     await session.commitTransaction();
   } catch (txErr) {
-    await session.abortTransaction();
+    if (session.inTransaction()) await session.abortTransaction();
     throw txErr;
   } finally {
     session.endSession();
@@ -289,23 +290,26 @@ const processMarketplacePaymentActivation = async ({ razorpay_order_id, razorpay
 const verifyMarketplacePayment = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-    const { order } = await processMarketplacePaymentActivation({
+    const { order, alreadyProcessed } = await processMarketplacePaymentActivation({
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature
     });
 
-    res.status(200).json({ 
-      success: true, 
-      message: 'Token payment verified. Your order is successful and the supplier will contact you soon.', 
-      data: order 
+    res.status(200).json({
+      success: true,
+      message: alreadyProcessed
+        ? 'Payment already verified. Your order is confirmed.'
+        : 'Token payment verified. Your order is successful and the supplier will contact you soon.',
+      data: order
     });
 
   } catch (error) {
     logger.error({ err: error.message || error }, "Verify Payment Error:")
-    res.status(error.message.includes('not found') ? 404 : (error.message.includes('Stock') ? 409 : 500)).json({ 
-      success: false, 
-      message: error.message || 'Error verifying payment.' 
+    const msg = error.message || '';
+    res.status(msg.includes('not found') ? 404 : (msg.includes('Stock') ? 409 : 500)).json({
+      success: false,
+      message: msg || 'Error verifying payment.'
     });
   }
 };

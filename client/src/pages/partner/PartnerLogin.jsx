@@ -213,6 +213,9 @@ export default function PartnerLogin() {
                 </span>
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={10}
                   required
                   value={phone}
                   onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}

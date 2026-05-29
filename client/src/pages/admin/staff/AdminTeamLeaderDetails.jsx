@@ -7,6 +7,7 @@ import { toast } from '../../../mockToast';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import AdminTable from '../../../components/common/AdminTable';
 import Skeleton from '../../../components/common/Skeleton';
+import StaffKycDocuments from '../../../components/common/StaffKycDocuments';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -189,6 +190,9 @@ export default function AdminTeamLeaderDetails() {
               <div className="flex justify-between"><span className="text-sm text-slate-600">Office Staff</span><span className="font-bold text-teal-600">{tl.os_count ?? 0}</span></div>
               <div className="flex justify-between"><span className="text-sm text-slate-600">Total</span><span className="font-bold text-slate-900">{(tl.fe_count ?? 0) + (tl.os_count ?? 0)}</span></div>
             </div>
+          </div>
+          <div className="md:col-span-2">
+            <StaffKycDocuments kyc={tl.kyc} livePhoto={tl.profile_image} />
           </div>
         </div>
       )}

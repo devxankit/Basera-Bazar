@@ -80,8 +80,8 @@ export default function TeamLeaderSalary() {
         {records.length === 0 ? (
           <div className="p-6 text-center text-slate-400 text-sm">No salary records yet.</div>
         ) : (
-          <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
+          <div className="overflow-x-auto -mx-px">
+          <table className="w-full min-w-115 border-collapse text-sm">
             <thead>
               <tr className="bg-slate-50">
                 <th className="px-4 py-2.5 text-left text-xs font-black text-slate-500 uppercase">Month</th>

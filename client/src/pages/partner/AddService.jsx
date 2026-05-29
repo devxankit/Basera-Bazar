@@ -14,6 +14,7 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { v } from '../../utils/validators';
 import toast from '../../mockToast';
+import useFormValidation from '../../hooks/useFormValidation';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useBackgroundUpload } from '../../hooks/useBackgroundUpload';
 
@@ -292,29 +293,24 @@ export default function AddService() {
 
   const isSubmitting = saveServiceMutation.isPending;
 
-  const [formErrors, setFormErrors] = useState({});
+  const { errors: formErrors, validateAll } = useFormValidation();
 
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
     if (isSubmitting) return;
-    const errs = {};
-    if (!formData.category_id) errs.category_id = 'Please select a service category.';
-    const nameErr = v.title(formData.serviceName);
-    if (nameErr) errs.serviceName = nameErr;
-    if (!formData.businessName?.trim()) errs.businessName = 'Business name is required.';
-    if (!formData.serviceType) errs.serviceType = 'Please select a service type.';
-    if (!formData.state) errs.state = 'Please select your state.';
-    const radiusErr = v.radius(formData.serviceRadiusKm);
-    if (radiusErr) errs.serviceRadiusKm = radiusErr;
-    const videoErr = v.urlOptional(formData.videoLink);
-    if (videoErr) errs.videoLink = videoErr;
-    if (Object.keys(errs).length > 0) {
-      setFormErrors(errs);
-      const first = Object.values(errs)[0];
-      toast.error(first);
-      return;
-    }
-    setFormErrors({});
+    // Keys match the `name` attributes on the fields, so useFormValidation can
+    // locate the first invalid field and scroll/focus it (it falls back to a
+    // [name="…"] lookup when no ref is registered).
+    const ok = validateAll({
+      category_id: formData.category_id ? null : 'Please select a service category.',
+      serviceName: v.title(formData.serviceName),
+      businessName: formData.businessName?.trim() ? null : 'Business name is required.',
+      serviceType: formData.serviceType ? null : 'Please select a service type.',
+      state: formData.state ? null : 'Please select your state.',
+      serviceRadiusKm: v.radius(formData.serviceRadiusKm),
+      videoLink: v.urlOptional(formData.videoLink),
+    });
+    if (!ok) return; // first invalid field scrolled into view + focused
     saveServiceMutation.mutate(formData);
   };
 
@@ -448,7 +444,7 @@ export default function AddService() {
         <section className="space-y-3">
           <SectionHeader icon={<LayoutGrid size={14} />} title="Category" />
           <div className="grid grid-cols-1 gap-3">
-            <SelectField 
+            <SelectField
               icon={<LayoutGrid size={14} />}
               label="Service Category *"
               name="category_id"
@@ -456,6 +452,7 @@ export default function AddService() {
               options={topCategories}
               onChange={handleChange}
               placeholder="Select Top Category"
+              error={formErrors.category_id}
             />
 
             {subCategories.length > 0 && (
@@ -476,32 +473,35 @@ export default function AddService() {
         <section className="space-y-3">
           <SectionHeader icon={<Type size={14} />} title="Basic Information" />
           <div className="space-y-3">
-            <InputField 
+            <InputField
               icon={<Type size={14} />}
               label="Service Name *"
               name="serviceName"
               value={formData.serviceName}
               placeholder="E.g., Interior Design"
               onChange={handleChange}
+              error={formErrors.serviceName}
             />
 
             <div className="grid grid-cols-2 gap-3">
-              <InputField 
+              <InputField
                 icon={<Building2 size={14} />}
                 label="Business Name *"
                 name="businessName"
                 value={formData.businessName}
                 placeholder="Company Name"
                 onChange={handleChange}
+                error={formErrors.businessName}
               />
 
-              <SelectField 
+              <SelectField
                 icon={<Briefcase size={14} />}
                 label="Service Type *"
                 name="serviceType"
                 value={formData.serviceType}
                 options={SERVICE_TYPES}
                 onChange={handleChange}
+                error={formErrors.serviceType}
               />
             </div>
 
@@ -573,13 +573,14 @@ export default function AddService() {
           </button>
 
           <div className="space-y-5">
-            <SelectField 
+            <SelectField
               label="STATE *"
               name="state"
               value={formData.state}
               options={Object.keys(INDIA_DISTRICTS)}
               onChange={handleChange}
               placeholder="Select State"
+              error={formErrors.state}
             />
             
             <div className="grid grid-cols-2 gap-4">
@@ -617,7 +618,7 @@ export default function AddService() {
               ></textarea>
             </div>
             
-            <InputField 
+            <InputField
               icon={<Navigation size={18} />}
               label="Service Radius (KM) *"
               name="serviceRadiusKm"
@@ -625,6 +626,7 @@ export default function AddService() {
               value={formData.serviceRadiusKm}
               placeholder="e.g. 10"
               onChange={handleChange}
+              error={formErrors.serviceRadiusKm}
             />
 
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
@@ -644,13 +646,14 @@ export default function AddService() {
           <SectionHeader icon={<ImageIcon size={18} />} title="Images" />
           
           <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm mb-6">
-            <InputField 
+            <InputField
               icon={<ImageIcon size={18} />}
               label="Video Showcase (YouTube Link)"
               name="videoLink"
               value={formData.videoLink}
               placeholder="https://youtube.com/watch?v=..."
               onChange={handleChange}
+              error={formErrors.videoLink}
             />
           </div>
 
@@ -858,38 +861,41 @@ function SectionHeader({ icon, title }) {
   );
 }
 
-function InputField({ label, name, type = 'text', value, placeholder, icon, onChange, disabled }) {
+function InputField({ label, name, type = 'text', value, placeholder, icon, onChange, disabled, error }) {
+  const isNumeric = type === 'number';
   return (
     <div className="w-full">
       <label className="block text-[10px] font-black text-[#001b4e] uppercase mb-1 ml-1 tracking-tight">{label}</label>
       <div className="relative flex items-center">
         {icon && <div className="absolute left-3 z-10 flex items-center text-slate-400">{icon}</div>}
-        <input 
-          type={type} 
-          name={name} 
-          value={value} 
-          placeholder={placeholder} 
+        <input
+          type={type}
+          name={name}
+          value={value}
+          placeholder={placeholder}
           onChange={onChange}
           disabled={disabled}
-          className={`w-full bg-white border border-slate-200 rounded-lg py-2.5 pr-3 text-[13px] font-bold text-[#001b4e] outline-none focus:border-blue-400 transition-all placeholder:text-slate-300 ${icon ? 'pl-9' : 'pl-3'} ${disabled ? 'opacity-50' : ''}`}
+          inputMode={isNumeric ? 'numeric' : undefined}
+          className={`w-full bg-white border rounded-lg py-2.5 pr-3 text-[13px] font-bold text-[#001b4e] outline-none focus:border-blue-400 transition-all placeholder:text-slate-300 ${icon ? 'pl-9' : 'pl-3'} ${disabled ? 'opacity-50' : ''} ${error ? 'border-rose-400 ring-1 ring-rose-300' : 'border-slate-200'}`}
         />
       </div>
+      {error && <p className="text-[11px] text-rose-500 font-semibold mt-1 ml-1">{error}</p>}
     </div>
   );
 }
 
-function SelectField({ label, name, value, options, icon, onChange, disabled, placeholder }) {
+function SelectField({ label, name, value, options, icon, onChange, disabled, placeholder, error }) {
   return (
     <div className={`w-full ${disabled ? 'opacity-50' : ''}`}>
       <label className="block text-[10px] font-black text-[#001b4e] uppercase mb-1 ml-1 tracking-tight">{label}</label>
       <div className="relative">
         {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10">{icon}</div>}
-        <select 
-          name={name} 
-          value={value} 
-          onChange={onChange} 
+        <select
+          name={name}
+          value={value}
+          onChange={onChange}
           disabled={disabled}
-          className={`w-full bg-white border border-slate-200 rounded-lg py-2.5 pr-8 text-[13px] font-bold text-[#001b4e] outline-none appearance-none focus:border-blue-400 transition-all capitalize ${icon ? 'pl-9' : 'pl-3'}`}
+          className={`w-full bg-white border rounded-lg py-2.5 pr-8 text-[13px] font-bold text-[#001b4e] outline-none appearance-none focus:border-blue-400 transition-all capitalize ${icon ? 'pl-9' : 'pl-3'} ${error ? 'border-rose-400 ring-1 ring-rose-300' : 'border-slate-200'}`}
         >
           {placeholder && <option value="" disabled hidden>{placeholder}</option>}
           {options.map((opt, i) => {
@@ -900,6 +906,7 @@ function SelectField({ label, name, value, options, icon, onChange, disabled, pl
         </select>
         <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
       </div>
+      {error && <p className="text-[11px] text-rose-500 font-semibold mt-1 ml-1">{error}</p>}
     </div>
   );
 }

@@ -14,6 +14,9 @@ export const REGEX = {
   PAN:           /^[A-Z]{5}[0-9]{4}[A-Z]$/,
   AADHAR:        /^\d{12}$/,
   GST:           /^\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]$/,
+  // RERA registration numbers are state-specific; accept uppercase letters, digits,
+  // and / - separators, 8–30 chars (e.g. UPRERAPRJ123456, PRM/KA/RERA/1251/...).
+  RERA:          /^[A-Z0-9][A-Z0-9/\-]{6,28}[A-Z0-9]$/,
   TITLE:         /^[A-Za-z0-9\s\-,.'&()]{3,150}$/,
   PRICE:         /^\d{1,9}(\.\d{1,2})?$/,
   AREA:          /^\d{1,7}(\.\d{1,2})?$/,
@@ -113,6 +116,13 @@ export const v = {
     if (!val?.trim()) return null;
     const upper = val.trim().toUpperCase();
     if (!REGEX.GST.test(upper)) return 'Enter a valid 15-character GST number.';
+    return null;
+  },
+
+  reraOptional(val) {
+    if (!val?.trim()) return null;
+    const upper = val.trim().toUpperCase();
+    if (!REGEX.RERA.test(upper)) return 'Enter a valid RERA registration number (8–30 letters, digits, / or -).';
     return null;
   },
 

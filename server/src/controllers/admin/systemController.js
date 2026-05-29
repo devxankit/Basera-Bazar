@@ -4,6 +4,7 @@ const { PropertyListing, ServiceListing, MandiListing } = require('../../models/
 const { Category, SupplierCategory, Banner, AppConfig } = require('../../models/System');
 const invalidate = require('../../utils/cacheInvalidator');
 const pick = require('../../utils/pick');
+const respondError = require('../../utils/respondError');
 
 const sanitizeCategoryName = (name) => {
   if (!name) return name;
@@ -47,12 +48,13 @@ const createCategory = async (req, res) => {
   try {
     let { name, type, parent_id, icon, mandi_icon } = req.body;
     name = sanitizeCategoryName(name);
+    if (!name?.trim()) return res.status(400).json({ success: false, message: 'Category name is required.' });
     const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
     const category = await Category.create({ name, slug, type, parent_id: parent_id || null, icon, mandi_icon });
     await invalidate.publicCategories();
     res.status(201).json({ success: true, data: category });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error.' });
+    return respondError(res, error, 'Create category', 'Could not create category.');
   }
 };
 
@@ -90,11 +92,12 @@ const deleteCategory = async (req, res) => {
 const getCategoryDetail = async (req, res) => {
   try {
     const category = await Category.findById(req.params.id).populate('parent_id');
+    if (!category) return res.status(404).json({ success: false, message: 'Category not found.' });
     const subcategories = await Category.find({ parent_id: req.params.id, is_active: true });
     const propertyCount = await PropertyListing.countDocuments({ category_id: req.params.id });
     res.status(200).json({ success: true, data: { ...category.toObject(), subcategories, stats: { properties: propertyCount } } });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error.' });
+    return respondError(res, error, 'Get category detail', 'Could not fetch category details.');
   }
 };
 
@@ -127,12 +130,13 @@ const getSupplierCategories = async (req, res) => {
 const createSupplierCategory = async (req, res) => {
   try {
     let { name, parent_id, icon, description, is_active } = req.body;
+    if (!name?.trim()) return res.status(400).json({ success: false, message: 'Category name is required.' });
     const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
     const category = await SupplierCategory.create({ name, slug, parent_id: parent_id || null, icon, description, is_active });
     await invalidate.publicCategories();
     res.status(201).json({ success: true, data: category });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error.' });
+    return respondError(res, error, 'Create supplier category', 'Could not create supplier category.');
   }
 };
 
@@ -164,10 +168,11 @@ const deleteSupplierCategory = async (req, res) => {
 const getSupplierCategoryDetail = async (req, res) => {
   try {
     const category = await SupplierCategory.findById(req.params.id).populate('parent_id');
+    if (!category) return res.status(404).json({ success: false, message: 'Supplier category not found.' });
     const subcategories = await SupplierCategory.find({ parent_id: req.params.id, is_active: true });
     res.status(200).json({ success: true, data: { ...category.toObject(), subcategories } });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error.' });
+    return respondError(res, error, 'Get supplier category detail', 'Could not fetch supplier category details.');
   }
 };
 
@@ -196,7 +201,7 @@ const createBanner = async (req, res) => {
     await invalidate.publicBanners();
     res.status(201).json({ success: true, data: banner });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error.' });
+    return respondError(res, error, 'Create banner', 'Could not create banner.');
   }
 };
 

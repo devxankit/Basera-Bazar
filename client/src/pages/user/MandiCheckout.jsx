@@ -234,7 +234,7 @@ export default function MandiCheckout() {
                            onChange={(e) => setAddress({ ...address, receiver_name: e.target.value })}
                         />
                         <input
-                           type="tel" placeholder="Receiver's Phone Number *"
+                           type="tel" inputMode="numeric" pattern="[0-9]*" placeholder="Receiver's Phone Number *"
                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-[15px] font-medium placeholder:text-slate-300 outline-none focus:border-[#001b4e] transition-all"
                            value={address.receiver_phone}
                            maxLength={10}

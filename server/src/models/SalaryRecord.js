@@ -79,8 +79,15 @@ const salaryRecordSchema = new mongoose.Schema({
   team_commission_amount: { type: Number, default: 0 }
 }, { timestamps: true });
 
-// Legacy: one record per executive per month
-salaryRecordSchema.index({ executive_id: 1, month: 1 }, { unique: true, sparse: true });
+// Legacy: one record per executive per month.
+// Use a partial filter (not sparse) so the unique constraint applies ONLY to real
+// executive records. A plain `sparse` index still indexes TL/OS rows because their
+// `executive_id` is explicitly null (with `month` present), causing E11000 collisions
+// when more than one non-executive staff member is processed in the same month (bug #338).
+salaryRecordSchema.index(
+  { executive_id: 1, month: 1 },
+  { unique: true, partialFilterExpression: { executive_id: { $type: 'objectId' } } }
+);
 // New: one record per staff per month
 salaryRecordSchema.index({ staff_id: 1, month: 1 }, { unique: true, sparse: true });
 
