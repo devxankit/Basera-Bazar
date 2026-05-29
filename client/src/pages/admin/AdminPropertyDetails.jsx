@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
    ArrowLeft, Edit2, MapPin, Calendar, Smartphone,
    Info, Layout, Maximize2, Home, Key, Shield,
    ImageIcon, MoreHorizontal, User, IndianRupee, Sparkles, Building2,
-   CheckCircle2, AlertCircle, Trash2, Hash, Box, Wallet, ShieldCheck, Zap, TrendingUp, Star, Globe, FileText, ChevronRight, XCircle, Loader2,
+   CheckCircle2, AlertCircle, Trash2, Hash, Box, Wallet, ShieldCheck, Zap, TrendingUp, Star, Globe, FileText, ChevronRight, ChevronLeft, XCircle, Loader2,
    PauseCircle, PlayCircle, Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,6 +33,19 @@ export default function AdminPropertyDetails() {
    // Rejection Modal State
    const [isRejecting, setIsRejecting] = useState(false);
    const [rejectReason, setRejectReason] = useState('');
+
+   // Keyboard left/right navigation for gallery
+   useEffect(() => {
+     const images = [rawData?.data?.thumbnail, ...(rawData?.data?.images || [])].filter(Boolean);
+     const unique = [...new Set(images)];
+     if (unique.length <= 1) return;
+     const onKey = (e) => {
+       if (e.key === 'ArrowLeft')  setActiveImage(i => Math.max(0, i - 1));
+       if (e.key === 'ArrowRight') setActiveImage(i => Math.min(unique.length - 1, i + 1));
+     };
+     window.addEventListener('keydown', onKey);
+     return () => window.removeEventListener('keydown', onKey);
+   }, [rawData]);
 
    const { data: rawData, isLoading: loading, error: queryError } = useQuery({
       queryKey: ['adminPropertyDetail', id],
@@ -306,6 +319,26 @@ export default function AdminPropertyDetails() {
                               <ImageIcon size={12} /> {uniqueImages.length} Photos
                            </div>
                         </div>
+
+                        {/* Prev / Next arrows */}
+                        {uniqueImages.length > 1 && (
+                          <>
+                            <button
+                              onClick={() => setActiveImage(i => Math.max(0, i - 1))}
+                              disabled={activeImage === 0}
+                              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/40 backdrop-blur-sm text-white rounded-xl z-20 hover:bg-black/60 transition-colors disabled:opacity-30"
+                            >
+                              <ChevronLeft size={22} />
+                            </button>
+                            <button
+                              onClick={() => setActiveImage(i => Math.min(uniqueImages.length - 1, i + 1))}
+                              disabled={activeImage === uniqueImages.length - 1}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/40 backdrop-blur-sm text-white rounded-xl z-20 hover:bg-black/60 transition-colors disabled:opacity-30"
+                            >
+                              <ChevronRight size={22} />
+                            </button>
+                          </>
+                        )}
 
                         {/* Pagination Dots */}
                         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 p-1.5 bg-black/20 backdrop-blur-md rounded-full z-20">

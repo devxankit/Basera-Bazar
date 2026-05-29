@@ -302,6 +302,14 @@ const verifyOtp = async (req, res) => {
           if (executive && ['approved', 'verified'].includes(executive.onboarding_status)) {
             account.referred_by_executive = executive._id;
             await account.save();
+            // Notify the executive that a new partner joined with their referral code
+            createNotification(
+              'executive',
+              executive._id,
+              'New Partner Joined!',
+              `${account.name} joined BaseraBazar using your referral code.`,
+              { type: 'partner_joined', partner_id: String(account._id) }
+            ).catch(() => {});
           }
         }
 
@@ -876,6 +884,14 @@ const registerPartner = async (req, res) => {
       if (executive && ['approved', 'verified'].includes(executive.onboarding_status)) {
         partner.referred_by_executive = executive._id;
         await partner.save();
+        // Notify the executive that a new partner joined with their referral code
+        createNotification(
+          'executive',
+          executive._id,
+          'New Partner Joined!',
+          `${partner.name} joined BaseraBazar using your referral code.`,
+          { type: 'partner_joined', partner_id: String(partner._id) }
+        ).catch(() => {});
       }
     }
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Landmark, Camera, ShieldCheck, Mail, Phone, Lock, CheckCircle2, ChevronRight, MapPinned, CreditCard, Building2, UserCircle, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Landmark, Camera, ShieldCheck, Mail, Phone, Lock, CheckCircle2, ChevronRight, MapPinned, CreditCard, Building2, UserCircle, Eye, EyeOff, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -741,31 +741,41 @@ const DocUpload = ({ label, value, onChange, onRemove, error, uploadError }) => 
   return (
     <div className="space-y-1.5">
       <div className="relative">
-        {/* Always show the file input when there's an upload error (so user can retry) */}
+        {/* File input: no capture attribute — opens gallery/files only, not camera */}
         {(!value || uploadError) && (
-          <input type="file" accept="image/jpeg,image/png,image/webp,image/*" onChange={onChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={onChange}
+            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+          />
         )}
         <div className={`w-full py-4 px-5 rounded-2xl border-2 border-dashed flex items-center justify-between transition-all ${
-          isUploaded ? 'border-green-400 bg-green-50'
+          isUploaded   ? 'border-green-400 bg-green-50'
           : uploadError ? 'border-red-400 bg-red-50'
-          : error ? 'border-red-300 bg-red-50'
-          : 'border-slate-200 bg-slate-50 hover:border-[#001b4e] hover:bg-blue-50'
+          : error       ? 'border-red-300 bg-red-50'
+          :               'border-slate-200 bg-slate-50 hover:border-[#001b4e] hover:bg-blue-50'
         }`}>
           <div className="flex items-center gap-4">
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden ${
               isUploaded ? 'bg-green-500 text-white'
-              : hasError ? 'bg-red-100 text-red-500'
-              : 'bg-white text-slate-400 border border-slate-200'
+              : hasError  ? 'bg-red-100 text-red-500'
+              :             'bg-white text-slate-400 border border-slate-200'
             }`}>
-              {isUploaded ? <img src={value} alt={label} className="w-full h-full object-cover" /> : <Camera size={20} />}
+              {isUploaded
+                ? <img src={value} alt={label} className="w-full h-full object-cover" />
+                : <Upload size={20} />}
             </div>
             <div>
               <p className="text-sm font-bold text-slate-700">{label}</p>
               <p className="text-xs mt-0.5 text-slate-400">
-                {isUploaded ? '✓ Uploaded — tap × to remove'
-                  : uploadError ? 'Upload failed — tap to retry'
-                  : 'Tap to upload photo'}
+                {isUploaded   ? '✓ Uploaded — tap × to remove'
+                 : uploadError ? 'Upload failed — tap to retry'
+                 :               'Select from gallery or files'}
               </p>
+              {!isUploaded && !uploadError && (
+                <p className="text-[10px] text-slate-300 mt-0.5 uppercase tracking-widest">JPG · PNG · WEBP</p>
+              )}
             </div>
           </div>
           {isUploaded ? (
@@ -778,13 +788,13 @@ const DocUpload = ({ label, value, onChange, onRemove, error, uploadError }) => 
             </button>
           ) : (
             <span className={`text-xs font-bold px-3 py-1.5 rounded-lg border ${uploadError ? 'bg-red-100 text-red-600 border-red-200' : 'bg-white text-slate-400 border-slate-200'}`}>
-              {uploadError ? 'Retry' : 'Upload'}
+              {uploadError ? 'Retry' : 'Browse'}
             </span>
           )}
         </div>
       </div>
       {error && !uploadError && <p className="text-xs text-red-500 font-semibold ml-0.5">{error}</p>}
-      {uploadError && <p className="text-xs text-red-500 font-semibold ml-0.5">Upload failed — tap the box above to retry with a different photo.</p>}
+      {uploadError && <p className="text-xs text-red-500 font-semibold ml-0.5">Upload failed — tap the box above to retry with a different file.</p>}
     </div>
   );
 };

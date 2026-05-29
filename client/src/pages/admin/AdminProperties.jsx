@@ -40,8 +40,8 @@ export default function AdminProperties() {
   const [appliedFilters, setAppliedFilters] = useState(DEFAULTS);
 
   const { data: categoriesRaw } = useQuery({
-    queryKey: ['adminPropertyCategories'],
-    queryFn: () => api.get('/admin/system/categories?type=property').then(r => r.data),
+    queryKey: ['adminPropertyCategories', 'top-level'],
+    queryFn: () => api.get('/admin/system/categories?type=property&parent_id=null').then(r => r.data),
     staleTime: 10 * 60 * 1000,
   });
 

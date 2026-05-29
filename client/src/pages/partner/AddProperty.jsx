@@ -45,6 +45,7 @@ export default function AddProperty() {
     title: '',
     intention: 'For Sale',
     price: '',
+    negotiable: false,
     categoryId: '',
     categoryName: '',
     subcategoryId: '',
@@ -125,6 +126,7 @@ export default function AddProperty() {
         propertyType: data.property_type || '',
         intention: data.listing_intent === 'rent' ? 'For Rent' : 'For Sale',
         price: data.pricing?.amount || '',
+        negotiable: data.pricing?.negotiable || false,
         categoryId: data.category_id || '',
         subcategoryId: data.subcategory_id || '',
         state: data.address?.state || '',
@@ -458,7 +460,8 @@ export default function AddProperty() {
         },
         price: {
           value: fd.price,
-          unit: fd.intention === 'For Sale' ? 'L' : '/mo'
+          unit: fd.intention === 'For Sale' ? 'L' : '/mo',
+          negotiable: fd.negotiable
         },
         location_text: `${fd.completeAddress}, ${fd.city || fd.district}, ${fd.state}`,
         emi_available: fd.emiAvailable,
@@ -754,6 +757,16 @@ function StepOne({ formData, handleChange, handleCategorySelect, handleSubCatego
               onChange={handleChange}
               onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
             />
+            {/* Price Negotiable toggle */}
+            <label className="flex items-center gap-3 cursor-pointer select-none group mt-1">
+              <div
+                onClick={() => setFormData(prev => ({ ...prev, negotiable: !prev.negotiable }))}
+                className={`w-10 h-6 rounded-full transition-all relative shrink-0 ${formData.negotiable ? 'bg-indigo-600' : 'bg-slate-200'}`}
+              >
+                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${formData.negotiable ? 'translate-x-4' : ''}`} />
+              </div>
+              <span className="text-[13px] font-bold text-[#001b4e]">Price Negotiable</span>
+            </label>
           </div>
         </div>
       </SectionCard>

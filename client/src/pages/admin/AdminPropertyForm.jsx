@@ -56,7 +56,7 @@ export default function AdminPropertyForm() {
 
   // Fetch categories and partners
   const { data: catData } = useQuery({
-    queryKey: ['adminPropertyCategories'],
+    queryKey: ['adminPropertyCategories', 'top-level'],
     queryFn: () => api.get('/admin/system/categories?type=property&parent_id=null').then(r => r.data),
     staleTime: 5 * 60 * 1000,
   });

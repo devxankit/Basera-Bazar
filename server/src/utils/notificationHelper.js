@@ -27,7 +27,8 @@ const createNotification = async (recipientType, recipientId, title, body, data 
                     data.type === 'mandi_order' ? '/partner/marketplace/orders' : '/partner/home';
     } else if (recipientType === 'executive') {
       clickAction = data.type === 'commission_credit' ? '/executive/wallet' :
-                    data.type === 'daily_task' ? '/executive/tasks' : '/executive/home';
+                    data.type === 'daily_task' ? '/executive/tasks' :
+                    data.type === 'partner_joined' ? '/executive/partners' : '/executive/home';
     } else if (recipientType === 'admin') {
       clickAction = '/admin/dashboard';
     } else {
