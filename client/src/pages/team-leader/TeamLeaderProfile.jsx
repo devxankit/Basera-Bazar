@@ -36,6 +36,7 @@ export default function TeamLeaderProfile() {
   const [saving, setSaving] = useState(false);
   const [showPwSection, setShowPwSection] = useState(false);
   const [showFullPhoto, setShowFullPhoto] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -314,12 +315,41 @@ export default function TeamLeaderProfile() {
 
         {/* Logout */}
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutConfirm(true)}
           className="w-full flex items-center justify-center gap-2 py-3 bg-rose-50 text-rose-500 border border-rose-100 rounded-xl text-sm font-bold hover:bg-rose-100 transition-colors"
         >
           <LogOut size={15} /> Log Out
         </button>
       </div>
+
+      {/* Logout confirmation */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-200 bg-black/50 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center"
+            >
+              <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <LogOut size={22} className="text-rose-500" />
+              </div>
+              <h3 className="text-base font-black text-slate-900 mb-1">Log Out?</h3>
+              <p className="text-sm text-slate-500 mb-5">Are you sure you want to log out of your account?</p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-200 transition-colors">
+                  Cancel
+                </button>
+                <button onClick={handleLogout} className="flex-1 py-2.5 bg-rose-500 text-white rounded-xl text-sm font-bold hover:bg-rose-600 transition-colors">
+                  Log Out
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

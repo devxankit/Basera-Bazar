@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
 
@@ -13,15 +14,18 @@ const STATUS_BADGE = {
 
 export default function OfficeStaffReports() {
   const navigate = useNavigate();
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  const { data: rawData, isLoading: loading, error } = useQuery({
+    queryKey: ['office-staff-reports'],
+    queryFn: () => api.get('/office-staff/reports').then(r => r.data),
+    staleTime: 0, // always refetch when navigating back to this page
+  });
 
   useEffect(() => {
-    api.get('/office-staff/reports')
-      .then(({ data }) => { if (data.success) setReports(data.data); })
-      .catch(() => toast.error('Failed to load reports.'))
-      .finally(() => setLoading(false));
-  }, []);
+    if (error) toast.error('Failed to load reports.');
+  }, [error]);
+
+  const reports = rawData?.success ? rawData.data : [];
 
   if (loading) return <div className="p-6 text-center text-slate-400">Loading...</div>;
 

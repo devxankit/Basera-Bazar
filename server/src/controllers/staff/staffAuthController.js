@@ -197,6 +197,12 @@ const staffResetPassword = async (req, res) => {
     const staff = tl || os || fe;
     if (!staff) return res.status(404).json({ success: false, message: 'Staff account not found.' });
 
+    // Prevent reuse of the current (previous) password
+    const isSameAsOld = await bcrypt.compare(new_password, staff.password);
+    if (isSameAsOld) {
+      return res.status(400).json({ success: false, message: 'New password must be different from your current password.' });
+    }
+
     staff.password = new_password;
     staff.token_version = (staff.token_version || 0) + 1; // Logout all sessions
     await staff.save();
