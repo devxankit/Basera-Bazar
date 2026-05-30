@@ -15,7 +15,6 @@ const {
   getActivities,
   getPartnerSubscriptionLimits,
   updatePartnerMedia,
-  skipSubscriptionDay,
 } = require('../controllers/partnerController');
 
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
@@ -124,13 +123,6 @@ router.get(
   authorizeRoles('partner'),
   cacheMiddleware(5, true),
   getPartnerSubscriptionLimits
-);
-
-router.post(
-  '/subscription/skip-day',
-  protect,
-  authorizeRoles('partner'),
-  skipSubscriptionDay
 );
 
 module.exports = router;

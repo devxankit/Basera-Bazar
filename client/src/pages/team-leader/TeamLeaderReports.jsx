@@ -24,7 +24,7 @@ export default function TeamLeaderReports() {
     queryFn: () => {
       const params = new URLSearchParams({ date });
       if (staffType) params.set('staff_type', staffType);
-      return api.get(`/team-leader/reports/daily?${params}`).then(r => r.data);
+      return api.get(`/team-leader/reports?${params}`).then(r => r.data);
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -41,7 +41,7 @@ export default function TeamLeaderReports() {
       return;
     }
     try {
-      await api.put(`/team-leader/reports/daily/${id}/verify`, { action, remarks: remarkInput });
+      await api.put(`/team-leader/reports/${id}/verify`, { action, remarks: remarkInput });
       toast.success(action === 'approve' ? 'Report verified.' : 'Report rejected.');
       setExpandedId(null);
       setRemarkInput('');

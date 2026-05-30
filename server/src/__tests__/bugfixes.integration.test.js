@@ -94,6 +94,35 @@ describe('#344/#345 office-staff reports route', () => {
   });
 });
 
+describe('team-leader reports route (fixes "error on fetching reports")', () => {
+  const today = () => new Date().toISOString().slice(0, 10);
+
+  test('GET /team-leader/reports (the URL the UI now calls) returns 200 with the team\'s reports', async () => {
+    await request(app).post('/api/office-staff/reports/daily')
+      .set('Authorization', `Bearer ${osTok}`).send({ partners_visited: 1, notes: 'tl-fetch-test' });
+    const res = await request(app).get(`/api/team-leader/reports?date=${today()}`).set('Authorization', `Bearer ${tlTok}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
+  });
+
+  test('the old /team-leader/reports/daily URL is what was 404ing', async () => {
+    const res = await request(app).get(`/api/team-leader/reports/daily?date=${today()}`).set('Authorization', `Bearer ${tlTok}`);
+    expect(res.status).toBe(404);
+  });
+
+  test('PUT /team-leader/reports/:id/verify accepts {action, remarks}', async () => {
+    await request(app).post('/api/office-staff/reports/daily')
+      .set('Authorization', `Bearer ${osTok}`).send({ partners_visited: 2, notes: 'tl-verify-test' });
+    const list = await request(app).get(`/api/team-leader/reports?date=${today()}`).set('Authorization', `Bearer ${tlTok}`);
+    const id = list.body.data?.[0]?._id;
+    expect(id).toBeTruthy();
+    const v = await request(app).put(`/api/team-leader/reports/${id}/verify`)
+      .set('Authorization', `Bearer ${tlTok}`).send({ action: 'approve', remarks: 'ok' });
+    expect(v.status).toBe(200);
+  });
+});
+
 describe('mandi shop-by-category shows products (location fallback)', () => {
   test('a product in another district still appears when none exist locally', async () => {
     const mongoose = require('mongoose');

@@ -3,7 +3,7 @@ import toast from '../../mockToast';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import {
   ArrowLeft, History, CheckCircle2,
-  Calendar, Clock, Star,
+  Clock, Star,
   Package, Users, ChevronRight,
   TrendingUp, Activity, X, Info, Zap, Loader2,
   ShieldCheck, ZapOff, Building2
@@ -32,7 +32,6 @@ export default function PartnerSubscription() {
   const [showSimModal, setShowSimModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [skipping, setSkipping] = useState(false);
 
   useScrollLock(showHistory || showSubscribeModal || showSimModal || showCancelModal);
   const [transactions, setTransactions] = useState([]);
@@ -98,17 +97,6 @@ export default function PartnerSubscription() {
       : new Date(computedStart.getTime() + 30 * MS_PER_DAY);
 
   const daysLeft = sub ? Math.max(0, Math.ceil((computedEnd - new Date()) / MS_PER_DAY)) : 0;
-
-  // Skip days state derived from populated subscription
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const skipUsed = sub?.skip_month === currentMonth ? (sub?.skip_days_this_month ?? 0) : 0;
-  const skipRemaining = Math.max(0, 3 - skipUsed);
-  const todayStr = now.toISOString().split('T')[0];
-  const alreadySkippedToday = (sub?.skip_days ?? []).some(
-    (d) => new Date(d).toISOString().split('T')[0] === todayStr
-  );
-  const canSkip = !!sub && skipRemaining > 0 && !alreadySkippedToday;
 
   const planInfo = {
     name: sub ? currentPlanName : 'No Active Plan',
@@ -238,21 +226,6 @@ export default function PartnerSubscription() {
     }
   };
 
-  const handleSkipDay = async () => {
-    try {
-      setSkipping(true);
-      const res = await api.post('/partners/subscription/skip-day');
-      if (res.data.success) {
-        toast.success(res.data.message);
-        await refreshUser();
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to apply skip day.');
-    } finally {
-      setSkipping(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center">
@@ -335,51 +308,6 @@ export default function PartnerSubscription() {
             )}
           </div>
         </motion.div>
-
-        {/* Skip Day Card — only shown when an active subscription exists */}
-        {sub && (
-          <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="text-[11px] font-black text-[#001b4e] uppercase tracking-widest">Skip a Day</div>
-                <div className="text-[10px] font-bold text-slate-400 mt-0.5">Won't deduct from your plan time</div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-2.5 h-2.5 rounded-full ${i < skipUsed ? 'bg-orange-400' : 'bg-slate-100'}`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleSkipDay}
-                disabled={!canSkip || skipping}
-                className="flex-1 h-10 bg-orange-500 disabled:bg-slate-100 disabled:text-slate-300 text-white rounded-xl font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm shadow-orange-900/10"
-              >
-                {skipping ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <>
-                    <Calendar size={14} />
-                    {alreadySkippedToday ? 'Already Skipped Today' : canSkip ? 'Skip Today' : 'No Skips Left'}
-                  </>
-                )}
-              </button>
-              <div className="text-right">
-                <div className="text-[18px] font-black text-[#001b4e] leading-none">{skipRemaining}</div>
-                <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Left</div>
-              </div>
-            </div>
-
-            <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest mt-3">
-              Max 3 skips per month · Resets on the 1st
-            </p>
-          </div>
-        )}
 
         {/* Feature Limits Grid */}
         <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
