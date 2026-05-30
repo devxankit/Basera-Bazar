@@ -78,6 +78,12 @@ export default function MandiCategoryView() {
       </div>
 
       <div className="p-6 space-y-6">
+         {/* No local sellers — showing results from all areas */}
+         {data?.nationwide && (
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 text-[12px] font-semibold text-amber-700">
+               No sellers in your area yet — showing this category from all locations.
+            </div>
+         )}
          {/* Featured Lowest Price Banner */}
          {data?.listings?.[0] && (
             <div className="bg-gradient-to-br from-indigo-900 to-[#001b4e] rounded-[32px] p-6 text-white shadow-xl shadow-indigo-900/10">

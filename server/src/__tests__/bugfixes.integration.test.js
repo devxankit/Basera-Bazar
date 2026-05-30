@@ -94,6 +94,33 @@ describe('#344/#345 office-staff reports route', () => {
   });
 });
 
+describe('mandi shop-by-category shows products (location fallback)', () => {
+  test('a product in another district still appears when none exist locally', async () => {
+    const mongoose = require('mongoose');
+    const { Category } = require('../models/System');
+    const { MandiListing } = require('../models/Listing');
+    const cat = await Category.create({ name: 'Aggregate (Gitti)', slug: 'aggregate', type: 'product', is_active: true });
+    await MandiListing.create({
+      partner_id: new mongoose.Types.ObjectId(), category_id: cat._id,
+      title: '20mm Gitti', material_name: 'Aggregate', status: 'active',
+      address: { state: 'Madhya Pradesh', district: 'Indore' },
+      pricing: { unit: 'Ton', price_per_unit: 1200 },
+      location: { type: 'Point', coordinates: [75.85, 22.71] },
+    });
+
+    // Buyer browsing from Jaipur — no local sellers, should fall back to all areas
+    const res = await request(app).get(`/api/mandi/marketplace/category/${cat._id}?district=Jaipur&state=Rajasthan`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.listings.length).toBe(1);
+    expect(res.body.data.nationwide).toBe(true);
+
+    // Buyer in Indore — local result, no fallback flag
+    const local = await request(app).get(`/api/mandi/marketplace/category/${cat._id}?district=Indore`);
+    expect(local.body.data.listings.length).toBe(1);
+    expect(local.body.data.nationwide).toBe(false);
+  });
+});
+
 describe('#354 office-staff can override today\'s report', () => {
   test('re-submitting the same day updates instead of being rejected', async () => {
     const first = await request(app).post('/api/office-staff/reports/daily')

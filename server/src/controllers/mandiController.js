@@ -97,20 +97,22 @@ const getMarketplaceHome = async (req, res) => {
 
     // 2. Fetch "Best Deal" for each category to show on the main marketplace
     const featuredDeals = await Promise.all(categories.map(async (cat) => {
-      const query = { 
-        category_id: cat._id, 
-        status: 'active',
-        ...locationFilter
-      };
+      // Match products by category OR sub-category
+      const catMatch = { status: 'active', $or: [{ category_id: cat._id }, { subcategory_id: cat._id }] };
 
-      let bestPrice = await MandiListing.findOne(query)
-      .sort({ 'pricing.price_per_unit': 1 })
-      .select('title pricing material_name thumbnail address');
-      
-      // Fallback to national if no local deals found? 
-      // User requested strict, but usually a "Top Selling" section should have content.
-      // However, to fix the specific issue "Muzaffarpur showing in Jaipur", we MUST be strict if location is provided.
-      
+      let bestPrice = await MandiListing.findOne({ ...catMatch, ...locationFilter })
+        .sort({ 'pricing.price_per_unit': 1 })
+        .select('title pricing material_name thumbnail address');
+
+      // Fallback: if there's no local deal but the category does have products
+      // elsewhere, show the best national deal so the category isn't shown as
+      // empty / "coming soon" when products actually exist.
+      if (!bestPrice && Object.keys(locationFilter).length > 0) {
+        bestPrice = await MandiListing.findOne(catMatch)
+          .sort({ 'pricing.price_per_unit': 1 })
+          .select('title pricing material_name thumbnail address');
+      }
+
       return {
         category: cat.name,
         category_id: cat._id,
@@ -143,30 +145,44 @@ const getCategoryListings = async (req, res) => {
     const { district, state } = req.query;
     // Match products whose category OR sub-category is the requested id, so items
     // listed under a sub-category still appear on the parent category page.
-    const query = {
+    const baseQuery = {
       status: 'active',
       $or: [{ category_id: id }, { subcategory_id: id }]
     };
 
+    const locationFilter = {};
     if (district) {
-      query['address.district'] = { $regex: new RegExp(escapeRegex(district), 'i') };
+      locationFilter['address.district'] = { $regex: new RegExp(escapeRegex(district), 'i') };
     } else if (state) {
-      query['address.state'] = { $regex: new RegExp(escapeRegex(state), 'i') };
+      locationFilter['address.state'] = { $regex: new RegExp(escapeRegex(state), 'i') };
     }
-    
-    const [category, listings] = await Promise.all([
-      Category.findById(id),
-      MandiListing.find(query)
+
+    const fetch = (q) => MandiListing.find(q)
       .sort({ 'pricing.price_per_unit': 1 })
-      .populate('partner_id', 'name profile') // Populate profile for business name
+      .populate('partner_id', 'name profile');
+
+    const [category, localListings] = await Promise.all([
+      Category.findById(id),
+      fetch({ ...baseQuery, ...locationFilter }),
     ]);
 
-    res.status(200).json({ 
-      success: true, 
+    // Location is a preference, not a hard wall: if nothing is listed in the
+    // buyer's area, fall back to ALL products in the category so the page is
+    // never mysteriously empty (bug: "click a category → no products shown").
+    let listings = localListings;
+    let nationwide = false;
+    if (listings.length === 0 && (district || state)) {
+      listings = await fetch(baseQuery);
+      nationwide = listings.length > 0;
+    }
+
+    res.status(200).json({
+      success: true,
       data: {
         category,
-        listings
-      } 
+        listings,
+        nationwide, // true => results are from all areas (no local sellers found)
+      }
     });
   } catch (error) {
     logger.error({ err: error }, "Category Listings Error:")
