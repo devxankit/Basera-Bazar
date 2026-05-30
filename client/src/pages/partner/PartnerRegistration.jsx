@@ -162,11 +162,17 @@ export default function PartnerRegistration() {
   //   3. https: Cloudinary URL already uploaded              — already done, just pass through
   const uploadAndPatchMedia = async () => {
     try {
-      const uploadFile = async (file) => {
-        try {
-          const res = await db.uploadFile(file);
-          return res?.url || null;
-        } catch { return null; }
+      // Retry a few times — a single transient failure (rate-limit / network)
+      // must not silently drop a KYC image (bug: Aadhaar front not saved).
+      const uploadFile = async (file, attempts = 3) => {
+        for (let i = 0; i < attempts; i++) {
+          try {
+            const res = await db.uploadFile(file);
+            if (res?.url) return res.url;
+          } catch { /* fall through to retry */ }
+          if (i < attempts - 1) await new Promise(r => setTimeout(r, 400 * (i + 1)));
+        }
+        return null;
       };
 
       const uploadIfNeeded = async (field) => {
@@ -189,14 +195,14 @@ export default function PartnerRegistration() {
         return null;
       };
 
-      const [profileUrl, logoUrl, panUrl, aadharFrontUrl, aadharBackUrl, gstUrl] = await Promise.all([
-        uploadIfNeeded('profileImage'),
-        uploadIfNeeded('businessLogo'),
-        uploadIfNeeded('panImage'),
-        uploadIfNeeded('aadharFront'),
-        uploadIfNeeded('aadharBack'),
-        uploadIfNeeded('gstImage'),
-      ]);
+      // Upload sequentially (not Promise.all) so concurrent requests don't trip
+      // the API rate-limiter and cause one image to fail/return null.
+      const profileUrl     = await uploadIfNeeded('profileImage');
+      const logoUrl        = await uploadIfNeeded('businessLogo');
+      const panUrl         = await uploadIfNeeded('panImage');
+      const aadharFrontUrl = await uploadIfNeeded('aadharFront');
+      const aadharBackUrl  = await uploadIfNeeded('aadharBack');
+      const gstUrl         = await uploadIfNeeded('gstImage');
 
       if (profileUrl || logoUrl || panUrl || aadharFrontUrl || aadharBackUrl || gstUrl) {
         await api.patch('/partners/onboard-media', {
@@ -207,6 +213,16 @@ export default function PartnerRegistration() {
           aadhar_back_image: aadharBackUrl,
           gst_image: gstUrl,
         });
+      }
+
+      // If a KYC image was selected but failed to upload, tell the user so they
+      // can re-upload it from their profile instead of silently losing it.
+      const kycFailed =
+        (!!(formData.panImage_file || formData.panImage) && !panUrl) ||
+        (!!(formData.aadharFront_file || formData.aadharFront) && !aadharFrontUrl) ||
+        (!!(formData.aadharBack_file || formData.aadharBack) && !aadharBackUrl);
+      if (kycFailed) {
+        toast.error('Some ID documents could not be uploaded. Please re-upload them from your profile to complete verification.');
       }
     } catch (err) {
       console.warn('Media upload during registration failed — images can be updated in profile:', err);
