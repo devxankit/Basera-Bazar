@@ -156,16 +156,26 @@ async function unregisterFCMToken() {
 function setupForegroundHandler(onMessageReceived) {
   if (!messaging || typeof onMessage !== 'function') return () => {};
   
-  return onMessage(messaging, (payload) => {
+  return onMessage(messaging, async (payload) => {
     console.log('📬 Foreground notification:', payload);
-    
-    // Show a browser notification manually since browser won't show it in foreground automatically
-    if (Notification.permission === 'granted') {
-      new Notification(payload.notification.title, {
-        body: payload.notification.body,
-        icon: payload.notification.icon || '/favicon.png',
-        data: payload.data
-      });
+
+    // Show a browser notification manually since the browser won't show it
+    // in the foreground automatically. We MUST use the service worker's
+    // showNotification() — `new Notification()` throws an "Illegal constructor"
+    // error on Android/mobile browsers, so foreground notifications silently
+    // fail to display there.
+    if (Notification.permission === 'granted' && payload.notification) {
+      try {
+        const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')
+          || await navigator.serviceWorker.ready;
+        await registration.showNotification(payload.notification.title, {
+          body: payload.notification.body,
+          icon: payload.notification.icon || '/favicon.png',
+          data: payload.data
+        });
+      } catch (err) {
+        console.error('❌ Failed to show foreground notification:', err);
+      }
     }
 
     if (onMessageReceived) onMessageReceived(payload);

@@ -153,7 +153,7 @@ exports.sendTestNotification = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No registered tokens found for your account' });
     }
 
-    await sendPushNotification(uniqueTokens, {
+    const response = await sendPushNotification(uniqueTokens, {
       title: 'Basera Bazar Test',
       body: 'This is a test notification from the new FCM system! 🚀',
       data: {
@@ -162,7 +162,40 @@ exports.sendTestNotification = async (req, res) => {
       }
     });
 
-    res.status(200).json({ success: true, message: `Test notification sent to ${uniqueTokens.length} devices` });
+    if (!response) {
+      return res.status(500).json({ success: false, message: 'Push service unavailable. Check Firebase Admin configuration.' });
+    }
+
+    // Remove tokens FCM rejected as invalid/unregistered so future sends are accurate
+    const invalidTokens = [];
+    response.responses.forEach((r, i) => {
+      if (!r.success) {
+        const code = r.error?.code;
+        logger.warn({ token: uniqueTokens[i], err: code }, '[Push] Test token delivery failed');
+        if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
+          invalidTokens.push(uniqueTokens[i]);
+        }
+      }
+    });
+
+    if (invalidTokens.length > 0) {
+      if (recipient.fcmTokens) recipient.fcmTokens = recipient.fcmTokens.filter(t => !invalidTokens.includes(t));
+      if (recipient.fcmTokenMobile) recipient.fcmTokenMobile = recipient.fcmTokenMobile.filter(t => !invalidTokens.includes(t));
+      await recipient.save();
+    }
+
+    if (response.successCount === 0) {
+      return res.status(502).json({
+        success: false,
+        message: `Notification rejected by FCM for all ${response.failureCount} device(s). Stale tokens were cleared — re-open the app to re-register, then try again.`
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Test notification delivered to ${response.successCount} of ${uniqueTokens.length} device(s)` +
+        (response.failureCount > 0 ? ` (${response.failureCount} failed)` : '')
+    });
   } catch (error) {
     logger.error({ err: error }, 'Error sending test notification:')
     res.status(500).json({ success: false, message: 'Test failed' });
