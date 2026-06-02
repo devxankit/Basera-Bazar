@@ -84,17 +84,22 @@ async function getFCMToken() {
 /**
  * Register the device token with our backend
  */
-async function registerFCMToken(forceUpdate = false) {
+async function registerFCMToken(forceUpdate = false, accountId = null) {
   try {
     console.log('[Push] Initializing token registration...');
-    
-    // 1. Check if token already exists in session to avoid redundant calls
-    const savedToken = sessionStorage.getItem('fcm_token_registered');
-    if (savedToken && !forceUpdate) {
-      console.log('[Push] Token already registered in this session');
-      return savedToken;
+
+    // 1. Skip only if THIS account already registered its token this session.
+    //    The guard is keyed by accountId so switching accounts in the same
+    //    browser (e.g. customer -> partner -> executive) always re-registers
+    //    the current device token to the newly logged-in account. A plain
+    //    global flag would skip registration after the first login and leave
+    //    the other accounts holding only stale tokens.
+    const registeredFor = sessionStorage.getItem('fcm_registered_account');
+    if (registeredFor && accountId && registeredFor === String(accountId) && !forceUpdate) {
+      console.log('[Push] Token already registered for this account this session');
+      return localStorage.getItem('last_fcm_token');
     }
-    
+
     // 2. Request permission
     console.log('[Push] Requesting permission...');
     const hasPermission = await requestNotificationPermission();
@@ -120,7 +125,7 @@ async function registerFCMToken(forceUpdate = false) {
     });
     
     if (res.data.success) {
-      sessionStorage.setItem('fcm_token_registered', token);
+      if (accountId) sessionStorage.setItem('fcm_registered_account', String(accountId));
       localStorage.setItem('last_fcm_token', token); // Useful for logout cleanup
       console.log('✅ FCM token registered with Basera Bazar backend');
       return token;
@@ -139,9 +144,9 @@ async function registerFCMToken(forceUpdate = false) {
 async function unregisterFCMToken() {
   try {
     const token = localStorage.getItem('last_fcm_token');
+    sessionStorage.removeItem('fcm_registered_account');
     if (token) {
       await api.delete('/push/remove', { data: { token, platform: 'web' } });
-      sessionStorage.removeItem('fcm_token_registered');
       localStorage.removeItem('last_fcm_token');
       console.log('✅ FCM token removed from server');
     }

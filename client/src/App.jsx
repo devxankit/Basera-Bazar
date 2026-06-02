@@ -523,7 +523,7 @@ const FCMHandler = ({ children }) => {
   }, []);
 
   React.useEffect(() => {
-    if (isAuthenticated && user) registerFCMToken();
+    if (isAuthenticated && user) registerFCMToken(false, user._id || user.id);
   }, [isAuthenticated, user]);
 
   return children;

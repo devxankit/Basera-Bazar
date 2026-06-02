@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 import ConfirmationModal from '../components/common/ConfirmationModal';
+import { unregisterFCMToken } from '../services/pushNotificationService';
 
 const AuthContext = createContext();
 
@@ -120,6 +121,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async (callServer = false) => {
+    // Drop this device's FCM token from the current account and clear the
+    // per-account registration guard BEFORE wiping the auth token, so the
+    // /push/remove call is still authenticated and the next login (possibly a
+    // different role) re-registers this browser's token to that account.
+    await unregisterFCMToken();
     setUser(null);
     localStorage.removeItem('baserabazar_token');
     localStorage.removeItem('baserabazar_user');
