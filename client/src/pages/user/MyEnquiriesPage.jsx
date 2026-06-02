@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/DataEngine';
 import {
   ArrowLeft, MessageSquare, Building2, Wrench, Package,
-  Clock, ExternalLink, Send, ChevronRight, Search,
+  Clock, ExternalLink, ChevronRight, Search,
   Filter, Calendar, MapPin, Briefcase, ShoppingBag, Phone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -154,7 +154,7 @@ const MyEnquiriesPage = () => {
                    enquiry.category === 'property' ? <Building2 size={20} /> : 
                    <Package size={20} />}
                 </div>
-                <div className="flex-grow min-w-0 pr-10">
+                <div className="flex-grow min-w-0 pr-2">
                    <h4 className="font-bold text-[#001b4e] text-[16px] leading-tight line-clamp-2 group-hover:text-orange-500 transition-colors">
                      {enquiry.listingTitle || 'Requirement Inquiry'}
                    </h4>
@@ -166,26 +166,15 @@ const MyEnquiriesPage = () => {
                      </div>
                    </div>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const url = `${window.location.origin}${enquiry.category === 'service' ? `/service/${enquiry.listingId}` : `/products/${enquiry.listingId}`}`;
-                    if (navigator.share) {
-                      navigator.share({ title: enquiry.listingTitle || 'Basera Bazar Listing', url });
-                    } else {
-                      navigator.clipboard?.writeText(url);
-                    }
-                  }}
-                  className="absolute top-5 right-5 w-8 h-8 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-sm active:scale-90 transition-all"
-                >
-                  <Send size={14} strokeWidth={3} />
-                </button>
               </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2 pt-1">
                  <button 
-                  onClick={() => navigate(enquiry.category === 'service' ? `/service/${enquiry.listingId}` : `/products/${enquiry.listingId}`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(enquiry.category === 'service' ? `/service/${enquiry.listingId}` : `/products/${enquiry.listingId}`);
+                  }}
                   className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-50 text-[#001b4e] rounded-xl text-[12px] font-black uppercase tracking-wider active:scale-[0.98] transition-all border border-slate-100"
                  >
                     <ExternalLink size={14} strokeWidth={3} /> Details

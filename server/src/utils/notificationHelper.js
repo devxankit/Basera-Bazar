@@ -56,6 +56,12 @@ const createNotification = async (recipientType, recipientId, title, body, data 
     } else if (recipientType === 'executive') {
       const Executive = require('../models/Executive');
       recipient = await Executive.findById(recipientId).select('fcmTokens');
+    } else if (recipientType === 'team_leader') {
+      const { TeamLeader } = require('../models/Staff');
+      recipient = await TeamLeader.findById(recipientId).select('fcmTokens');
+    } else if (recipientType === 'office_staff') {
+      const { OfficeStaff } = require('../models/Staff');
+      recipient = await OfficeStaff.findById(recipientId).select('fcmTokens');
     } else {
       // 'user' — default
       recipient = await User.findById(recipientId).select('fcmTokens fcmTokenMobile');

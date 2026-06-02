@@ -133,8 +133,9 @@ exports.getPartnerLeads = async (req, res) => {
     const leads = await BroadcastLead.find(query).sort({ createdAt: -1 }).limit(200);
 
     // Check limits
-    const limits = await getPartnerLimits(req.user.id);
-    const sub = await getActiveSubscription(req.user.id);
+    const leadRole = req.user.active_role || req.user.partner_type;
+    const limits = await getPartnerLimits(req.user.id, leadRole);
+    const sub = await getActiveSubscription(req.user.id, leadRole);
     const usage = sub?.usage?.enquiries_received_this_month || 0;
     const limitReached = limits.leads !== -1 && usage >= limits.leads;
 
@@ -180,8 +181,9 @@ exports.getPartnerLeadById = async (req, res) => {
     if (!lead) return res.status(404).json({ success: false, message: 'Lead not found.' });
 
     // Check limits
-    const limits = await getPartnerLimits(req.user.id);
-    const sub = await getActiveSubscription(req.user.id);
+    const leadRole = req.user.active_role || req.user.partner_type;
+    const limits = await getPartnerLimits(req.user.id, leadRole);
+    const sub = await getActiveSubscription(req.user.id, leadRole);
     const usage = sub?.usage?.enquiries_received_this_month || 0;
     
     // For broadcast leads, we don't have a per-partner "read" status in the model

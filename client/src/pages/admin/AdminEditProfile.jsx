@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Shield, CheckCircle2, Save, Key, Upload, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Shield, CheckCircle2, Save, Key, Upload, Lock, Loader2, AlertCircle, Bell } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { v } from '../../utils/validators';
+import { toast } from '../../mockToast';
 
 const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all bg-white placeholder-slate-300";
 const labelClass = "block text-sm font-bold text-slate-600 mb-1.5";
@@ -12,6 +13,21 @@ export default function AdminEditProfile() {
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [sendingTest, setSendingTest] = useState(false);
+
+  const handleTestPush = async () => {
+    setSendingTest(true);
+    try {
+      const res = await api.post('/push/test');
+      if (res.data.success) {
+        toast.success(res.data.message || 'Test push notification sent!');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send test push notification');
+    } finally {
+      setSendingTest(false);
+    }
+  };
 
   const [profileForm, setProfileForm] = useState({
     name: '', email: '', phone: '', address: '', city: '', state: '',
@@ -316,6 +332,19 @@ export default function AdminEditProfile() {
             <span className="px-3 py-1.5 bg-emerald-500 text-white text-[11px] font-black uppercase tracking-widest rounded-md inline-flex items-center gap-1.5">
               <CheckCircle2 size={12} /> {profileForm.status}
             </span>
+          </div>
+
+          {/* Test Push Notification */}
+          <div className="px-5 py-4 border-t border-slate-50">
+            <button
+              type="button"
+              onClick={handleTestPush}
+              disabled={sendingTest}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-black text-xs rounded-xl shadow-md shadow-indigo-100 transition-all uppercase tracking-wider"
+            >
+              {sendingTest ? <Loader2 size={14} className="animate-spin" /> : <Bell size={14} />}
+              {sendingTest ? 'Sending...' : 'Test Push'}
+            </button>
           </div>
         </div>
 

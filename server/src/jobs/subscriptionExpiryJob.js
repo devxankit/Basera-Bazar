@@ -3,6 +3,7 @@ const { Partner } = require('../models/Partner');
 const { Subscription } = require('../models/Finance');
 const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const { createNotification } = require('../utils/notificationHelper');
+const { getActiveSubscriptions } = require('../utils/subscriptionUtils');
 const invalidate = require('../utils/cacheInvalidator');
 
 // Deactivate all active listings for a partner and tag them so we can restore on renewal
@@ -57,6 +58,7 @@ const runSubscriptionExpiryJob = async () => {
   }).lean();
 
   let processed = 0;
+  const handledPartners = new Set();
   for (const sub of expiredSubs) {
     try {
       // Atomic update: only succeeds if status is still active/trial (prevents double-processing)
@@ -67,16 +69,27 @@ const runSubscriptionExpiryJob = async () => {
       );
       if (!updated) continue; // Already processed by another instance
 
-      // Only deactivate the partner if this sub is still their active one
-      const partner = await Partner.findOne({
-        _id: sub.partner_id,
-        active_subscription_id: sub._id,
-        subscription_expired: { $ne: true },
-      });
+      // Process each partner at most once per run (a partner may hold several subs)
+      const partnerKey = String(sub.partner_id);
+      if (handledPartners.has(partnerKey)) continue;
+      handledPartners.add(partnerKey);
 
-      if (partner) {
-        await expirePartner(partner, sub.plan_snapshot?.price > 0 ? 'paid' : 'trial');
-        processed++;
+      const partner = await Partner.findById(sub.partner_id);
+      if (!partner) continue;
+
+      // A partner may hold multiple concurrent subscriptions. Only lock them out
+      // when NONE remain active — otherwise the surviving plan(s) keep them
+      // covered (uncovered roles simply fall back to the free tier).
+      const remaining = await getActiveSubscriptions(partner._id);
+
+      if (remaining.length === 0) {
+        if (partner.subscription_expired !== true) {
+          await expirePartner(partner, sub.plan_snapshot?.price > 0 ? 'paid' : 'trial');
+          processed++;
+        }
+      } else if (String(partner.active_subscription_id) !== String(remaining[0]._id)) {
+        // Keep the legacy pointer valid by aiming it at a surviving subscription.
+        await Partner.findByIdAndUpdate(partner._id, { $set: { active_subscription_id: remaining[0]._id } });
       }
     } catch (err) {
       logger.error({ err }, `[EXPIRY] Failed to expire subscription ${sub._id}`);

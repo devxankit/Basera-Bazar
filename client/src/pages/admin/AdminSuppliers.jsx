@@ -27,7 +27,9 @@ export default function AdminSuppliers() {
   });
   const suppliers = rawUsers.filter(u =>
     (u.role || '').toLowerCase() === 'supplier' ||
-    (u.displayRole || '').toLowerCase() === 'supplier'
+    (u.partner_type || '').toLowerCase() === 'supplier' ||
+    (u.roles && u.roles.includes('supplier')) ||
+    (u.displayRoles && u.displayRoles.includes('Supplier'))
   );
 
   const featureMutation = useMutation({

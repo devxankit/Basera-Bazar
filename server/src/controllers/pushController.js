@@ -15,15 +15,21 @@ exports.saveFCMToken = async (req, res) => {
 
     if (!token) return res.status(400).json({ success: false, message: 'Token required' });
 
-    // Robust recipient identification
+    const normalizedRole = userRole?.toLowerCase();
     let recipient;
 
-    if (userRole === 'partner') {
+    if (normalizedRole === 'partner') {
       recipient = await Partner.findById(userId);
-    } else if (userRole === 'executive') {
+    } else if (normalizedRole === 'executive') {
       const Executive = require('../models/Executive');
       recipient = await Executive.findById(userId);
-    } else if (userRole === 'super_admin' || userRole === 'admin') {
+    } else if (normalizedRole === 'team_leader') {
+      const { TeamLeader } = require('../models/Staff');
+      recipient = await TeamLeader.findById(userId);
+    } else if (normalizedRole === 'office_staff') {
+      const { OfficeStaff } = require('../models/Staff');
+      recipient = await OfficeStaff.findById(userId);
+    } else if (['super_admin', 'superadmin', 'admin'].includes(normalizedRole)) {
       const { AdminUser } = require('../models/Admin');
       recipient = await AdminUser.findById(userId);
     } else {
@@ -70,12 +76,19 @@ exports.removeFCMToken = async (req, res) => {
     const userRole = req.user.role;
 
     let recipient;
-    if (userRole === 'partner') {
+    const normalizedRole = userRole?.toLowerCase();
+    if (normalizedRole === 'partner') {
       recipient = await Partner.findById(userId);
-    } else if (userRole === 'executive') {
+    } else if (normalizedRole === 'executive') {
       const Executive = require('../models/Executive');
       recipient = await Executive.findById(userId);
-    } else if (userRole === 'super_admin' || userRole === 'admin') {
+    } else if (normalizedRole === 'team_leader') {
+      const { TeamLeader } = require('../models/Staff');
+      recipient = await TeamLeader.findById(userId);
+    } else if (normalizedRole === 'office_staff') {
+      const { OfficeStaff } = require('../models/Staff');
+      recipient = await OfficeStaff.findById(userId);
+    } else if (['super_admin', 'superadmin', 'admin'].includes(normalizedRole)) {
       const { AdminUser } = require('../models/Admin');
       recipient = await AdminUser.findById(userId);
     } else {
@@ -108,12 +121,19 @@ exports.sendTestNotification = async (req, res) => {
     const userRole = req.user.role;
     
     let recipient;
-    if (userRole === 'partner') {
+    const normalizedRole = userRole?.toLowerCase();
+    if (normalizedRole === 'partner') {
       recipient = await Partner.findById(userId);
-    } else if (userRole === 'executive') {
+    } else if (normalizedRole === 'executive') {
       const Executive = require('../models/Executive');
       recipient = await Executive.findById(userId);
-    } else if (userRole === 'super_admin' || userRole === 'admin') {
+    } else if (normalizedRole === 'team_leader') {
+      const { TeamLeader } = require('../models/Staff');
+      recipient = await TeamLeader.findById(userId);
+    } else if (normalizedRole === 'office_staff') {
+      const { OfficeStaff } = require('../models/Staff');
+      recipient = await OfficeStaff.findById(userId);
+    } else if (['super_admin', 'superadmin', 'admin'].includes(normalizedRole)) {
       const { AdminUser } = require('../models/Admin');
       recipient = await AdminUser.findById(userId);
     } else {

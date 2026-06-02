@@ -15,6 +15,13 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { loadScript } from '../../utils/loadScript';
 
+const ROLE_LABELS = {
+  property_agent: 'Property Agent',
+  service_provider: 'Service Provider',
+  supplier: 'Supplier',
+  mandi_seller: 'Mandi Seller',
+};
+
 export default function PartnerSubscription() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
@@ -49,6 +56,15 @@ export default function PartnerSubscription() {
     enabled: !!user,
   });
   const plans = plansData?.data || [];
+
+  // Per-role coverage: which of the partner's roles a plan covers vs. free tier.
+  const { data: coverageData } = useQuery({
+    queryKey: ['subscriptionCoverage'],
+    queryFn: () => api.get('/finance/subscriptions/active').then(r => r.data),
+    staleTime: 2 * 60 * 1000,
+    enabled: !!user,
+  });
+  const coverage = coverageData?.data;
 
   // Read sessionStorage flag set by PaymentStatusPage on successful subscription payment
   useEffect(() => {
@@ -341,6 +357,41 @@ export default function PartnerSubscription() {
           </div>
         </div>
 
+        {/* Per-role coverage */}
+        {coverage && (coverage.roles?.length > 0) && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <ShieldCheck size={14} className="text-blue-600" />
+              <h3 className="text-[12px] font-black text-[#001b4e] uppercase tracking-widest">Role Coverage</h3>
+            </div>
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm divide-y divide-slate-50">
+              {coverage.roles.map((roleId) => {
+                const covered = coverage.covered_roles?.includes(roleId);
+                const label = ROLE_LABELS[roleId] || roleId.replace('_', ' ');
+                return (
+                  <div key={roleId} className="flex items-center justify-between px-5 py-4">
+                    <span className="text-[13px] font-bold text-[#001b4e] capitalize">{label}</span>
+                    {covered ? (
+                      <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                        <CheckCircle2 size={12} /> Covered
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+                        Free Tier
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {coverage.uncovered_roles?.length > 0 && (
+              <p className="text-[11px] font-medium text-slate-400 px-1 leading-relaxed">
+                Roles on the free tier have limited listings. Purchase a plan that covers them below to unlock full features.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Available Plans - Professional Cards */}
         <div className="space-y-4">
            <div className="flex items-center gap-2 px-1">
@@ -361,6 +412,15 @@ export default function PartnerSubscription() {
                     <div className="min-w-0">
                        <h4 className="text-[16px] font-black text-[#001b4e] uppercase tracking-tight truncate leading-tight">{plan.name}</h4>
                        <p className="text-slate-300 text-[10px] font-black uppercase tracking-widest mt-1.5">{plan.duration_days} Days Access</p>
+                       {Array.isArray(plan.applicable_to) && plan.applicable_to.length > 0 && (
+                         <div className="flex flex-wrap gap-1 mt-2">
+                           {plan.applicable_to.map((r) => (
+                             <span key={r} className="text-[8px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                               {ROLE_LABELS[r] || r.replace('_', ' ')}
+                             </span>
+                           ))}
+                         </div>
+                       )}
                     </div>
                     {isCurrent ? (
                        <div className="bg-emerald-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">Current</div>

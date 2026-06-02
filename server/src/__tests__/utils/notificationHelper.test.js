@@ -11,6 +11,10 @@ jest.mock('../../models/Partner', () => ({
 jest.mock('../../models/User', () => ({
   User: { findById: jest.fn() },
 }));
+jest.mock('../../models/Staff', () => ({
+  TeamLeader: { findById: jest.fn() },
+  OfficeStaff: { findById: jest.fn() },
+}));
 jest.mock('../../services/firebaseAdmin', () => ({
   sendPushNotification: jest.fn().mockResolvedValue({}),
 }));
@@ -21,6 +25,7 @@ jest.mock('../../utils/logger', () => ({
 
 const { Notification } = require('../../models/System');
 const { Partner } = require('../../models/Partner');
+const { TeamLeader, OfficeStaff } = require('../../models/Staff');
 const { createNotification } = require('../../utils/notificationHelper');
 
 const FAKE_NOTIF = { _id: 'notif_id_1', title: 'Test', body: 'Hello' };
@@ -81,5 +86,29 @@ describe('createNotification', () => {
     await createNotification('partner', 'p1', 'T', 'B');
     const tokens = sendPushNotification.mock.calls[0][0];
     expect(tokens).toEqual(['tok1']);
+  });
+
+  test('sends push notification to team_leader using TeamLeader model', async () => {
+    const { sendPushNotification } = require('../../services/firebaseAdmin');
+    TeamLeader.findById.mockReturnValue(asQuery({ fcmTokens: ['tl_token'] }));
+
+    await createNotification('team_leader', 'tl1', 'TL Title', 'TL Body');
+    expect(TeamLeader.findById).toHaveBeenCalledWith('tl1');
+    expect(sendPushNotification).toHaveBeenCalledWith(
+      ['tl_token'],
+      expect.objectContaining({ title: 'TL Title', body: 'TL Body' })
+    );
+  });
+
+  test('sends push notification to office_staff using OfficeStaff model', async () => {
+    const { sendPushNotification } = require('../../services/firebaseAdmin');
+    OfficeStaff.findById.mockReturnValue(asQuery({ fcmTokens: ['os_token'] }));
+
+    await createNotification('office_staff', 'os1', 'OS Title', 'OS Body');
+    expect(OfficeStaff.findById).toHaveBeenCalledWith('os1');
+    expect(sendPushNotification).toHaveBeenCalledWith(
+      ['os_token'],
+      expect.objectContaining({ title: 'OS Title', body: 'OS Body' })
+    );
   });
 });

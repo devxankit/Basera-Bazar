@@ -892,8 +892,11 @@ const toggleFeaturedListing = async (req, res) => {
     const partnerId = req.user.id;
     const { id } = req.params;
     
-    // 1. Find the listing across models
-    let listing = await PropertyListing.findById(id) || await ServiceListing.findById(id) || await MandiListing.findById(id);
+    // 1. Find the listing across models, tracking which role it belongs to
+    let listing = await PropertyListing.findById(id);
+    let listingRole = listing ? 'property_agent' : null;
+    if (!listing) { listing = await ServiceListing.findById(id); if (listing) listingRole = 'service_provider'; }
+    if (!listing) { listing = await MandiListing.findById(id); if (listing) listingRole = 'mandi_seller'; }
     if (!listing) return res.status(404).json({ success: false, message: 'Listing not found' });
 
     // 2. Security Check
@@ -904,9 +907,9 @@ const toggleFeaturedListing = async (req, res) => {
     // Determine target state: use body if provided, else toggle
     const targetState = req.body.is_featured !== undefined ? !!req.body.is_featured : !listing.is_featured;
 
-    // 3. If turning ON, check limit
+    // 3. If turning ON, check limit (scoped to the listing's role)
     if (targetState && !listing.is_featured) {
-      const limitCheck = await checkFeaturedLimit(partnerId);
+      const limitCheck = await checkFeaturedLimit(partnerId, listingRole);
       if (!limitCheck.allowed) {
         return res.status(403).json({ success: false, message: limitCheck.message });
       }

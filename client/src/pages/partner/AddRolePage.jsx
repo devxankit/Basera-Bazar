@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { loadScript } from '../../utils/loadScript';
 import { v } from '../../utils/validators';
 
 const ALL_ROLES = [
@@ -82,10 +83,15 @@ export default function AddRolePage() {
   const [switching, setSwitching] = useState(null);
   const [refreshing, setRefreshing] = useState(true);
   const [success, setSuccess] = useState(false);
+  const [upgradeFee, setUpgradeFee] = useState(null);
 
   React.useEffect(() => {
     const sync = async () => {
       try { await refreshUser(); } catch {}
+      try {
+        const info = await api.get('/partners/upgrade-info');
+        if (info.data?.success) setUpgradeFee(info.data.data.role_upgrade_fee);
+      } catch { /* upgrade-info is best-effort; fee also returned on 402 */ }
       setRefreshing(false);
     };
     sync();
@@ -134,6 +140,13 @@ export default function AddRolePage() {
 
   const getPendingRequest = (roleId) => {
     return user?.role_requests?.find(r => r.role === roleId && r.status === 'pending');
+  };
+
+  // Most recent rejected request for a role — if present, the partner already
+  // paid (or used a credit) and can resubmit documents free of charge.
+  const getRejectedRequest = (roleId) => {
+    const matches = (user?.role_requests || []).filter(r => r.role === roleId && r.status === 'rejected');
+    return matches.length ? matches[matches.length - 1] : null;
   };
 
   const handleSwitchRole = async (roleId) => {
@@ -218,71 +231,138 @@ export default function AddRolePage() {
     }
   };
 
-  const handleAddRole = async () => {
+  // Build the role-request payload shared by the free/resubmit and paid flows.
+  const buildRolePayload = () => ({
+    new_role: selectedRole,
+    role: selectedRole,
+    use_role_credit: useCredit,
+    profile_data: selectedRole === 'mandi_seller'
+      ? {
+          business_name: profileData.business_name || undefined,
+          business_description: profileData.business_description || undefined
+        }
+      : selectedRole === 'property_agent'
+      ? {
+          rera_number: profileData.rera_number || undefined,
+          rera_certificate_image: profileData.rera_certificate_image || undefined
+        }
+      : {},
+    gst_number: gstData.number || undefined,
+    gst_image: gstData.image || undefined,
+    rera_number: selectedRole === 'property_agent' ? (profileData.rera_number || undefined) : undefined,
+    rera_certificate_image: selectedRole === 'property_agent' ? (profileData.rera_certificate_image || undefined) : undefined,
+  });
+
+  const validateRoleDocs = () => {
     if (gstData.number) {
       const gstErr = v.gst(gstData.number);
-      if (gstErr) { toast.error(gstErr); return; }
+      if (gstErr) { toast.error(gstErr); return false; }
     }
     if (selectedRole === 'property_agent' && profileData.rera_number) {
       const reraErr = v.reraOptional(profileData.rera_number);
-      if (reraErr) { toast.error(reraErr); return; }
+      if (reraErr) { toast.error(reraErr); return false; }
     }
     if (profileData.business_name && profileData.business_description && profileData.business_description.trim().length > 0 && profileData.business_description.trim().length < 10) {
-      toast.error('Business description must be at least 10 characters.'); return;
+      toast.error('Business description must be at least 10 characters.'); return false;
     }
+    return true;
+  };
+
+  const finishSuccess = async () => {
+    setSuccess(true);
+    await refreshUser();
+    setTimeout(() => navigate('/partner/home'), 1800);
+  };
+
+  const handleAddRole = async () => {
+    if (!validateRoleDocs()) return;
+
     setSubmitting(true);
     try {
-      // Map empty string/null values to undefined to omit them from payload so Zod validation passes
-      const payload = {
-        new_role: selectedRole,
-        use_role_credit: useCredit,
-        profile_data: selectedRole === 'mandi_seller' 
-          ? { 
-              business_name: profileData.business_name || undefined, 
-              business_description: profileData.business_description || undefined 
-            }
-          : selectedRole === 'property_agent'
-          ? { 
-              rera_number: profileData.rera_number || undefined, 
-              rera_certificate_image: profileData.rera_certificate_image || undefined 
-            }
-          : {},
-        gst_number: gstData.number || undefined,
-        gst_image: gstData.image || undefined,
-        rera_number: selectedRole === 'property_agent' ? (profileData.rera_number || undefined) : undefined,
-        rera_certificate_image: selectedRole === 'property_agent' ? (profileData.rera_certificate_image || undefined) : undefined,
-      };
-
-      const res = await api.post('/partners/add-role', payload);
+      // The server submits the request for free when a credit is applied OR when
+      // this is a resubmission of a previously rejected (already-paid) request.
+      // Otherwise it responds 402 with the fee, and we route to the payment step.
+      const res = await api.post('/partners/add-role', buildRolePayload(), { skipErrorToast: true });
 
       if (res.data.success) {
-        if (useCredit) {
-          setSuccess(true);
-          await refreshUser();
-          setTimeout(() => navigate('/partner/home'), 2000);
-          return;
-        }
-
-        if (['supplier', 'mandi_seller', 'property_agent'].includes(selectedRole)) {
-          setStep(4);
-          await refreshUser();
-        } else {
-          setSuccess(true);
-          await refreshUser();
-          setTimeout(() => {
-            navigate('/partner/home');
-          }, 1500);
-        }
+        await finishSuccess();
       }
     } catch (error) {
-      const serverMessage = error.response?.data?.message;
-      const validationErrors = error.response?.data?.errors;
+      const status = error.response?.status;
+      const data = error.response?.data;
+
+      if (status === 402 && data?.requires_payment) {
+        // Payment required — move to the activation/payment step.
+        if (data.fee != null) setUpgradeFee(data.fee);
+        setStep(4);
+        setSubmitting(false);
+        return;
+      }
+
+      const serverMessage = data?.message;
+      const validationErrors = data?.errors;
       if (serverMessage === 'Validation Error' && Array.isArray(validationErrors) && validationErrors.length > 0) {
         toast.error(validationErrors.map(e => `${e.field}: ${e.message}`).join(', '));
       } else {
         toast.error(serverMessage || 'Failed to add role. Please try again.');
       }
     } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Paid upgrade: pay the one-time role-upgrade fee via Razorpay, then the
+  // server creates the pending role request on verify/callback.
+  const handlePayAndSubmit = async () => {
+    if (!validateRoleDocs()) return;
+    setSubmitting(true);
+    try {
+      const payload = buildRolePayload();
+      const initRes = await api.post('/finance/role-upgrade/initiate', payload);
+      const orderData = initRes.data;
+      if (!orderData?.success) throw new Error('Failed to start payment.');
+
+      // Simulation mode (no Razorpay keys configured) — verify directly.
+      if (orderData.key === 'rzp_test_mock') {
+        await api.post('/finance/role-upgrade/verify', {
+          razorpay_order_id: orderData.order_id,
+          razorpay_payment_id: `pay_mock_${Date.now()}`,
+          razorpay_signature: 'mock_signature',
+          ...payload,
+        });
+        await finishSuccess();
+        return;
+      }
+
+      const isLoaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+      if (!isLoaded) throw new Error('Failed to load payment gateway. Please disable any ad-blocker.');
+
+      const callbackBase = api.defaults.baseURL?.startsWith('http')
+        ? api.defaults.baseURL
+        : window.location.origin + (api.defaults.baseURL || '/api');
+
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: 'INR',
+        name: 'Basera Bazar',
+        description: `Role Upgrade: ${selectedRole?.replace('_', ' ')}`,
+        order_id: orderData.order_id,
+        prefill: {
+          name: user?.name || '',
+          email: user?.email || '',
+          contact: user?.phone || ''
+        },
+        theme: { color: '#001b4e' },
+        modal: { ondismiss: () => setSubmitting(false) },
+        redirect: true,
+        callback_url: `${callbackBase}/finance/role-upgrade/callback?role=${selectedRole}&redirect_to=${encodeURIComponent('/partner/add-role')}&origin=${encodeURIComponent(window.location.origin)}`
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || 'Payment could not be started. Please try again.');
       setSubmitting(false);
     }
   };
@@ -449,7 +529,8 @@ export default function AddRolePage() {
                         const isSelected = selectedRole === role.id;
                         const theme = themeMap[role.theme];
                         const pendingRequest = getPendingRequest(role.id);
-                        
+                        const rejectedRequest = !pendingRequest && getRejectedRequest(role.id);
+
                         return (
                           <button
                             key={role.id}
@@ -474,9 +555,16 @@ export default function AddRolePage() {
                                 {pendingRequest && (
                                   <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-600 text-[9px] font-black rounded-full">Pending</span>
                                 )}
+                                {rejectedRequest && (
+                                  <span className="ml-2 px-2 py-0.5 bg-rose-100 text-rose-600 text-[9px] font-black rounded-full">Resubmit Free</span>
+                                )}
                               </h3>
                               <p className="text-slate-400 text-[10px] font-medium leading-snug uppercase tracking-tight opacity-60">
-                                {pendingRequest ? 'Request submitted and awaiting admin review.' : role.description}
+                                {pendingRequest
+                                  ? 'Request submitted and awaiting admin review.'
+                                  : rejectedRequest
+                                  ? `Rejected: ${rejectedRequest.rejection_reason || 'documents not accepted'}. Resubmit — no extra payment.`
+                                  : role.description}
                               </p>
                             </div>
                             <div className="shrink-0 pr-1">
@@ -678,24 +766,39 @@ export default function AddRolePage() {
               </div>
               
               <div>
-                <h1 className="text-[22px] font-black text-[#001b4e] mb-2 uppercase tracking-tight">Premium Activation</h1>
+                <h1 className="text-[22px] font-black text-[#001b4e] mb-2 uppercase tracking-tight">Role Upgrade Fee</h1>
                 <p className="text-slate-400 text-[13px] font-medium leading-relaxed uppercase tracking-tight opacity-70 px-4">
-                  To start listing as a <span className="text-[#001b4e] font-bold">{selectedRole?.replace('_', ' ')}</span>, please select a professional plan.
+                  Unlock the <span className="text-[#001b4e] font-bold">{selectedRole?.replace('_', ' ')}</span> role with a one-time upgrade fee. After payment, your request is sent for admin approval.
                 </p>
               </div>
 
-              <div className="w-full space-y-3 pt-4">
+              {upgradeFee != null && (
+                <div className="w-full bg-white rounded-[24px] border border-slate-100 shadow-sm p-6 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">One-time fee</span>
+                  <span className="text-[28px] font-black text-[#001b4e]">₹{upgradeFee}</span>
+                </div>
+              )}
+
+              <div className="bg-indigo-50 rounded-2xl p-4 flex gap-3 border border-indigo-100 text-left">
+                <Info size={18} className="text-indigo-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] font-medium text-indigo-700 leading-relaxed uppercase tracking-tight">
+                  If your documents are rejected, you can resubmit them later without paying this fee again.
+                </p>
+              </div>
+
+              <div className="w-full space-y-3 pt-2">
                 <button
-                  onClick={() => navigate('/partner/subscription')}
-                  className="w-full py-5 bg-[#001b4e] text-white rounded-[24px] font-bold text-[16px] shadow-xl shadow-blue-900/20 active:scale-95 transition-all uppercase tracking-widest"
+                  onClick={handlePayAndSubmit}
+                  disabled={submitting}
+                  className="w-full py-5 bg-[#001b4e] text-white rounded-[24px] font-bold text-[16px] shadow-xl shadow-blue-900/20 active:scale-95 transition-all uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-3"
                 >
-                  View Premium Plans
+                  {submitting ? <Loader2 size={20} className="animate-spin" /> : (upgradeFee != null ? `Pay ₹${upgradeFee} & Submit` : 'Pay & Submit')}
                 </button>
                 <button
                   onClick={() => navigate('/partner/home')}
                   className="w-full py-4 text-slate-300 font-bold text-[12px] active:scale-95 transition-all uppercase tracking-widest"
                 >
-                  Setup Later
+                  Cancel
                 </button>
               </div>
             </motion.div>

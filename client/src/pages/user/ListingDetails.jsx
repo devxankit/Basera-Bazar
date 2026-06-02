@@ -3,7 +3,7 @@ import { useScrollLock } from '../../hooks/useScrollLock';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from '../../mockToast';
 import { db } from '../../services/DataEngine';
-import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Share2, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star, ShoppingCart, Plus, Minus, Package, Loader2 } from 'lucide-react';
+import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star, ShoppingCart, Plus, Minus, Package, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { clsx } from 'clsx';
@@ -453,25 +453,12 @@ const ListingDetails = () => {
             <div className="absolute top-[-40%] right-[-20%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
             <div className="absolute bottom-[-30%] left-[-10%] w-[400px] h-[400px] bg-orange-500/10 rounded-full blur-[100px] pointer-events-none mix-blend-overlay" />
             
-            <div className="flex items-center justify-between mb-10 relative z-20">
+            <div className="flex items-center mb-10 relative z-20">
               <button 
                 onClick={() => navigate(-1)}
                 className="p-2.5 bg-white/5 backdrop-blur-2xl text-white hover:bg-white/10 rounded-2xl transition-all border border-white/10 shadow-xl group"
               >
                 <ArrowLeft size={22} className="group-active:-translate-x-1 transition-transform" />
-              </button>
-              <button
-                onClick={() => {
-                  const url = window.location.href;
-                  if (navigator.share) {
-                    navigator.share({ title: listing.title, url });
-                  } else {
-                    navigator.clipboard?.writeText(url);
-                  }
-                }}
-                className="p-2.5 bg-white/5 backdrop-blur-2xl text-white hover:bg-white/10 rounded-2xl transition-all border border-white/10 shadow-xl"
-              >
-                <Share2 size={22} />
               </button>
             </div>
 
@@ -706,11 +693,11 @@ const ListingDetails = () => {
                     </div>
 
                     <button 
-                      onClick={() => navigate(`/agent/${listing.owner?.id}`)}
+                      onClick={() => navigate(isSupplier || isMandi ? `/supplier/${listing.owner?.id}` : `/agent/${listing.owner?.id}`)}
                       className="w-full mt-4 bg-slate-50 border border-slate-100 py-3 rounded-2xl text-[13px] font-bold text-[#1f2355] hover:bg-slate-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
                       <LayoutGrid size={16} />
-                      {isMandi ? 'View Seller Shop' : 'View All Property'}
+                      {isSupplier || isMandi ? 'View Seller Shop' : 'View All Property'}
                     </button>
                   </div>
                   <div className="bg-white border border-[#eef2fc] rounded-xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-5">

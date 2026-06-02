@@ -2,19 +2,16 @@
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
-/**
- * Firebase configuration
- * IMPORTANT: You must replace these with your actual Firebase config values
- * from the Firebase Console (Project Settings > General > Your Apps)
- */
+// Extract Firebase configuration dynamically from registration URL query parameters
+const url = new URL(self.location.href);
 const firebaseConfig = {
-  apiKey: "AIzaSyCEXmUNDI9JQJaK5mZk-_tnF-hCIxmcO_U",
-  authDomain: "basera-bazar.firebaseapp.com",
-  projectId: "basera-bazar",
-  storageBucket: "basera-bazar.firebasestorage.app",
-  messagingSenderId: "570105453591",
-  appId: "1:570105453591:web:558e2f23fecfb90c2b9052",
-  measurementId: "G-G1CYH0CRGR"
+  apiKey: url.searchParams.get('apiKey') || "AIzaSyCEXmUNDI9JQJaK5mZk-_tnF-hCIxmcO_U",
+  authDomain: url.searchParams.get('authDomain') || "basera-bazar.firebaseapp.com",
+  projectId: url.searchParams.get('projectId') || "basera-bazar",
+  storageBucket: url.searchParams.get('storageBucket') || "basera-bazar.firebasestorage.app",
+  messagingSenderId: url.searchParams.get('messagingSenderId') || "570105453591",
+  appId: url.searchParams.get('appId') || "1:570105453591:web:558e2f23fecfb90c2b9052",
+  measurementId: url.searchParams.get('measurementId') || "G-G1CYH0CRGR"
 };
 
 // Initialize Firebase

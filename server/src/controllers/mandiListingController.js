@@ -102,8 +102,8 @@ const createMandiListing = async (req, res) => {
   try {
     const partnerId = req.user.id;
 
-    // 1. Check Subscription Limit
-    const limitCheck = await checkListingLimit(partnerId);
+    // 1. Check Subscription Limit (scoped to the mandi_seller role)
+    const limitCheck = await checkListingLimit(partnerId, 'mandi_seller');
     if (!limitCheck.allowed) {
       return res.status(403).json({ success: false, message: limitCheck.message });
     }

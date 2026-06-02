@@ -139,6 +139,17 @@ const connectDB = async () => {
     retryCount = 0;
     logger.info(`MongoDB Connected: ${conn.connection.host}`);
     logger.info(`Database Name: ${conn.connection.db.databaseName}`);
+
+    // Set up mongoose connection listeners for better lifecycle logging
+    mongoose.connection.on('error', (err) => {
+      logger.error({ err }, 'Mongoose connection error occurred after startup');
+    });
+    mongoose.connection.on('disconnected', () => {
+      logger.warn('Mongoose connection disconnected');
+    });
+    mongoose.connection.on('reconnected', () => {
+      logger.info('Mongoose connection reconnected');
+    });
     
     // Self-healing database cleanup for orphaned staff records
     cleanOrphanedRecords().catch(err => logger.error({ err }, '[Cleanup] Startup execution failed'));

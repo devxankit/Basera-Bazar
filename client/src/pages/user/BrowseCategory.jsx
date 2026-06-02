@@ -238,6 +238,7 @@ const BrowseCategory = () => {
   const { data: rawItems, isLoading: loading } = useQuery({
     queryKey: ['browseItems', category, subCategory, category_id_param, location, searchQuery, activeFilters, sortBy, selectedDistricts],
     queryFn: async () => {
+      console.log('[BrowseCategory] Fetching items:', { itemsTable, itemsQueryParams, location });
       let data = await db.getAll(itemsTable, itemsQueryParams);
 
       // Apply Advanced Filters
@@ -725,7 +726,7 @@ const BrowseCategory = () => {
 
               if (isItemSupplier) return (
                 /* Supplier Card */
-                <div key={item.id} onClick={() => navigate(`/agent/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl p-5 flex gap-5 active:scale-[0.98] transition-all">
+                <div key={item.id} onClick={() => navigate(`/supplier/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl p-5 flex gap-5 active:scale-[0.98] transition-all">
                   <div className="w-24 h-24 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
                     <img src={item.image || '/placeholder-supplier.png'} className="w-full h-full object-cover" alt={item.title || item.name} />
                   </div>

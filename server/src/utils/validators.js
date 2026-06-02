@@ -385,6 +385,28 @@ const financeVerifySchema = z.object({
   plan_id: mongoId,
 });
 
+const roleUpgradeInitiateSchema = z.object({
+  new_role: z.enum(PARTNER_ROLES).optional(),
+  role: z.enum(PARTNER_ROLES).optional(),
+  profile_data: z.record(z.unknown()).optional(),
+  gst_number: z.string().max(15).optional(),
+  gst_image: z.string().url().optional(),
+  rera_number: z.string().max(20).optional(),
+  rera_certificate_image: z.string().url().optional(),
+}).refine(d => d.role || d.new_role, { message: 'role is required', path: ['role'] });
+
+const roleUpgradeVerifySchema = z.object({
+  razorpay_order_id: z.string().min(1, 'Razorpay order ID is required'),
+  razorpay_payment_id: z.string().min(1, 'Payment ID is required'),
+  razorpay_signature: z.string().min(1, 'Signature is required'),
+  role: z.enum(PARTNER_ROLES).optional(),
+  profile_data: z.record(z.unknown()).optional(),
+  gst_number: z.string().max(15).optional(),
+  gst_image: z.string().url().optional(),
+  rera_number: z.string().max(20).optional(),
+  rera_certificate_image: z.string().url().optional(),
+});
+
 // ---------------------------------------------------------
 // MILESTONE SCHEMAS
 // ---------------------------------------------------------
@@ -520,6 +542,8 @@ module.exports = {
   // Finance schemas
   financeInitiateSchema,
   financeVerifySchema,
+  roleUpgradeInitiateSchema,
+  roleUpgradeVerifySchema,
   // Milestone schemas
   milestoneClaimSchema,
   milestoneRewardStatusSchema,

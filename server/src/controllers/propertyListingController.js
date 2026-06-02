@@ -16,8 +16,8 @@ const createPropertyListing = async (req, res) => {
     const partnerPhone = req.user.phone;
     const item = req.body;
 
-    // 1. Check Subscription Limit
-    const limitCheck = await checkListingLimit(partnerId);
+    // 1. Check Subscription Limit (scoped to the property_agent role)
+    const limitCheck = await checkListingLimit(partnerId, 'property_agent');
     if (!limitCheck.allowed) {
       return res.status(403).json({ success: false, message: limitCheck.message });
     }

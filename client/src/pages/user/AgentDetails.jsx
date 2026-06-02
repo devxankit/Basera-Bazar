@@ -3,7 +3,7 @@ import { useScrollLock } from '../../hooks/useScrollLock';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import toast from '../../mockToast';
 import {
-  ArrowLeft, Share2, MapPin, Building2, Phone, Mail,
+  ArrowLeft, MapPin, Building2, Phone, Mail,
   ChevronRight, LayoutGrid, CheckCircle2, ShoppingCart,
   User as UserIcon, Calendar, Info, Send, X, MessageSquare,
   Package, LayoutList, Ruler, Bed, Bath
@@ -54,16 +54,27 @@ const AgentDetails = () => {
 
   useScrollLock(isModalOpen || showSuccessModal);
 
-  const { data: agentData, isLoading: loading } = useQuery({
-    queryKey: ['agentListings', id],
-    queryFn: () => db.getAll('listings', { partner_id: id, category: 'property' }),
+  const { data: partnerProfile, isLoading: profileLoading } = useQuery({
+    queryKey: ['partnerProfile', id],
+    queryFn: () => db.getById('partners', id),
     staleTime: 5 * 60 * 1000,
   });
 
+  const activeRole = (partnerProfile?.active_role || partnerProfile?.partner_type || (partnerProfile?.roles && partnerProfile.roles[0]) || 'property_agent').toLowerCase();
+  const listingCategory = activeRole.includes('supplier') ? 'mandi' : (activeRole.includes('service') ? 'service' : 'property');
+
+  const { data: agentData, isLoading: listingsLoading } = useQuery({
+    queryKey: ['agentListings', id, listingCategory],
+    queryFn: () => db.getAll('listings', { partner_id: id, category: listingCategory }),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const loading = profileLoading || listingsLoading;
+
   const listings = agentData || [];
-  const agent = listings.length > 0
+  const agent = partnerProfile?.owner || (listings.length > 0
     ? listings[0].owner
-    : { id, name: 'Property Agent', location: 'Muzaffarpur, Bihar', role: 'Verified Partner' };
+    : { id, name: 'Verified Partner', location: 'Muzaffarpur, Bihar', role: 'Verified Partner' });
 
   const sendOtpMutation = useMutation({
     mutationFn: (phone) => api.post('/auth/send-otp', { phone, checkExists: false }).then(r => r.data),
@@ -101,8 +112,8 @@ const AgentDetails = () => {
         phone: payload.phone,
         email: payload.email,
         userId: currentUserId,
-        category: 'property',
-        message: `Inquiry regarding properties from ${agent?.name}. Message: ${payload.message}`
+        category: listingCategory,
+        message: `Inquiry regarding ${listingCategory === 'mandi' ? 'products' : (listingCategory === 'service' ? 'services' : 'properties')} from ${agent?.name}. Message: ${payload.message}`
       });
     },
     onSuccess: () => { setShowSuccessModal(true); setIsModalOpen(false); },
@@ -141,15 +152,12 @@ const AgentDetails = () => {
         <div className="absolute top-[10%] left-[20%] w-[300px] h-[300px] bg-white/5 rounded-full blur-[80px] pointer-events-none" />
         <div className="absolute top-[40%] right-[10%] w-32 h-32 bg-orange-500/10 rounded-full blur-[40px] pointer-events-none animate-pulse" />
 
-        <div className="flex items-center justify-between mb-10 relative z-20">
+        <div className="flex items-center relative z-20 mb-10">
           <button 
             onClick={() => navigate(-1)}
             className="p-2.5 bg-white/5 backdrop-blur-2xl text-white hover:bg-white/10 rounded-2xl transition-all border border-white/10 shadow-xl group"
           >
             <ArrowLeft size={22} className="group-active:-translate-x-1 transition-transform" />
-          </button>
-          <button className="p-2.5 bg-white/5 backdrop-blur-2xl text-white hover:bg-white/10 rounded-2xl transition-all border border-white/10 shadow-xl">
-            <Share2 size={22} />
           </button>
         </div>
 
@@ -186,7 +194,7 @@ const AgentDetails = () => {
         {/* Reimagined Glass Stat Capsules */}
         <div className="grid grid-cols-3 gap-3 relative z-20">
           {[
-            { label: 'Listings', value: listings.length, color: 'text-white' },
+            { label: activeRole.includes('supplier') ? 'Products' : (activeRole.includes('service') ? 'Services' : 'Listings'), value: listings.length, color: 'text-white' },
             { label: 'Status', value: 'Active', color: 'text-yellow-400' },
             { label: 'Verified', value: '5+ Yrs', color: 'text-emerald-400' }
           ].map((stat, i) => (
@@ -208,8 +216,8 @@ const AgentDetails = () => {
       <div className="bg-white sticky top-0 z-40 border-b border-slate-100 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5">
           {[
-            { id: 'listings', label: 'Property List' },
-            { id: 'about', label: 'Agent Profile' }
+            { id: 'listings', label: activeRole.includes('supplier') ? 'Product List' : (activeRole.includes('service') ? 'Service List' : 'Property List') },
+            { id: 'about', label: activeRole.includes('supplier') ? 'Supplier Profile' : (activeRole.includes('service') ? 'Provider Profile' : 'Agent Profile') }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -236,7 +244,9 @@ const AgentDetails = () => {
         {activeTab === 'listings' ? (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-[17px] font-black text-[#1f2355]">All Listings ({listings.length})</h2>
+              <h2 className="text-[17px] font-black text-[#1f2355]">
+                {activeRole.includes('supplier') ? 'All Products' : (activeRole.includes('service') ? 'All Services' : 'All Listings')} ({listings.length})
+              </h2>
               <div className="flex items-center p-1 bg-slate-100 rounded-xl">
                  <button 
                   onClick={() => setIsGridView(true)}
@@ -263,7 +273,7 @@ const AgentDetails = () => {
                       key={item.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      onClick={() => navigate(`/products/${item.id}`)}
+                      onClick={() => navigate(listingCategory === 'service' ? `/service/${item.id}` : `/products/${item.id}`)}
                       className={cn(
                         "bg-white border border-slate-100 shadow-[0_5px_15px_rgba(0,0,0,0.03)] overflow-hidden active:scale-[0.98] transition-all group cursor-pointer",
                         isGridView ? "rounded-[16px] h-auto flex flex-col" : "rounded-[24px] flex h-40 sm:h-44"
@@ -329,7 +339,7 @@ const AgentDetails = () => {
                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
                       <LayoutGrid size={24} className="text-slate-300" />
                    </div>
-                   <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">No Properties Listed Yet</p>
+                   <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">No {activeRole.includes('supplier') ? 'Products' : (activeRole.includes('service') ? 'Services' : 'Properties')} Listed Yet</p>
                 </div>
             )}
           </div>
@@ -346,8 +356,8 @@ const AgentDetails = () => {
                
                <div className="space-y-4">
                   {[
-                    { label: 'Agency Name', value: agent?.name, icon: Building2 },
-                    { label: 'Agent ID', value: agent?.id?.slice(-8).toUpperCase(), icon: UserIcon },
+                    { label: activeRole.includes('supplier') ? 'Business Name' : (activeRole.includes('service') ? 'Business Name' : 'Agency Name'), value: agent?.name, icon: Building2 },
+                    { label: activeRole.includes('supplier') ? 'Supplier ID' : (activeRole.includes('service') ? 'Provider ID' : 'Agent ID'), value: agent?.id?.slice(-8).toUpperCase(), icon: UserIcon },
                     { label: 'Member Since', value: formatDate(agent?.joinedAt), icon: Calendar },
                     { label: 'Verification', value: 'Verified', icon: CheckCircle2, color: 'text-green-600' }
                   ].map((item, i) => (
@@ -391,7 +401,7 @@ const AgentDetails = () => {
                 className="w-full h-16 bg-gradient-to-r from-[#fa8639] to-[#e6752d] text-white rounded-2xl font-black text-[16px] active:scale-[0.98] transition-all shadow-[0_8px_20px_-6px_rgba(250,134,57,0.4)] flex items-center justify-center gap-3"
                >
                  <Send size={20} className="-rotate-12" />
-                 Send Property Inquiry
+                 Send {activeRole.includes('supplier') ? 'Supply' : (activeRole.includes('service') ? 'Service' : 'Property')} Inquiry
                </button>
             </div>
           </div>
@@ -405,7 +415,7 @@ const AgentDetails = () => {
           <div className="bg-white w-full max-w-md rounded-t-[32px] sm:rounded-[32px] p-6 relative z-10 animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300">
             <div className="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-6 sm:hidden" />
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl font-black text-[#1f2355]">Inquiry for Agent</h2>
+              <h2 className="text-xl font-black text-[#1f2355]">Inquiry for {activeRole.includes('supplier') ? 'Supplier' : (activeRole.includes('service') ? 'Provider' : 'Agent')}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-[#1f2355] hover:bg-slate-50 p-2 rounded-full"><X size={20} /></button>
             </div>
 

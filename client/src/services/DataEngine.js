@@ -54,14 +54,16 @@ class DataEngine {
       // For partners, the "owner" is the partner itself
       normalized.owner = {
         id: item._id || item.id,
-        name: item.name,
+        name: businessName,
+        display_name: item.name,
         phone: item.phone,
         email: item.email,
-        profileImage: item.profileImage || profile.mandi_profile?.business_logo,
+        profileImage: item.profileImage || profile.mandi_profile?.business_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(businessName || item.name || 'Basera')}&background=f1f5f9&color=64748b`,
         experience: profile.supplier_profile?.delivery_radius_km ? `${profile.supplier_profile.delivery_radius_km}km Radius` : 'Verified Supplier',
         role: item.active_role || item.partner_type || 'Supplier',
         location: item.district && item.state ? `${item.district}, ${item.state}` : (item.city ? `${item.city}, ${item.state}` : 'Muzaffarpur, Bihar'),
         memberSince: item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'N/A',
+        joinedAt: item.createdAt,
         contactPerson: item.name
       };
       
@@ -245,7 +247,10 @@ class DataEngine {
     const queryParams = new URLSearchParams(cleanParams).toString();
     const cacheKey = `all_${table}_${queryParams}`;
 
+    console.log('[DataEngine.getAll] request:', table, cleanParams, 'cacheKey:', cacheKey);
+
     return cacheService.get(cacheKey, async () => {
+      console.log('[DataEngine.getAll] CACHE MISS, calling backend for:', table, 'queryParams:', queryParams);
       try {
         // Mapping table names to backend routes
         if (table === 'listings') {

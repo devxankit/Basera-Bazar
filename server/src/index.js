@@ -335,12 +335,13 @@ if (process.env.NODE_ENV !== 'test') {
 
   const gracefulShutdown = (signal) => {
     logger.info(`${signal} received — shutting down gracefully`);
+    const exitCode = (signal === 'SIGINT' || signal === 'SIGTERM') ? 0 : 1;
     server.close(() => {
       logger.info('HTTP server closed');
       mongoose.connection.close().then(() => {
         logger.info('MongoDB connection closed');
-        process.exit(0);
-      }).catch(() => process.exit(0));
+        process.exit(exitCode);
+      }).catch(() => process.exit(exitCode));
     });
     setTimeout(() => {
       logger.fatal('Graceful shutdown timed out — forcing exit');
@@ -356,3 +357,4 @@ if (process.env.NODE_ENV !== 'test') {
     gracefulShutdown('unhandledRejection');
   });
 }
+// Trigger dev reload - restart server fresh

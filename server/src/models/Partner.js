@@ -146,7 +146,14 @@ const partnerSchema = new mongoose.Schema({
       rera_certificate_image: { type: String },
       submitted_at: { type: Date, default: Date.now },
       is_free_upgrade: { type: Boolean, default: false },
+      // Role-upgrade fee payment tracking. Retained across rejection so a
+      // partner can resubmit documents without paying the upgrade fee again.
+      payment_status: { type: String, enum: ['not_required', 'paid'], default: 'not_required' },
+      amount_paid: { type: Number, default: 0 },
+      razorpay_order_id: { type: mongoose.Schema.Types.ObjectId, ref: 'RazorpayOrder' },
+      paid_at: { type: Date },
       reviewed_at: { type: Date },
+      reviewed_by: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser' },
       rejection_reason: { type: String }
     }],
     validate: { validator: v => v.length <= 20, message: 'Too many role requests.' }
@@ -184,6 +191,9 @@ const partnerSchema = new mongoose.Schema({
     expires_at: { type: Date }
   },
   role_credits: { type: Number, default: 0 }, // For 1+1 role offer
+  // Lifetime guard: the 1+1 free role credit is granted at most once per partner,
+  // on their first qualifying subscription purchase.
+  free_role_credit_granted: { type: Boolean, default: false },
   password: {
     type: String,
     default: null

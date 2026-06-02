@@ -206,7 +206,7 @@ export default function PartnerLeadDetails() {
                 onClick={() => {
                   const cat = listing.category;
                   if (cat === 'service') navigate(`/service/${listing.id}`);
-                  else if (cat === 'supplier') navigate(`/agent/${listing.id}`);
+                  else if (cat === 'supplier') navigate(`/supplier/${listing.id}`);
                   else navigate(`/products/${listing.id}`);
                 }}
                 className="p-4 flex gap-4 items-center bg-white cursor-pointer active:scale-[0.99] transition-all hover:bg-slate-50/50"

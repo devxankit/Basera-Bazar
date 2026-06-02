@@ -1,0 +1,412 @@
+import React, { useState, useEffect } from 'react';
+import { useScrollLock } from '../../hooks/useScrollLock';
+import { useParams, useNavigate } from 'react-router-dom';
+import toast from '../../mockToast';
+import {
+  ArrowLeft, MapPin, Building2, Phone, Mail,
+  CheckCircle2, User as UserIcon, Calendar, Info, Send, X, MessageSquare,
+  Package, Store, Award, ShieldCheck
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import { db } from '../../services/DataEngine';
+import { Skeleton } from '../../components/common/Skeleton';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
+import { useQuery, useMutation } from '@tanstack/react-query';
+
+function cn(...inputs) {
+  return twMerge(clsx(inputs));
+}
+
+const SupplierDetails = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user, login } = useAuth();
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'June 2026';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  };
+
+  // Inquiry Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [enquiryData, setEnquiryData] = useState({
+    name: user?.name || '',
+    phone: user?.phone || '',
+    email: user?.email || '',
+    message: ''
+  });
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerified, setIsVerified] = useState(!!user);
+  const [submitting, setSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  useScrollLock(isModalOpen || showSuccessModal);
+
+  // Sync user info if it loads later
+  useEffect(() => {
+    if (user) {
+      setEnquiryData(prev => ({
+        ...prev,
+        name: user.name || '',
+        phone: user.phone || '',
+        email: user.email || ''
+      }));
+      setIsVerified(true);
+    }
+  }, [user]);
+
+  // Sync OTP timer
+  useEffect(() => {
+    if (otpTimer <= 0) return;
+    const timer = setInterval(() => setOtpTimer(prev => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [otpTimer]);
+
+  const { data: partnerProfile, isLoading: loading } = useQuery({
+    queryKey: ['partnerProfile', id],
+    queryFn: () => db.getById('partners', id),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const supplier = partnerProfile?.owner || {
+    id,
+    name: 'Basera Supplier',
+    location: 'Muzaffarpur, Bihar',
+    role: 'Supplier',
+    phone: '9322910004',
+    email: 'contact@baserabazar.com'
+  };
+
+  // Extract material categories
+  const rawCategories = partnerProfile?.profile?.supplier_profile?.material_categories || [];
+  const materialCategories = rawCategories.length > 0 ? rawCategories : ['Building Materials', 'Cement', 'Bricks', 'Steel Rebars', 'Sand & Aggregate'];
+
+  const sendOtpMutation = useMutation({
+    mutationFn: (phone) => api.post('/auth/send-otp', { phone, checkExists: false }).then(r => r.data),
+    onSuccess: () => { setOtpSent(true); setOtpTimer(60); toast.success("OTP sent successfully"); },
+    onError: (error) => toast.error(error.response?.data?.message || "Failed to send OTP"),
+  });
+
+  const handleSendOtp = () => {
+    if (enquiryData.phone.length < 10) { toast.error("Please enter a valid 10-digit phone number"); return; }
+    setIsSendingOtp(true);
+    sendOtpMutation.mutate(enquiryData.phone, { onSettled: () => setIsSendingOtp(false) });
+  };
+
+  const submitEnquiryMutation = useMutation({
+    mutationFn: async (payload) => {
+      let currentUserId = user?.id;
+      if (!user) {
+        const authRes = await api.post('/auth/verify-otp', {
+          phone: payload.phone,
+          otp: payload.otp,
+          name: payload.name,
+          email: payload.email,
+          role: 'user',
+          flow: 'signup'
+        }).then(r => r.data);
+        if (authRes.success) {
+          localStorage.setItem('baserabazar_token', authRes.token);
+          login(authRes.user, authRes.token);
+          currentUserId = authRes.user.id || authRes.user._id;
+          setIsVerified(true);
+        }
+      }
+      return db.create('leads', {
+        name: payload.name,
+        phone: payload.phone,
+        email: payload.email,
+        userId: currentUserId,
+        category: 'supplier',
+        listingId: id,
+        message: payload.message
+      });
+    },
+    onSuccess: () => { setShowSuccessModal(true); setIsModalOpen(false); },
+    onError: () => toast.error("Failed to send inquiry"),
+    onSettled: () => setSubmitting(false),
+  });
+
+  const handleEnquirySubmit = (e) => {
+    e.preventDefault();
+    if (!user && (!otpSent || !otpCode)) {
+      toast.error("Please verify OTP first");
+      return;
+    }
+    setSubmitting(true);
+    submitEnquiryMutation.mutate({ ...enquiryData, otp: otpCode });
+  };
+
+  if (loading) return (
+    <div className="bg-slate-50 min-h-screen">
+      <Skeleton className="h-64 w-full rounded-none" />
+      <div className="p-5 space-y-4">
+        <Skeleton className="h-12 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-3xl" />
+        <Skeleton className="h-24 w-full rounded-3xl" />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="pb-32 bg-slate-50 min-h-screen relative font-sans">
+      {/* Premium Deep Blue Header Section */}
+      <div className="bg-[#0f172a] pt-10 pb-12 px-5 relative overflow-hidden border-b border-white/5">
+        {/* Decorative Grid Mesh & Blobs */}
+        <div className="absolute top-[-40%] right-[-20%] w-[500px] h-[500px] bg-emerald-500/25 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
+        <div className="absolute bottom-[-30%] left-[-10%] w-[400px] h-[400px] bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none mix-blend-overlay" />
+        <div className="absolute top-[10%] left-[20%] w-[300px] h-[300px] bg-white/5 rounded-full blur-[80px] pointer-events-none" />
+
+        <div className="flex items-center relative z-20 mb-10">
+          <button 
+            onClick={() => navigate(-1)}
+            className="p-2.5 bg-white/5 backdrop-blur-2xl text-white hover:bg-white/10 rounded-2xl transition-all border border-white/10 shadow-xl group"
+          >
+            <ArrowLeft size={22} className="group-active:-translate-x-1 transition-transform" />
+          </button>
+        </div>
+
+        <div className="flex flex-col items-center text-center relative z-20 mb-10">
+          <div className="relative group">
+            {/* Animated Orbit */}
+            <motion.div 
+               animate={{ rotate: 360 }}
+               transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+               className="absolute inset-[-10px] rounded-[32px] border border-dashed border-white/20 opacity-40 pointer-events-none"
+            />
+            <div className="w-24 h-24 bg-white rounded-[28px] flex items-center justify-center shadow-[0_20px_50px_rgba(0,0,0,0.4)] mb-6 border-[6px] border-white/10 p-1.5 relative z-10 transition-transform group-hover:scale-105 duration-300">
+              <div className="w-full h-full bg-slate-50 rounded-[22px] flex items-center justify-center overflow-hidden">
+                  {supplier?.profileImage ? (
+                      <img src={supplier.profileImage} alt={supplier.name} className="w-full h-full object-cover" />
+                  ) : (
+                      <Store size={44} className="text-emerald-600" />
+                  )}
+              </div>
+              {/* Floating Verified Badge */}
+              <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl shadow-lg border-2 border-white">
+                <CheckCircle2 size={16} fill="currentColor" className="text-white bg-transparent" />
+              </div>
+            </div>
+          </div>
+          
+          <h1 className="text-3xl font-black text-white mb-2 tracking-tighter leading-tight">{supplier?.name}</h1>
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-white/5 backdrop-blur-3xl rounded-2xl text-emerald-400 font-black text-[11px] uppercase tracking-[0.2em] border border-white/10 shadow-lg">
+            <MapPin size={14} fill="currentColor" className="opacity-80" />
+            <span>{supplier?.location}</span>
+          </div>
+        </div>
+
+        {/* Stats Capsules */}
+        <div className="grid grid-cols-3 gap-3 relative z-20">
+          {[
+            { label: 'Categories', value: materialCategories.length, color: 'text-white' },
+            { label: 'Status', value: 'Active', color: 'text-yellow-400' },
+            { label: 'Verified', value: 'Yes', color: 'text-emerald-400' }
+          ].map((stat, i) => (
+            <div 
+              key={i}
+              className="flex flex-col items-center justify-center py-4 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[24px] shadow-2xl relative overflow-hidden"
+            >
+              <span className={cn("font-black text-xl leading-none mb-1.5 z-10", stat.color)}>{stat.value}</span>
+              <span className="text-white/40 text-[9px] font-black uppercase tracking-[0.15em] z-10">{stat.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-5 space-y-6">
+        {/* Supplied Products & Materials Grid */}
+        <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-xl shadow-slate-200/20 space-y-5">
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+              <Package size={16} className="text-emerald-600" />
+            </div>
+            <h2 className="text-[17px] font-black text-[#1f2355]">Products & Materials Supplied</h2>
+          </div>
+
+          <p className="text-[12px] font-medium text-slate-400 uppercase tracking-wider mb-2">
+            This vendor supplies premium building materials across the following categories:
+          </p>
+
+          <div className="grid grid-cols-2 gap-3.5 pt-2">
+            {materialCategories.map((cat, index) => (
+              <div 
+                key={index} 
+                className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex flex-col justify-between min-h-[90px] hover:shadow-md transition-all group"
+              >
+                <div className="w-8 h-8 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-emerald-600 shadow-sm mb-2 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                  <Store size={14} />
+                </div>
+                <span className="text-[13px] font-black text-[#1f2355] uppercase tracking-tight leading-tight line-clamp-2">{cat}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Credentials & Contact Details */}
+        <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-xl shadow-slate-200/20 space-y-6">
+          <h3 className="text-[17px] font-black text-[#1f2355] flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+              <Info size={16} className="text-orange-500" />
+            </div>
+            Supplier Overview
+          </h3>
+          
+          <div className="space-y-4">
+            {[
+              { label: 'Business Name', value: supplier?.name, icon: Building2 },
+              { label: 'Supplier ID', value: supplier?.id?.slice(-8).toUpperCase(), icon: Award },
+              { label: 'Member Since', value: formatDate(partnerProfile?.createdAt), icon: Calendar },
+              { label: 'Verification Status', value: 'Verified Partner', icon: ShieldCheck, color: 'text-emerald-600' }
+            ].map((item, i) => (
+              <div key={i} className="flex items-center justify-between py-1 border-b border-slate-50 last:border-0">
+                 <div className="flex items-center gap-3 text-slate-400">
+                    <item.icon size={16} />
+                    <span className="text-[13px] font-bold">{item.label}</span>
+                 </div>
+                 <span className={cn("text-[13px] font-black text-[#1f2355]", item.color)}>: {item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Bottom Inquiry Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-5 z-50 pointer-events-none">
+        <div className="max-w-md mx-auto pointer-events-auto">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="w-full h-16 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-black text-[16px] active:scale-[0.98] transition-all shadow-[0_8px_25px_rgba(249,115,22,0.4)] flex items-center justify-center gap-3"
+          >
+            <Send size={20} className="-rotate-12" />
+            Send Supply Enquiry
+          </button>
+        </div>
+      </div>
+
+      {/* Inquiry Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsModalOpen(false)} />
+          <div className="bg-white w-full max-w-md rounded-t-[32px] sm:rounded-[32px] p-6 relative z-10 animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300">
+            <div className="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-6 sm:hidden" />
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-black text-[#1f2355]">Inquiry for Supplier</h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-[#1f2355] hover:bg-slate-50 p-2 rounded-full"><X size={20} /></button>
+            </div>
+
+            <form onSubmit={handleEnquirySubmit} className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-[12px] font-bold text-slate-400 uppercase tracking-widest ml-1">Your Full Name</label>
+                <div className="relative">
+                  <UserIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                  <input 
+                    type="text" 
+                    placeholder="E.g. John Doe"
+                    className="w-full pl-12 pr-4 h-14 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-[#124db5] focus:ring-4 focus:ring-blue-50 outline-none transition-all font-bold text-[#1f2355]"
+                    required
+                    value={enquiryData.name}
+                    onChange={(e) => setEnquiryData({...enquiryData, name: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[12px] font-bold text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                <div className="relative">
+                  <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                  <input
+                    type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10}
+                    placeholder="10-digit number"
+                    className="w-full pl-12 pr-28 h-14 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-[#124db5] focus:ring-4 focus:ring-blue-50 outline-none transition-all font-bold text-[#1f2355]"
+                    required
+                    value={enquiryData.phone}
+                    onChange={(e) => setEnquiryData({...enquiryData, phone: e.target.value.replace(/\D/g, '')})}
+                  />
+                  {!isVerified && (
+                     <button 
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={isSendingOtp}
+                        className="absolute right-2 top-2 bottom-2 px-4 bg-[#124db5] text-white text-[11px] font-black rounded-xl"
+                     >
+                        {isSendingOtp ? "..." : otpTimer > 0 ? `Resend (${otpTimer}s)` : "Verify"}
+                     </button>
+                  )}
+                </div>
+              </div>
+
+              {otpSent && !isVerified && (
+                  <div className="space-y-2">
+                    <label className="text-[12px] font-bold text-slate-400 uppercase tracking-widest ml-1">OTP Code</label>
+                    <input 
+                        type="text" 
+                        maxLength={6}
+                        placeholder="Enter 6 digit OTP"
+                        className="w-full h-14 rounded-2xl border border-orange-200 bg-orange-50/30 text-center text-xl font-black tracking-[0.5em] focus:bg-white outline-none"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    />
+                  </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-[12px] font-bold text-slate-400 uppercase tracking-widest ml-1">Inquiry Details</label>
+                <textarea 
+                  rows="4" 
+                  placeholder="E.g. Looking for cement and sand quotes for home construction..."
+                  className="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-[#124db5] outline-none transition-all font-bold text-[#1f2355] resize-none"
+                  value={enquiryData.message}
+                  required
+                  onChange={(e) => setEnquiryData({...enquiryData, message: e.target.value})}
+                />
+              </div>
+
+              <button 
+                type="submit"
+                disabled={submitting}
+                className="w-full h-14 bg-orange-500 text-white rounded-2xl font-black text-[16px] shadow-lg shadow-orange-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                {submitting ? 'Sending...' : 'Submit Inquiry'}
+                <Send size={18} />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowSuccessModal(false)} />
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-[32px] p-8 text-center relative z-10 max-w-xs w-full shadow-2xl"
+          >
+             <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle2 size={40} className="text-green-500" />
+             </div>
+             <h3 className="text-xl font-black text-[#1f2355] mb-2">Enquiry Sent!</h3>
+             <p className="text-slate-400 font-bold text-sm leading-relaxed mb-8">The supplier will contact you shortly regarding your requirements.</p>
+             <button 
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full h-12 bg-[#1f2355] text-white rounded-2xl font-black text-sm"
+             >
+               Great, thanks!
+             </button>
+          </motion.div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SupplierDetails;

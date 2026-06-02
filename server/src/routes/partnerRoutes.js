@@ -6,6 +6,7 @@ const {
   getMyPartnerProfile,
   getPartnerStats,
   addRole,
+  getRoleUpgradeInfo,
   switchRole,
   deleteRole,
   getPublicPartners,
@@ -76,6 +77,13 @@ router.post(
   authorizeRoles('partner'),
   validate(partnerAddRoleSchema),
   addRole
+);
+
+router.get(
+  '/upgrade-info',
+  protect,
+  authorizeRoles('partner'),
+  getRoleUpgradeInfo
 );
 
 router.delete(

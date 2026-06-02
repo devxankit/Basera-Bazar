@@ -91,6 +91,7 @@ const { idParamSchema } = require('../utils/validators');
 router.get('/subscriptions/plans', getSubscriptionPlans);
 router.get('/system/offers', getOfferConfig);
 router.post('/system/validate-referral', validateReferralCode);
+router.get('/mandi/settings', getMandiSettings);
 
 // ALL Admin routes below this point must be protected and restricted to super_admin
 router.use(protect);
@@ -175,7 +176,6 @@ router.get('/partners/role-requests', getRoleRequests);
 router.post('/partners/role-request-action', processRoleRequest);
 
 // Mandi Marketplace Global Settings
-router.get('/mandi/settings', getMandiSettings);
 router.put('/mandi/settings', updateMandiSettings);
 
 // Offer Management

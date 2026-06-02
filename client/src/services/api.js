@@ -59,6 +59,7 @@ function isProtectedRoute(path) {
     path === '/admin/login' ||
     path.startsWith('/products/') ||
     path.startsWith('/agent/') ||
+    path.startsWith('/supplier/') ||
     path.startsWith('/service/') ||
     path.startsWith('/browse/') ||
     (path.startsWith('/mandi-bazar') && !path.startsWith('/mandi-bazar/checkout'))

@@ -80,8 +80,8 @@ const createServiceListing = async (req, res) => {
   try {
     const partnerId = req.user.id;
 
-    // 1. Check Subscription Limit
-    const limitCheck = await checkListingLimit(partnerId);
+    // 1. Check Subscription Limit (scoped to the service_provider role)
+    const limitCheck = await checkListingLimit(partnerId, 'service_provider');
     if (!limitCheck.allowed) {
       return res.status(403).json({ success: false, message: limitCheck.message });
     }

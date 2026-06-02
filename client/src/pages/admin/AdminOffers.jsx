@@ -15,8 +15,9 @@ import api from '../../services/api';
 import { toast } from '../../mockToast';
 
 const DEFAULT_OFFERS = {
-  OFFER_1_PLUS_1: { is_active: false, expiry: null },
-  FREE_TRIAL_CONFIG: { duration_days: 30, listings_limit: 1, featured_listings_limit: 0 }
+  OFFER_1_PLUS_1: { is_active: false, expiry: null, min_amount: 100 },
+  FREE_TRIAL_CONFIG: { duration_days: 30, listings_limit: 1, featured_listings_limit: 0 },
+  ROLE_UPGRADE_FEE: 200
 };
 
 export default function AdminOffers() {
@@ -133,6 +134,17 @@ export default function AdminOffers() {
 
             <div className="space-y-4">
               <div className="space-y-2">
+                <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Minimum Subscription Amount (₹)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={offers.OFFER_1_PLUS_1.min_amount ?? 100}
+                  onChange={(e) => handleUpdateValue('OFFER_1_PLUS_1', 'min_amount', parseInt(e.target.value) || 0)}
+                  className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:border-indigo-500 outline-none transition-all"
+                />
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plans priced at or above this grant the free role credit</p>
+              </div>
+              <div className="space-y-2">
                 <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Offer Expiry (Optional)</label>
                 <div className="relative">
                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -220,6 +232,55 @@ export default function AdminOffers() {
             >
               <Save size={20} />
               {saving ? 'Saving...' : 'Update Trial Logic'}
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Role Upgrade Fee Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/20 overflow-hidden"
+        >
+          <div className="p-8 border-b border-slate-50 flex items-center gap-4">
+            <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-[1.5rem] flex items-center justify-center">
+              <BadgePercent size={28} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-slate-900">Role Upgrade Fee</h3>
+              <p className="text-xs font-black text-amber-500 uppercase tracking-widest mt-0.5">One-Time Charge</p>
+            </div>
+          </div>
+
+          <div className="p-8 space-y-6">
+            <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
+              <div className="flex gap-4">
+                <AlertCircle className="text-slate-400 shrink-0" size={20} />
+                <p className="text-sm font-bold text-slate-600 leading-relaxed">
+                  The one-time fee a partner pays to unlock an additional role (after their free 1+1 credit is used). Paid once per role; if a request is rejected, the partner can resubmit without paying again.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-[#5d6778] uppercase tracking-wide">Fee Amount (₹)</label>
+              <input
+                type="number"
+                min={0}
+                value={offers.ROLE_UPGRADE_FEE ?? 200}
+                onChange={(e) => setOffers(prev => ({ ...prev, ROLE_UPGRADE_FEE: parseInt(e.target.value) || 0 }))}
+                className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:border-indigo-500 outline-none transition-all"
+              />
+            </div>
+
+            <button
+              onClick={() => saveConfig('ROLE_UPGRADE_FEE')}
+              disabled={saving}
+              className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              <Save size={20} />
+              {saving ? 'Saving...' : 'Save Upgrade Fee'}
             </button>
           </div>
         </motion.div>

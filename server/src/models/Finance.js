@@ -58,6 +58,7 @@ const razorpayOrderSchema = new mongoose.Schema({
     default: 'created'
   },
   webhook_events: [{ type: mongoose.Schema.Types.Mixed }], // Full payload cache
+  metadata: { type: mongoose.Schema.Types.Mixed }, // Purpose-specific payload (e.g. staged role-upgrade documents)
   refund: {
     razorpay_refund_id: { type: String },
     amount: { type: Number }, // Whole rupees
@@ -70,7 +71,7 @@ const razorpayOrderSchema = new mongoose.Schema({
 const transactionSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['subscription_payment', 'mandi_commission', 'refund', 'admin_credit', 'executive_commission'],
+    enum: ['subscription_payment', 'role_upgrade_payment', 'mandi_commission', 'refund', 'admin_credit', 'executive_commission'],
     required: true
   },
   amount: { type: Number, required: true }, // Whole rupees

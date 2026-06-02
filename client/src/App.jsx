@@ -55,6 +55,7 @@ const LeadSubmission = lazy(() => import("./pages/user/LeadSubmission"));
 const EditProfile = lazy(() => import("./pages/user/EditProfile"));
 const Notifications = lazy(() => import("./pages/user/Notifications"));
 const AgentDetails = lazy(() => import("./pages/user/AgentDetails"));
+const SupplierDetails = lazy(() => import("./pages/user/SupplierDetails"));
 const MyOrdersPage = lazy(() => import("./pages/user/MyOrdersPage"));
 const MyEnquiriesPage = lazy(() => import("./pages/user/MyEnquiriesPage"));
 const HelpSupport = lazy(() => import("./pages/user/HelpSupport"));
@@ -656,7 +657,8 @@ const UserLayout = ({ children }) => {
   const isDetail =
     location.pathname.startsWith("/products/") ||
     location.pathname.startsWith("/service/") ||
-    location.pathname.startsWith("/agent/");
+    location.pathname.startsWith("/agent/") ||
+    location.pathname.startsWith("/supplier/");
   const isCart = location.pathname === "/cart";
   const isNotifications = location.pathname === "/notifications";
   const isProfile = location.pathname === "/profile";
@@ -739,6 +741,14 @@ function App() {
                         element={
                           <UserLayout>
                             <AgentDetails />
+                          </UserLayout>
+                        }
+                      />
+                      <Route
+                        path="/supplier/:id"
+                        element={
+                          <UserLayout>
+                            <SupplierDetails />
                           </UserLayout>
                         }
                       />

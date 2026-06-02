@@ -78,7 +78,9 @@ const processRoleRequest = async (req, res) => {
       partner.role_requests[requestIndex].rejection_reason = rejectionReason || 'Documents were not accepted.';
       await partner.save();
 
-      await createNotification('partner', partnerId, 'Role Upgrade Rejected', `Your request for the ${role.replace('_', ' ')} role was not approved. Reason: ${rejectionReason || 'Documents were not accepted.'}`, { type: 'role_upgrade_rejected', role, reason: rejectionReason });
+      const wasPaid = partner.role_requests[requestIndex].payment_status === 'paid' || partner.role_requests[requestIndex].is_free_upgrade;
+      const resubmitNote = wasPaid ? ' You can resubmit your documents — no additional payment is required.' : '';
+      await createNotification('partner', partnerId, 'Role Upgrade Rejected', `Your request for the ${role.replace('_', ' ')} role was not approved. Reason: ${rejectionReason || 'Documents were not accepted.'}.${resubmitNote}`, { type: 'role_upgrade_rejected', role, reason: rejectionReason });
       await logActivity({ actor_name: req.user.name, actor_id: adminId, action: 'rejected', entity_type: 'partner_role', entity_name: partner.name, entity_id: partnerId, description: `Rejected ${role} role for ${partner.name}. Reason: ${rejectionReason || 'N/A'}` });
     } else {
       return res.status(400).json({ success: false, message: 'Invalid action. Use approve or reject.' });

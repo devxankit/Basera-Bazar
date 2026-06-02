@@ -450,7 +450,7 @@ const Home = () => {
           {featuredSuppliers.length > 0 ? featuredSuppliers.map((item) => (
             <div 
               key={item.id}
-              onClick={() => navigate(`/products/${item._id || item.id}`)}
+              onClick={() => navigate(`/supplier/${item._id || item.id}`)}
               className="min-w-[240px] bg-white rounded-[28px] border border-slate-100 shadow-[0_12px_25px_rgb(0,0,0,0.04)] p-4 active:scale-95 transition-all flex flex-col gap-4"
             >
               <div className="flex items-center gap-3">

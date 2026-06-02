@@ -9,8 +9,9 @@ import {
   User, Mail, Phone, Calendar, LogOut, ChevronRight, 
   Package, Wrench, Settings, ArrowLeft, Building2, MapPin, 
   ExternalLink, Clock, CheckCircle2, ShoppingCart, MessageSquare, Briefcase, Send,
-  ShoppingBag, Download, ArrowRight, Bell, HelpCircle
+  ShoppingBag, Download, ArrowRight, Bell, HelpCircle, Loader2
 } from 'lucide-react';
+import { toast } from '../../mockToast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -26,6 +27,21 @@ const UserProfile = () => {
   const { location } = useLocationContext();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
+
+  const handleTestPush = async () => {
+    setSendingTest(true);
+    try {
+      const res = await api.post('/push/test');
+      if (res.data.success) {
+        toast.success(res.data.message || 'Test push notification sent!');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send test push notification');
+    } finally {
+      setSendingTest(false);
+    }
+  };
 
   useScrollLock(showLogoutConfirm);
 
@@ -160,7 +176,16 @@ const UserProfile = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-3">
+           <button
+             type="button"
+             onClick={handleTestPush}
+             disabled={sendingTest}
+             className="w-full py-4 bg-gradient-to-br from-[#1f2355] to-[#001b4e] rounded-2xl shadow-lg shadow-indigo-950/20 flex items-center justify-center gap-2 text-[13px] font-black text-white uppercase tracking-wider active:scale-95 transition-all disabled:opacity-60"
+           >
+              {sendingTest ? <Loader2 size={16} className="animate-spin" /> : <Bell size={16} />}
+              {sendingTest ? 'Sending...' : 'Test Push Notification'}
+           </button>
            <button 
              onClick={() => setShowLogoutConfirm(true)}
              className="w-full py-4 bg-white rounded-2xl border border-red-50 shadow-sm flex items-center justify-center gap-2 text-[13px] font-black text-red-500 uppercase tracking-wider active:scale-95 transition-all"

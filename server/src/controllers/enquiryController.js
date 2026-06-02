@@ -129,8 +129,9 @@ const getPartnerInquiries = async (req, res) => {
       .limit(Math.min(100, Math.max(1, parseInt(limit) || 50)));
 
     // 2. Check Subscription Limits
-    const limits = await getPartnerLimits(req.user._id);
-    const sub = await getActiveSubscription(req.user._id);
+    const enquiryRole = req.user.active_role || req.user.partner_type;
+    const limits = await getPartnerLimits(req.user._id, enquiryRole);
+    const sub = await getActiveSubscription(req.user._id, enquiryRole);
     const usage = sub?.usage?.enquiries_received_this_month || 0;
     const limitReached = limits.leads !== -1 && usage >= limits.leads;
 
@@ -178,8 +179,9 @@ const getInquiryById = async (req, res) => {
     }
 
     // Mark as read if it was new
-    const limits = await getPartnerLimits(req.user._id);
-    const sub = await getActiveSubscription(req.user._id);
+    const enquiryRole = req.user.active_role || req.user.partner_type;
+    const limits = await getPartnerLimits(req.user._id, enquiryRole);
+    const sub = await getActiveSubscription(req.user._id, enquiryRole);
     
     let limitReached = false;
     if (limits.leads !== -1) {

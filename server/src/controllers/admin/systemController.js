@@ -258,12 +258,14 @@ const updateMandiSettings = async (req, res) => {
 
 const getOfferConfig = async (req, res) => {
   try {
-    const configs = await AppConfig.find({ key: { $in: ['OFFER_1_PLUS_1', 'FREE_TRIAL_CONFIG', 'PROMOTIONAL_BANNER'] } });
+    const configs = await AppConfig.find({ key: { $in: ['OFFER_1_PLUS_1', 'FREE_TRIAL_CONFIG', 'PROMOTIONAL_BANNER', 'ROLE_UPGRADE_FEE'] } });
     const result = {};
     configs.forEach(c => result[c.key] = c.value);
-    if (!result.OFFER_1_PLUS_1) result.OFFER_1_PLUS_1 = { is_active: false, expiry: null };
+    if (!result.OFFER_1_PLUS_1) result.OFFER_1_PLUS_1 = { is_active: false, expiry: null, min_amount: 100 };
+    else if (result.OFFER_1_PLUS_1.min_amount === undefined) result.OFFER_1_PLUS_1.min_amount = 100;
     if (!result.FREE_TRIAL_CONFIG) result.FREE_TRIAL_CONFIG = { duration_days: 30, listings_limit: 1, featured_listings_limit: 0 };
     if (!result.PROMOTIONAL_BANNER) result.PROMOTIONAL_BANNER = { image_url: null, is_active: false };
+    if (result.ROLE_UPGRADE_FEE === undefined) result.ROLE_UPGRADE_FEE = 200;
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.' });

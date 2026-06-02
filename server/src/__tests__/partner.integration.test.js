@@ -66,15 +66,33 @@ describe('GET /api/partners/profile', () => {
 // POST /api/partners/add-role
 // ---------------------------------------------------------------------------
 describe('POST /api/partners/add-role', () => {
-  test('submits add-role request for valid role (service_provider, no GST needed)', async () => {
+  test('requires payment (402) for a new role when no free credit is available', async () => {
     const res = await request(app)
       .post('/api/partners/add-role')
       .set('Authorization', `Bearer ${partnerToken}`)
       .send({ new_role: 'service_provider' });
 
-    // Expect success — role request is created (pending approval)
+    // New model: a brand-new role upgrade needs the one-time fee (or a credit)
+    expect(res.status).toBe(402);
+    expect(res.body.requires_payment).toBe(true);
+    expect(res.body).toHaveProperty('fee');
+  });
+
+  test('submits a free role request when a 1+1 role credit is applied', async () => {
+    const { Partner } = require('../models/Partner');
+    await Partner.findByIdAndUpdate(partnerId, { $set: { role_credits: 1 } });
+
+    const res = await request(app)
+      .post('/api/partners/add-role')
+      .set('Authorization', `Bearer ${partnerToken}`)
+      .send({ new_role: 'service_provider', use_role_credit: true });
+
     expect([200, 201]).toContain(res.status);
     expect(res.body.success).toBe(true);
+
+    const updated = await Partner.findById(partnerId);
+    expect(updated.role_credits).toBe(0);
+    expect(updated.role_requests.some(r => r.role === 'service_provider' && r.status === 'pending' && r.is_free_upgrade)).toBe(true);
   });
 
   test('returns 400 for invalid role', async () => {

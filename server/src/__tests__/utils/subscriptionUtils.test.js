@@ -1,7 +1,7 @@
 'use strict';
 
 jest.mock('../../models/Finance', () => ({
-  Subscription: { findOne: jest.fn() },
+  Subscription: { find: jest.fn() },
   SubscriptionPlan: { findOne: jest.fn() },
 }));
 jest.mock('../../models/Listing', () => ({
@@ -9,128 +9,165 @@ jest.mock('../../models/Listing', () => ({
   PropertyListing: { countDocuments: jest.fn() },
   ServiceListing: { countDocuments: jest.fn() },
 }));
+jest.mock('../../models/Partner', () => ({
+  Partner: { findById: jest.fn() },
+}));
 
 const { Subscription, SubscriptionPlan } = require('../../models/Finance');
 const { MandiListing, PropertyListing, ServiceListing } = require('../../models/Listing');
+const { Partner } = require('../../models/Partner');
 const {
   getActiveSubscription,
+  getActiveSubscriptionForRole,
+  getCoveredRoles,
   getPartnerLimits,
   checkListingLimit,
   checkFeaturedLimit,
-  getMandiLimits,
   enforceMandiLimits,
 } = require('../../utils/subscriptionUtils');
 
 beforeEach(() => jest.clearAllMocks());
 
-const ACTIVE_SUB = {
+// Helpers to wire up the chained mongoose calls used by the util.
+const mockSubsFind = (subs) => {
+  Subscription.find.mockReturnValue({ populate: jest.fn().mockResolvedValue(subs) });
+};
+const mockActiveRole = (role) => {
+  Partner.findById.mockReturnValue({ select: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue({ active_role: role }) }) });
+};
+
+const makeSub = (overrides = {}) => ({
   partner_id: 'p1',
   status: 'active',
   ends_at: new Date(Date.now() + 86_400_000),
-  plan_snapshot: { listings_limit: 5, featured_listings_limit: 2, leads_limit: 10, name: 'Pro' },
+  starts_at: new Date(),
+  plan_snapshot: { listings_limit: 5, featured_listings_limit: 2, leads_limit: 10, name: 'Pro', applicable_to: ['property_agent'] },
   save: jest.fn().mockResolvedValue({}),
-};
+  ...overrides,
+});
 
 describe('getActiveSubscription', () => {
-  test('returns active subscription when one exists and is not expired', async () => {
-    Subscription.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(ACTIVE_SUB) });
+  test('returns the most generous active subscription', async () => {
+    const small = makeSub({ plan_snapshot: { listings_limit: 2, name: 'Lite', applicable_to: ['property_agent'] } });
+    const big = makeSub({ plan_snapshot: { listings_limit: 10, name: 'Max', applicable_to: ['property_agent'] } });
+    mockSubsFind([small, big]);
     const result = await getActiveSubscription('p1');
-    expect(result).toBe(ACTIVE_SUB);
+    expect(result.plan_snapshot.name).toBe('Max');
   });
 
-  test('returns null when no subscription found', async () => {
-    Subscription.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(null) });
-    const result = await getActiveSubscription('p1');
-    expect(result).toBeNull();
+  test('returns null when no active subscriptions', async () => {
+    mockSubsFind([]);
+    expect(await getActiveSubscription('p1')).toBeNull();
   });
 
-  test('marks expired subscription and returns null', async () => {
-    const expiredSub = {
-      ...ACTIVE_SUB,
-      ends_at: new Date(Date.now() - 1000),
-      save: jest.fn().mockResolvedValue({}),
-    };
-    Subscription.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(expiredSub) });
+  test('expires lapsed subscriptions and excludes them', async () => {
+    const expired = makeSub({ ends_at: new Date(Date.now() - 1000) });
+    mockSubsFind([expired]);
     const result = await getActiveSubscription('p1');
-    expect(expiredSub.save).toHaveBeenCalled();
-    expect(expiredSub.status).toBe('expired');
+    expect(expired.save).toHaveBeenCalled();
+    expect(expired.status).toBe('expired');
     expect(result).toBeNull();
+  });
+});
+
+describe('getActiveSubscriptionForRole', () => {
+  test('only returns a sub whose applicable_to includes the role', async () => {
+    const supplierPlan = makeSub({ plan_snapshot: { listings_limit: 9, name: 'Supplier', applicable_to: ['supplier'] } });
+    mockSubsFind([supplierPlan]);
+    expect(await getActiveSubscriptionForRole('p1', 'property_agent')).toBeNull();
+    mockSubsFind([supplierPlan]);
+    expect((await getActiveSubscriptionForRole('p1', 'supplier')).plan_snapshot.name).toBe('Supplier');
+  });
+
+  test('a plan with empty applicable_to applies to every role (free tier baseline)', async () => {
+    const trial = makeSub({ plan_snapshot: { listings_limit: 1, name: 'Trial', applicable_to: [] } });
+    mockSubsFind([trial]);
+    expect((await getActiveSubscriptionForRole('p1', 'mandi_seller')).plan_snapshot.name).toBe('Trial');
+  });
+});
+
+describe('getCoveredRoles', () => {
+  test('returns the union of applicable_to across active subs', async () => {
+    mockSubsFind([
+      makeSub({ plan_snapshot: { applicable_to: ['supplier'], name: 'A' } }),
+      makeSub({ plan_snapshot: { applicable_to: ['mandi_seller', 'supplier'], name: 'B' } }),
+    ]);
+    const roles = await getCoveredRoles('p1');
+    expect(roles.sort()).toEqual(['mandi_seller', 'supplier']);
   });
 });
 
 describe('getPartnerLimits', () => {
-  test('returns plan_snapshot limits when active sub exists', async () => {
-    Subscription.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(ACTIVE_SUB) });
-    const limits = await getPartnerLimits('p1');
+  test('returns plan_snapshot limits when a covering sub exists', async () => {
+    mockSubsFind([makeSub()]);
+    const limits = await getPartnerLimits('p1', 'property_agent');
     expect(limits.listings).toBe(5);
     expect(limits.featured).toBe(2);
   });
 
-  test('falls back to free plan when no active sub', async () => {
-    Subscription.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(null) });
+  test('falls back to free plan when no sub covers the role', async () => {
+    mockSubsFind([makeSub({ plan_snapshot: { applicable_to: ['supplier'], name: 'Supplier', listings_limit: 9 } })]);
     SubscriptionPlan.findOne.mockResolvedValue({ listings_limit: 1, featured_listings_limit: 0, leads_limit: 5, name: 'Free' });
-    const limits = await getPartnerLimits('p1');
+    const limits = await getPartnerLimits('p1', 'property_agent');
     expect(limits.plan_name).toBe('Free');
   });
 
   test('returns hardcoded defaults when no free plan in DB', async () => {
-    Subscription.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(null) });
+    mockSubsFind([]);
     SubscriptionPlan.findOne.mockResolvedValue(null);
-    const limits = await getPartnerLimits('p1');
+    const limits = await getPartnerLimits('p1', 'property_agent');
     expect(limits.listings).toBe(1);
     expect(limits.plan_name).toBe('Basic Free');
   });
+
+  test('defaults to the partner active_role when no role is given', async () => {
+    mockActiveRole('property_agent');
+    mockSubsFind([makeSub()]);
+    const limits = await getPartnerLimits('p1');
+    expect(limits.role).toBe('property_agent');
+    expect(limits.listings).toBe(5);
+  });
 });
 
-describe('checkListingLimit', () => {
-  test('returns allowed:true when under limit', async () => {
-    Subscription.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(ACTIVE_SUB) });
+describe('checkListingLimit (per-role counting)', () => {
+  test('allowed when under the role limit, counting only that role model', async () => {
+    mockSubsFind([makeSub()]);
     PropertyListing.countDocuments.mockResolvedValue(1);
-    ServiceListing.countDocuments.mockResolvedValue(0);
-    MandiListing.countDocuments.mockResolvedValue(0);
-    const result = await checkListingLimit('p1');
+    const result = await checkListingLimit('p1', 'property_agent');
     expect(result.allowed).toBe(true);
+    expect(PropertyListing.countDocuments).toHaveBeenCalled();
+    expect(ServiceListing.countDocuments).not.toHaveBeenCalled();
   });
 
-  test('returns allowed:false with message when at limit', async () => {
-    Subscription.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(ACTIVE_SUB) });
-    PropertyListing.countDocuments.mockResolvedValue(3);
-    ServiceListing.countDocuments.mockResolvedValue(2);
-    MandiListing.countDocuments.mockResolvedValue(0);
-    const result = await checkListingLimit('p1');
+  test('blocked when the role is at its limit', async () => {
+    mockSubsFind([makeSub()]);
+    PropertyListing.countDocuments.mockResolvedValue(5);
+    const result = await checkListingLimit('p1', 'property_agent');
     expect(result.allowed).toBe(false);
     expect(result.message).toContain('5');
   });
 
-  test('returns allowed:true when listings_limit is -1 (unlimited)', async () => {
-    const unlimitedSub = { ...ACTIVE_SUB, plan_snapshot: { ...ACTIVE_SUB.plan_snapshot, listings_limit: -1 } };
-    Subscription.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(unlimitedSub) });
-    const result = await checkListingLimit('p1');
+  test('unlimited (-1) is always allowed', async () => {
+    mockSubsFind([makeSub({ plan_snapshot: { listings_limit: -1, name: 'Unlimited', applicable_to: ['property_agent'] } })]);
+    const result = await checkListingLimit('p1', 'property_agent');
     expect(result.allowed).toBe(true);
   });
 });
 
 describe('checkFeaturedLimit', () => {
-  test('returns allowed:false when at featured limit', async () => {
-    Subscription.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(ACTIVE_SUB) });
-    PropertyListing.countDocuments.mockResolvedValue(1);
-    ServiceListing.countDocuments.mockResolvedValue(1);
-    MandiListing.countDocuments.mockResolvedValue(0);
-    const result = await checkFeaturedLimit('p1');
+  test('blocked when at featured limit for the role', async () => {
+    mockSubsFind([makeSub()]);
+    PropertyListing.countDocuments.mockResolvedValue(2);
+    const result = await checkFeaturedLimit('p1', 'property_agent');
     expect(result.allowed).toBe(false);
   });
 });
 
 describe('enforceMandiLimits', () => {
-  test('deactivates listings over the limit', async () => {
-    Subscription.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(ACTIVE_SUB) });
+  test('deactivates mandi listings over the limit', async () => {
+    mockSubsFind([makeSub({ plan_snapshot: { listings_limit: 5, name: 'Pro', applicable_to: ['mandi_seller'] } })]);
     const listings = [
-      { _id: 'a', status: 'active' },
-      { _id: 'b', status: 'active' },
-      { _id: 'c', status: 'active' },
-      { _id: 'd', status: 'active' },
-      { _id: 'e', status: 'active' },
-      { _id: 'f', status: 'active' }, // 6th item, over limit of 5
+      { _id: 'a' }, { _id: 'b' }, { _id: 'c' }, { _id: 'd' }, { _id: 'e' }, { _id: 'f' },
     ];
     MandiListing.find.mockReturnValue({ sort: jest.fn().mockResolvedValue(listings) });
     MandiListing.updateMany.mockResolvedValue({});

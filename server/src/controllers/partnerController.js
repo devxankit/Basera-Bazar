@@ -3,7 +3,10 @@ const logger = require('../utils/logger');
 const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const { Enquiry } = require('../models/Enquiry');
 const { SubscriptionPlan } = require('../models/Finance');
+const { AppConfig } = require('../models/System');
 const Order = require('../models/Order');
+const { validateRoleUpgradeEligibility, findRejectedRequest, applyRoleRequest } = require('../utils/roleRequestHelper');
+const { getRoleUpgradeFee } = require('./financeController');
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const invalidate = require('../utils/cacheInvalidator');
@@ -194,94 +197,94 @@ const getPartnerStats = async (req, res) => {
 const addRole = async (req, res) => {
   try {
     const partnerId = req.user.id;
-    const { new_role, profile_data, gst_number, gst_image, rera_number, rera_certificate_image } = req.body;
-
-    const validRoles = ['service_provider', 'property_agent', 'supplier', 'mandi_seller'];
-    if (!new_role || !validRoles.includes(new_role)) {
-      return res.status(400).json({ success: false, message: 'Invalid role specified.' });
-    }
+    const { new_role, profile_data, gst_number, gst_image, rera_number, rera_certificate_image, use_role_credit } = req.body;
 
     const partner = await Partner.findById(partnerId);
     if (!partner) {
       return res.status(404).json({ success: false, message: 'Partner account not found.' });
     }
 
-    // Check if the role is already active
-    const activeRoles = partner.roles || (partner.partner_type ? [partner.partner_type] : []);
-    if (activeRoles.includes(new_role)) {
-      return res.status(400).json({ success: false, message: 'You already have this role active.' });
-    }
-
-    // Check if there's already a pending request for this role
-    const existingRequest = partner.role_requests?.find(r => r.role === new_role && r.status === 'pending');
-    if (existingRequest) {
-      return res.status(400).json({ success: false, message: 'A request for this role is already pending approval.' });
+    const eligibility = validateRoleUpgradeEligibility(partner, new_role);
+    if (!eligibility.ok) {
+      return res.status(eligibility.status).json({ success: false, message: eligibility.message });
     }
 
     // Roles requiring GST validation
     const gstRequiredRoles = ['supplier', 'mandi_seller'];
-    if (gstRequiredRoles.includes(new_role)) {
-      if (!gst_number || !gst_image) {
-        return res.status(400).json({ success: false, message: 'GST details and certificate image are required for this role.' });
-      }
+    if (gstRequiredRoles.includes(new_role) && (!gst_number || !gst_image)) {
+      return res.status(400).json({ success: false, message: 'GST details and certificate image are required for this role.' });
     }
 
-    // Check if user has role credits and wants to use them
-    const { use_role_credit } = req.body;
-    let is_free_upgrade = false;
+    const requestPayload = { role: new_role, profile_data, gst_number, gst_image, rera_number, rera_certificate_image };
 
+    // Resubmission of a previously rejected request — the partner already paid
+    // (or used a credit) for this role, so no new charge is taken.
+    const rejected = findRejectedRequest(partner, new_role);
+    if (rejected) {
+      applyRoleRequest(partner, requestPayload);
+      await partner.save();
+      await invalidate.partnerProfile(partnerId);
+      return res.status(200).json({
+        success: true,
+        message: `Documents resubmitted for "${new_role.replace('_', ' ')}". No additional payment required.`,
+        data: { role_requests: partner.role_requests, status: 'pending' }
+      });
+    }
+
+    // Brand-new request: free via the 1+1 credit, otherwise payment is required.
     if (use_role_credit && partner.role_credits > 0) {
-      is_free_upgrade = true;
       partner.role_credits -= 1;
+      applyRoleRequest(partner, { ...requestPayload, is_free_upgrade: true });
+      await partner.save();
+      await invalidate.partnerProfile(partnerId);
+      return res.status(200).json({
+        success: true,
+        message: `Free role credit applied. Request for "${new_role.replace('_', ' ')}" submitted for admin approval.`,
+        data: { role_requests: partner.role_requests, status: 'pending' }
+      });
     }
 
-    // Add to role_requests as ALL role upgrades now require admin approval
-    if (!partner.role_requests) partner.role_requests = [];
-    partner.role_requests.push({
-      role: new_role,
-      status: 'pending',
-      gst_number: gst_number || undefined,
-      gst_image: gst_image || undefined,
-      rera_number: rera_number || undefined,
-      rera_certificate_image: rera_certificate_image || undefined,
-      is_free_upgrade,
-      submitted_at: new Date()
-    });
-
-    // Remove from deleted_roles if it was there to allow fresh re-application
-    if (partner.deleted_roles) {
-      partner.deleted_roles = partner.deleted_roles.filter(r => r !== new_role);
-    }
-
-    // Temporarily save profile data; it will become active once approved
-    if (profile_data) {
-      if (new_role === 'supplier') {
-        partner.profile.supplier_profile = { ...(partner.profile.supplier_profile || {}), ...profile_data };
-      } else if (new_role === 'mandi_seller') {
-        partner.profile.mandi_profile = { ...(partner.profile.mandi_profile || {}), ...profile_data };
-      } else if (new_role === 'property_agent') {
-        partner.profile.property_profile = { ...(partner.profile.property_profile || {}), ...profile_data };
-      } else if (new_role === 'service_provider') {
-        partner.profile.service_profile = { ...(partner.profile.service_profile || {}), ...profile_data };
-      }
-    }
-
-    await partner.save();
-
-    await invalidate.partnerProfile(partnerId);
-
-    return res.status(200).json({
-      success: true,
-      message: `Request for "${new_role.replace('_', ' ')}" submitted for admin approval.`,
-      data: {
-        role_requests: partner.role_requests,
-        status: 'pending'
-      }
+    // No credit available — the partner must pay the one-time role-upgrade fee.
+    const fee = await getRoleUpgradeFee();
+    return res.status(402).json({
+      success: false,
+      requires_payment: true,
+      fee,
+      message: `This role upgrade requires a one-time payment of ₹${fee}.`
     });
 
   } catch (error) {
     logger.error({ err: error }, "Error in addRole:")
     res.status(500).json({ success: false, message: 'Server error adding role.' });
+  }
+};
+
+/**
+ * @desc    Get role-upgrade info (fee, available credits, offer status)
+ * @route   GET /api/partners/upgrade-info
+ * @access  Private (Partner)
+ */
+const getRoleUpgradeInfo = async (req, res) => {
+  try {
+    const partner = await Partner.findById(req.user.id).select('role_credits free_role_credit_granted');
+    if (!partner) return res.status(404).json({ success: false, message: 'Partner not found.' });
+
+    const fee = await getRoleUpgradeFee();
+    const offerConfig = await AppConfig.findOne({ key: 'OFFER_1_PLUS_1' });
+    const offer = offerConfig?.value;
+    const offerActive = !!(offer?.is_active && (!offer.expiry || new Date(offer.expiry) >= new Date()));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        role_upgrade_fee: fee,
+        role_credits: partner.role_credits || 0,
+        offer_active: offerActive
+      }
+    });
+  } catch (error) {
+    logger.error({ err: error }, "Error in getRoleUpgradeInfo:");
+    res.status(500).json({ success: false, message: 'Server error fetching upgrade info.' });
   }
 };
 
@@ -400,7 +403,16 @@ const switchRole = async (req, res) => {
  */
 const getPublicPartners = async (req, res) => {
   try {
-    const { category, search, district, state, is_featured } = req.query;
+    let { category, search, district, state, is_featured } = req.query;
+
+    // SANITIZATION: Prevent "undefined" or "null" strings from breaking queries
+    if (district === 'undefined' || district === 'null' || !district) district = null;
+    if (state === 'undefined' || state === 'null' || !state) state = null;
+
+    // Normalize: strip common suffixes like "District", "Zila", "Jila" for robust text matching
+    const normalizePlace = (s) => s ? s.trim().replace(/\s*(district|zila|jila|जिला)\s*$/i, '').trim() : s;
+    if (district) district = normalizePlace(district);
+    if (state) state = normalizePlace(state);
 
     const query = { is_active: true, onboarding_status: 'approved' };
 
@@ -597,41 +609,54 @@ const toggleFeature = async (req, res) => {
   }
 };
 
-const { getPartnerLimits, checkListingLimit, checkFeaturedLimit } = require('../utils/subscriptionUtils');
+const { getPartnerLimits, checkListingLimit, checkFeaturedLimit, getCoveredRoles } = require('../utils/subscriptionUtils');
 
 /**
- * @desc    Get subscription limits and current usage for partner
+ * @desc    Get subscription limits and current usage for partner (scoped to active role)
  * @route   GET /api/partners/subscription/limits
  * @access  Private (Partner)
  */
 const getPartnerSubscriptionLimits = async (req, res) => {
   try {
     const partnerId = req.user.id;
-    
-    const limits = await getPartnerLimits(partnerId);
-    const listingCheck = await checkListingLimit(partnerId);
-    const featuredCheck = await checkFeaturedLimit(partnerId);
 
-    // Count active listings for UI breakdown
+    const partner = await Partner.findById(partnerId).select('active_role partner_type roles').lean();
+    const activeRole = partner?.active_role || partner?.partner_type || partner?.roles?.[0] || null;
+
+    // Limits/usage resolve per the active role (which subscription covers it, else free tier)
+    const limits = await getPartnerLimits(partnerId, activeRole);
+    const listingCheck = await checkListingLimit(partnerId, activeRole);
+    const featuredCheck = await checkFeaturedLimit(partnerId, activeRole);
+    const coveredRoles = await getCoveredRoles(partnerId);
+
+    // Count active listings for UI breakdown (all roles, for context)
     const activeCounts = {
       properties: await PropertyListing.countDocuments({ partner_id: partnerId, status: { $ne: 'deleted' }, deleted_at: null }),
       services: await ServiceListing.countDocuments({ partner_id: partnerId, status: { $ne: 'deleted' }, deleted_at: null }),
       mandi: await MandiListing.countDocuments({ partner_id: partnerId, status: { $ne: 'deleted' }, deleted_at: null })
     };
 
-    const totalActive = activeCounts.properties + activeCounts.services + activeCounts.mandi;
+    // Listings that count against the active role's limit
+    const roleActive = activeRole === 'property_agent' ? activeCounts.properties
+      : activeRole === 'service_provider' ? activeCounts.services
+      : activeRole === 'mandi_seller' ? activeCounts.mandi
+      : 0;
 
     res.status(200).json({
       success: true,
       data: {
+        active_role: activeRole,
         plan_name: limits.plan_name,
+        covered_roles: coveredRoles,
+        is_active_role_covered: activeRole ? coveredRoles.includes(activeRole) : false,
         limits: {
           listings: limits.listings,
           featured: limits.featured,
           leads: limits.leads
         },
         usage: {
-          total_active_listings: totalActive,
+          active_role_listings: roleActive,
+          total_active_listings: activeCounts.properties + activeCounts.services + activeCounts.mandi,
           active_breakdown: activeCounts,
           is_listing_limit_reached: !listingCheck.allowed,
           is_featured_limit_reached: !featuredCheck.allowed
@@ -695,6 +720,7 @@ module.exports = {
   getPartnerStats,
   getActivities,
   addRole,
+  getRoleUpgradeInfo,
   switchRole,
   deleteRole,
   getPublicPartners,
