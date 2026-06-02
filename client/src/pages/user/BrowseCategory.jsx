@@ -764,11 +764,32 @@ const BrowseCategory = () => {
                         )}
                       </div>
                    </div>
-                   <div className="p-4 xs:p-5">
-                      <h3 className="font-bold text-[#1f2355] text-[15px] xs:text-[17px] leading-tight line-clamp-2 min-h-[40px]">{item.title}</h3>
-                      <div className="mt-3 flex justify-between items-center pt-3 border-t border-slate-50">
-                        <span className="font-bold text-[#1f2355] text-[18px] xs:text-[20px]">₹{item.price?.value?.toLocaleString()}</span>
-                        <span className="text-[10px] xs:text-[11px] font-bold text-orange-500 uppercase tracking-widest">Details</span>
+                   <div className={cn(isGridView ? "p-3" : "p-4 xs:p-5")}>
+                      <h3 className={cn(
+                        "font-bold text-[#1f2355] leading-tight",
+                        isGridView ? "text-[13px] line-clamp-1" : "text-[15px] xs:text-[17px] line-clamp-2 min-h-[40px]"
+                      )}>{item.title}</h3>
+                      {item.location && (
+                        <div className={cn("flex items-center gap-1 opacity-60", isGridView ? "mt-1" : "mt-1.5 gap-1.5")}>
+                          <MapPin size={isGridView ? 11 : 12} className="text-orange-500 shrink-0" />
+                          <span className={cn(
+                            "text-[#1f2355] font-bold truncate tracking-tight",
+                            isGridView ? "text-[10px]" : "text-[11px]"
+                          )}>{item.location}</span>
+                        </div>
+                      )}
+                      <div className={cn(
+                        "border-t border-slate-50",
+                        isGridView ? "mt-2 pt-2 flex flex-col gap-2" : "mt-3 pt-3 flex justify-between items-center"
+                      )}>
+                        <span className={cn(
+                          "font-bold text-[#1f2355]",
+                          isGridView ? "text-[15px] leading-none" : "text-[18px] xs:text-[20px]"
+                        )}>₹{item.price?.value?.toLocaleString()}</span>
+                        <span className={cn(
+                          "font-bold text-orange-500 uppercase tracking-widest",
+                          isGridView ? "text-[10px] bg-orange-50 rounded-lg py-1.5 text-center w-full" : "text-[10px] xs:text-[11px]"
+                        )}>Details</span>
                       </div>
                    </div>
                 </div>
