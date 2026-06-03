@@ -3,7 +3,7 @@ import {
   UserCircle, Mail, Phone, MapPin, Landmark,
   Camera, ShieldCheck, LogOut, ChevronRight,
   ShieldAlert, CheckCircle2, Clock, MapPinned, CreditCard,
-  Building2, User, Zap, Shield, Key, Edit3, X, Save, ArrowLeft, AlertCircle, Bell
+  Building2, User, Zap, Shield, Key, Edit3, X, Save, ArrowLeft, AlertCircle, Bell, Loader2, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -41,6 +41,8 @@ export default function ExecutiveProfile() {
   const [bankForm, setBankForm] = useState({ account_number: '', ifsc_code: '', bank_name: '', account_holder_name: '' });
   const [isSavingBank, setIsSavingBank] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const handleTestPush = async () => {
     setSendingTest(true);
@@ -85,6 +87,21 @@ export default function ExecutiveProfile() {
   const handleLogout = () => {
     logout(true);
     navigate('/executive/login');
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await api.post('/executive/deactivate-account');
+      toast.success('Your account has been deactivated.');
+      setShowDeleteAccountModal(false);
+      await logout(false);
+      navigate('/executive/login');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to deactivate account. Please try again.');
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   const handleUpdateProfile = async (e) => {
@@ -395,7 +412,7 @@ export default function ExecutiveProfile() {
 
         {/* Action: Logout */}
         <motion.div variants={itemVariants}>
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full p-5 bg-rose-50/50 text-rose-600 border border-rose-100 rounded-2xl font-medium text-sm transition-all active:scale-[0.98] hover:bg-rose-50"
           >
@@ -403,7 +420,42 @@ export default function ExecutiveProfile() {
           </button>
         </motion.div>
 
+        {/* Action: Delete Account */}
+        <motion.div variants={itemVariants}>
+          <button
+            onClick={() => setShowDeleteAccountModal(true)}
+            className="w-full p-4 bg-transparent text-slate-400 rounded-2xl font-medium text-[13px] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            <Trash2 size={15} />
+            Delete Account
+          </button>
+        </motion.div>
+
       </motion.div>
+
+      {/* Delete Account Modal */}
+      <AnimatePresence>
+        {showDeleteAccountModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-6 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white w-full max-w-sm rounded-2xl p-8 text-center shadow-2xl">
+              <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <AlertCircle size={28} />
+              </div>
+              <h3 className="text-slate-900 text-[20px] font-bold mb-2">Delete Account?</h3>
+              <p className="text-slate-500 text-[14px] mb-8 leading-relaxed">
+                Your account will be deactivated and you <span className="text-rose-500 font-bold">won't be able to log in again</span> with this number. To use Basera Bazar again, you'll have to contact the administrator to reactivate your account.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button onClick={handleDeleteAccount} disabled={deletingAccount} className="w-full bg-rose-500 text-white py-4 rounded-xl font-bold uppercase tracking-widest active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                  {deletingAccount ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  {deletingAccount ? 'Deleting...' : 'Yes, Delete Account'}
+                </button>
+                <button onClick={() => setShowDeleteAccountModal(false)} disabled={deletingAccount} className="w-full bg-slate-50 text-slate-400 py-4 rounded-xl font-bold uppercase tracking-widest active:scale-95 transition-all disabled:opacity-60">Cancel</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

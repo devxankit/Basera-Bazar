@@ -4,7 +4,7 @@ const router = express.Router();
 const {
   checkExists, requestOtp, verifyOtp, getMe, updateProfile,
   changePassword, resetPassword, loginWithPassword, checkSignupConflicts, testNotification,
-  refreshToken, logoutUser, registerPartner,
+  refreshToken, logoutUser, registerPartner, deactivateAccount,
 } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
@@ -94,5 +94,8 @@ router.post('/partner/register', authLimiter, registerPartner);
 
 // POST /api/auth/logout — clear cookies + invalidate token version
 router.post('/logout', protect, logoutUser);
+
+// POST /api/auth/deactivate-account — soft-delete the logged-in account
+router.post('/deactivate-account', protect, deactivateAccount);
 
 module.exports = router;

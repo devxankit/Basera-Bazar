@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { loadScript } from '../../utils/loadScript';
+import { RAZORPAY_ENABLED, showRazorpayDisabledNotice } from '../../constants/paymentFlags';
 
 const ROLE_LABELS = {
   property_agent: 'Property Agent',
@@ -128,6 +129,13 @@ export default function PartnerSubscription() {
   };
 
   const handleSubscribe = async (plan) => {
+    // 🚩 RAZORPAY_FLAG: Razorpay disabled for App Store submission.
+    // Remove this block (or set RAZORPAY_ENABLED = true) to re-enable.
+    if (!RAZORPAY_ENABLED) {
+      showRazorpayDisabledNotice();
+      return;
+    }
+
     try {
       setSubmitting(true);
       setSelectedPlan(plan);

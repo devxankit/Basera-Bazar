@@ -9,7 +9,7 @@ import {
   User, Mail, Phone, Calendar, LogOut, ChevronRight, 
   Package, Wrench, Settings, ArrowLeft, Building2, MapPin, 
   ExternalLink, Clock, CheckCircle2, ShoppingCart, MessageSquare, Briefcase, Send,
-  ShoppingBag, Download, ArrowRight, Bell, HelpCircle, Loader2
+  ShoppingBag, Download, ArrowRight, Bell, HelpCircle, Loader2, Trash2, AlertTriangle
 } from 'lucide-react';
 import { toast } from '../../mockToast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,6 +27,8 @@ const UserProfile = () => {
   const { location } = useLocationContext();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
 
   const handleTestPush = async () => {
@@ -43,7 +45,7 @@ const UserProfile = () => {
     }
   };
 
-  useScrollLock(showLogoutConfirm);
+  useScrollLock(showLogoutConfirm || showDeleteConfirm);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -56,6 +58,22 @@ const UserProfile = () => {
     logout(true);
     navigate('/');
     setShowLogoutConfirm(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await api.post('/auth/deactivate-account');
+      toast.success('Your account has been deactivated.');
+      setShowDeleteConfirm(false);
+      // Clear local session and return to login
+      await logout(false);
+      navigate('/login');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to deactivate account. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const navButtons = [
@@ -186,11 +204,17 @@ const UserProfile = () => {
               {sendingTest ? <Loader2 size={16} className="animate-spin" /> : <Bell size={16} />}
               {sendingTest ? 'Sending...' : 'Test Push Notification'}
            </button>
-           <button 
+           <button
              onClick={() => setShowLogoutConfirm(true)}
              className="w-full py-4 bg-white rounded-2xl border border-red-50 shadow-sm flex items-center justify-center gap-2 text-[13px] font-black text-red-500 uppercase tracking-wider active:scale-95 transition-all"
            >
               <LogOut size={16} /> Log Out
+           </button>
+           <button
+             onClick={() => setShowDeleteConfirm(true)}
+             className="w-full py-4 bg-transparent flex items-center justify-center gap-2 text-[12px] font-black text-slate-400 uppercase tracking-wider active:scale-95 transition-all"
+           >
+              <Trash2 size={15} /> Delete Account
            </button>
         </div>
 
@@ -245,6 +269,54 @@ const UserProfile = () => {
               <div className="flex flex-col gap-3">
                 <button onClick={handleLogout} className="w-full py-5 bg-red-500 text-white rounded-2xl font-black text-[14px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-red-200">Yes, Log Out</button>
                 <button onClick={() => setShowLogoutConfirm(false)} className="w-full py-5 bg-slate-50 text-slate-400 rounded-2xl font-black text-[14px] uppercase tracking-widest active:scale-[0.98] transition-all">Stay Logged In</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Account Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !deleting && setShowDeleteConfirm(false)}
+              className="absolute inset-0 bg-[#1f2355]/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 100, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 100, scale: 0.95 }}
+              className="bg-white w-full max-w-sm rounded-3xl p-8 relative z-10 shadow-2xl border border-slate-100"
+            >
+              <div className="w-20 h-20 bg-red-50 rounded-[28px] flex items-center justify-center text-red-500 mx-auto mb-6">
+                <AlertTriangle size={36} strokeWidth={2.5} />
+              </div>
+              <div className="text-center space-y-3 mb-7">
+                <h3 className="text-[20px] font-black text-[#1f2355]">Delete Account?</h3>
+                <p className="text-[14px] font-bold text-slate-400 leading-relaxed">
+                  Your account will be deactivated and you <span className="text-red-500">won't be able to log in again</span> with this number. To use Basera Bazar again, you'll have to contact the administrator to reactivate your account.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                  className="w-full py-5 bg-red-500 text-white rounded-2xl font-black text-[14px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-red-200 disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  {deleting ? 'Deleting...' : 'Yes, Delete Account'}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deleting}
+                  className="w-full py-5 bg-slate-50 text-slate-400 rounded-2xl font-black text-[14px] uppercase tracking-widest active:scale-[0.98] transition-all disabled:opacity-60"
+                >
+                  Cancel
+                </button>
               </div>
             </motion.div>
           </div>

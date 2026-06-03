@@ -9,7 +9,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { logActivity } = require('../utils/activityLogger');
 const { checkLockout, recordFailedAttempt, resetFailedAttempts } = require('../utils/loginLockout');
-const { signAccessToken, signRefreshToken, setAuthCookies } = require('../utils/cookieAuth');
+const { signAccessToken, signRefreshToken, setAuthCookies, clearAuthCookies } = require('../utils/cookieAuth');
 const WithdrawalRequest = require('../models/Wallet');
 const { AppConfig } = require('../models/System');
 const invalidate = require('../utils/cacheInvalidator');
@@ -727,6 +727,51 @@ exports.updateProfile = async (req, res) => {
   } catch (error) {
     logger.error({ err: error }, 'Update Profile Error:')
     res.status(500).json({ success: false, message: 'Server error during profile update.' });
+  }
+};
+
+/**
+ * @desc    Deactivate (soft-delete) the logged-in executive account
+ * @route   POST /api/executive/deactivate-account
+ */
+exports.deactivateAccount = async (req, res) => {
+  try {
+    const executive = await Executive.findById(req.user.id);
+    if (!executive) {
+      return res.status(404).json({ success: false, message: 'Executive not found.' });
+    }
+
+    if (executive.is_active === false) {
+      clearAuthCookies(res);
+      return res.status(200).json({ success: true, message: 'Account already deactivated.' });
+    }
+
+    // Soft delete: mark inactive and invalidate all existing sessions.
+    executive.is_active = false;
+    executive.token_version = (executive.token_version || 0) + 1;
+    await executive.save();
+
+    await invalidate.executiveProfile(req.user.id);
+    await invalidate.adminDashboard();
+
+    logActivity({
+      actor_name: executive.name,
+      actor_id: executive._id,
+      action: 'deactivated',
+      entity_type: 'executive',
+      entity_name: executive.name,
+      entity_id: executive._id,
+      description: `Field executive self-deactivated their account: ${executive.name}`,
+    });
+
+    clearAuthCookies(res);
+    res.status(200).json({
+      success: true,
+      message: 'Your account has been deactivated. Contact the administrator to reactivate it.',
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Executive deactivation error:');
+    res.status(500).json({ success: false, message: 'Server error deactivating account.' });
   }
 };
 

@@ -660,6 +660,52 @@ const testNotification = async (req, res) => {
 };
 
 /**
+ * @desc    Deactivate (soft-delete) the logged-in account
+ * @route   POST /api/auth/deactivate-account
+ * @access  Private
+ */
+const deactivateAccount = async (req, res) => {
+  try {
+    const isPartner = req.user.role === 'partner';
+    const Model = isPartner ? Partner : User;
+
+    const account = await Model.findById(req.user._id);
+    if (!account) {
+      return res.status(404).json({ success: false, message: 'Account not found.' });
+    }
+
+    if (account.is_active === false) {
+      clearAuthCookies(res);
+      return res.status(200).json({ success: true, message: 'Account already deactivated.' });
+    }
+
+    // Soft delete: mark inactive and invalidate all existing sessions.
+    account.is_active = false;
+    account.token_version = (account.token_version || 0) + 1;
+    await account.save();
+
+    logActivity({
+      actor_name: account.name,
+      actor_id: account._id,
+      action: 'deactivated',
+      entity_type: isPartner ? 'partner' : 'user',
+      entity_name: account.name,
+      entity_id: account._id,
+      description: `${isPartner ? 'Partner' : 'Customer'} self-deactivated their account: ${account.name}`,
+    });
+
+    clearAuthCookies(res);
+    res.status(200).json({
+      success: true,
+      message: 'Your account has been deactivated. Contact the administrator to reactivate it.',
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Account deactivation error:');
+    res.status(500).json({ success: false, message: 'Server error deactivating account.' });
+  }
+};
+
+/**
  * @desc    Issue a new access token using the refresh cookie
  * @route   POST /api/auth/refresh
  * @access  Public (cookie required)
@@ -955,4 +1001,5 @@ module.exports = {
   refreshToken,
   logoutUser,
   registerPartner,
+  deactivateAccount,
 };

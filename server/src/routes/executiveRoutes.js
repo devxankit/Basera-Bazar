@@ -17,7 +17,8 @@ const {
   updateProfile,
   updateBankDetails,
   getMyTaskHistory,
-  getMySalary
+  getMySalary,
+  deactivateAccount
 } = require('../controllers/executiveController');
 const { protect, verifyApproved } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
@@ -68,6 +69,7 @@ router.get('/my-partners/:partnerId', getMyPartnerDetail);
 router.get('/transactions', cacheMiddleware(5, true), getMyTransactions);
 router.post('/withdraw', validate(withdrawalRequestSchema), idempotency, requestWithdrawal);
 router.put('/profile', validate(executiveProfileUpdateSchema), updateProfile);
+router.post('/deactivate-account', deactivateAccount);
 router.put('/bank-details', validate(executiveBankDetailsSchema), updateBankDetails);
 router.get('/task-history', cacheMiddleware(10, true), getMyTaskHistory);
 router.get('/salary', cacheMiddleware(10, true), getMySalary);

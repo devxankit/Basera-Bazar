@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2, Phone, User, CheckCircle2, X, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2, Phone, User, CheckCircle2, X, ShieldCheck, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -8,6 +8,7 @@ import { registerFCMToken } from '../../services/pushNotificationService';
 import { v, sanitize } from '../../utils/validators';
 import toast from '../../mockToast';
 import TestingModeBanner from '../../components/common/TestingModeBanner';
+import { ADMIN_CONTACT_LINKS } from '../../constants/adminContact';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -794,10 +795,27 @@ export default function Login() {
             <div style={{ backgroundColor: '#fff1f2', width: '64px', height: '64px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#e11d48' }}>
               <Lock size={32} />
             </div>
-            <div style={{ fontSize: '20px', fontWeight: '700', color: '#1b2c7a', marginBottom: '12px' }}>Account Inactive</div>
-            <div style={{ fontSize: '15px', color: '#5468b8', lineHeight: 1.5, marginBottom: '28px' }}>
-              Your account has been deactivated by the administrator. Please contact support for more information.
+            <div style={{ fontSize: '20px', fontWeight: '700', color: '#1b2c7a', marginBottom: '12px' }}>Account Suspended</div>
+            <div style={{ fontSize: '15px', color: '#5468b8', lineHeight: 1.5, marginBottom: '20px' }}>
+              Your account has been suspended. Please contact the administrator to log in again.
             </div>
+
+            {/* Contact Admin options */}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
+              <a href={ADMIN_CONTACT_LINKS.call} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '14px 8px', backgroundColor: '#eef2ff', borderRadius: '14px', textDecoration: 'none', color: '#2334b2' }}>
+                <Phone size={20} />
+                <span style={{ fontSize: '12px', fontWeight: '700' }}>Call</span>
+              </a>
+              <a href={ADMIN_CONTACT_LINKS.whatsapp} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '14px 8px', backgroundColor: '#ecfdf5', borderRadius: '14px', textDecoration: 'none', color: '#059669' }}>
+                <MessageCircle size={20} />
+                <span style={{ fontSize: '12px', fontWeight: '700' }}>WhatsApp</span>
+              </a>
+              <a href={ADMIN_CONTACT_LINKS.email} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '14px 8px', backgroundColor: '#fff7ed', borderRadius: '14px', textDecoration: 'none', color: '#ea580c' }}>
+                <Mail size={20} />
+                <span style={{ fontSize: '12px', fontWeight: '700' }}>Email</span>
+              </a>
+            </div>
+
             <button
               onClick={() => { setShowInactiveModal(false); setIdentifier(''); setOtpSent(false); }}
               style={{ padding: '16px', backgroundColor: '#e11d48', color: '#ffffff', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 0 #be123c', width: '100%' }}

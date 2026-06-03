@@ -634,6 +634,14 @@ const BrowseCategory = () => {
                    </div>
                    <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
                       <div className="space-y-1.5">
+                        {(item.subcategory_name || item.category_name) && (
+                          <div className="flex items-center gap-1 w-fit max-w-full bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-md">
+                            <Briefcase size={10} className="text-orange-500 shrink-0" />
+                            <span className="text-[9px] font-black text-orange-600 uppercase tracking-wide truncate">
+                              {item.subcategory_name || item.category_name}
+                            </span>
+                          </div>
+                        )}
                         <h3 className={cn(
                           "font-bold text-[#1f2355] leading-[1.3] group-hover:text-orange-500 transition-colors",
                           isGridView ? "text-[14px] line-clamp-1" : "text-[16px] line-clamp-2"
@@ -776,6 +784,41 @@ const BrowseCategory = () => {
                             "text-[#1f2355] font-bold truncate tracking-tight",
                             isGridView ? "text-[10px]" : "text-[11px]"
                           )}>{item.location}</span>
+                        </div>
+                      )}
+                      {/* Land / property info */}
+                      {(item.details?.area || item.details?.bedrooms || item.details?.propertyType) && (
+                        <div className={cn(
+                          "flex items-center flex-wrap gap-x-3 gap-y-1",
+                          isGridView ? "mt-1.5" : "mt-2"
+                        )}>
+                          {item.details?.area && (
+                            <div className="flex items-center gap-1">
+                              <Maximize size={isGridView ? 11 : 12} className="text-slate-400 shrink-0" />
+                              <span className={cn(
+                                "text-[#1f2355] font-bold tracking-tight whitespace-nowrap",
+                                isGridView ? "text-[10px]" : "text-[11px]"
+                              )}>{item.details.area} {item.details.areaUnit}</span>
+                            </div>
+                          )}
+                          {item.details?.bedrooms && (
+                            <div className="flex items-center gap-1">
+                              <Bed size={isGridView ? 11 : 12} className="text-slate-400 shrink-0" />
+                              <span className={cn(
+                                "text-[#1f2355] font-bold tracking-tight whitespace-nowrap",
+                                isGridView ? "text-[10px]" : "text-[11px]"
+                              )}>{item.details.bedrooms}</span>
+                            </div>
+                          )}
+                          {item.details?.propertyType && (
+                            <div className="flex items-center gap-1">
+                              <Building2 size={isGridView ? 11 : 12} className="text-slate-400 shrink-0" />
+                              <span className={cn(
+                                "text-[#1f2355] font-bold tracking-tight capitalize whitespace-nowrap",
+                                isGridView ? "text-[10px]" : "text-[11px]"
+                              )}>{item.details.propertyType}</span>
+                            </div>
+                          )}
                         </div>
                       )}
                       <div className={cn(

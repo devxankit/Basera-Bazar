@@ -19,6 +19,7 @@ import { useCart } from '../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loadScript } from '../../utils/loadScript';
 import toast from '../../mockToast';
+import { RAZORPAY_ENABLED, RAZORPAY_DISABLED_MESSAGE, showRazorpayDisabledNotice } from '../../constants/paymentFlags';
 
 export default function MandiCheckout() {
    const navigate = useNavigate();
@@ -104,6 +105,14 @@ export default function MandiCheckout() {
    const remainingAmount = total - tokenAmount;
 
    const handleCreateOrder = async () => {
+      // 🚩 RAZORPAY_FLAG: Razorpay disabled for App Store submission.
+      // Show COD notice instead of initiating the payment flow. Remove this
+      // block (or set RAZORPAY_ENABLED = true) to re-enable online payments.
+      if (!RAZORPAY_ENABLED) {
+         showRazorpayDisabledNotice(RAZORPAY_DISABLED_MESSAGE);
+         return;
+      }
+
       try {
          setLoading(true);
 

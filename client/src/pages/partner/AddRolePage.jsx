@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { loadScript } from '../../utils/loadScript';
+import { RAZORPAY_ENABLED, showRazorpayDisabledNotice } from '../../constants/paymentFlags';
 import { v } from '../../utils/validators';
 
 const ALL_ROLES = [
@@ -314,6 +315,13 @@ export default function AddRolePage() {
   // Paid upgrade: pay the one-time role-upgrade fee via Razorpay, then the
   // server creates the pending role request on verify/callback.
   const handlePayAndSubmit = async () => {
+    // 🚩 RAZORPAY_FLAG: Razorpay disabled for App Store submission.
+    // Remove this block (or set RAZORPAY_ENABLED = true) to re-enable.
+    if (!RAZORPAY_ENABLED) {
+      showRazorpayDisabledNotice();
+      return;
+    }
+
     if (!validateRoleDocs()) return;
     setSubmitting(true);
     try {

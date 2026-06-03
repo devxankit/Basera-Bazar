@@ -12,6 +12,7 @@ import PartnerModal from '../../components/partner/PartnerModal';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/DataEngine';
+import { RAZORPAY_ENABLED, showRazorpayDisabledNotice } from '../../constants/paymentFlags';
 
 const STORAGE_KEY = 'partner_reg';
 
@@ -288,6 +289,14 @@ export default function PartnerRegistration() {
   const handlePaymentAndActivate = async () => {
     if (!selectedPlanObject || selectedPlan === 'free_trial') {
       handleConfirmRegistration();
+      return;
+    }
+
+    // 🚩 RAZORPAY_FLAG: paid-plan Razorpay disabled for App Store submission.
+    // Free-trial registration above still works. Remove this block (or set
+    // RAZORPAY_ENABLED = true) to re-enable paid plans.
+    if (!RAZORPAY_ENABLED) {
+      showRazorpayDisabledNotice();
       return;
     }
 

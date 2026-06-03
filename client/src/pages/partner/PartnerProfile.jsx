@@ -18,6 +18,8 @@ export default function PartnerProfile() {
   const { user, logout, refreshUser } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showDeleteRoleModal, setShowDeleteRoleModal] = useState(null);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
 
   const handleTestPush = async () => {
@@ -34,7 +36,7 @@ export default function PartnerProfile() {
     }
   };
 
-  useScrollLock(showLogoutModal || !!showDeleteRoleModal);
+  useScrollLock(showLogoutModal || !!showDeleteRoleModal || showDeleteAccountModal);
 
   useEffect(() => {
     if (!user) {
@@ -58,6 +60,21 @@ export default function PartnerProfile() {
   const handleLogout = () => {
     logout(true);
     navigate('/partner/login');
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await api.post('/auth/deactivate-account');
+      toast.success('Your account has been deactivated.');
+      setShowDeleteAccountModal(false);
+      await logout(false);
+      navigate('/partner/login');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to deactivate account. Please try again.');
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   const deleteRoleMutation = useMutation({
@@ -232,6 +249,15 @@ export default function PartnerProfile() {
           Logout Session
         </button>
 
+        {/* Delete Account */}
+        <button
+          onClick={() => setShowDeleteAccountModal(true)}
+          className="w-full bg-transparent text-slate-400 py-3 rounded-xl font-bold text-[12px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-2"
+        >
+          <Trash2 size={15} />
+          Delete Account
+        </button>
+
         {/* Footer */}
         <div className="text-center pb-12">
           <div className="text-[12px] font-bold text-slate-300 uppercase tracking-[0.3em]">Basera Bazar Partner</div>
@@ -273,6 +299,30 @@ export default function PartnerProfile() {
                     {deleting ? 'Deleting...' : 'Delete Role'}
                   </button>
                   <button onClick={() => setShowDeleteRoleModal(null)} className="w-full bg-slate-50 text-slate-400 py-4 rounded-xl font-bold uppercase tracking-widest active:scale-95 transition-all">Keep Role</button>
+               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Account Modal */}
+      <AnimatePresence>
+        {showDeleteAccountModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-6 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white w-full max-w-sm rounded-2xl p-8 text-center shadow-2xl">
+               <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <AlertCircle size={28} />
+               </div>
+               <h3 className="text-[#001b4e] text-[20px] font-bold mb-2">Delete Account?</h3>
+               <p className="text-slate-500 text-[14px] mb-8 leading-relaxed">
+                 Your account will be deactivated and you <span className="text-rose-500 font-bold">won't be able to log in again</span> with this number. To use Basera Bazar again, you'll have to contact the administrator to reactivate your account.
+               </p>
+               <div className="flex flex-col gap-3">
+                  <button onClick={handleDeleteAccount} disabled={deletingAccount} className="w-full bg-rose-500 text-white py-4 rounded-xl font-bold uppercase tracking-widest active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                    {deletingAccount ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                    {deletingAccount ? 'Deleting...' : 'Yes, Delete Account'}
+                  </button>
+                  <button onClick={() => setShowDeleteAccountModal(false)} disabled={deletingAccount} className="w-full bg-slate-50 text-slate-400 py-4 rounded-xl font-bold uppercase tracking-widest active:scale-95 transition-all disabled:opacity-60">Cancel</button>
                </div>
             </motion.div>
           </div>

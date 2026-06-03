@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Lock, Eye, EyeOff, Loader2, Phone, Bell, User } from 'lucide-react';
+import { Lock, Eye, EyeOff, Loader2, Phone, Bell, User, Mail, MessageCircle } from 'lucide-react';
+import { ADMIN_CONTACT_LINKS } from '../../constants/adminContact';
 import { motion, AnimatePresence } from 'framer-motion';
 import logo from '../../assets/baseralogo.png';
 import api from '../../services/api';
@@ -385,8 +386,25 @@ export default function PartnerLogin() {
             <div style={{ background: '#fff1f2', width: 64, height: 64, borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#e11d48' }}>
               <Lock size={32} />
             </div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: brand, marginBottom: 12 }}>Account Inactive</div>
-            <div style={{ fontSize: 15, color: '#64748b', lineHeight: 1.5, marginBottom: 28 }}>Your partner account has been deactivated. Please contact support to resolve this.</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: brand, marginBottom: 12 }}>Account Suspended</div>
+            <div style={{ fontSize: 15, color: '#64748b', lineHeight: 1.5, marginBottom: 20 }}>Your partner account has been suspended. Please contact the administrator to log in again.</div>
+
+            {/* Contact Admin options */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+              <a href={ADMIN_CONTACT_LINKS.call} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', background: '#eef2ff', borderRadius: 14, textDecoration: 'none', color: '#2334b2' }}>
+                <Phone size={20} />
+                <span style={{ fontSize: 12, fontWeight: 700 }}>Call</span>
+              </a>
+              <a href={ADMIN_CONTACT_LINKS.whatsapp} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', background: '#ecfdf5', borderRadius: 14, textDecoration: 'none', color: '#059669' }}>
+                <MessageCircle size={20} />
+                <span style={{ fontSize: 12, fontWeight: 700 }}>WhatsApp</span>
+              </a>
+              <a href={ADMIN_CONTACT_LINKS.email} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', background: '#fff7ed', borderRadius: 14, textDecoration: 'none', color: '#ea580c' }}>
+                <Mail size={20} />
+                <span style={{ fontSize: 12, fontWeight: 700 }}>Email</span>
+              </a>
+            </div>
+
             <button onClick={() => { setShowInactiveModal(false); setPhone(''); setOtpSent(false); setIdentifier(''); }}
               style={{ width: '100%', padding: '14px', background: '#e11d48', color: '#fff', border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
               Okay

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Phone, Lock, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Phone, Lock, Eye, EyeOff, ShieldCheck, Mail, MessageCircle } from "lucide-react";
+import { ADMIN_CONTACT_LINKS } from "../../constants/adminContact";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
@@ -164,6 +165,59 @@ export default function ExecutiveLogin() {
           </div>
         </div>
       </div>
+
+      {/* ── ACCOUNT SUSPENDED MODAL ── */}
+      <AnimatePresence>
+        {showInactiveModal && (
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-6 text-left">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              onClick={() => setShowInactiveModal(false)}
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative bg-white rounded-[2.5rem] p-10 w-full max-w-sm shadow-2xl overflow-hidden text-center">
+              <div className="absolute top-0 left-0 w-full h-2 bg-rose-500" />
+              <div className="w-20 h-20 bg-rose-50 rounded-4xl flex items-center justify-center mb-6 text-rose-500 mx-auto">
+                <Lock size={32} />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2 uppercase">
+                Account Suspended
+              </h3>
+              <p className="text-slate-500 font-medium text-[15px] leading-relaxed mb-7">
+                Your account has been suspended. Please contact the administrator to log in again.
+              </p>
+
+              {/* Contact Admin options */}
+              <div className="flex gap-3 mb-8">
+                <a href={ADMIN_CONTACT_LINKS.call} className="flex-1 flex flex-col items-center gap-1.5 py-3.5 bg-indigo-50 rounded-2xl text-indigo-600 active:scale-95 transition-all">
+                  <Phone size={20} />
+                  <span className="text-[12px] font-bold">Call</span>
+                </a>
+                <a href={ADMIN_CONTACT_LINKS.whatsapp} target="_blank" rel="noopener noreferrer" className="flex-1 flex flex-col items-center gap-1.5 py-3.5 bg-emerald-50 rounded-2xl text-emerald-600 active:scale-95 transition-all">
+                  <MessageCircle size={20} />
+                  <span className="text-[12px] font-bold">WhatsApp</span>
+                </a>
+                <a href={ADMIN_CONTACT_LINKS.email} className="flex-1 flex flex-col items-center gap-1.5 py-3.5 bg-orange-50 rounded-2xl text-orange-600 active:scale-95 transition-all">
+                  <Mail size={20} />
+                  <span className="text-[12px] font-bold">Email</span>
+                </a>
+              </div>
+
+              <button
+                onClick={() => setShowInactiveModal(false)}
+                className="w-full py-4 text-slate-400 font-black hover:text-slate-900 transition-all text-[11px] uppercase tracking-[0.2em]">
+                GO BACK
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ── ACCOUNT NOT FOUND MODAL ── */}
       <AnimatePresence>
