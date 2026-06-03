@@ -35,7 +35,8 @@ const BottomNav = () => {
   if (keyboardOpen) return null;
   const navItems = [
     { icon: Home, label: 'HOME', path: '/' },
-    { icon: Building2, label: 'PROPERTIES', path: '/browse/property' },
+    // PROPERTY-HIDDEN-FOR-RAZORPAY: uncomment the line below to restore the Properties tab
+    // { icon: Building2, label: 'PROPERTIES', path: '/browse/property' },
     { icon: ShoppingBag, label: 'MANDI', path: '/mandi-bazar', isSpecial: true },
     { icon: Wrench, label: 'SERVICE', path: '/browse/service' },
     { icon: Store, label: 'SUPPLIER', path: '/browse/supplier' }

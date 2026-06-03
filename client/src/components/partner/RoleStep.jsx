@@ -3,6 +3,8 @@ import { Building2, Wrench, Package, Store, Check, ChevronRight } from 'lucide-r
 import { motion } from 'framer-motion';
 
 const roles = [
+  // AGENT-HIDDEN-FOR-RAZORPAY: uncomment the object below to restore the Agent role
+  /*
   {
     id: 'agent',
     title: 'Agent',
@@ -10,6 +12,7 @@ const roles = [
     icon: <Building2 size={26} />,
     theme: 'blue'
   },
+  */
   {
     id: 'service',
     title: 'Service Provider',

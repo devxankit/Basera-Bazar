@@ -47,12 +47,15 @@ const Home = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const featuredProperties = homeData?.props || [];
+  // PROPERTY-HIDDEN-FOR-RAZORPAY: uncomment to restore (used by the Featured Properties section below)
+  // const featuredProperties = homeData?.props || [];
   const featuredServices = homeData?.servs || [];
   const featuredSuppliers = homeData?.supps || [];
   const featuredMandi = homeData?.mandi || [];
 
   const categories = [
+    // PROPERTY-HIDDEN-FOR-RAZORPAY: uncomment the object below to restore the Properties category tile
+    /*
     {
       id: 'property',
       title: 'PROPERTIES',
@@ -63,6 +66,7 @@ const Home = () => {
       image: '/properties.jpg',
       path: '/category/property',
     },
+    */
     {
       id: 'service',
       title: 'SERVICES',
@@ -282,7 +286,8 @@ const Home = () => {
         </>
       )}
 
-      {/* ── FEATURED PROPERTIES ── */}
+      {/* PROPERTY-HIDDEN-FOR-RAZORPAY: Featured Properties section commented out. Uncomment the block below to restore. */}
+      {/*
       <div className="mb-8">
         <div className="px-4 flex items-center justify-between mb-4">
           <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Featured Properties</h2>
@@ -290,7 +295,7 @@ const Home = () => {
         </div>
         <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar">
           {featuredProperties.length > 0 ? featuredProperties.map((item) => (
-            <div 
+            <div
               key={item.id}
               onClick={() => navigate(`/products/${item.id}`)}
               className="min-w-[200px] bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden active:scale-95 transition-all"
@@ -331,6 +336,7 @@ const Home = () => {
           )}
         </div>
       </div>
+      */}
 
       {/* ── TOP RATED SERVICES ── */}
       <div className="mb-10">
