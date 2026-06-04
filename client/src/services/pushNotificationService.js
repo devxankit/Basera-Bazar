@@ -159,6 +159,10 @@ async function unregisterFCMToken() {
  * Setup handler for notifications received while app is in foreground
  */
 function setupForegroundHandler(onMessageReceived) {
+  // Arm audio unlocking on the user's first gesture so the notification sound
+  // can actually play later (mobile browsers block audio without a gesture).
+  installAudioUnlock();
+
   if (!messaging || typeof onMessage !== 'function') return () => {};
 
   return onMessage(messaging, async (payload) => {
@@ -206,7 +210,70 @@ function setupForegroundHandler(onMessageReceived) {
  * missing or blocked, falls back to a short synthesized chime via the Web
  * Audio API so a cue always plays. All failures are non-fatal.
  */
+// --- Audio unlock (mobile autoplay policy) ---------------------------------
+// A push arrives in an async callback with NO active user gesture. Mobile
+// browsers block audio that isn't tied to a gesture: `Audio.play()` rejects
+// and a fresh AudioContext starts "suspended" (silent). The fix is to PRIME
+// audio during the user's first interaction with the page and reuse those
+// already-unlocked objects when a notification later arrives.
 let _notificationAudio;
+let _audioCtx = null;
+let _audioUnlocked = false;
+let _unlockInstalled = false;
+
+function getAudioCtx() {
+  if (!_audioCtx) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (Ctx) _audioCtx = new Ctx();
+  }
+  return _audioCtx;
+}
+
+/**
+ * Attach one-shot listeners that unlock audio on the user's first gesture.
+ * Safe to call repeatedly; only installs once.
+ */
+function installAudioUnlock() {
+  if (_unlockInstalled || typeof window === 'undefined') return;
+  _unlockInstalled = true;
+
+  const events = ['pointerdown', 'touchend', 'click', 'keydown'];
+  const unlock = () => {
+    try {
+      // Resume the Web Audio context (chime fallback) from within the gesture.
+      const ctx = getAudioCtx();
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+
+      // Prime the mp3 element: a muted play()/pause() inside the gesture marks
+      // it "user-activated" so a later programmatic play() is allowed.
+      if (!_notificationAudio) {
+        _notificationAudio = new Audio('/notification.mp3');
+        _notificationAudio.preload = 'auto';
+      }
+      _notificationAudio.muted = true;
+      const p = _notificationAudio.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          _notificationAudio.pause();
+          _notificationAudio.currentTime = 0;
+          _notificationAudio.muted = false;
+        }).catch(() => { _notificationAudio.muted = false; });
+      }
+      _audioUnlocked = true;
+    } catch { /* non-fatal */ }
+    events.forEach((ev) => window.removeEventListener(ev, unlock));
+  };
+
+  events.forEach((ev) => window.addEventListener(ev, unlock, { passive: true }));
+}
+
+/**
+ * Play an in-app notification sound + vibrate. Tries `notification.mp3` first
+ * (drop one into client/public/ to customise the tone); if it is missing or
+ * blocked, falls back to a synthesized chime. Relies on audio having been
+ * unlocked by an earlier user gesture (see installAudioUnlock). All failures
+ * are non-fatal.
+ */
 function playNotificationSound() {
   try {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
@@ -215,10 +282,11 @@ function playNotificationSound() {
       _notificationAudio = new Audio('/notification.mp3');
       _notificationAudio.preload = 'auto';
     }
+    _notificationAudio.muted = false;
     _notificationAudio.currentTime = 0;
     const playPromise = _notificationAudio.play();
     if (playPromise && typeof playPromise.catch === 'function') {
-      // mp3 missing (404) or otherwise unplayable → synthesized fallback.
+      // mp3 missing (404) or play blocked → synthesized fallback.
       playPromise.catch(() => playBeep());
     }
   } catch (err) {
@@ -227,13 +295,14 @@ function playNotificationSound() {
 }
 
 /**
- * Synthesize a short two-note chime with the Web Audio API. No asset needed.
+ * Synthesize a short two-note chime with the Web Audio API. Reuses the
+ * unlocked, persistent AudioContext so it stays audible on mobile.
  */
 function playBeep() {
   try {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     const now = ctx.currentTime;
     [880, 1175].forEach((freq, i) => {
       const osc = ctx.createOscillator();
@@ -248,7 +317,7 @@ function playBeep() {
       osc.start(start);
       osc.stop(start + 0.18);
     });
-    setTimeout(() => ctx.close().catch(() => {}), 600);
+    // NOTE: do not close the context — it is reused for future notifications.
   } catch (err) {
     console.warn('🔇 Could not play notification sound:', err?.message || err);
   }
