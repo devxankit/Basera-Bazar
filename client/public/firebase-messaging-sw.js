@@ -28,7 +28,13 @@ messaging.onBackgroundMessage((payload) => {
   const notificationOptions = {
     body: payload.notification.body,
     icon: payload.notification.icon || '/favicon.png',
-    data: payload.data
+    data: payload.data,
+    // Haptic feedback on Android (ignored where unsupported). The actual
+    // notification *sound* for background messages is controlled by the OS
+    // notification channel / device settings — it cannot be set from JS.
+    vibrate: [200, 100, 200],
+    tag: payload.data?.notification_id || 'basera-notification',
+    renotify: true
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

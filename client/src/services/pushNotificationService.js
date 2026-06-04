@@ -160,9 +160,17 @@ async function unregisterFCMToken() {
  */
 function setupForegroundHandler(onMessageReceived) {
   if (!messaging || typeof onMessage !== 'function') return () => {};
-  
+
   return onMessage(messaging, async (payload) => {
     console.log('📬 Foreground notification:', payload);
+
+    // When the app is open and focused, the browser renders manually-shown
+    // notifications SILENTLY. The Web Notifications API also has no working
+    // `sound` option, so the only reliable way to give an audible cue while
+    // the app is in the foreground is to play an audio element ourselves.
+    // This works because the user has already interacted with the page,
+    // which satisfies the browser autoplay policy.
+    playNotificationSound();
 
     // Show a browser notification manually since the browser won't show it
     // in the foreground automatically. We MUST use the service worker's
@@ -176,7 +184,12 @@ function setupForegroundHandler(onMessageReceived) {
         await registration.showNotification(payload.notification.title, {
           body: payload.notification.body,
           icon: payload.notification.icon || '/favicon.png',
-          data: payload.data
+          data: payload.data,
+          // Haptic feedback on Android (ignored where unsupported). Combined
+          // with renotify+tag so repeat notifications still alert the user.
+          vibrate: [200, 100, 200],
+          tag: payload.data?.notification_id || 'basera-notification',
+          renotify: true
         });
       } catch (err) {
         console.error('❌ Failed to show foreground notification:', err);
@@ -185,6 +198,60 @@ function setupForegroundHandler(onMessageReceived) {
 
     if (onMessageReceived) onMessageReceived(payload);
   });
+}
+
+/**
+ * Play an in-app notification sound + vibrate. Tries a `notification.mp3`
+ * from client/public/ first (drop one in to customise the tone); if it is
+ * missing or blocked, falls back to a short synthesized chime via the Web
+ * Audio API so a cue always plays. All failures are non-fatal.
+ */
+let _notificationAudio;
+function playNotificationSound() {
+  try {
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+    if (!_notificationAudio) {
+      _notificationAudio = new Audio('/notification.mp3');
+      _notificationAudio.preload = 'auto';
+    }
+    _notificationAudio.currentTime = 0;
+    const playPromise = _notificationAudio.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      // mp3 missing (404) or otherwise unplayable → synthesized fallback.
+      playPromise.catch(() => playBeep());
+    }
+  } catch (err) {
+    playBeep();
+  }
+}
+
+/**
+ * Synthesize a short two-note chime with the Web Audio API. No asset needed.
+ */
+function playBeep() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    [880, 1175].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const start = now + i * 0.18;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.16);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.18);
+    });
+    setTimeout(() => ctx.close().catch(() => {}), 600);
+  } catch (err) {
+    console.warn('🔇 Could not play notification sound:', err?.message || err);
+  }
 }
 
 /**

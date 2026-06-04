@@ -389,23 +389,32 @@ const Home = () => {
         </div>
         <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar">
           {featuredMandi.length > 0 ? featuredMandi.map((item) => (
-            <div 
+            <div
               key={item.id}
               onClick={() => navigate(`/products/${item._id || item.id}`)}
-              className="min-w-[180px] bg-white rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-3 active:scale-[0.98] transition-all group relative"
+              className="min-w-[200px] max-w-[200px] bg-white rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-3 active:scale-[0.98] transition-all group relative flex flex-col"
             >
-              <div className="h-[130px] rounded-[24px] overflow-hidden relative mb-3.5 bg-slate-50">
+              <div className="h-[130px] rounded-[24px] overflow-hidden relative mb-3 bg-slate-50">
                 <img src={item.image || item.thumbnail} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={item.title} />
                 {item.price?.value < 1000 && (
                   <div className="absolute top-3 left-3 bg-emerald-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">Value</div>
                 )}
               </div>
-              <div className="px-1 pb-1">
-                <h3 className="font-bold text-[#181d5f] text-[13px] uppercase leading-tight line-clamp-2 min-h-[32px]">{item.title}</h3>
-                <div className="mt-3.5 pt-3 border-t border-slate-50 flex items-center justify-between">
+              <div className="px-1 pb-1 flex-1 flex flex-col">
+                <h3 className="font-bold text-[#181d5f] text-[14px] leading-snug line-clamp-2">{item.title}</h3>
+                {(item.subcategory_name || item.category_name) && (
+                  <span className="mt-1.5 w-fit max-w-full bg-indigo-50 border border-indigo-100 text-[#181d5f] text-[10px] font-bold px-2 py-0.5 rounded-md truncate">
+                    {item.subcategory_name || item.category_name}
+                  </span>
+                )}
+                <div className="flex items-center gap-1 mt-1.5">
+                  <Pin size={11} className="text-orange-500 shrink-0" />
+                  <span className="text-[11px] text-slate-500 font-semibold truncate">{item.location || 'Muzaffarpur, Bihar'}</span>
+                </div>
+                <div className="mt-auto pt-3 border-t border-slate-50 flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-[#181d5f] font-black text-[15px] leading-none">₹{item.price?.value}</span>
-                    <span className="text-slate-400 text-[9px] font-bold uppercase mt-1">/ {item.price?.unit || 'Unit'}</span>
+                    <span className="text-[#181d5f] font-black text-[15px] leading-none">₹{item.price?.value?.toLocaleString('en-IN')}</span>
+                    <span className="text-slate-400 text-[9px] font-bold uppercase mt-1 truncate max-w-[90px]">/ {item.price?.unit || 'Unit'}</span>
                   </div>
                   
                   {cart[item._id || item.id] ? (
