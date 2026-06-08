@@ -1073,11 +1073,7 @@ function App() {
                         />
                         <Route
                           path="/partner/help"
-                          element={
-                            <PartnerRoute>
-                              <PartnerHelp />
-                            </PartnerRoute>
-                          }
+                          element={<PartnerHelp />}
                         />
                         <Route
                           path="/partner/about"
@@ -1089,11 +1085,7 @@ function App() {
                         />
                         <Route
                           path="/partner/privacy-policy"
-                          element={
-                            <PartnerRoute>
-                              <PartnerPrivacyPolicy />
-                            </PartnerRoute>
-                          }
+                          element={<PartnerPrivacyPolicy />}
                         />
                         <Route
                           path="/partner/edit-profile"
@@ -1308,23 +1300,11 @@ function App() {
                         />
                         <Route
                           path="/executive/help"
-                          element={
-                            <ExecutiveRoute>
-                              <ExecutiveLayout>
-                                <ExecutiveHelp />
-                              </ExecutiveLayout>
-                            </ExecutiveRoute>
-                          }
+                          element={<ExecutiveHelp />}
                         />
                         <Route
                           path="/executive/privacy-policy"
-                          element={
-                            <ExecutiveRoute>
-                              <ExecutiveLayout>
-                                <ExecutivePrivacyPolicy />
-                              </ExecutiveLayout>
-                            </ExecutiveRoute>
-                          }
+                          element={<ExecutivePrivacyPolicy />}
                         />
                       </Route>
                       {/* end Executive section ErrorBoundary */}
