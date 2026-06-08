@@ -16,6 +16,7 @@
  */
 export const RAZORPAY_ENABLED = false;
 
+
 // Shown to a customer in the Mandi Bazar token-payment checkout flow.
 export const RAZORPAY_DISABLED_MESSAGE =
   'Online payment is currently unavailable.\n\n' +

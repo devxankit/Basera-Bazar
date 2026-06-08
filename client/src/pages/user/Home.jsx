@@ -47,15 +47,12 @@ const Home = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // PROPERTY-HIDDEN-FOR-RAZORPAY: uncomment to restore (used by the Featured Properties section below)
-  // const featuredProperties = homeData?.props || [];
+  const featuredProperties = homeData?.props || [];
   const featuredServices = homeData?.servs || [];
   const featuredSuppliers = homeData?.supps || [];
   const featuredMandi = homeData?.mandi || [];
 
   const categories = [
-    // PROPERTY-HIDDEN-FOR-RAZORPAY: uncomment the object below to restore the Properties category tile
-    /*
     {
       id: 'property',
       title: 'PROPERTIES',
@@ -66,7 +63,6 @@ const Home = () => {
       image: '/properties.jpg',
       path: '/category/property',
     },
-    */
     {
       id: 'service',
       title: 'SERVICES',
@@ -286,8 +282,7 @@ const Home = () => {
         </>
       )}
 
-      {/* PROPERTY-HIDDEN-FOR-RAZORPAY: Featured Properties section commented out. Uncomment the block below to restore. */}
-      {/*
+      {/* ── FEATURED PROPERTIES ── */}
       <div className="mb-8">
         <div className="px-4 flex items-center justify-between mb-4">
           <h2 className="font-black text-[#181d5f] uppercase tracking-tight" style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>Featured Properties</h2>
@@ -336,7 +331,6 @@ const Home = () => {
           )}
         </div>
       </div>
-      */}
 
       {/* ── TOP RATED SERVICES ── */}
       <div className="mb-10">
