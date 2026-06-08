@@ -91,7 +91,7 @@ const AddProperty = lazy(() => import("./pages/partner/AddProperty"));
 const PartnerServiceDetails = lazy(
   () => import("./pages/partner/PartnerServiceDetails"),
 );
-const PartnerHelp = lazy(() => import("./pages/partner/PartnerHelp"));
+const PartnerSupport = lazy(() => import("./pages/partner/PartnerSupport"));
 const PartnerAbout = lazy(() => import("./pages/partner/PartnerAbout"));
 const PartnerPrivacyPolicy = lazy(() => import("./pages/partner/PartnerPrivacyPolicy"));
 const PartnerEditProfile = lazy(
@@ -135,7 +135,7 @@ const ExecutiveTaskHistory = lazy(
   () => import("./pages/executive/ExecutiveTaskHistory"),
 );
 const ExecutiveSalary = lazy(() => import("./pages/executive/ExecutiveSalary"));
-const ExecutiveHelp = lazy(() => import("./pages/executive/ExecutiveHelp"));
+const ExecutiveSupport = lazy(() => import("./pages/executive/ExecutiveSupport"));
 const ExecutivePrivacyPolicy = lazy(() => import("./pages/executive/ExecutivePrivacyPolicy"));
 
 // --- Lazy-loaded Staff Login ---
@@ -1072,8 +1072,8 @@ function App() {
                           }
                         />
                         <Route
-                          path="/partner/help"
-                          element={<PartnerHelp />}
+                          path="/partner/support"
+                          element={<PartnerSupport />}
                         />
                         <Route
                           path="/partner/about"
@@ -1299,8 +1299,8 @@ function App() {
                           }
                         />
                         <Route
-                          path="/executive/help"
-                          element={<ExecutiveHelp />}
+                          path="/executive/support"
+                          element={<ExecutiveSupport />}
                         />
                         <Route
                           path="/executive/privacy-policy"

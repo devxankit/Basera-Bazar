@@ -3,7 +3,7 @@ import {
   UserCircle, Mail, Phone, MapPin, Landmark,
   Camera, ShieldCheck, LogOut, ChevronRight,
   ShieldAlert, CheckCircle2, Clock, MapPinned, CreditCard,
-  Building2, User, Zap, Shield, Key, Edit3, X, Save, ArrowLeft, AlertCircle, Bell, Loader2, Trash2
+  Building2, User, Zap, Shield, Key, Edit3, X, Save, ArrowLeft, AlertCircle, Bell, Loader2, Trash2, HelpCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -407,6 +407,17 @@ export default function ExecutiveProfile() {
           >
             {sendingTest ? <Loader2 size={16} className="animate-spin" /> : <Bell size={16} />}
             {sendingTest ? 'Sending...' : 'Test Push Notification'}
+          </button>
+        </motion.div>
+
+        {/* Action: Support Center */}
+        <motion.div variants={itemVariants}>
+          <button
+            onClick={() => navigate('/executive/support')}
+            className="w-full p-5 bg-[#001b4e] hover:bg-[#001b4e]/90 text-white rounded-2xl font-medium text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-blue-900/10"
+          >
+            <HelpCircle size={18} />
+            Support Center
           </button>
         </motion.div>
 

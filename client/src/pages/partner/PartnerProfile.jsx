@@ -215,7 +215,7 @@ export default function PartnerProfile() {
             <MenuOption icon={<Trophy size={20} />} label="My Rewards" onClick={() => navigate('/partner/milestones')} />
             {/* <MenuOption icon={<CreditCard size={20} />} label="My Subscription" onClick={() => navigate('/partner/subscription')} /> */}
             <MenuOption icon={<AlertCircle size={20} />} label="Penalties" onClick={() => navigate('/partner/mandi/penalties')} />
-            <MenuOption icon={<HelpCircle size={20} />} label="Support Center" onClick={() => navigate('/partner/help')} />
+            <MenuOption icon={<HelpCircle size={20} />} label="Support Center" onClick={() => navigate('/partner/support')} />
           </div>
         </div>
 
