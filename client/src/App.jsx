@@ -806,7 +806,7 @@ function App() {
                         }
                       />
                       <Route
-                        path="/help"
+                        path="/support"
                         element={
                           <UserLayout>
                             <HelpSupport />

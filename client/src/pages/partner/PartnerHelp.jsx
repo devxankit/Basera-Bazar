@@ -240,7 +240,7 @@ export default function PartnerHelp() {
             <SupportCard 
               icon={<Phone size={22} className="text-blue-500" />} 
               label="Hotline" 
-              sub="Call Now"
+              sub={`+${contactPhone}`}
               onClick={() => window.open(`tel:+${contactPhone}`, '_blank')}
             />
           </div>
@@ -257,7 +257,7 @@ export default function PartnerHelp() {
                 </div>
                 <div>
                    <h3 className="text-white text-[14px] font-black uppercase tracking-widest">Email Support</h3>
-                   <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mt-0.5">Response {responseTime}</p>
+                   <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mt-0.5">{contactEmail} ({responseTime})</p>
                 </div>
               </div>
               <ArrowUpRight size={18} className="text-white/20" />
