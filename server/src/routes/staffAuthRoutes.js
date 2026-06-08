@@ -14,6 +14,7 @@ const {
   changeStaffPassword,
   staffForgotPassword,
   staffResetPassword,
+  deactivateStaffAccount,
 } = require('../controllers/staff/staffAuthController');
 
 const staffLoginLimiter = rateLimit({
@@ -44,5 +45,6 @@ router.use(protect);
 router.get('/me', getStaffMe);
 router.post('/logout', staffLogout);
 router.put('/change-password', validate(staffPasswordResetSchema), changeStaffPassword);
+router.post('/deactivate-account', deactivateStaffAccount);
 
 module.exports = router;

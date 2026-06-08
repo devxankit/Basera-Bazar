@@ -243,6 +243,10 @@ export default function AddMandiProduct() {
       } else {
         await api.post('/listings/mandi', payload);
       }
+      queryClient.invalidateQueries({ queryKey: ['editMandiProduct', editId] });
+      queryClient.invalidateQueries({ queryKey: ['myListings'] });
+      queryClient.invalidateQueries({ queryKey: ['subscriptionLimits'] });
+      queryClient.invalidateQueries({ queryKey: ['inventorySubscriptionLimits'] });
       navigate('/partner/inventory');
     } catch (err) {
       if (err.response?.status === 403 && err.response?.data?.limit_reached) {

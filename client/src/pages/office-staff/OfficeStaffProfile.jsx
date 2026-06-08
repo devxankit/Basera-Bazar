@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Save, Eye, EyeOff, LogOut, UserCircle, Edit3, X,
-  Phone, Mail, MapPin, Building2, CreditCard, Key, ChevronRight
+  Phone, Mail, MapPin, Building2, CreditCard, Key, ChevronRight, AlertCircle, Trash2
 } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from '../../mockToast';
@@ -37,6 +37,8 @@ export default function OfficeStaffProfile() {
   const [showPwSection, setShowPwSection] = useState(false);
   const [showFullPhoto, setShowFullPhoto] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -108,6 +110,21 @@ export default function OfficeStaffProfile() {
   const handleLogout = () => {
     logout(true);
     navigate('/staff/login?role=office_staff');
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await api.post('/auth/staff/deactivate-account');
+      toast.success('Your account has been deactivated.');
+      setShowDeleteAccountModal(false);
+      logout(false);
+      navigate('/staff/login?role=office_staff');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to deactivate account. Please try again.');
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   if (loading) {
@@ -315,6 +332,14 @@ export default function OfficeStaffProfile() {
         >
           <LogOut size={15} /> Log Out
         </button>
+
+        {/* Delete Account */}
+        <button
+          onClick={() => setShowDeleteAccountModal(true)}
+          className="w-full flex items-center justify-center gap-2 py-3 bg-transparent text-slate-400 rounded-xl text-xs font-semibold hover:text-rose-500 transition-colors"
+        >
+          <Trash2 size={13} /> Delete Account
+        </button>
       </div>
 
       {/* Logout confirmation */}
@@ -339,6 +364,38 @@ export default function OfficeStaffProfile() {
                 </button>
                 <button onClick={handleLogout} className="flex-1 py-2.5 bg-rose-500 text-white rounded-xl text-sm font-bold hover:bg-rose-600 transition-colors">
                   Log Out
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Account Confirmation */}
+      <AnimatePresence>
+        {showDeleteAccountModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-200 bg-black/50 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center"
+            >
+              <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={22} className="text-rose-500" />
+              </div>
+              <h3 className="text-base font-black text-slate-900 mb-1">Delete Account?</h3>
+              <p className="text-sm text-slate-500 mb-5 leading-relaxed">
+                Your account will be deactivated and you <span className="text-rose-500 font-bold">won\'t be able to log in again</span>. To reactivate, you will need to contact the administrator.
+              </p>
+              <div className="flex flex-col gap-2.5">
+                <button onClick={handleDeleteAccount} disabled={deletingAccount} className="w-full py-2.5 bg-rose-500 text-white rounded-xl text-sm font-bold hover:bg-rose-600 disabled:opacity-60 transition-colors flex items-center justify-center gap-1.5">
+                  {deletingAccount ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Trash2 size={15} />}
+                  {deletingAccount ? 'Deleting...' : 'Yes, Delete Account'}
+                </button>
+                <button onClick={() => setShowDeleteAccountModal(false)} disabled={deletingAccount} className="w-full py-2.5 bg-slate-50 text-slate-400 rounded-xl text-sm font-bold hover:bg-slate-100 disabled:opacity-60 transition-colors">
+                  Cancel
                 </button>
               </div>
             </motion.div>

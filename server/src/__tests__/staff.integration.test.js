@@ -168,4 +168,21 @@ describe('Staff Auth, TL & Office Staff Integration Tests', () => {
     expect(leaveRes.status).toBe(201);
     expect(leaveRes.body.success).toBe(true);
   });
+
+  test('Staff can deactivate self account', async () => {
+    const deactivateRes = await request(app)
+      .post('/api/auth/staff/deactivate-account')
+      .set('Authorization', `Bearer ${tlToken}`);
+
+    expect(deactivateRes.status).toBe(200);
+    expect(deactivateRes.body.success).toBe(true);
+
+    // Try logging in again - should fail
+    const tlLoginFail = await request(app)
+      .post('/api/auth/staff/login')
+      .send({ identifier: '9900000020', password: 'TLPassword@123', role: 'team_leader' });
+
+    expect(tlLoginFail.status).toBe(403);
+    expect(tlLoginFail.body.message).toContain('deactivated');
+  });
 });

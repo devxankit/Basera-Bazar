@@ -200,7 +200,7 @@ export default function PartnerHome() {
             </div>
           </div>
 
-          {/* Subscription Status Card */}
+          {/* Subscription Status Card - Commented Out
           {subscriptionLimits && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
@@ -258,6 +258,7 @@ export default function PartnerHome() {
                </div>
             </motion.div>
           )}
+          */}
         </div>
 
         {/* Stats Grid */}

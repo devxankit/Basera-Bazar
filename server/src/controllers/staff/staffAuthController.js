@@ -216,6 +216,66 @@ const staffResetPassword = async (req, res) => {
   }
 };
 
+const deactivateStaffAccount = async (req, res) => {
+  try {
+    const { role, id } = req.user;
+    let Model;
+    if (role === 'team_leader') Model = TeamLeader;
+    else if (role === 'office_staff') Model = OfficeStaff;
+    else Model = Executive;
+
+    const staff = await Model.findById(id);
+    if (!staff) {
+      return res.status(404).json({ success: false, message: 'Staff account not found.' });
+    }
+
+    const { clearAuthCookies } = require('../../utils/cookieAuth');
+
+    if (staff.is_active === false) {
+      clearAuthCookies(res);
+      return res.status(200).json({ success: true, message: 'Account already deactivated.' });
+    }
+
+    // Soft delete: mark inactive and invalidate all existing sessions.
+    staff.is_active = false;
+    staff.token_version = (staff.token_version || 0) + 1;
+    await staff.save();
+
+    const invalidate = require('../../utils/cacheInvalidator');
+    if (role === 'team_leader' || role === 'office_staff') {
+      await invalidate.adminStaff();
+    } else {
+      await invalidate.executiveProfile(id);
+      await invalidate.adminDashboard();
+    }
+
+    // Failsafe Logging
+    try {
+      const { logActivity } = require('../../utils/activityLogger');
+      logActivity({
+        actor_name: staff.name,
+        actor_id: staff._id,
+        action: 'deactivated',
+        entity_type: (role === 'team_leader' || role === 'office_staff') ? 'user' : role,
+        entity_name: staff.name,
+        entity_id: staff._id,
+        description: `${role} self-deactivated their account: ${staff.name}`,
+      });
+    } catch (logError) {
+      logger.warn({ err: logError }, 'Non-critical: Activity log failed for staff deactivation');
+    }
+
+    clearAuthCookies(res);
+    res.status(200).json({
+      success: true,
+      message: 'Your account has been deactivated. Contact the administrator to reactivate it.',
+    });
+  } catch (err) {
+    logger.error({ err }, 'deactivateStaffAccount Error');
+    res.status(500).json({ success: false, message: 'Server error deactivating account.' });
+  }
+};
+
 module.exports = {
   staffLogin,
   staffLogout,
@@ -223,4 +283,5 @@ module.exports = {
   changeStaffPassword,
   staffForgotPassword,
   staffResetPassword,
+  deactivateStaffAccount,
 };

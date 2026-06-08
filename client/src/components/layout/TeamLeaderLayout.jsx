@@ -24,7 +24,7 @@ function TeamLeaderBottomNav() {
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const { data } = await api.get('/staff/team-leader/pending-counts');
+        const { data } = await api.get('/team-leader/pending-counts');
         if (data.success) setCounts(data.data);
       } catch (err) { /* counts fetch failure is non-critical */ }
     };

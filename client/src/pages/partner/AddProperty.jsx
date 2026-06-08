@@ -341,58 +341,70 @@ export default function AddProperty() {
     }
 
     setDetecting(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
-          const data = await response.json();
 
-          if (data && data.address) {
-            const adr = data.address;
-            const clean = (s) => s ? s.replace(/\s(district|zila|tahsil|division|subdivision|township|taluk|mandal)$/i, '').trim() : '';
+    const successCallback = async (position) => {
+      const { latitude, longitude } = position.coords;
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+        const data = await response.json();
 
-            const stateName = adr.state || '';
-            const INDIAN_STATES = Object.keys(INDIAN_STATES_DISTRICTS);
-            const normalizedState = INDIAN_STATES.find(s => s.toLowerCase() === stateName.toLowerCase()) || stateName;
+        if (data && data.address) {
+          const adr = data.address;
+          const clean = (s) => s ? s.replace(/\s(district|zila|tahsil|division|subdivision|township|taluk|mandal)$/i, '').trim() : '';
 
-            const cityName = clean(adr.city || adr.town || adr.village || adr.suburb || 'Unknown');
-            const rawDistrict = adr.county || adr.state_district || adr.city_district || cityName;
+          const stateName = adr.state || '';
+          const INDIAN_STATES = Object.keys(INDIAN_STATES_DISTRICTS);
+          const normalizedState = INDIAN_STATES.find(s => s.toLowerCase() === stateName.toLowerCase()) || stateName;
 
-            // Find matching district
-            const availableDistricts = INDIAN_STATES_DISTRICTS[normalizedState] || [];
-            const cleanedRaw = clean(rawDistrict);
-            const matchedDistrict = availableDistricts.find(d => clean(d) === cleanedRaw) ||
-                                   availableDistricts.find(d => clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))) ||
-                                   rawDistrict;
+          const cityName = clean(adr.city || adr.town || adr.village || adr.suburb || 'Unknown');
+          const rawDistrict = adr.county || adr.state_district || adr.city_district || cityName;
 
-            setFormData(prev => ({
-              ...prev,
-              state: normalizedState,
-              district: matchedDistrict,
-              city: cityName === 'Unknown' ? (matchedDistrict || rawDistrict) : cityName,
-              completeAddress: adr.road || prev.completeAddress,
-              pinCode: adr.postcode || prev.pinCode,
-              latitude: latitude.toString(),
-              longitude: longitude.toString()
-            }));
-            toast.success("Location details detected successfully!");
-          }
-        } catch (err) {
+          // Find matching district
+          const availableDistricts = INDIAN_STATES_DISTRICTS[normalizedState] || [];
+          const cleanedRaw = clean(rawDistrict);
+          const matchedDistrict = availableDistricts.find(d => clean(d) === cleanedRaw) ||
+                                 availableDistricts.find(d => clean(d).includes(cleanedRaw) || cleanedRaw.includes(clean(d))) ||
+                                 rawDistrict;
+
           setFormData(prev => ({
             ...prev,
+            state: normalizedState,
+            district: matchedDistrict,
+            city: cityName === 'Unknown' ? (matchedDistrict || rawDistrict) : cityName,
+            completeAddress: adr.road || prev.completeAddress,
+            pinCode: adr.postcode || prev.pinCode,
             latitude: latitude.toString(),
             longitude: longitude.toString()
           }));
-          toast.info("GPS Coordinates detected. Please enter address manually.");
-        } finally {
-          setDetecting(false);
+          toast.success("Location details detected successfully!");
         }
-      },
-      (error) => {
-        toast.error("Failed to get location. Please allow location permissions.");
+      } catch (err) {
+        setFormData(prev => ({
+          ...prev,
+          latitude: latitude.toString(),
+          longitude: longitude.toString()
+        }));
+        toast.info("GPS Coordinates detected. Please enter address manually.");
+      } finally {
         setDetecting(false);
-      },
+      }
+    };
+
+    const errorCallback = (error) => {
+      // Fallback to low accuracy
+      navigator.geolocation.getCurrentPosition(
+        successCallback,
+        (err2) => {
+          toast.error(err2.message || "Failed to get location. Please allow location permissions.");
+          setDetecting(false);
+        },
+        { enableHighAccuracy: false, timeout: 15000 }
+      );
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      successCallback,
+      errorCallback,
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
@@ -404,21 +416,33 @@ export default function AddProperty() {
     }
 
     setDetecting(true);
+
+    const successCallback = (position) => {
+      const { latitude, longitude } = position.coords;
+      setFormData(prev => ({
+        ...prev,
+        latitude: latitude.toString(),
+        longitude: longitude.toString()
+      }));
+      toast.success("Coordinates captured successfully!");
+      setDetecting(false);
+    };
+
+    const errorCallback = (error) => {
+      // Fallback to low accuracy
+      navigator.geolocation.getCurrentPosition(
+        successCallback,
+        (err2) => {
+          toast.error(err2.message || "Failed to get location. Please allow location permissions.");
+          setDetecting(false);
+        },
+        { enableHighAccuracy: false, timeout: 15000 }
+      );
+    };
+
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setFormData(prev => ({
-          ...prev,
-          latitude: latitude.toString(),
-          longitude: longitude.toString()
-        }));
-        toast.success("Coordinates captured successfully!");
-        setDetecting(false);
-      },
-      (error) => {
-        toast.error("Failed to get location. Please allow location permissions.");
-        setDetecting(false);
-      },
+      successCallback,
+      errorCallback,
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
@@ -488,6 +512,9 @@ export default function AddProperty() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['editProperty', editId] });
+      queryClient.invalidateQueries({ queryKey: ['myListings'] });
+      queryClient.invalidateQueries({ queryKey: ['subscriptionLimits'] });
+      queryClient.invalidateQueries({ queryKey: ['inventorySubscriptionLimits'] });
       const uid = user?._id || user?.id;
       if (uid) {
         const logKey = `baserabazar_activity_${uid}`;
@@ -639,6 +666,8 @@ export default function AddProperty() {
                 handleChange={handleChange} 
                 handleSelect={handleSelect} 
                 handleFetchCoordinates={handleFetchCoordinates}
+                handleAutoDetectLocation={handleAutoDetectLocation}
+                detecting={detecting}
                 setShowMapModal={setShowMapModal}
               />
             )}
@@ -997,12 +1026,27 @@ function StepTwo({ formData, handleChange, handleSelect }) {
 // -------------------------------------------------------------
 // STEP 3 COMPONENTS
 // -------------------------------------------------------------
-function StepThree({ formData, handleChange, handleSelect, handleFetchCoordinates, setShowMapModal }) {
+function StepThree({ formData, handleChange, handleSelect, handleFetchCoordinates, handleAutoDetectLocation, detecting, setShowMapModal }) {
   const districtOptions = formData.state ? INDIA_DISTRICTS[formData.state] || [] : [];
   return (
     <div className="space-y-6">
       <SectionCard title="Property Address" icon={<Home size={18} className="text-blue-500 fill-blue-500" />}>
         <div className="space-y-6">
+          {/* Detect Location Button */}
+          <button
+            type="button"
+            onClick={handleAutoDetectLocation}
+            disabled={detecting}
+            className="w-full bg-[#001b4e] text-white py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-900/10 active:scale-[0.98] transition-all font-bold text-[13px] disabled:opacity-70"
+          >
+            {detecting ? (
+               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+               <Navigation size={14} className="rotate-45" />
+            )}
+            {detecting ? 'Detecting...' : 'Detect My Location'}
+          </button>
+
           <div className="space-y-4">
             <SelectField label="STATE *" name="state" value={formData.state} options={Object.keys(INDIA_DISTRICTS)} onChange={handleChange} />
             <div className="grid grid-cols-2 gap-4">
@@ -1053,11 +1097,16 @@ function StepThree({ formData, handleChange, handleSelect, handleFetchCoordinate
 
          <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={handleFetchCoordinates}
-              className="flex items-center justify-center gap-2 py-3.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-[13px] active:scale-95 transition-all"
+               onClick={handleFetchCoordinates}
+               disabled={detecting}
+               className="flex items-center justify-center gap-2 py-3.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-[13px] active:scale-95 transition-all disabled:opacity-70"
             >
-              <Navigation size={16} />
-              Fetch GPS
+               {detecting ? (
+                 <div className="w-4 h-4 border-2 border-[#001b4e]/30 border-t-[#001b4e] rounded-full animate-spin" />
+               ) : (
+                 <Navigation size={16} />
+               )}
+               {detecting ? 'Fetching...' : 'Fetch GPS'}
             </button>
             <button
               onClick={() => setShowMapModal(true)}

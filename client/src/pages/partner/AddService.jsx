@@ -280,6 +280,8 @@ export default function AddService() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['editService', editId] });
       queryClient.invalidateQueries({ queryKey: ['myListings'] });
+      queryClient.invalidateQueries({ queryKey: ['subscriptionLimits'] });
+      queryClient.invalidateQueries({ queryKey: ['inventorySubscriptionLimits'] });
       setShowSuccessModal(true);
     },
     onError: (error) => {
