@@ -54,6 +54,10 @@ function isProtectedRoute(path) {
     path === '/executive/login' ||
     path === '/executive/register' ||
     path === '/executive/signup' ||
+    path === '/partner/support' ||
+    path === '/partner/privacy-policy' ||
+    path === '/executive/support' ||
+    path === '/executive/privacy-policy' ||
     path === '/staff/login' ||
     path === '/staff/forgot-password' ||
     path === '/admin/login' ||
