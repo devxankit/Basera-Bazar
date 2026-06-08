@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import api from '../../services/api';
 
 const FAQ_DATA = [
   {
@@ -37,6 +39,19 @@ export default function HelpSupport() {
   const navigate = useNavigate();
   const [openIdx, setOpenIdx] = useState(null);
 
+  const { data: rawData } = useQuery({
+    queryKey: ['helpCustomer'],
+    queryFn: () => api.get('/admin/system/page-content?key=CONTENT_HELP_CUSTOMER').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const content = rawData?.data || {};
+  const contactPhone = content.contact_phone || '918969321391';
+  const contactEmail = content.contact_email || 'support@baserabazar.com';
+  const contactWhatsapp = content.contact_whatsapp || '918969321391';
+  const responseTime = content.response_time || 'under 2 hours';
+  const faqs = content.faqs || FAQ_DATA;
+
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans pb-20">
       {/* Header */}
@@ -52,7 +67,7 @@ export default function HelpSupport() {
         <div className="space-y-3">
           <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Contact Us</h3>
           <a
-            href="tel:+919876543210"
+            href={`tel:${contactPhone}`}
             className="flex items-center gap-4 bg-white rounded-2xl px-4 py-4 border border-slate-100 shadow-sm active:scale-[0.98] transition-all"
           >
             <div className="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
@@ -60,13 +75,13 @@ export default function HelpSupport() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[14px] font-bold text-[#001b4e]">Call Support</p>
-              <p className="text-[12px] text-slate-400 font-medium">Mon–Sat, 9 AM – 6 PM</p>
+              <p className="text-[12px] text-slate-400 font-medium">+{contactPhone}</p>
             </div>
             <ChevronRight size={18} className="text-slate-300" />
           </a>
 
           <a
-            href="https://wa.me/919876543210"
+            href={`https://wa.me/${contactWhatsapp}`}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-4 bg-white rounded-2xl px-4 py-4 border border-slate-100 shadow-sm active:scale-[0.98] transition-all"
@@ -82,7 +97,7 @@ export default function HelpSupport() {
           </a>
 
           <a
-            href="mailto:support@baserabazar.com"
+            href={`mailto:${contactEmail}`}
             className="flex items-center gap-4 bg-white rounded-2xl px-4 py-4 border border-slate-100 shadow-sm active:scale-[0.98] transition-all"
           >
             <div className="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
@@ -90,7 +105,7 @@ export default function HelpSupport() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[14px] font-bold text-[#001b4e]">Email Us</p>
-              <p className="text-[12px] text-slate-400 font-medium">support@baserabazar.com</p>
+              <p className="text-[12px] text-slate-400 font-medium">{contactEmail}</p>
             </div>
             <ChevronRight size={18} className="text-slate-300" />
           </a>
@@ -100,14 +115,14 @@ export default function HelpSupport() {
         <div className="bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3 flex items-center gap-3">
           <Clock size={18} className="text-orange-500 shrink-0" />
           <p className="text-[12px] text-orange-700 font-medium leading-snug">
-            Average response time is <strong>under 2 hours</strong> on business days.
+            Average response time is <strong>{responseTime}</strong> on business days.
           </p>
         </div>
 
         {/* FAQ */}
         <div className="space-y-3">
           <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Frequently Asked</h3>
-          {FAQ_DATA.map((faq, idx) => (
+          {faqs.map((faq, idx) => (
             <div key={idx} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <button
                 onClick={() => setOpenIdx(openIdx === idx ? null : idx)}

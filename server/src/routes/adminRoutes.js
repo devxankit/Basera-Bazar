@@ -79,7 +79,9 @@ const {
   getSalaryRecords,
   markSalaryPaid,
   triggerMonthlyDeduction,
-  getBadgeCounts
+  getBadgeCounts,
+  getPageContent,
+  updatePageContent
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
@@ -92,6 +94,7 @@ router.get('/subscriptions/plans', getSubscriptionPlans);
 router.get('/system/offers', getOfferConfig);
 router.post('/system/validate-referral', validateReferralCode);
 router.get('/mandi/settings', getMandiSettings);
+router.get('/system/page-content', getPageContent);
 
 // ALL Admin routes below this point must be protected and restricted to super_admin
 router.use(protect);
@@ -180,6 +183,9 @@ router.put('/mandi/settings', updateMandiSettings);
 
 // Offer Management
 router.put('/system/offers', updateOfferConfig);
+
+// Page Content (Help & Privacy) Management
+router.put('/system/page-content', updatePageContent);
 
 // Executive Management
 router.get('/executives', getAllExecutives);

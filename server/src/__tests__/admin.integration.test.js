@@ -205,4 +205,58 @@ describe('Admin Modules Integration Tests', () => {
       .set('Authorization', `Bearer ${adminToken}`);
     expect(ordersRes.status).toBe(200);
   });
+
+  // ---------------------------------------------------------------------------
+  // Page Content Settings
+  // ---------------------------------------------------------------------------
+  test('Admin reads and updates app content config', async () => {
+    // 1. Get default page content publicly
+    const getRes = await request(app)
+      .get('/api/admin/system/page-content?key=CONTENT_HELP_CUSTOMER');
+
+    expect(getRes.status).toBe(200);
+    expect(getRes.body.success).toBe(true);
+    expect(getRes.body.data.contact_email).toBe('support@baserabazar.com');
+
+    // 2. Try to update page content without token (should fail)
+    const updateFailRes = await request(app)
+      .put('/api/admin/system/page-content')
+      .send({
+        key: 'CONTENT_HELP_CUSTOMER',
+        value: {
+          contact_phone: '919999999999',
+          contact_email: 'newsupport@baserabazar.com',
+          contact_whatsapp: '919999999999',
+          response_time: 'under 1 hour',
+          faqs: [{ question: 'Q1', answer: 'A1' }]
+        }
+      });
+    expect(updateFailRes.status).toBe(401);
+
+    // 3. Update page content as super admin
+    const updateRes = await request(app)
+      .put('/api/admin/system/page-content')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        key: 'CONTENT_HELP_CUSTOMER',
+        value: {
+          contact_phone: '919999999999',
+          contact_email: 'newsupport@baserabazar.com',
+          contact_whatsapp: '919999999999',
+          response_time: 'under 1 hour',
+          faqs: [{ question: 'Q1', answer: 'A1' }]
+        }
+      });
+
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.success).toBe(true);
+
+    // 4. Verify update was saved
+    const verifyRes = await request(app)
+      .get('/api/admin/system/page-content?key=CONTENT_HELP_CUSTOMER');
+
+    expect(verifyRes.status).toBe(200);
+    expect(verifyRes.body.data.contact_email).toBe('newsupport@baserabazar.com');
+    expect(verifyRes.body.data.faqs[0].question).toBe('Q1');
+  });
 });

@@ -106,6 +106,7 @@ const navItems = [
   },
   { id: 'leads', label: 'Leads', path: '/admin/leads', icon: MessageSquare },
   { id: 'banners', label: 'Banners', path: '/admin/banners', icon: Image },
+  { id: 'page-content', label: 'App Content', path: '/admin/page-content', icon: Settings },
   { 
     id: 'reports', 
     label: 'Financial Report', 

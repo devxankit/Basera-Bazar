@@ -61,6 +61,7 @@ const MyEnquiriesPage = lazy(() => import("./pages/user/MyEnquiriesPage"));
 const HelpSupport = lazy(() => import("./pages/user/HelpSupport"));
 const FAQs = lazy(() => import("./pages/user/FAQs"));
 const AboutUs = lazy(() => import("./pages/user/AboutUs"));
+const PrivacyPolicy = lazy(() => import("./pages/user/PrivacyPolicy"));
 const PaymentStatusPage = lazy(() => import("./pages/PaymentStatusPage"));
 
 // --- Lazy-loaded Auth pages ---
@@ -92,6 +93,7 @@ const PartnerServiceDetails = lazy(
 );
 const PartnerHelp = lazy(() => import("./pages/partner/PartnerHelp"));
 const PartnerAbout = lazy(() => import("./pages/partner/PartnerAbout"));
+const PartnerPrivacyPolicy = lazy(() => import("./pages/partner/PartnerPrivacyPolicy"));
 const PartnerEditProfile = lazy(
   () => import("./pages/partner/PartnerEditProfile"),
 );
@@ -133,6 +135,8 @@ const ExecutiveTaskHistory = lazy(
   () => import("./pages/executive/ExecutiveTaskHistory"),
 );
 const ExecutiveSalary = lazy(() => import("./pages/executive/ExecutiveSalary"));
+const ExecutiveHelp = lazy(() => import("./pages/executive/ExecutiveHelp"));
+const ExecutivePrivacyPolicy = lazy(() => import("./pages/executive/ExecutivePrivacyPolicy"));
 
 // --- Lazy-loaded Staff Login ---
 const StaffLogin = lazy(() => import("./pages/staff/StaffLogin"));
@@ -302,6 +306,7 @@ const AdminCreateManualSubscription = lazy(
   () => import("./pages/admin/AdminCreateManualSubscription"),
 );
 const AdminOffers = lazy(() => import("./pages/admin/AdminOffers"));
+const AdminPageContent = lazy(() => import("./pages/admin/AdminPageContent"));
 const AdminAllActivities = lazy(
   () => import("./pages/admin/AdminAllActivities"),
 );
@@ -817,6 +822,14 @@ function App() {
                         }
                       />
                       <Route
+                        path="/privacy-policy"
+                        element={
+                          <UserLayout>
+                            <PrivacyPolicy />
+                          </UserLayout>
+                        }
+                      />
+                      <Route
                         path="/about"
                         element={
                           <UserLayout>
@@ -1075,6 +1088,14 @@ function App() {
                           }
                         />
                         <Route
+                          path="/partner/privacy-policy"
+                          element={
+                            <PartnerRoute>
+                              <PartnerPrivacyPolicy />
+                            </PartnerRoute>
+                          }
+                        />
+                        <Route
                           path="/partner/edit-profile"
                           element={
                             <PartnerRoute>
@@ -1281,6 +1302,26 @@ function App() {
                             <ExecutiveRoute>
                               <ExecutiveLayout>
                                 <ExecutiveSalary />
+                              </ExecutiveLayout>
+                            </ExecutiveRoute>
+                          }
+                        />
+                        <Route
+                          path="/executive/help"
+                          element={
+                            <ExecutiveRoute>
+                              <ExecutiveLayout>
+                                <ExecutiveHelp />
+                              </ExecutiveLayout>
+                            </ExecutiveRoute>
+                          }
+                        />
+                        <Route
+                          path="/executive/privacy-policy"
+                          element={
+                            <ExecutiveRoute>
+                              <ExecutiveLayout>
+                                <ExecutivePrivacyPolicy />
                               </ExecutiveLayout>
                             </ExecutiveRoute>
                           }
@@ -1729,6 +1770,16 @@ function App() {
                             <AdminRoute>
                               <AdminLayout>
                                 <AdminOffers />
+                              </AdminLayout>
+                            </AdminRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/page-content"
+                          element={
+                            <AdminRoute>
+                              <AdminLayout>
+                                <AdminPageContent />
                               </AdminLayout>
                             </AdminRoute>
                           }

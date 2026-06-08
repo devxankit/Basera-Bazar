@@ -360,6 +360,11 @@ const Home = () => {
               </div>
               <div className="p-2.5">
                 <h3 className="font-black text-[#181d5f] text-[12px] uppercase leading-tight line-clamp-1">{item.title}</h3>
+                {(item.category_id?.name || item.subcategory_id?.name) && (
+                  <span className="inline-block max-w-full mt-1 bg-orange-50 text-orange-600 text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wide truncate border border-orange-100 align-middle">
+                    {item.category_id?.name || item.subcategory_id?.name}
+                  </span>
+                )}
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <div className="flex items-center gap-0.5 text-orange-500">
                     <Star size={8} fill="currentColor" />

@@ -102,8 +102,13 @@ const ServiceProfile = () => {
           {/* Title & Stats */}
           <div className="space-y-4">
             <div className="flex justify-between items-start">
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <h1 className="text-2xl font-semibold text-primary-900 tracking-tight leading-tight">{service.title}</h1>
+                {(service.category_id?.name || service.subcategory_id?.name) && (
+                  <span className="inline-block bg-orange-50 text-orange-600 px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border border-orange-100">
+                    {service.category_id?.name || service.subcategory_id?.name}
+                  </span>
+                )}
                 <p className="text-sm font-semibold text-primary-700/70 uppercase tracking-wide">by {service.details?.businessName || service.businessName}</p>
               </div>
               {service.featured && (

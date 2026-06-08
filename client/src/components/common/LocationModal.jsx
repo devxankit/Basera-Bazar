@@ -5,6 +5,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { toast } from '../../mockToast';
+import { detectCoordinates } from '../../utils/geolocate';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -62,39 +63,41 @@ const LocationModal = ({ isOpen, onClose, onSelect }) => {
     if (isOpen) setIsExpanded(false);
   }, [isOpen]);
 
-  const handleAutoDetect = () => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser');
-      return;
-    }
+  const handleAutoDetect = async () => {
     setIsDetecting(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-            { headers: { 'Accept-Language': 'en' } }
-          );
-          const data = await res.json();
-          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || '';
-          const state = data.address?.state || '';
-          onSelect(city && state ? `${city}, ${state}` : `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-          onClose();
-        } catch {
-          onSelect('Location detected');
-          onClose();
-        } finally {
-          setIsDetecting(false);
-        }
-      },
-      (err) => {
-        setIsDetecting(false);
-        const messages = { 1: 'Location access denied', 2: 'Location unavailable', 3: 'Location request timed out' };
-        toast.error(messages[err.code] || 'Failed to detect location');
-      },
-      { timeout: 10000, maximumAge: 60000 }
-    );
+    try {
+      // Precise GPS if available, else approximate IP (works inside the WebView).
+      const loc = await detectCoordinates({ timeout: 10000, maximumAge: 60000 });
+      const { latitude, longitude } = loc;
+
+      if (loc.source === 'ip' && loc.city) {
+        // IP provider already gives city/state — use it directly.
+        onSelect(loc.state ? `${loc.city}, ${loc.state}` : loc.city);
+        onClose();
+        return;
+      }
+
+      // GPS path (or IP without a city name) → reverse-geocode the coords.
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+          { headers: { 'Accept-Language': 'en' } }
+        );
+        const data = await res.json();
+        const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || '';
+        const state = data.address?.state || '';
+        onSelect(city && state ? `${city}, ${state}` : `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+        onClose();
+      } catch {
+        onSelect('Location detected');
+        onClose();
+      }
+    } catch {
+      // Both GPS and IP fallback failed.
+      toast.error('Could not detect location. Please pick a city manually.');
+    } finally {
+      setIsDetecting(false);
+    }
   };
 
   const handleConfirm = () => {

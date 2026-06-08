@@ -8,6 +8,7 @@ import {
   X,
   Loader2,
 } from "lucide-react";
+import { detectCoordinates } from "../../utils/geolocate";
 
 const MAJOR_CITIES = [
   {
@@ -210,16 +211,29 @@ export default function LocationPicker({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const handleDetectLocation = () => {
-    if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser");
-      return;
-    }
+  const handleDetectLocation = async () => {
     setLoading(true);
     setError(null);
+    try {
+      // Precise GPS if available, else approximate IP (works inside the WebView).
+      const loc = await detectCoordinates({
+        enableHighAccuracy: false,
+        timeout: 60000,
+        maximumAge: 0,
+      });
+      const { latitude, longitude } = loc;
 
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords: { latitude, longitude } }) => {
+      if (loc.source === "ip") {
+        // IP provider already gives city/state — skip the reverse-geocode.
+        onSelect({
+          coordinates: [longitude, latitude],
+          name: loc.city || null,
+          state: loc.state || "",
+          district: loc.city || "",
+          isGPS: false,
+          isApprox: true,
+        });
+      } else {
         try {
           const { city, district, state } = await reverseGeocode(
             latitude,
@@ -234,23 +248,14 @@ export default function LocationPicker({
           });
         } catch {
           onSelect({ coordinates: [longitude, latitude], isGPS: true });
-        } finally {
-          setLoading(false);
         }
-      },
-      (err) => {
-        const messages = {
-          1: "Location permission denied. Please allow access in browser settings.",
-          2: "Could not detect location. Check your device GPS or pick a city below.",
-          3: "Location request timed out. Please try again or pick a city below.",
-        };
-        setError(
-          messages[err.code] || "Failed to detect location. Pick a city below.",
-        );
-        setLoading(false);
-      },
-      { enableHighAccuracy: false, timeout: 60000, maximumAge: 0 },
-    );
+      }
+    } catch {
+      // Both GPS and IP fallback failed.
+      setError("Could not detect location. Please pick a city below.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCitySelect = (city) => {
