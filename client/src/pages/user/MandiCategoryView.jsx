@@ -86,20 +86,20 @@ export default function MandiCategoryView() {
          )}
          {/* Featured Lowest Price Banner */}
          {data?.listings?.[0] && (
-            <div className="bg-gradient-to-br from-indigo-900 to-[#001b4e] rounded-[32px] p-6 text-white shadow-xl shadow-indigo-900/10">
+            <div className="bg-gradient-to-br from-orange-50/90 to-amber-50/40 border border-orange-100/60 rounded-[32px] p-6 text-slate-800 shadow-sm">
                <div className="flex justify-between items-start mb-4">
                   <div>
-                     <span className="bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded mb-2 inline-block">Best Value Today</span>
-                     <h2 className="text-[20px] font-bold italic line-clamp-1">{data.listings[0].title}</h2>
-                     <p className="text-white/60 text-[12px] mt-1">by {data.listings[0].partner_id?.profile?.mandi_profile?.business_name || 'Verified Seller'}</p>
+                     <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/50 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded mb-2 inline-block">Best Value Today</span>
+                     <h2 className="text-[20px] font-bold italic line-clamp-1 text-[#001b4e]">{data.listings[0].title}</h2>
+                     <p className="text-slate-500 text-[12px] mt-1">by {data.listings[0].partner_id?.profile?.mandi_profile?.business_name || 'Verified Seller'}</p>
                   </div>
                   <div className="text-right">
-                     <div className="text-[22px] font-bold">₹{data.listings[0].pricing.price_per_unit}</div>
-                     <div className="text-[11px] text-white/40 font-medium">/{data.listings[0].pricing.unit}</div>
+                     <div className="text-[22px] font-black text-[#001b4e]">₹{data.listings[0].pricing.price_per_unit}</div>
+                     <div className="text-[11px] text-slate-400 font-bold">/{data.listings[0].pricing.unit}</div>
                   </div>
                </div>
-               <div className="flex items-center gap-2 text-[12px] font-bold text-indigo-200">
-                  <MapPin size={14} />
+               <div className="flex items-center gap-2 text-[12px] font-bold text-orange-600">
+                  <MapPin size={14} className="text-orange-500" />
                   Within your delivery zone
                </div>
             </div>
@@ -178,19 +178,19 @@ export default function MandiCategoryView() {
           >
              <button 
                onClick={() => navigate('/cart')}
-               className="w-full bg-[#001b4e] p-5 rounded-[32px] text-white flex items-center justify-between shadow-2xl shadow-indigo-900/30 group active:scale-[0.98] transition-all"
+               className="w-full bg-gradient-to-r from-orange-50 to-amber-50/80 border border-orange-100/80 p-5 rounded-[32px] text-slate-800 flex items-center justify-between shadow-2xl shadow-orange-950/10 group active:scale-[0.98] transition-all cursor-pointer"
              >
                 <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10 relative">
+                   <div className="w-12 h-12 bg-orange-500/10 rounded-2xl flex items-center justify-center border border-orange-500/10 relative text-orange-600">
                       <ShoppingBag size={20} />
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full text-[10px] font-black flex items-center justify-center shadow-sm">{cartCount}</span>
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow-sm">{cartCount}</span>
                    </div>
                    <div className="text-left">
-                      <div className="text-[16px] font-bold leading-none">₹{cartTotal}</div>
-                      <div className="text-[11px] text-white/40 font-medium">Estimated Order Value</div>
+                      <div className="text-[16px] font-black text-[#001b4e] leading-none">₹{cartTotal}</div>
+                      <div className="text-[11px] text-slate-400 font-semibold">Estimated Order Value</div>
                    </div>
                 </div>
-                <div className="flex items-center gap-2 font-bold text-[14px] uppercase tracking-wider">
+                <div className="flex items-center gap-2 font-black text-[14px] text-orange-600 uppercase tracking-wider">
                    Checkout
                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </div>

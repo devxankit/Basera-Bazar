@@ -366,14 +366,14 @@ const MyOrdersPage = () => {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden space-y-4 pt-2"
                     >
-                      {/* OTP Section */}
-                      {order.items.some(i => i.status !== 'delivered') && (
-                        <div className="bg-[#001b4e] rounded-3xl p-6 text-white text-center space-y-3 shadow-lg shadow-indigo-900/10">
-                          <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60">Delivery Verification OTP</span>
-                          <div className="text-[32px] font-black tracking-[0.3em]">{order.items[0]?.delivery_otp}</div>
-                          <p className="text-[10px] opacity-70 font-medium">Share this with the delivery person only after inspecting the materials.</p>
-                        </div>
-                      )}
+                       {/* OTP Section */}
+                       {order.items.some(i => i.status !== 'delivered') && (
+                         <div className="bg-gradient-to-br from-orange-50 to-amber-50/50 rounded-3xl p-6 text-center space-y-3 shadow-sm border border-orange-100/40">
+                           <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Delivery Verification OTP</span>
+                           <div className="text-[32px] font-black tracking-[0.3em] text-[#001b4e]">{order.items[0]?.delivery_otp}</div>
+                           <p className="text-[10px] text-slate-500 font-medium">Share this with the delivery person only after inspecting the materials.</p>
+                         </div>
+                       )}
 
                       {/* Rating Section */}
                       <div className="space-y-3">

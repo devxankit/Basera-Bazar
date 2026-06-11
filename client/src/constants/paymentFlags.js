@@ -14,7 +14,7 @@
  *      set  RAZORPAY_ENABLED = true   (single switch, below)
  * ──────────────────────────────────────────────────────────────────────────
  */
-export const RAZORPAY_ENABLED = false;
+export const RAZORPAY_ENABLED = true;
 
 
 // Shown to a customer in the Mandi Bazar token-payment checkout flow.

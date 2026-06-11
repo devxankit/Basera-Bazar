@@ -34,6 +34,10 @@ function getImage(item) {
 }
 
 function getLocation(item) {
+  const type = resolveType(item);
+  if (type === 'property') {
+    return item.address?.full_address || item.location_text || [item.address?.district || item.district || '', item.address?.state || item.state || ''].filter(Boolean).join(', ');
+  }
   const d = item.address?.district || item.district || '';
   const s = item.address?.state || item.state || '';
   return [d, s].filter(Boolean).join(', ');
@@ -86,7 +90,7 @@ function scoreItem(item, q) {
   const title = getTitle(item).toLowerCase();
   const sd = (item.short_description || '').toLowerCase();
   const desc = (item.description || item.full_description || '').toLowerCase();
-  const cat = (item.category_id?.name || '').toLowerCase();
+  const cat = (item.subcategory_name || item.category_name || item.category || '').toLowerCase();
   const loc = getLocation(item).toLowerCase();
   return (
     fuzzyMatch(title, q) * 10 +

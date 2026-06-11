@@ -751,88 +751,186 @@ const BrowseCategory = () => {
 
               // Default: Property Card
               return (
-                <div key={item.id} onClick={() => navigate(`/products/${item.id}`)} className="bg-white border border-slate-100 shadow-sm rounded-3xl overflow-hidden flex flex-col h-auto active:scale-[0.98] transition-all group">
-                   <div className="aspect-[16/10] relative overflow-hidden">
-                      <img src={item.image || item.images?.[0]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={item.title} />
-                      <div className="absolute top-4 left-4 flex flex-col gap-2">
-                        <div className="bg-white/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[9px] font-bold uppercase text-[#1f2355] w-fit">
-                          {item.type || 'Property'}
-                        </div>
+                <div 
+                  key={item.id} 
+                  onClick={() => navigate(`/products/${item.id}`)} 
+                  className={cn(
+                    "bg-white border border-slate-100 shadow-sm rounded-3xl overflow-hidden active:scale-[0.98] transition-all group flex flex-col h-auto"
+                  )}
+                >
+                   {/* Left side: Property Image & type overlay */}
+                   <div className={cn(
+                     "relative overflow-hidden shrink-0 bg-slate-50 aspect-[16/10] w-full",
+                     !isGridView && "max-h-[240px]"
+                   )}>
+                      <img 
+                        src={item.image || item.images?.[0] || '/placeholder-property.png'} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" 
+                        alt={item.title} 
+                      />
+                      <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+                        <span className="bg-white/95 backdrop-blur shadow-sm px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase text-[#1f2355] tracking-wide border border-slate-100 w-fit">
+                          {item.type === 'forsale' ? 'For Sale' : item.type === 'forrent' ? 'For Rent' : 'Property'}
+                        </span>
                         {(item.is_featured || item.featured) && (
-                          <div className="bg-orange-500/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[9px] font-bold uppercase text-white w-fit flex items-center gap-1">
-                            <Star size={10} fill="white" />
+                          <span className="bg-orange-500 text-white shadow-sm px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest w-fit flex items-center gap-1">
+                            <Star size={8} fill="white" />
                             Featured
-                          </div>
+                          </span>
                         )}
                         {item.emiAvailable && (
-                          <div className="bg-green-500/95 backdrop-blur shadow-md px-3 py-1 rounded-full text-[9px] font-bold uppercase text-white w-fit flex items-center gap-1">
-                             <CheckCircle2 size={10} />
+                          <span className="bg-emerald-500 text-white shadow-sm px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest w-fit flex items-center gap-1">
+                             <CheckCircle2 size={8} />
                              EMI Available
-                          </div>
+                          </span>
                         )}
                       </div>
                    </div>
-                   <div className={cn(isGridView ? "p-3" : "p-4 xs:p-5")}>
-                      <h3 className={cn(
-                        "font-bold text-[#1f2355] leading-tight",
-                        isGridView ? "text-[13px] line-clamp-1" : "text-[15px] xs:text-[17px] line-clamp-2 min-h-[40px]"
-                      )}>{item.title}</h3>
-                      {item.location && (
-                        <div className={cn("flex items-center gap-1 opacity-60", isGridView ? "mt-1" : "mt-1.5 gap-1.5")}>
-                          <MapPin size={isGridView ? 11 : 12} className="text-orange-500 shrink-0" />
-                          <span className={cn(
-                            "text-[#1f2355] font-bold truncate tracking-tight",
-                            isGridView ? "text-[10px]" : "text-[11px]"
-                          )}>{item.location}</span>
-                        </div>
-                      )}
-                      {/* Land / property info */}
-                      {(item.details?.area || item.details?.bedrooms || item.details?.propertyType) && (
-                        <div className={cn(
-                          "flex items-center flex-wrap gap-x-3 gap-y-1",
-                          isGridView ? "mt-1.5" : "mt-2"
-                        )}>
-                          {item.details?.area && (
-                            <div className="flex items-center gap-1">
-                              <Maximize size={isGridView ? 11 : 12} className="text-slate-400 shrink-0" />
-                              <span className={cn(
-                                "text-[#1f2355] font-bold tracking-tight whitespace-nowrap",
-                                isGridView ? "text-[10px]" : "text-[11px]"
-                              )}>{item.details.area} {item.details.areaUnit}</span>
-                            </div>
-                          )}
-                          {item.details?.bedrooms && (
-                            <div className="flex items-center gap-1">
-                              <Bed size={isGridView ? 11 : 12} className="text-slate-400 shrink-0" />
-                              <span className={cn(
-                                "text-[#1f2355] font-bold tracking-tight whitespace-nowrap",
-                                isGridView ? "text-[10px]" : "text-[11px]"
-                              )}>{item.details.bedrooms}</span>
-                            </div>
-                          )}
-                          {item.details?.propertyType && (
-                            <div className="flex items-center gap-1">
-                              <Building2 size={isGridView ? 11 : 12} className="text-slate-400 shrink-0" />
-                              <span className={cn(
-                                "text-[#1f2355] font-bold tracking-tight capitalize whitespace-nowrap",
-                                isGridView ? "text-[10px]" : "text-[11px]"
-                              )}>{item.details.propertyType}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                   
+                   {/* Right side: details info */}
+                   <div className={cn(
+                     "flex flex-col justify-between flex-grow min-w-0",
+                     isGridView ? "p-3.5 space-y-2.5" : "p-5 space-y-4"
+                   )}>
+                      <div className="min-w-0 space-y-2.5">
+                         <h3 className={cn(
+                            "font-black text-[#1f2355] leading-tight truncate",
+                            isGridView ? "text-[14px]" : "text-[18px] xs:text-[20px]"
+                         )}>
+                           {item.title}
+                         </h3>
+                         
+                         {(item.address?.full_address || item.location) && (
+                           <div className="flex items-center gap-1.5 opacity-80">
+                             <MapPin size={isGridView ? 10 : 12} className="text-orange-500 shrink-0" />
+                             <span className={cn(
+                               "text-[#64719b] font-bold truncate",
+                               isGridView ? "text-[10px]" : "text-[12px] xs:text-[13px]"
+                             )}>
+                               {item.address?.full_address || item.location}
+                             </span>
+                           </div>
+                         )}
+
+                         {/* Specifications Grid to fill space */}
+                         <div className={cn(
+                           "pt-1.5",
+                           isGridView ? "flex flex-wrap gap-x-2 gap-y-1.5" : "grid grid-cols-2 gap-x-4 gap-y-3 pt-2"
+                         )}>
+                           {/* Area */}
+                           {item.details?.area && (
+                             isGridView ? (
+                               <div className="bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded flex items-center gap-0.5 text-[9px] font-bold text-slate-500">
+                                 <Maximize size={9} className="text-slate-400" />
+                                 <span>{item.details.area} {item.details.areaUnit || 'sq. ft.'}</span>
+                               </div>
+                             ) : (
+                               <div className="flex items-center gap-2.5">
+                                 <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center text-orange-500 shrink-0">
+                                   <Maximize size={13} />
+                                 </div>
+                                 <div className="flex flex-col min-w-0">
+                                   <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Area</span>
+                                   <span className="text-[12px] xs:text-[13px] font-black text-[#1f2355] truncate">
+                                     {item.details.area} {item.details.areaUnit || 'sq. ft.'}
+                                   </span>
+                                 </div>
+                               </div>
+                             )
+                           )}
+
+                           {/* Configuration */}
+                           {(item.details?.bhk || item.details?.bedrooms) && (
+                             isGridView ? (
+                               <div className="bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded flex items-center gap-0.5 text-[9px] font-bold text-slate-500">
+                                 <Bed size={9} className="text-slate-400" />
+                                 <span>{item.details.bhk || item.details.bedrooms} BHK</span>
+                               </div>
+                             ) : (
+                               <div className="flex items-center gap-2.5">
+                                 <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center text-orange-500 shrink-0">
+                                   <Bed size={13} />
+                                 </div>
+                                 <div className="flex flex-col min-w-0">
+                                   <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">BHK</span>
+                                   <span className="text-[12px] xs:text-[13px] font-black text-[#1f2355] truncate">
+                                     {item.details.bhk || item.details.bedrooms} BHK
+                                   </span>
+                                 </div>
+                               </div>
+                             )
+                           )}
+
+                           {/* Property Type */}
+                           {item.details?.propertyType && (
+                             isGridView ? (
+                               <div className="bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded flex items-center gap-0.5 text-[9px] font-bold text-slate-500 capitalize">
+                                 <Building2 size={9} className="text-slate-400" />
+                                 <span>{item.details.propertyType}</span>
+                               </div>
+                             ) : (
+                               <div className="flex items-center gap-2.5">
+                                 <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center text-orange-500 shrink-0">
+                                   <Building2 size={13} />
+                                 </div>
+                                 <div className="flex flex-col min-w-0">
+                                   <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Type</span>
+                                   <span className="text-[12px] xs:text-[13px] font-black text-[#1f2355] truncate capitalize">
+                                     {item.details.propertyType}
+                                   </span>
+                                 </div>
+                               </div>
+                             )
+                           )}
+
+                           {/* Furnishing */}
+                           {item.details?.furnishing && !isGridView && (
+                             <div className="flex items-center gap-2.5">
+                               <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center text-orange-500 shrink-0">
+                                 <Store size={13} />
+                               </div>
+                               <div className="flex flex-col min-w-0">
+                                 <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Furnishing</span>
+                                 <span className="text-[12px] xs:text-[13px] font-black text-[#1f2355] truncate capitalize">
+                                   {String(item.details.furnishing).replace('-', ' ')}
+                                 </span>
+                               </div>
+                             </div>
+                           )}
+
+                           {/* Status */}
+                           {item.details?.possession && !isGridView && (
+                             <div className="flex items-center gap-2.5">
+                               <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center text-orange-500 shrink-0">
+                                 <Clock size={13} />
+                               </div>
+                               <div className="flex flex-col min-w-0">
+                                 <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Status</span>
+                                 <span className="text-[12px] xs:text-[13px] font-black text-[#1f2355] truncate capitalize">
+                                   {item.details.possession === 'ready' ? 'Ready to Move' : 'Under Construction'}
+                                 </span>
+                               </div>
+                             </div>
+                           )}
+                         </div>
+                      </div>
+
                       <div className={cn(
-                        "border-t border-slate-50",
-                        isGridView ? "mt-2 pt-2 flex flex-col gap-2" : "mt-3 pt-3 flex justify-between items-center"
+                        "border-t border-slate-100 pt-3.5 flex justify-between items-center",
+                        isGridView ? "mt-1 pt-2.5" : "mt-2 pt-3.5"
                       )}>
                         <span className={cn(
-                          "font-bold text-[#1f2355]",
-                          isGridView ? "text-[15px] leading-none" : "text-[18px] xs:text-[20px]"
-                        )}>₹{item.price?.value?.toLocaleString()}</span>
+                          "font-black text-[#1f2355] tracking-tight",
+                          isGridView ? "text-[15px]" : "text-[18px] xs:text-[20px]"
+                        )}>
+                          ₹{item.price?.value?.toLocaleString()}
+                        </span>
                         <span className={cn(
-                          "font-bold text-orange-500 uppercase tracking-widest",
-                          isGridView ? "text-[10px] bg-orange-50 rounded-lg py-1.5 text-center w-full" : "text-[10px] xs:text-[11px]"
-                        )}>Details</span>
+                          "font-black text-orange-500 uppercase tracking-widest text-right flex items-center gap-0.5",
+                          isGridView ? "text-[10px]" : "text-[12px] group-hover:text-orange-600 transition-colors"
+                        )}>
+                          Details {!isGridView && <ArrowRight size={12} strokeWidth={3} className="inline-block transition-transform group-hover:translate-x-0.5" />}
+                        </span>
                       </div>
                    </div>
                 </div>

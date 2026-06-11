@@ -1273,8 +1273,8 @@ const ListingDetails = () => {
 
                         {/* Matched Listing Preview */}
                         {matchedListing && (
-                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-100">
-                            <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">Best Price Match</div>
+                          <div className="bg-gradient-to-br from-orange-50 to-amber-50/50 rounded-2xl p-4 border border-orange-100/50">
+                            <div className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2">Best Price Match</div>
                             <div className="flex items-center gap-3">
                               {matchedListing.thumbnail && (
                                 <img src={matchedListing.thumbnail} alt="" className="w-14 h-14 rounded-xl object-cover" />
@@ -1282,7 +1282,7 @@ const ListingDetails = () => {
                               <div className="flex-grow">
                                 <h4 className="text-[14px] font-black text-[#001b4e] leading-tight">{matchedListing.title}</h4>
                                 <div className="flex items-baseline gap-1.5 mt-1">
-                                  <span className="text-[20px] font-black text-blue-600">₹{(matchedListing.pricing?.price_per_unit || 0).toLocaleString()}</span>
+                                  <span className="text-[20px] font-black text-orange-600">₹{(matchedListing.pricing?.price_per_unit || 0).toLocaleString()}</span>
                                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">/ {matchedListing.pricing?.unit || 'unit'}</span>
                                 </div>
                                 {matchedListing.type_name && <span className="text-[10px] font-bold text-slate-500 uppercase">{matchedListing.type_name}{matchedListing.sub_type_name ? ` · ${matchedListing.sub_type_name}` : ''}{matchedListing.brand_name ? ` · ${matchedListing.brand_name}` : ''}</span>}

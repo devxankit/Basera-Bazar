@@ -308,7 +308,7 @@ const AgentDetails = () => {
                              <h3 className="font-bold text-[#1f2355] text-[11px] xs:text-[13px] leading-tight truncate">{item.title}</h3>
                              <div className="flex items-center gap-1 text-[#64719b]">
                                <MapPin size={10} className="shrink-0" />
-                               <span className="text-[9px] font-bold truncate">{item.location}</span>
+                               <span className="text-[9px] font-bold truncate">{item.address?.full_address || item.location}</span>
                              </div>
                           </div>
 

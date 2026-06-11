@@ -315,8 +315,8 @@ const Home = () => {
               <div className="p-3">
                 <h3 className="font-black text-[#181d5f] text-[13px] truncate uppercase">{item.title}</h3>
                 <div className="flex items-center gap-1 text-slate-400 mt-1">
-                  <Pin size={10} />
-                  <span className="text-[10px] font-bold truncate">{item.display_location}</span>
+                  <Pin size={10} className="shrink-0" />
+                  <span className="text-[10px] font-bold truncate">{item.address?.full_address || item.display_location}</span>
                 </div>
                 <div className="mt-2 pt-2 border-t border-slate-50 flex items-center justify-between">
                   <span className="text-[#181d5f] font-black text-[13px]">₹{item.price?.value || 'Price on request'}</span>
@@ -354,9 +354,9 @@ const Home = () => {
               </div>
               <div className="p-2.5">
                 <h3 className="font-black text-[#181d5f] text-[12px] uppercase leading-tight line-clamp-1">{item.title}</h3>
-                {(item.category_id?.name || item.subcategory_id?.name) && (
+                {(item.subcategory_name || item.category_name) && (
                   <span className="inline-block max-w-full mt-1 bg-orange-50 text-orange-600 text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wide truncate border border-orange-100 align-middle">
-                    {item.category_id?.name || item.subcategory_id?.name}
+                    {item.subcategory_name || item.category_name}
                   </span>
                 )}
                 <div className="flex items-center gap-1.5 mt-1.5">

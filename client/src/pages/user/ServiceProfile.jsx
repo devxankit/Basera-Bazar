@@ -104,9 +104,9 @@ const ServiceProfile = () => {
             <div className="flex justify-between items-start">
               <div className="space-y-1.5">
                 <h1 className="text-2xl font-semibold text-primary-900 tracking-tight leading-tight">{service.title}</h1>
-                {(service.category_id?.name || service.subcategory_id?.name) && (
+                {(service.subcategory_name || service.category_name) && (
                   <span className="inline-block bg-orange-50 text-orange-600 px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border border-orange-100">
-                    {service.category_id?.name || service.subcategory_id?.name}
+                    {service.subcategory_name || service.category_name}
                   </span>
                 )}
                 <p className="text-sm font-semibold text-primary-700/70 uppercase tracking-wide">by {service.details?.businessName || service.businessName}</p>
@@ -229,7 +229,7 @@ const ServiceProfile = () => {
                   <h3 className="text-lg font-semibold text-primary-900 tracking-tight">Service Details</h3>
                   <div className="bg-slate-50 rounded-[32px] border border-slate-100 overflow-hidden">
                     {[
-                      { label: 'Category', value: service.category_id?.name?.toUpperCase() || 'GENERAL' },
+                      { label: 'Category', value: service.subcategory_name?.toUpperCase() || service.category_name?.toUpperCase() || 'GENERAL' },
                       { label: 'Pricing', value: service.price?.value ? `${service.price.value} ${service.price.unit}` : service.price?.unit || 'Contact for Price' },
                       { label: 'Service Range', value: `${service.service_radius_km || 10} KM Radius` },
                       { label: 'Verified', value: 'Yes' }
