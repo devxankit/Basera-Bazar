@@ -288,6 +288,14 @@ const updateUser = async (req, res) => {
         'Congratulations! Your partner account has been approved. You can now start listing your services and properties on Basera Bazar.',
         { type: 'account_approved' }
       ).catch(() => {});
+
+      if (account.referred_by_executive) {
+        await createNotification('executive', account.referred_by_executive,
+          'Referred Partner Approved! 🎉',
+          `Your referred partner, ${account.name}, has been approved.`,
+          { type: 'referred_partner_approved', partner_id: id }
+        ).catch(() => {});
+      }
     }
     if (isPartnerModel && onboarding_status === 'rejected' && account.onboarding_status !== 'rejected') {
       await createNotification('partner', id,

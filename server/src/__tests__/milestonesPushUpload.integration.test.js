@@ -19,6 +19,17 @@ jest.mock('../config/cloudinary', () => {
   };
 });
 
+// Mock the firebaseAdmin service to avoid real network requests to Firebase
+jest.mock('../services/firebaseAdmin', () => {
+  return {
+    sendPushNotification: jest.fn().mockResolvedValue({
+      successCount: 1,
+      failureCount: 0,
+      responses: [{ success: true }]
+    })
+  };
+});
+
 const request = require('supertest');
 const { connectTestDB, clearCollections, disconnectTestDB } = require('./setup/testHelpers');
 
