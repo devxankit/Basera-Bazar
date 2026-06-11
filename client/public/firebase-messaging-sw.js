@@ -1,6 +1,6 @@
 // Import Firebase scripts (Compat version is required for importScripts style)
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
 // Extract Firebase configuration dynamically from registration URL query parameters
 const url = new URL(self.location.href);
@@ -21,24 +21,35 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // Handle background messages
+// NOTE: On Android WebView/TWA, sound for background notifications is controlled by
+// the browser's (Chrome's) default notification channel — NOT by JS. The browser
+// uses IMPORTANCE_HIGH by default for push notifications, which includes sound.
+// We must NOT pass a custom channelId here (that would require native channel creation).
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message', payload);
 
-  const notificationTitle = payload.notification.title;
+  // Support both notification payloads and data-only payloads (Android sends data-only
+  // for background messages in some WebView configurations)
+  const title = payload.notification?.title || payload.data?.title || 'Basera Bazar';
+  const body  = payload.notification?.body  || payload.data?.body  || 'You have a new notification';
+  const icon  = payload.notification?.icon  || '/favicon.png';
+
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: payload.notification.icon || '/favicon.png',
-    data: payload.data,
-    // Haptic feedback on Android (ignored where unsupported). The actual
-    // notification *sound* for background messages is controlled by the OS
-    // notification channel / device settings — it cannot be set from JS.
+    body,
+    icon,
+    data: payload.data || {},
+    // vibrate works on Android Chrome and signals the OS to use sound+vibration
+    // from the browser's default HIGH-importance notification channel
     vibrate: [200, 100, 200],
     tag: payload.data?.notification_id || 'basera-notification',
-    renotify: true
+    renotify: true,
+    // badge helps Android show the notification dot
+    badge: '/favicon.png'
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  self.registration.showNotification(title, notificationOptions);
 });
+
 
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {

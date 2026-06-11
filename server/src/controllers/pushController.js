@@ -42,11 +42,19 @@ exports.saveFCMToken = async (req, res) => {
 
     // Executive model only has fcmTokens (no fcmTokenMobile), always fall back to fcmTokens
     const tokenField = (platform === 'mobile' && recipient.fcmTokenMobile !== undefined) ? 'fcmTokenMobile' : 'fcmTokens';
+    const otherField = tokenField === 'fcmTokens' ? 'fcmTokenMobile' : 'fcmTokens';
 
-    // Initialize array if not exists
+    // Initialize arrays if not exists
     if (!recipient[tokenField]) recipient[tokenField] = [];
 
-    // Add token if not already present
+    // CROSS-FIELD DEDUP: Remove this token from the OTHER array first.
+    // This prevents the same physical device token from living in both
+    // fcmTokens AND fcmTokenMobile, which would cause duplicate notifications.
+    if (recipient[otherField] && recipient[otherField].includes(token)) {
+      recipient[otherField] = recipient[otherField].filter(t => t !== token);
+    }
+
+    // Add token if not already present in the target field
     if (!recipient[tokenField].includes(token)) {
       recipient[tokenField].push(token);
       
@@ -54,9 +62,9 @@ exports.saveFCMToken = async (req, res) => {
       if (recipient[tokenField].length > 10) {
         recipient[tokenField] = recipient[tokenField].slice(-10);
       }
-      
-      await recipient.save();
     }
+
+    await recipient.save();
 
     res.status(200).json({ success: true, message: 'FCM token saved successfully' });
   } catch (error) {
