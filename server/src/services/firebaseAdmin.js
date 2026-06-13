@@ -48,29 +48,51 @@ async function sendPushNotification(tokens, payload) {
   }
 
   try {
+    // Ensure all values inside data payload are strings to prevent FCM parsing errors
+    const stringifiedData = {};
+    if (payload.data) {
+      Object.keys(payload.data).forEach(key => {
+        stringifiedData[key] = String(payload.data[key]);
+      });
+    }
+    // Inject title & body inside data block as well for background handlers
+    stringifiedData.title = String(payload.title);
+    stringifiedData.body = String(payload.body);
+
     const message = {
       notification: {
         title: payload.title,
         body: payload.body,
       },
-      data: payload.data || {},
-      // Android (native Flutter app): high message priority so it's delivered
-      // promptly and can show as a heads-up; default device sound + vibration
-      // so audio works without requiring a bundled sound file. channelId is
-      // only included when explicitly configured (env), so a wrong/missing
-      // channel can never silence or hide the notification.
+      data: stringifiedData,
+      // Android configuration
       android: {
         priority: 'high',
         notification: {
-          sound: NOTIFICATION_SOUND,            // 'default' = device sound
+          title: payload.title,
+          body: payload.body,
+          sound: NOTIFICATION_SOUND || 'default', // 'default' = device sound
+          clickAction: 'FLUTTER_NOTIFICATION_CLICK', // standard Flutter trigger
           defaultVibrateTimings: true,
-          notificationPriority: 'PRIORITY_HIGH', // pre-Android 8 heads-up/sound
+          notificationPriority: 'PRIORITY_HIGH', // pre-Android 8 heads-up
           ...(NOTIFICATION_CHANNEL_ID ? { channelId: NOTIFICATION_CHANNEL_ID } : {}),
         },
       },
-      // iOS (if shipped later): default sound.
+      // iOS configuration
       apns: {
-        payload: { aps: { sound: 'default' } },
+        headers: {
+          'apns-priority': '10', // 10 = Deliver the notification immediately
+        },
+        payload: {
+          aps: {
+            alert: {
+              title: payload.title,
+              body: payload.body,
+            },
+            sound: NOTIFICATION_SOUND || 'default',
+            contentAvailable: true, // Enables background/silent processing
+          },
+        },
       },
       tokens: tokens, // Array of FCM tokens
     };
@@ -80,6 +102,17 @@ async function sendPushNotification(tokens, payload) {
     logger.info(`[FCM] Successfully sent: ${response.successCount} messages`)
     if (response.failureCount > 0) {
       logger.warn(`[FCM] Failed: ${response.failureCount} messages`)
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          logger.error({
+            token: tokens[idx],
+            error: resp.error ? {
+              code: resp.error.code,
+              message: resp.error.message
+            } : 'Unknown error'
+          }, `[FCM] Delivery failed for token at index ${idx}`);
+        }
+      });
     }
     
     return response;

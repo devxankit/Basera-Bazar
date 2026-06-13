@@ -83,6 +83,37 @@ describe('POST /api/auth/login', () => {
 
     expect(res.status).toBe(400);
   });
+
+  test('returns 403 when trying to log in with password as user (Customer App) with partner credentials', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: '9876543210', password: 'Secret@123', role: 'user' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('ROLE_MISMATCH');
+    expect(res.body.message).toContain('registered as a Partner. Please log in to the Partner app');
+  });
+
+  test('returns 403 when trying to log in with password as partner (Partner App) with customer credentials', async () => {
+    const { User } = require('../models/User');
+    await User.create({
+      name: 'Test Customer',
+      phone: '9876543211',
+      email: 'customer@test.com',
+      password: 'Secret@123',
+      default_location: { type: 'Point', coordinates: [85.0, 25.0] }
+    });
+
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: '9876543211', password: 'Secret@123', role: 'partner' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('ROLE_MISMATCH');
+    expect(res.body.message).toContain('registered as a Customer. Please log in to the Customer app');
+  });
 });
 
 // ---------------------------------------------------------------------------

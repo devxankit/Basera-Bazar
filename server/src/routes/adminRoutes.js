@@ -81,7 +81,10 @@ const {
   triggerMonthlyDeduction,
   getBadgeCounts,
   getPageContent,
-  updatePageContent
+  updatePageContent,
+  searchRecipients,
+  sendPushBroadcast,
+  getBroadcastHistory
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 const cacheMiddleware = require('../middlewares/cacheMiddleware');
@@ -214,6 +217,11 @@ router.put('/executives/:id/salary', setExecutiveSalary);
 // Withdrawal Requests
 router.get('/withdrawals', getWithdrawalRequests);
 router.patch('/withdrawals/:id/status', updateWithdrawalStatus);
+
+// Push Notifications
+router.get('/push-notifications/search-recipients', searchRecipients);
+router.post('/push-notifications/send', sendPushBroadcast);
+router.get('/push-notifications/history', getBroadcastHistory);
 
 // Dynamic Form Data Endpoints
 // Subscription Plan Management

@@ -140,6 +140,9 @@ scheduleMonthlyDeduction();
 const { scheduleSubscriptionExpiryJob } = require('./jobs/subscriptionExpiryJob');
 scheduleSubscriptionExpiryJob();
 
+const { scheduleNotificationJob } = require('./jobs/notificationJob');
+scheduleNotificationJob();
+
 // One-time backfill: populate staff_model field on existing documents for dynamic refPath population
 setTimeout(async () => {
   try {

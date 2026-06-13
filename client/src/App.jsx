@@ -307,6 +307,9 @@ const AdminCreateManualSubscription = lazy(
 );
 const AdminOffers = lazy(() => import("./pages/admin/AdminOffers"));
 const AdminPageContent = lazy(() => import("./pages/admin/AdminPageContent"));
+const AdminPushNotifications = lazy(
+  () => import("./pages/admin/AdminPushNotifications"),
+);
 const AdminAllActivities = lazy(
   () => import("./pages/admin/AdminAllActivities"),
 );
@@ -1349,6 +1352,16 @@ function App() {
                             <AdminRoute>
                               <AdminLayout>
                                 <AdminUsers />
+                              </AdminLayout>
+                            </AdminRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/push-notifications"
+                          element={
+                            <AdminRoute>
+                              <AdminLayout>
+                                <AdminPushNotifications />
                               </AdminLayout>
                             </AdminRoute>
                           }

@@ -11,6 +11,7 @@ const system = require('./admin/systemController');
 const reports = require('./admin/reportsController');
 const mandi = require('./admin/mandiController');
 const executives = require('./admin/executiveController');
+const notifications = require('./admin/notificationController');
 
 module.exports = {
   // Dashboard
@@ -39,4 +40,7 @@ module.exports = {
 
   // Executives & Withdrawals
   ...executives,
+
+  // Push Notifications
+  ...notifications,
 };

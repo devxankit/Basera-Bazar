@@ -102,3 +102,18 @@ if (!_adminRefreshListenerAdded) {
     cacheService.invalidate('admin_');
   });
 }
+
+export const searchPushRecipients = async (role, query) => {
+  const res = await api.get(`/admin/push-notifications/search-recipients?role=${role}&q=${encodeURIComponent(query)}`);
+  return res.data.data || [];
+};
+
+export const sendPushBroadcast = async (payload) => {
+  const res = await api.post('/admin/push-notifications/send', payload);
+  return res.data;
+};
+
+export const getBroadcastHistory = async (page = 1, limit = 10) => {
+  const res = await api.get(`/admin/push-notifications/history?page=${page}&limit=${limit}`);
+  return res.data;
+};

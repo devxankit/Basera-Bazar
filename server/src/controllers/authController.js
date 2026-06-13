@@ -204,14 +204,26 @@ const verifyOtp = async (req, res) => {
     let Model = role === 'partner' ? Partner : (role === 'super_admin' ? AdminUser : User);
     let existingAccount = await Model.findOne({ phone });
 
-    // Cross-role resolution: check if the phone is registered under the other collection
-    if (!existingAccount) {
+    // Enforce role-based login: check if phone is registered under the opposite collection
+    if (role === 'partner' || role === 'user') {
       const OtherModel = role === 'partner' ? User : Partner;
       const otherAccount = await OtherModel.findOne({ phone });
       if (otherAccount) {
-        existingAccount = otherAccount;
-        Model = OtherModel;
-        assignedRole = role === 'partner' ? 'user' : 'partner';
+        if (flow === 'signup') {
+          return res.status(409).json({
+            success: false,
+            code: 'PHONE_EXISTS_OTHER',
+            message: `This phone number is already registered as a ${role === 'partner' ? 'Customer' : 'Partner'}.`
+          });
+        } else {
+          return res.status(403).json({
+            success: false,
+            code: 'ROLE_MISMATCH',
+            message: role === 'partner'
+              ? 'This phone number is registered as a Customer. Please log in to the Customer app.'
+              : 'This phone number is registered as a Partner. Please log in to the Partner app.'
+          });
+        }
       }
     }
 
@@ -479,6 +491,25 @@ const loginWithPassword = async (req, res) => {
     });
 
     if (!account) {
+      if (role === 'partner' || role === 'user') {
+        const OtherModel = role === 'partner' ? User : Partner;
+        const otherAccount = await OtherModel.findOne({
+          $or: [
+            { email: identifier.toLowerCase() },
+            { phone: identifier },
+          ],
+        });
+        if (otherAccount) {
+          return res.status(403).json({
+            success: false,
+            code: 'ROLE_MISMATCH',
+            message: role === 'partner'
+              ? 'This account is registered as a Customer. Please log in to the Customer app.'
+              : 'This account is registered as a Partner. Please log in to the Partner app.'
+          });
+        }
+      }
+
       return res.status(404).json({
         success: false,
         code: 'NOT_REGISTERED',

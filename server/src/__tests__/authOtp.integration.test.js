@@ -216,6 +216,38 @@ describe('POST /api/auth/verify-otp (login flow)', () => {
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/expired/i);
   });
+
+  test('returns 403 when trying to log in as user (Customer App) with partner phone number', async () => {
+    const res = await request(app)
+      .post('/api/auth/verify-otp')
+      .send({ phone, otp: '654321', role: 'user', flow: 'login' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('ROLE_MISMATCH');
+    expect(res.body.message).toContain('registered as a Partner. Please log in to the Partner app');
+  });
+
+  test('returns 403 when trying to log in as partner (Partner App) with customer phone number', async () => {
+    const { User } = require('../models/User');
+    const customerPhone = '9700000002';
+    await User.create({
+      name: 'OTP Customer',
+      phone: customerPhone,
+      email: 'otpcustomer@test.com',
+      default_location: { type: 'Point', coordinates: [85.0, 25.0] }
+    });
+    await seedOtp(customerPhone, '654321');
+
+    const res = await request(app)
+      .post('/api/auth/verify-otp')
+      .send({ phone: customerPhone, otp: '654321', role: 'partner', flow: 'login' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('ROLE_MISMATCH');
+    expect(res.body.message).toContain('registered as a Customer. Please log in to the Customer app');
+  });
 });
 
 // ---------------------------------------------------------------------------

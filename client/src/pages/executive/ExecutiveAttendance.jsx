@@ -55,10 +55,27 @@ export default function ExecutiveAttendance() {
   const loading = todayLoading || historyLoading;
 
   const getLocation = () => new Promise((resolve, reject) => {
-    if (!navigator.geolocation) { reject(new Error('Geolocation not supported')); return; }
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation not supported'));
+      return;
+    }
+    
+    // Try with high accuracy first
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy }),
-      (err) => reject(err),
+      (err) => {
+        if (err.code === 1) {
+          // If permission denied, reject immediately
+          reject(err);
+          return;
+        }
+        // Fallback to standard accuracy
+        navigator.geolocation.getCurrentPosition(
+          (pos2) => resolve({ latitude: pos2.coords.latitude, longitude: pos2.coords.longitude, accuracy: pos2.coords.accuracy }),
+          (err2) => reject(err2),
+          { enableHighAccuracy: false, timeout: 15000 }
+        );
+      },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   });
@@ -185,8 +202,15 @@ export default function ExecutiveAttendance() {
       queryClient.invalidateQueries({ queryKey: ['attendanceToday'] });
       queryClient.invalidateQueries({ queryKey: ['attendanceHistory', month] });
     } catch (err) {
-      if (err.code === 1) toast.error('Location permission denied. Please enable GPS.');
-      else toast.error(err.response?.data?.message || 'Check-in failed.');
+      if (err.code === 1) {
+        toast.error('Location permission denied. Please allow location access in your browser/device settings.');
+      } else if (err.code === 2) {
+        toast.error('Position unavailable. Please ensure GPS/Location services are enabled on your device.');
+      } else if (err.code === 3) {
+        toast.error('Location request timed out. Please try again or stand near a window/outdoors.');
+      } else {
+        toast.error(err.response?.data?.message || err.message || 'Check-in failed. Please try again.');
+      }
     } finally { setCheckingIn(false); }
   };
 
