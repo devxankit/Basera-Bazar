@@ -290,16 +290,18 @@ export default function AddMandiProduct() {
               <div className="text-left">
                 <h4 className="text-[15px] font-black text-rose-900 uppercase tracking-tight">Listing Limit Reached</h4>
                 <p className="text-[13px] text-rose-700 leading-relaxed font-medium mt-1">
-                  {subscriptionLimits.message || "Your current plan limit has been reached. Please upgrade your plan or delete an existing product to add a new one."}
+                  {subscriptionLimits.message || "Your current plan limit has been reached. Please contact your relationship executive or delete an existing product to add a new one."}
                 </p>
               </div>
             </div>
+            {/* SUBSCRIPTION_FLAGGED
             <button 
               onClick={() => navigate('/partner/subscription')}
               className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold text-[13px] uppercase tracking-widest shadow-lg shadow-rose-900/20 active:scale-95 transition-all"
             >
               Upgrade Plan Now
             </button>
+            */}
           </div>
         )}
 
@@ -646,20 +648,14 @@ export default function AddMandiProduct() {
               </div>
               <h3 className="text-[20px] font-black text-[#001b4e] uppercase tracking-tight mb-2">Listing Limit Reached</h3>
               <p className="text-slate-400 text-[13px] font-bold uppercase tracking-tight opacity-60 leading-relaxed mb-8">
-                Your current plan allows only 1 active listing. Upgrade to Pro to list unlimited materials.
+                Your current plan limit has been reached. Please contact your relationship executive to upgrade.
               </p>
               <div className="flex flex-col gap-3">
                 <button 
-                  onClick={() => navigate('/partner/subscription')}
-                  className="w-full py-4 bg-[#001b4e] text-white rounded-xl font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-blue-900/20"
-                >
-                  Upgrade to Pro
-                </button>
-                <button 
                   onClick={() => setShowLimitModal(false)}
-                  className="w-full py-4 bg-slate-50 text-slate-400 rounded-xl font-black uppercase tracking-widest active:scale-95 transition-all"
+                  className="w-full py-4 bg-[#001b4e] text-white rounded-xl font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg"
                 >
-                  Maybe Later
+                  Close
                 </button>
               </div>
             </motion.div>

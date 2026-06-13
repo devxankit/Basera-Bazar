@@ -1,3 +1,4 @@
+/* SUBSCRIPTION_FLAGGED - START OF ORIGINAL CODE
 import React, { useEffect, useState } from 'react';
 import toast from '../../mockToast';
 import { useScrollLock } from '../../hooks/useScrollLock';
@@ -261,7 +262,6 @@ export default function PartnerSubscription() {
 
   return (
     <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-[#f8fafc] font-sans pb-32">
-      {/* Header */}
       <div className="bg-white px-5 py-2.5 flex items-center justify-between sticky top-0 z-50 border-b border-slate-100 shadow-sm">
         <button
           onClick={() => navigate(-1)}
@@ -291,7 +291,6 @@ export default function PartnerSubscription() {
       </div>
 
       <div className="p-5 space-y-6">
-        {/* Active Plan Card - High Density */}
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -333,7 +332,6 @@ export default function PartnerSubscription() {
           </div>
         </motion.div>
 
-        {/* Feature Limits Grid */}
         <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h4 className="text-[11px] font-black text-[#001b4e] uppercase tracking-widest">Usage Quota</h4>
@@ -365,7 +363,6 @@ export default function PartnerSubscription() {
           </div>
         </div>
 
-        {/* Per-role coverage */}
         {coverage && (coverage.roles?.length > 0) && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
@@ -400,7 +397,6 @@ export default function PartnerSubscription() {
           </div>
         )}
 
-        {/* Available Plans - Professional Cards */}
         <div className="space-y-4">
            <div className="flex items-center gap-2 px-1">
               <TrendingUp size={14} className="text-blue-600" />
@@ -481,7 +477,6 @@ export default function PartnerSubscription() {
         </div>
       </div>
 
-      {/* Modals & Overlays */}
       <AnimatePresence>
         {showSimModal && simOrderData && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-[#001b4e]/80 backdrop-blur-xl">
@@ -491,7 +486,7 @@ export default function PartnerSubscription() {
                </div>
                <h3 className="text-[20px] font-black text-[#001b4e] uppercase tracking-tight mb-2">Simulated Payment</h3>
                <p className="text-slate-400 text-[12px] font-bold uppercase tracking-tight opacity-70 leading-relaxed mb-8">
-                 Razorpay credentials are not set in .env. You are in simulation mode. Click below to test the activation logic.
+                  Razorpay credentials are not set in .env. You are in simulation mode. Click below to test the activation logic.
                </p>
                <div className="flex flex-col gap-3">
                   <button 
@@ -638,13 +633,12 @@ export default function PartnerSubscription() {
                               ? 'bg-emerald-500/10 text-emerald-600'
                               : 'bg-rose-500/10 text-rose-600'
                           }`}>
-                            <div className={`w-1 h-1 rounded-full ${tx.status === 'success' || tx.status === 'captured' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                            <div className={`w-1.5 h-1.5 rounded-full ${tx.status === 'success' || tx.status === 'captured' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                             {tx.status}
                           </div>
                         </div>
                       </div>
                       
-                      {/* Subtle hover effect background */}
                       <div className="absolute inset-0 rounded-[24px] bg-gradient-to-br from-blue-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                     </motion.div>
                   ))
@@ -685,4 +679,18 @@ function FeatureItem({ label }) {
        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight truncate">{label}</span>
     </div>
   );
+}
+SUBSCRIPTION_FLAGGED - END OF ORIGINAL CODE */
+
+// SUBSCRIPTION_FLAGGED - FALLBACK REDIRECT COMPONENT
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+export default function PartnerSubscription() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigate('/partner/home');
+  }, [navigate]);
+
+  return null;
 }

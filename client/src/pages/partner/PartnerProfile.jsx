@@ -181,7 +181,7 @@ export default function PartnerProfile() {
           </motion.div>
         )}
 
-        {/* Subscription Highlight */}
+        {/* SUBSCRIPTION_FLAGGED
         <div 
           onClick={() => navigate('/partner/subscription')}
           className="bg-[#001b4e] rounded-2xl p-6 text-white flex items-center justify-between shadow-xl shadow-blue-900/20 relative overflow-hidden active:scale-95 transition-all"
@@ -205,6 +205,7 @@ export default function PartnerProfile() {
              <ChevronRight size={20} className="opacity-40" />
           </div>
         </div>
+        */}
 
         {/* Menu Sections */}
         <div className="space-y-4">
@@ -212,7 +213,9 @@ export default function PartnerProfile() {
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             {isMandiPartner && <MenuOption icon={<Clock size={20} />} label="Order History" onClick={() => navigate('/partner/mandi/orders-history')} />}
             <MenuOption icon={<Trophy size={20} />} label="My Rewards" onClick={() => navigate('/partner/milestones')} />
+            {/* SUBSCRIPTION_FLAGGED
             <MenuOption icon={<CreditCard size={20} />} label="My Subscription" onClick={() => navigate('/partner/subscription')} />
+            */}
             <MenuOption icon={<AlertCircle size={20} />} label="Penalties" onClick={() => navigate('/partner/mandi/penalties')} />
             <MenuOption icon={<HelpCircle size={20} />} label="Support Center" onClick={() => navigate('/partner/support')} />
           </div>

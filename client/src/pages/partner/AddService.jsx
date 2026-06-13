@@ -286,7 +286,9 @@ export default function AddService() {
     },
     onError: (error) => {
       if (error.response?.data?.code === 'SUBSCRIPTION_EXPIRED') {
-        navigate('/partner/subscription');
+        // SUBSCRIPTION_FLAGGED
+        toast.error("Your subscription has expired. Please contact your relationship executive.");
+        navigate('/partner/home');
         return;
       }
       toast.error(error.response?.data?.message || 'Failed to save service. Please try again.');
@@ -392,7 +394,7 @@ export default function AddService() {
       </div>
 
       <div className="p-6 space-y-8">
-        {/* Subscription Expired Warning */}
+        {/* SUBSCRIPTION_FLAGGED
         {user?.subscription_expired && (
           <div className="bg-rose-50 border border-rose-100 rounded-2xl p-5 space-y-4 shadow-sm shadow-rose-900/5">
             <div className="flex gap-3">
@@ -412,25 +414,28 @@ export default function AddService() {
             </button>
           </div>
         )}
+        */}
 
         {/* Subscription Limit Warning */}
-        {!subscriptionLimits.canAddListing && !editId && !user?.subscription_expired && (
+        {!subscriptionLimits.canAddListing && !editId && (
           <div className="bg-rose-50 border border-rose-100 rounded-2xl p-5 space-y-4 shadow-sm shadow-rose-900/5">
             <div className="flex gap-3">
               <Star className="text-rose-500 shrink-0 mt-0.5" size={20} />
               <div className="text-left">
                 <h4 className="text-[15px] font-black text-rose-900 uppercase tracking-tight">Listing Limit Reached</h4>
                 <p className="text-[13px] text-rose-700 leading-relaxed font-medium mt-1">
-                  {subscriptionLimits.message || "Your current plan limit has been reached. Please upgrade your plan or delete an existing service to add a new one."}
+                  {subscriptionLimits.message || "Your current plan limit has been reached. Please contact your relationship executive or delete an existing service to add a new one."}
                 </p>
               </div>
             </div>
+            {/* SUBSCRIPTION_FLAGGED
             <button
               onClick={() => navigate('/partner/subscription')}
               className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold text-[13px] uppercase tracking-widest shadow-lg shadow-rose-900/20 active:scale-95 transition-all"
             >
               Upgrade Plan Now
             </button>
+            */}
           </div>
         )}
 

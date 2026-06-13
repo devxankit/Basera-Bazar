@@ -145,14 +145,16 @@ export default function PartnerLeadDetails() {
                     <span className="text-[12px] font-black uppercase tracking-widest">Access Restricted</span>
                   </div>
                   <p className="text-[11px] text-rose-700 font-bold uppercase leading-relaxed tracking-tight px-2">
-                    You've reached your monthly lead limit. Upgrade to Pro to view customer contact details.
+                    You've reached your monthly lead limit. Please contact your relationship executive to upgrade.
                   </p>
+                  {/* SUBSCRIPTION_FLAGGED
                   <button 
                     onClick={() => navigate('/partner/subscription')}
                     className="w-full bg-rose-600 text-white py-3 rounded-lg font-black text-[11px] uppercase tracking-widest shadow-lg shadow-rose-900/10 active:scale-95 transition-all"
                   >
                     Upgrade Now
                   </button>
+                  */}
                 </div>
               ) : (
                 <>
@@ -233,13 +235,10 @@ export default function PartnerLeadDetails() {
       <div className="fixed bottom-0 left-0 right-0 p-5 z-50 pointer-events-none">
           <div className="max-w-md mx-auto bg-white/90 backdrop-blur-xl border border-slate-100 shadow-[0_-8px_32px_rgba(0,27,78,0.1)] rounded-[24px] p-4 flex gap-3 pointer-events-auto">
               {lead.limitReached ? (
-                <button 
-                  onClick={() => navigate('/partner/subscription')}
-                  className="flex-[3] h-12 bg-rose-600 text-white rounded-xl shadow-lg shadow-rose-900/20 flex items-center justify-center gap-3 font-black text-[13px] uppercase tracking-widest active:scale-95 transition-all"
-                >
-                   <Zap size={16} fill="currentColor" />
-                   Upgrade for Leads
-                </button>
+                <div className="flex-[3] h-12 bg-rose-100 text-rose-700 rounded-xl flex items-center justify-center gap-2 font-black text-[11px] uppercase tracking-widest border border-rose-200">
+                   <ShieldCheck size={16} />
+                   Limit Reached
+                </div>
               ) : (
                 <a 
                   href={`tel:${lead.user_details?.phone}`}

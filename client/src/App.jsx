@@ -83,9 +83,10 @@ const PartnerLeadDetails = lazy(
   () => import("./pages/partner/PartnerLeadDetails"),
 );
 const PartnerProfile = lazy(() => import("./pages/partner/PartnerProfile"));
-const PartnerSubscription = lazy(
-  () => import("./pages/partner/PartnerSubscription"),
-);
+// SUBSCRIPTION_FLAGGED
+// const PartnerSubscription = lazy(
+//   () => import("./pages/partner/PartnerSubscription"),
+// );
 const AddService = lazy(() => import("./pages/partner/AddService"));
 const AddProperty = lazy(() => import("./pages/partner/AddProperty"));
 const PartnerServiceDetails = lazy(
@@ -1032,6 +1033,7 @@ function App() {
                             </PartnerRoute>
                           }
                         />
+                        {/* SUBSCRIPTION_FLAGGED
                         <Route
                           path="/partner/subscription"
                           element={
@@ -1042,6 +1044,7 @@ function App() {
                             </PartnerRoute>
                           }
                         />
+                        */}
                         <Route
                           path="/partner/add-service"
                           element={
