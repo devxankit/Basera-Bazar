@@ -49,7 +49,7 @@ const MyOrdersPage = () => {
   const { data: ordersRaw, isLoading: loading } = useQuery({
     queryKey: ['myOrders'],
     queryFn: () => api.get('/orders/my-orders').then(r => r.data),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     enabled: !!isAuthenticated,
   });
 

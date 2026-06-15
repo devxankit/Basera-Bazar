@@ -28,7 +28,7 @@ export default function MandiOrderDetails() {
   const { data: orderRaw, isLoading: loading } = useQuery({
     queryKey: ['mandiOrderDetails', id],
     queryFn: () => api.get(`/orders/${id}`).then(r => r.data),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     enabled: !!id,
   });
 
