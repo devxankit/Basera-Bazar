@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const WithdrawalRequest = require('../models/Wallet');
 const { AppConfig } = require('../models/System');
 const { logActivity } = require('../utils/activityLogger');
+const invalidate = require('../utils/cacheInvalidator');
 
 /**
  * @desc    Approve/Reject Mandi Seller KYC
@@ -41,6 +42,8 @@ const updateSellerKYC = async (req, res) => {
       entity_id: id,
       description: `Updated KYC status for ${partner.name} to ${status}. Note: ${note || 'None'}`
     });
+
+    await invalidate.partnerProfile(id);
 
     res.status(200).json({ success: true, message: `KYC ${status} successfully.` });
 

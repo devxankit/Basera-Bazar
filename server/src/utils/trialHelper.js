@@ -1,6 +1,7 @@
 const logger = require('./logger');
 const { Partner } = require('../models/Partner');
 const { Subscription, SubscriptionPlan } = require('../models/Finance');
+const invalidate = require('./cacheInvalidator');
 
 /**
  * Create a real free-trial Subscription document for a partner and link it
@@ -53,6 +54,8 @@ const grantFreeTrial = async (partnerId) => {
     await Partner.findByIdAndUpdate(partnerId, {
       $set: { active_subscription_id: sub._id },
     });
+
+    await invalidate.partnerProfile(partnerId);
 
     logger.info(`[TRIAL] Free trial created for partner ${partnerId} — expires ${endsAt.toISOString()}`);
     return sub;

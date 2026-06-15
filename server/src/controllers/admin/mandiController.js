@@ -87,6 +87,7 @@ const processRoleRequest = async (req, res) => {
     }
 
     await invalidate.adminDashboard();
+    await invalidate.partnerProfile(partnerId);
     res.status(200).json({ success: true, message: `Role request ${action}ed successfully.` });
   } catch (error) {
     logger.error({ err: error }, "Process role request error:");

@@ -707,6 +707,8 @@ const updatePartnerMedia = async (req, res) => {
       await Partner.findByIdAndUpdate(partnerId, { $set: update });
     }
 
+    await invalidate.partnerProfile(partnerId);
+
     res.status(200).json({ success: true });
   } catch (error) {
     logger.error({ err: error }, 'updatePartnerMedia error:');

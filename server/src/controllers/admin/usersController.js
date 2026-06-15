@@ -9,6 +9,7 @@ const { logActivity } = require('../../utils/activityLogger');
 const { createNotification } = require('../../utils/notificationHelper');
 const { grantFreeTrial } = require('../../utils/trialHelper');
 const respondError = require('../../utils/respondError');
+const invalidate = require('../../utils/cacheInvalidator');
 
 const getUserDetail = async (req, res) => {
   try {
@@ -305,6 +306,10 @@ const updateUser = async (req, res) => {
       ).catch(() => {});
     }
 
+    if (isPartnerModel) {
+      await invalidate.partnerProfile(id);
+    }
+
     res.status(200).json({ success: true, message: 'Profile updated successfully.', data: updated });
 
     const actorName = req.user?.name || 'Admin';
@@ -345,6 +350,10 @@ const deleteUser = async (req, res) => {
 
     const deletedName = userResult?.name || partnerResult?.name || 'Unknown';
     const deletedType = userResult ? 'user' : 'partner';
+
+    if (partnerResult) {
+      await invalidate.partnerProfile(id);
+    }
 
     res.status(200).json({ success: true, message: 'User account permanently deleted from database.', listingsDeleted });
 
@@ -451,6 +460,9 @@ const createManualSubscription = async (req, res) => {
     });
 
     const partner = await Partner.findByIdAndUpdate(partner_id, { active_subscription_id: subscription._id }, { new: true });
+    
+    await invalidate.partnerProfile(partner_id);
+
     res.status(201).json({ success: true, data: subscription, message: 'Subscription manual override successful.' });
 
     await logActivity({ actor_name: req.user?.name || 'Admin', actor_id: req.user?._id, action: 'created', entity_type: 'subscription', entity_name: partner?.name || 'Partner', entity_id: subscription._id, description: `${req.user?.name || 'Admin'} manually granted "${plan?.name || 'Manual'}" plan to ${partner?.name}` });

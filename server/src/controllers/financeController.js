@@ -210,6 +210,7 @@ const processSubscriptionActivation = async ({ razorpay_order_id, razorpay_payme
     }
   }
 
+  await invalidate.partnerProfile(partnerId);
   return subscription;
 };
 
