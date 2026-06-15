@@ -62,13 +62,12 @@ export default function PartnerHome() {
     enabled: !!user,
   });
 
-  // SUBSCRIPTION_FLAGGED
-  // const { data: limitsRaw, isLoading: limitsLoading } = useQuery({
-  //   queryKey: ['partnerSubscriptionLimits'],
-  //   queryFn: () => api.get('/partners/subscription/limits').then(r => r.data),
-  //   staleTime: 5 * 60 * 1000,
-  //   enabled: !!user,
-  // });
+  const { data: limitsRaw, isLoading: limitsLoading } = useQuery({
+    queryKey: ['partnerSubscriptionLimits'],
+    queryFn: () => api.get('/partners/subscription/limits').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
+  });
 
   const { data: notificationsRaw } = useQuery({
     queryKey: ['partnerNotificationsUnread'],
@@ -80,16 +79,14 @@ export default function PartnerHome() {
     ? (notificationsRaw.data || []).filter(n => !n.is_read).length
     : 0;
 
-  // SUBSCRIPTION_FLAGGED
-  const loading = statsLoading || activitiesLoading; // originally statsLoading || activitiesLoading || limitsLoading;
+  const loading = statsLoading || activitiesLoading || limitsLoading;
 
   const stats = statsRaw?.success ? statsRaw.data : { total_listings: 0, total_leads: 0, active_orders: 0, earnings: 0 };
   const localLogs = !activitiesRaw?.success
     ? (JSON.parse(localStorage.getItem(`baserabazar_activity_${user?._id || user?.id}`)) || [])
     : [];
   const activities = activitiesRaw?.success ? (activitiesRaw.data || []).slice(0, 5) : localLogs.slice(0, 5);
-  // SUBSCRIPTION_FLAGGED
-  const subscriptionLimits = null; // originally limitsRaw?.success ? limitsRaw.data : null;
+  const subscriptionLimits = limitsRaw?.success ? limitsRaw.data : null;
 
   useEffect(() => {
     if (!user) {
@@ -125,8 +122,7 @@ export default function PartnerHome() {
           { label: 'Total Products', value: stats.total_listings, icon: <Package size={20} />, color: 'bg-orange-50 text-orange-600', href: '/partner/inventory' },
           { label: 'New Orders', value: stats.active_orders, icon: <Activity size={20} />, color: 'bg-blue-50 text-blue-600', href: '/partner/orders' },
           { label: 'Total Leads', value: stats.total_leads, icon: <Users size={20} />, color: 'bg-emerald-50 text-emerald-600', href: '/partner/leads' },
-          // SUBSCRIPTION_FLAGGED: originally href: '/partner/subscription'
-          { label: 'Earnings', value: `₹${stats.earnings}`, icon: <TrendingUp size={20} />, color: 'bg-purple-50 text-purple-600', href: '/partner/leads' }
+          { label: 'Earnings', value: `₹${stats.earnings}`, icon: <TrendingUp size={20} />, color: 'bg-purple-50 text-purple-600', href: '/partner/subscription' }
         ]
       };
     }
@@ -204,7 +200,7 @@ export default function PartnerHome() {
             </div>
           </div>
 
-          {/* SUBSCRIPTION_FLAGGED
+          {/* Subscription Status Card */}
           {subscriptionLimits && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
@@ -262,7 +258,6 @@ export default function PartnerHome() {
                </div>
             </motion.div>
           )}
-          */}
         </div>
 
         {/* Stats Grid */}

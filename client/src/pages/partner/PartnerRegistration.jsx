@@ -51,7 +51,7 @@ function loadSaved() {
 export default function PartnerRegistration() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const totalSteps = 4; // SUBSCRIPTION_FLAGGED
+  const totalSteps = 5;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [modalConfig, setModalConfig] = useState({
@@ -108,9 +108,8 @@ export default function PartnerRegistration() {
       isNavigatingBackRef.current = true;
       // Clear auth state when going behind the OTP step
       if (current >= 3 && dest < 3) setAuthState(null);
-      // SUBSCRIPTION_FLAGGED
       // Clear plan state when going behind the plan step
-      // if (current >= 5 && dest < 5) { setSelectedPlan(null); setSelectedPlanObject(null); }
+      if (current >= 5 && dest < 5) { setSelectedPlan(null); setSelectedPlanObject(null); }
 
       setStep(dest);
 
@@ -287,129 +286,128 @@ export default function PartnerRegistration() {
     }
   };
 
-  // SUBSCRIPTION_FLAGGED
-  // const handlePaymentAndActivate = async () => {
-  //   if (!selectedPlanObject || selectedPlan === 'free_trial') {
-  //     handleConfirmRegistration();
-  //     return;
-  //   }
-  //
-  //   // 🚩 RAZORPAY_FLAG: paid-plan Razorpay disabled for App Store submission.
-  //   // Free-trial registration above still works. Remove this block (or set
-  //   // RAZORPAY_ENABLED = true) to re-enable paid plans.
-  //   if (!RAZORPAY_ENABLED) {
-  //     showRazorpayDisabledNotice();
-  //     return;
-  //   }
-  //
-  //   if (!window.Razorpay) {
-  //     toast.error('Payment gateway not available. Please refresh the page and try again.');
-  //     return;
-  //   }
-  //
-  //   setIsSubmitting(true);
-  //   // Hold token/user locally — do NOT call login() until payment is confirmed
-  //   let pendingUser = null;
-  //   let pendingToken = null;
-  //
-  //   try {
-  //     const roleMapping = { 'agent': 'property_agent', 'service': 'service_provider', 'supplier': 'supplier', 'mandi': 'mandi_seller' };
-  //     const backendRole = roleMapping[selectedRole] || 'service_provider';
-  //
-  //     // Step 1: Register partner (no images, no subscription yet)
-  //     const regRes = await api.post('/auth/partner/register', buildRegisterPayload(backendRole));
-  //     const { user: userData, token } = regRes.data;
-  //     pendingUser = userData;
-  //     pendingToken = token;
-  //
-  //     // Step 2: Set auth token so upload and subscription requests are authenticated
-  //     // (login() is deferred until payment succeeds)
-  //     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  //
-  //     // Step 3: Upload images and patch partner record (non-blocking)
-  //     await uploadAndPatchMedia();
-  //
-  //     // Step 4: Initiate Subscription
-  //     const initRes = await api.post('/finance/subscription/initiate', { plan_id: selectedPlan });
-  //     const { order_id, amount, key, plan_name } = initRes.data;
-  //
-  //     const completeRegistration = async (paymentId, signature) => {
-  //       await api.post('/finance/subscription/verify', {
-  //         razorpay_order_id: order_id,
-  //         razorpay_payment_id: paymentId,
-  //         razorpay_signature: signature,
-  //         plan_id: selectedPlan
-  //       });
-  //       const activity = {
-  //         title: `Account Registered as ${selectedRole}`,
-  //         time: new Date().toLocaleTimeString(),
-  //         timestamp: new Date().toISOString(),
-  //         type: 'profile'
-  //       };
-  //       const activityKey = `baserabazar_activity_${pendingUser.id || pendingUser._id}`;
-  //       const existingLogs = JSON.parse(localStorage.getItem(activityKey) || '[]');
-  //       localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs.filter(l => l.title !== activity.title)]));
-  //       sessionStorage.removeItem(STORAGE_KEY);
-  //       // Payment verified — NOW log the user in
-  //       login(pendingUser, pendingToken);
-  //       const params = new URLSearchParams({
-  //         status: 'success',
-  //         redirect: '/partner/home',
-  //         context: 'registration',
-  //       });
-  //       window.location.replace(`/payment/status?${params.toString()}`);
-  //     };
-  //
-  //     // Demo / testing mode: skip Razorpay modal and auto-verify
-  //     if (key === 'rzp_test_mock') {
-  //       await completeRegistration(`pay_mock_${Date.now()}`, 'mock_signature');
-  //       return;
-  //     }
-  //
-  //     const callbackBase = api.defaults.baseURL?.startsWith('http')
-  //       ? api.defaults.baseURL
-  //       : window.location.origin + (api.defaults.baseURL || '/api');
-  //
-  //     const options = {
-  //       key,
-  //       amount,
-  //       currency: "INR",
-  //       name: "Basera Bazar",
-  //       description: `Subscription: ${plan_name}`,
-  //       image: "https://res.cloudinary.com/dbqsy9vvt/image/upload/v1714570000/logos/logo_main.png",
-  //       order_id,
-  //       prefill: {
-  //         name: formData.fullName || "",
-  //         email: formData.email || "",
-  //         contact: formData.phone || ""
-  //       },
-  //       theme: { color: "#4f46e5" },
-  //       modal: {
-  //         ondismiss: () => {
-  //           // Payment dismissed without completing — clear token, stay on step 5
-  //           delete api.defaults.headers.common['Authorization'];
-  //           setIsSubmitting(false);
-  //           toast.error('Payment was cancelled. Please select a plan and try again.');
-  //         }
-  //       },
-  //       redirect: true,
-  //       callback_url: `${callbackBase}/finance/subscription/callback?plan_id=${selectedPlan}&redirect_to=${encodeURIComponent('/partner/register')}&origin=${encodeURIComponent(window.location.origin)}`
-  //     };
-  //
-  //     const rzp = new window.Razorpay(options);
-  //     rzp.open();
-  //   } catch (error) {
-  //     // Clean up the auth header if it was set before the failure
-  //     delete api.defaults.headers.common['Authorization'];
-  //     if (error.response?.data?.code === 'PHONE_EXISTS') {
-  //       toast.error('This phone is already registered. Please login to add a new role.');
-  //       navigate('/partner/login', { state: { redirectTo: '/partner/add-role' } });
-  //       return;
-  //     }
-  //     toast.error(error.response?.data?.message || "Failed to start payment. Please try again.");
-  //     setIsSubmitting(false);
-  //   }
-  // };
+  const handlePaymentAndActivate = async () => {
+    if (!selectedPlanObject || selectedPlan === 'free_trial') {
+      handleConfirmRegistration();
+      return;
+    }
+
+    // 🚩 RAZORPAY_FLAG: paid-plan Razorpay disabled for App Store submission.
+    // Free-trial registration above still works. Remove this block (or set
+    // RAZORPAY_ENABLED = true) to re-enable paid plans.
+    if (!RAZORPAY_ENABLED) {
+      showRazorpayDisabledNotice();
+      return;
+    }
+
+    if (!window.Razorpay) {
+      toast.error('Payment gateway not available. Please refresh the page and try again.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    // Hold token/user locally — do NOT call login() until payment is confirmed
+    let pendingUser = null;
+    let pendingToken = null;
+
+    try {
+      const roleMapping = { 'agent': 'property_agent', 'service': 'service_provider', 'supplier': 'supplier', 'mandi': 'mandi_seller' };
+      const backendRole = roleMapping[selectedRole] || 'service_provider';
+
+      // Step 1: Register partner (no images, no subscription yet)
+      const regRes = await api.post('/auth/partner/register', buildRegisterPayload(backendRole));
+      const { user: userData, token } = regRes.data;
+      pendingUser = userData;
+      pendingToken = token;
+
+      // Step 2: Set auth token so upload and subscription requests are authenticated
+      // (login() is deferred until payment succeeds)
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // Step 3: Upload images and patch partner record (non-blocking)
+      await uploadAndPatchMedia();
+
+      // Step 4: Initiate Subscription
+      const initRes = await api.post('/finance/subscription/initiate', { plan_id: selectedPlan });
+      const { order_id, amount, key, plan_name } = initRes.data;
+
+      const completeRegistration = async (paymentId, signature) => {
+        await api.post('/finance/subscription/verify', {
+          razorpay_order_id: order_id,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: signature,
+          plan_id: selectedPlan
+        });
+        const activity = {
+          title: `Account Registered as ${selectedRole}`,
+          time: new Date().toLocaleTimeString(),
+          timestamp: new Date().toISOString(),
+          type: 'profile'
+        };
+        const activityKey = `baserabazar_activity_${pendingUser.id || pendingUser._id}`;
+        const existingLogs = JSON.parse(localStorage.getItem(activityKey) || '[]');
+        localStorage.setItem(activityKey, JSON.stringify([activity, ...existingLogs.filter(l => l.title !== activity.title)]));
+        sessionStorage.removeItem(STORAGE_KEY);
+        // Payment verified — NOW log the user in
+        login(pendingUser, pendingToken);
+        const params = new URLSearchParams({
+          status: 'success',
+          redirect: '/partner/home',
+          context: 'registration',
+        });
+        window.location.replace(`/payment/status?${params.toString()}`);
+      };
+
+      // Demo / testing mode: skip Razorpay modal and auto-verify
+      if (key === 'rzp_test_mock') {
+        await completeRegistration(`pay_mock_${Date.now()}`, 'mock_signature');
+        return;
+      }
+
+      const callbackBase = api.defaults.baseURL?.startsWith('http')
+        ? api.defaults.baseURL
+        : window.location.origin + (api.defaults.baseURL || '/api');
+
+      const options = {
+        key,
+        amount,
+        currency: "INR",
+        name: "Basera Bazar",
+        description: `Subscription: ${plan_name}`,
+        image: "https://res.cloudinary.com/dbqsy9vvt/image/upload/v1714570000/logos/logo_main.png",
+        order_id,
+        prefill: {
+          name: formData.fullName || "",
+          email: formData.email || "",
+          contact: formData.phone || ""
+        },
+        theme: { color: "#4f46e5" },
+        modal: {
+          ondismiss: () => {
+            // Payment dismissed without completing — clear token, stay on step 5
+            delete api.defaults.headers.common['Authorization'];
+            setIsSubmitting(false);
+            toast.error('Payment was cancelled. Please select a plan and try again.');
+          }
+        },
+        redirect: true,
+        callback_url: `${callbackBase}/finance/subscription/callback?plan_id=${selectedPlan}&redirect_to=${encodeURIComponent('/partner/register')}&origin=${encodeURIComponent(window.location.origin)}`
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      // Clean up the auth header if it was set before the failure
+      delete api.defaults.headers.common['Authorization'];
+      if (error.response?.data?.code === 'PHONE_EXISTS') {
+        toast.error('This phone is already registered. Please login to add a new role.');
+        navigate('/partner/login', { state: { redirectTo: '/partner/add-role' } });
+        return;
+      }
+      toast.error(error.response?.data?.message || "Failed to start payment. Please try again.");
+      setIsSubmitting(false);
+    }
+  };
 
   const getStepTitle = () => {
     switch(step) {
@@ -417,8 +415,7 @@ export default function PartnerRegistration() {
       case 2: return 'Your Information';
       case 3: return 'Verify Phone';
       case 4: return 'KYC Documents';
-      // SUBSCRIPTION_FLAGGED
-      // case 5: return 'Subscription Plan';
+      case 5: return 'Subscription Plan';
       default: return '';
     }
   };
@@ -536,12 +533,10 @@ export default function PartnerRegistration() {
                 formData={formData}
                 setFormData={setFormData}
                 onBack={prevStep}
-                // SUBSCRIPTION_FLAGGED: originally onComplete={nextStep}
-                onComplete={handleConfirmRegistration}
+                onComplete={nextStep}
                 role={selectedRole}
               />
             )}
-            {/* SUBSCRIPTION_FLAGGED
             {step === 5 && (
               <PlanStep 
                 selectedRole={{
@@ -560,7 +555,6 @@ export default function PartnerRegistration() {
                 submitting={isSubmitting}
               />
             )}
-            */}
           </motion.div>
         </AnimatePresence>
       </main>

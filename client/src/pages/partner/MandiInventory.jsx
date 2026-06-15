@@ -139,7 +139,7 @@ export default function MandiInventory() {
       </div>
 
       <div className="p-5">
-        {/* SUBSCRIPTION_FLAGGED
+        {/* Pro Upgrade Banner */}
         {subscriptionInfo && !subscriptionInfo.isPro && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
@@ -169,7 +169,6 @@ export default function MandiInventory() {
             </div>
           </motion.div>
         )}
-        */}
 
         {/* Filter Tabs */}
         <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-6">

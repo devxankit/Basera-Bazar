@@ -293,24 +293,9 @@ export default function AddRolePage() {
       const data = error.response?.data;
 
       if (status === 402 && data?.requires_payment) {
-        // SUBSCRIPTION_FLAGGED: Instead of moving to step 4, we directly simulate payment verification
-        try {
-          const payload = buildRolePayload();
-          const initRes = await api.post('/finance/role-upgrade/initiate', payload);
-          const orderData = initRes.data;
-          if (orderData?.success) {
-            await api.post('/finance/role-upgrade/verify', {
-              razorpay_order_id: orderData.order_id,
-              razorpay_payment_id: `pay_mock_${Date.now()}`,
-              razorpay_signature: 'mock_signature',
-              ...payload,
-            });
-            await finishSuccess();
-            return;
-          }
-        } catch (payErr) {
-          console.error('Bypass payment failed:', payErr);
-        }
+        // Payment required — move to the activation/payment step.
+        if (data.fee != null) setUpgradeFee(data.fee);
+        setStep(4);
         setSubmitting(false);
         return;
       }
@@ -327,69 +312,68 @@ export default function AddRolePage() {
     }
   };
 
-  // SUBSCRIPTION_FLAGGED
-  // // Paid upgrade: pay the one-time role-upgrade fee via Razorpay, then the
-  // // server creates the pending role request on verify/callback.
-  // const handlePayAndSubmit = async () => {
-  //   // 🚩 RAZORPAY_FLAG: Razorpay disabled for App Store submission.
-  //   // Remove this block (or set RAZORPAY_ENABLED = true) to re-enable.
-  //   if (!RAZORPAY_ENABLED) {
-  //     showRazorpayDisabledNotice();
-  //     return;
-  //   }
-  // 
-  //   if (!validateRoleDocs()) return;
-  //   setSubmitting(true);
-  //   try {
-  //     const payload = buildRolePayload();
-  //     const initRes = await api.post('/finance/role-upgrade/initiate', payload);
-  //     const orderData = initRes.data;
-  //     if (!orderData?.success) throw new Error('Failed to start payment.');
-  // 
-  //     // Simulation mode (no Razorpay keys configured) — verify directly.
-  //     if (orderData.key === 'rzp_test_mock') {
-  //       await api.post('/finance/role-upgrade/verify', {
-  //         razorpay_order_id: orderData.order_id,
-  //         razorpay_payment_id: `pay_mock_${Date.now()}`,
-  //         razorpay_signature: 'mock_signature',
-  //         ...payload,
-  //       });
-  //       await finishSuccess();
-  //       return;
-  //     }
-  // 
-  //     const isLoaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
-  //     if (!isLoaded) throw new Error('Failed to load payment gateway. Please disable any ad-blocker.');
-  // 
-  //     const callbackBase = api.defaults.baseURL?.startsWith('http')
-  //       ? api.defaults.baseURL
-  //       : window.location.origin + (api.defaults.baseURL || '/api');
-  // 
-  //     const options = {
-  //       key: orderData.key,
-  //       amount: orderData.amount,
-  //       currency: 'INR',
-  //       name: 'Basera Bazar',
-  //       description: `Role Upgrade: ${selectedRole?.replace('_', ' ')}`,
-  //       order_id: orderData.order_id,
-  //       prefill: {
-  //         name: user?.name || '',
-  //         email: user?.email || '',
-  //         contact: user?.phone || ''
-  //       },
-  //       theme: { color: '#001b4e' },
-  //       modal: { ondismiss: () => setSubmitting(false) },
-  //       redirect: true,
-  //       callback_url: `${callbackBase}/finance/role-upgrade/callback?role=${selectedRole}&redirect_to=${encodeURIComponent('/partner/add-role')}&origin=${encodeURIComponent(window.location.origin)}`
-  //     };
-  // 
-  //     const rzp = new window.Razorpay(options);
-  //     rzp.open();
-  //   } catch (error) {
-  //     toast.error(error.response?.data?.message || error.message || 'Payment could not be started. Please try again.');
-  //     setSubmitting(false);
-  //   }
-  // };
+  // Paid upgrade: pay the one-time role-upgrade fee via Razorpay, then the
+  // server creates the pending role request on verify/callback.
+  const handlePayAndSubmit = async () => {
+    // 🚩 RAZORPAY_FLAG: Razorpay disabled for App Store submission.
+    // Remove this block (or set RAZORPAY_ENABLED = true) to re-enable.
+    if (!RAZORPAY_ENABLED) {
+      showRazorpayDisabledNotice();
+      return;
+    }
+
+    if (!validateRoleDocs()) return;
+    setSubmitting(true);
+    try {
+      const payload = buildRolePayload();
+      const initRes = await api.post('/finance/role-upgrade/initiate', payload);
+      const orderData = initRes.data;
+      if (!orderData?.success) throw new Error('Failed to start payment.');
+
+      // Simulation mode (no Razorpay keys configured) — verify directly.
+      if (orderData.key === 'rzp_test_mock') {
+        await api.post('/finance/role-upgrade/verify', {
+          razorpay_order_id: orderData.order_id,
+          razorpay_payment_id: `pay_mock_${Date.now()}`,
+          razorpay_signature: 'mock_signature',
+          ...payload,
+        });
+        await finishSuccess();
+        return;
+      }
+
+      const isLoaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+      if (!isLoaded) throw new Error('Failed to load payment gateway. Please disable any ad-blocker.');
+
+      const callbackBase = api.defaults.baseURL?.startsWith('http')
+        ? api.defaults.baseURL
+        : window.location.origin + (api.defaults.baseURL || '/api');
+
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: 'INR',
+        name: 'Basera Bazar',
+        description: `Role Upgrade: ${selectedRole?.replace('_', ' ')}`,
+        order_id: orderData.order_id,
+        prefill: {
+          name: user?.name || '',
+          email: user?.email || '',
+          contact: user?.phone || ''
+        },
+        theme: { color: '#001b4e' },
+        modal: { ondismiss: () => setSubmitting(false) },
+        redirect: true,
+        callback_url: `${callbackBase}/finance/role-upgrade/callback?role=${selectedRole}&redirect_to=${encodeURIComponent('/partner/add-role')}&origin=${encodeURIComponent(window.location.origin)}`
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || 'Payment could not be started. Please try again.');
+      setSubmitting(false);
+    }
+  };
 
   if (refreshing) {
     return (
@@ -775,7 +759,6 @@ export default function AddRolePage() {
             </motion.div>
           )}
 
-          {/* SUBSCRIPTION_FLAGGED
           {step === 4 && (
             <motion.div
               key="step4"
@@ -828,7 +811,6 @@ export default function AddRolePage() {
               </div>
             </motion.div>
           )}
-          */}
         </AnimatePresence>
       </main>
     </div>

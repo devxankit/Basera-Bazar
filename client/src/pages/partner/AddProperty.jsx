@@ -627,18 +627,16 @@ export default function AddProperty() {
               <div className="text-left">
                 <h4 className="text-[15px] font-black text-rose-900 uppercase tracking-tight">Listing Limit Reached</h4>
                 <p className="text-[13px] text-rose-700 leading-relaxed font-medium mt-1">
-                  {subscriptionLimits.message || "Your current plan limit has been reached. Please contact your relationship executive or delete an existing listing to add a new property."}
+                  {subscriptionLimits.message || "Your current plan limit has been reached. Please upgrade your plan or delete an existing listing to add a new property."}
                 </p>
               </div>
             </div>
-            {/* SUBSCRIPTION_FLAGGED
             <button 
               onClick={() => navigate('/partner/subscription')}
               className="w-full bg-rose-600 text-white py-3 rounded-xl font-bold text-[13px] uppercase tracking-widest shadow-lg shadow-rose-900/20 active:scale-95 transition-all"
             >
               Upgrade Plan Now
             </button>
-            */}
           </div>
         )}
         <AnimatePresence mode="popLayout">

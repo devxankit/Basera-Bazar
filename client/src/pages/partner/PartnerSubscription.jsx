@@ -1,4 +1,3 @@
-/* SUBSCRIPTION_FLAGGED - START OF ORIGINAL CODE
 import React, { useEffect, useState } from 'react';
 import toast from '../../mockToast';
 import { useScrollLock } from '../../hooks/useScrollLock';
@@ -679,18 +678,4 @@ function FeatureItem({ label }) {
        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight truncate">{label}</span>
     </div>
   );
-}
-SUBSCRIPTION_FLAGGED - END OF ORIGINAL CODE */
-
-// SUBSCRIPTION_FLAGGED - FALLBACK REDIRECT COMPONENT
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-
-export default function PartnerSubscription() {
-  const navigate = useNavigate();
-  useEffect(() => {
-    navigate('/partner/home');
-  }, [navigate]);
-
-  return null;
 }
