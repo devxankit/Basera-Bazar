@@ -199,6 +199,38 @@ setTimeout(async () => {
   }
 }, 20000);
 
+// One-time backfill: grant BOGO role credit to partners with active premium subscriptions
+setTimeout(async () => {
+  try {
+    if (mongoose.connection.readyState !== 1) return;
+    const { Partner } = require('./models/Partner');
+    const { Subscription } = require('./models/Finance');
+    
+    const candidates = await Partner.find({
+      active_subscription_id: { $ne: null },
+      free_role_credit_granted: { $ne: true }
+    });
+    
+    let grantedCount = 0;
+    for (const partner of candidates) {
+      const sub = await Subscription.findById(partner.active_subscription_id);
+      if (sub && sub.status === 'active' && (sub.plan_snapshot?.price ?? 0) >= 1) {
+        partner.role_credits = (partner.role_credits || 0) + 1;
+        partner.free_role_credit_granted = true;
+        await partner.save();
+        grantedCount++;
+      }
+    }
+    
+    if (grantedCount > 0) {
+      logger.info(`[BACKFILL] Granted BOGO role credit to ${grantedCount} active subscribers.`);
+    }
+  } catch (err) {
+    logger.error({ err }, '[BACKFILL] BOGO role credit backfill failed');
+  }
+}, 25000);
+
+
 // -----------------------------------------------------
 // IMPORT ROUTES
 // -----------------------------------------------------

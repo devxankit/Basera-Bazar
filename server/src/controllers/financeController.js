@@ -153,7 +153,7 @@ const processSubscriptionActivation = async ({ razorpay_order_id, razorpay_payme
   const offerConfig = await AppConfig.findOne({ key: 'OFFER_1_PLUS_1' });
   const offer = offerConfig?.value;
   const offerActive = offer?.is_active && (!offer.expiry || new Date(offer.expiry) >= new Date());
-  const minAmount = Number(offer?.min_amount ?? 100);
+  const minAmount = Number(offer?.min_amount ?? 1);
   if (offerActive && plan.price >= minAmount) {
     // Atomic guard: only grant if not already granted (prevents double-grant on renewals/races)
     await Partner.findOneAndUpdate(

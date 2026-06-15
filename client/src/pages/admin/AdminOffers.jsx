@@ -15,7 +15,7 @@ import api from '../../services/api';
 import { toast } from '../../mockToast';
 
 const DEFAULT_OFFERS = {
-  OFFER_1_PLUS_1: { is_active: false, expiry: null, min_amount: 100 },
+  OFFER_1_PLUS_1: { is_active: false, expiry: null, min_amount: 1 },
   FREE_TRIAL_CONFIG: { duration_days: 30, listings_limit: 1, featured_listings_limit: 0 },
   ROLE_UPGRADE_FEE: 200
 };
@@ -127,7 +127,7 @@ export default function AdminOffers() {
               <div className="flex gap-4">
                 <AlertCircle className="text-slate-400 shrink-0" size={20} />
                 <p className="text-sm font-bold text-slate-600 leading-relaxed">
-                  When active, any partner who purchases a premium subscription plan (Price {'>'} ₹1) will receive 1 free Role Credit. They can use this credit to activate an additional role on their profile for free.
+                  When active, any partner who purchases a premium subscription plan (Price {'>='} ₹1) will receive 1 free Role Credit. They can use this credit to activate an additional role on their profile for free.
                 </p>
               </div>
             </div>
