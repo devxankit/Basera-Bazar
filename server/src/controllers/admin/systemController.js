@@ -231,7 +231,7 @@ const getMandiSettings = async (req, res) => {
   try {
     const tokenAmount = await AppConfig.findOne({ key: 'mandi_token_amount' });
     const commissionRate = await AppConfig.findOne({ key: 'mandi_commission_rate' });
-    const categories = await Category.find({ type: 'supplier', parent_id: null }).select('name mandi_commission_percentage');
+    const categories = await Category.find({ type: { $in: ['product', 'supplier', 'material'] }, parent_id: null }).select('name mandi_commission_percentage');
     res.status(200).json({ success: true, data: { token_amount: tokenAmount ? tokenAmount.value : 500, commission_rate: commissionRate ? commissionRate.value : 0, categories: categories.map(cat => ({ id: cat._id, name: cat.name, percentage: cat.mandi_commission_percentage || 0 })) } });
   } catch (error) {
     logger.error({ err: error }, "Get settings error:");
