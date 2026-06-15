@@ -38,8 +38,8 @@ export default function AdminPaymentReport() {
       ['Transaction ID', 'Customer', 'Contact', 'Type', 'Amount (₹)', 'Date', 'Status'],
       ...transactions.map(txn => [
         txn._id ? txn._id.slice(-8).toUpperCase() : '—',
-        txn.partner_id?.name || 'Anonymous',
-        txn.partner_id?.email || txn.partner_id?.phone || '—',
+        txn.user_id?.name || txn.partner_id?.name || 'Anonymous',
+        txn.user_id?.email || txn.user_id?.phone || txn.partner_id?.email || txn.partner_id?.phone || '—',
         txn.type ? txn.type.replace(/_/g, ' ') : '—',
         txn.amount != null ? txn.amount : '—',
         txn.createdAt ? new Date(txn.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
@@ -158,8 +158,8 @@ export default function AdminPaymentReport() {
                         <span className="text-[12px] font-black text-indigo-600 font-mono">#{txn._id ? txn._id.slice(-8).toUpperCase() : '—'}</span>
                       </td>
                       <td className="px-6 py-5">
-                        <p className="font-black text-sm text-slate-800">{txn.partner_id?.name || 'Anonymous'}</p>
-                        <p className="text-[11px] text-slate-400 font-bold tracking-tight">{txn.partner_id?.email || txn.partner_id?.phone || 'No Contact'}</p>
+                        <p className="font-black text-sm text-slate-800">{txn.user_id?.name || txn.partner_id?.name || 'Anonymous'}</p>
+                        <p className="text-[11px] text-slate-400 font-bold tracking-tight">{txn.user_id?.email || txn.user_id?.phone || txn.partner_id?.email || txn.partner_id?.phone || 'No Contact'}</p>
                       </td>
                       <td className="px-6 py-5">
                         <span className="px-2.5 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200">

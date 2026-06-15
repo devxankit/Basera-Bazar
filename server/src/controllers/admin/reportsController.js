@@ -59,7 +59,12 @@ const getTransactionLedger = async (req, res) => {
     if (status && status !== 'All') query.status = status.toLowerCase();
     if (type && type !== 'All') query.type = type;
 
-    const transactions = await Transaction.find(query).populate('partner_id', 'name email phone').sort({ createdAt: -1 }).limit(Number(limit)).skip((Number(page) - 1) * Number(limit));
+    const transactions = await Transaction.find(query)
+      .populate('partner_id', 'name email phone')
+      .populate('user_id', 'name email phone')
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
     const total = await Transaction.countDocuments(query);
 
     res.status(200).json({ success: true, data: transactions, pagination: { total, page: Number(page), pages: Math.ceil(total / limit) } });

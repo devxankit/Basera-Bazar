@@ -66,7 +66,7 @@ const MyOrdersPage = () => {
               setOrderReviews(prev => ({ ...prev, [selectedOrder]: userReview }));
             }
           }
-        } catch (err) {
+        } catch {
           // review fetch failure is non-critical
         }
       };
@@ -101,7 +101,7 @@ const MyOrdersPage = () => {
         existingReview = res.data.data.find(r => r.user_id === user?._id || r.user_id?._id === user?._id);
       }
       setRatingModal({ isOpen: true, order, initialData: existingReview });
-    } catch (err) {
+    } catch {
       setRatingModal({ isOpen: true, order, initialData: null });
     }
   };
@@ -193,7 +193,7 @@ const MyOrdersPage = () => {
       };
 
       html2pdf().from(invoiceContent).set(opt).save();
-    } catch (err) {
+    } catch {
       toast.error("Failed to generate invoice");
     }
   };
@@ -367,11 +367,23 @@ const MyOrdersPage = () => {
                       className="overflow-hidden space-y-4 pt-2"
                     >
                        {/* OTP Section */}
-                       {order.items.some(i => i.status !== 'delivered') && (
+                       {order.items.some(i => !['delivered', 'cancelled'].includes(i.status)) && (
                          <div className="bg-gradient-to-br from-orange-50 to-amber-50/50 rounded-3xl p-6 text-center space-y-3 shadow-sm border border-orange-100/40">
                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Delivery Verification OTP</span>
                            <div className="text-[32px] font-black tracking-[0.3em] text-[#001b4e]">{order.items[0]?.delivery_otp}</div>
                            <p className="text-[10px] text-slate-500 font-medium">Share this with the delivery person only after inspecting the materials.</p>
+                         </div>
+                       )}
+
+                       {/* Cancelled Section */}
+                       {order.items.every(i => i.status === 'cancelled') && (
+                         <div className="bg-gradient-to-br from-rose-50 to-red-50/50 rounded-3xl p-6 text-center space-y-2 shadow-sm border border-rose-100/40">
+                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500 flex items-center justify-center gap-1.5">
+                             <XCircle size={14} /> Order Cancelled
+                           </span>
+                           <p className="text-[12px] text-rose-700 font-bold leading-tight">
+                             This order has been cancelled by the seller. Your booking fee has been refunded or credited back.
+                           </p>
                          </div>
                        )}
 

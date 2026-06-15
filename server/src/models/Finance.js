@@ -87,6 +87,7 @@ const transactionSchema = new mongoose.Schema({
   },
   razorpay_order_id: { type: mongoose.Schema.Types.ObjectId, ref: 'RazorpayOrder' }, // Nullable if admin credit
   partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' }, // The partner/user who made the transaction
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Payer user (e.g. for customer mandi order commission payments)
   executive_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Executive' }, // The executive who earned commission
   reference_id: { type: mongoose.Schema.Types.ObjectId } // Polymorphic logic
 }, { timestamps: true });

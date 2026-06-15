@@ -449,8 +449,13 @@ const updateLeadStatus = async (req, res) => {
 
     // Handle Seller Cancellation Penalty
     if (status === 'cancelled') {
-        // Penalty is now exactly the commission amount lost from this item
-        const penaltyAmount = item.commission_amount || 0;
+        // Penalty is now the commission amount lost from this item, falling back to the booking token fee if commission is 0
+        let penaltyAmount = item.commission_amount || 0;
+        
+        if (penaltyAmount <= 0) {
+          const tokenConfig = await AppConfig.findOne({ key: 'mandi_token_amount' });
+          penaltyAmount = tokenConfig ? Number(tokenConfig.value) : 500;
+        }
         
         if (penaltyAmount > 0) {
           await Partner.findByIdAndUpdate(sellerId, {

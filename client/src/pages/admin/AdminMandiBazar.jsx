@@ -111,7 +111,7 @@ export default function AdminMandiBazar() {
   const { data: settingsRaw, isLoading: settingsLoading } = useQuery({
     queryKey: ['adminMandiSettings'],
     queryFn: () => api.get('/admin/mandi/settings').then(r => r.data),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always fetch live settings
     enabled: activeTab === 'commission',
   });
 
