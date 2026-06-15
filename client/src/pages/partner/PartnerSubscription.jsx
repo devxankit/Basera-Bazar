@@ -3,7 +3,7 @@ import toast from '../../mockToast';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import {
   ArrowLeft, History, CheckCircle2,
-  Clock, Star,
+  Clock, Star, Gift,
   Package, Users, ChevronRight,
   TrendingUp, Activity, X, Info, Zap, Loader2,
   ShieldCheck, ZapOff, Building2
@@ -66,6 +66,17 @@ export default function PartnerSubscription() {
     enabled: !!user,
   });
   const coverage = coverageData?.data;
+
+  // Fetch active offers
+  const { data: offersData } = useQuery({
+    queryKey: ['systemOffers'],
+    queryFn: () => api.get('/admin/system/offers').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
+  });
+  const offers = offersData?.data;
+  const isOfferActive = !!offers?.OFFER_1_PLUS_1?.is_active;
+  const minAmount = Number(offers?.OFFER_1_PLUS_1?.min_amount ?? 100);
 
   // Read sessionStorage flag set by PaymentStatusPage on successful subscription payment
   useEffect(() => {
@@ -331,6 +342,26 @@ export default function PartnerSubscription() {
           </div>
         </motion.div>
 
+        {/* Role Credit Banner */}
+        {partner.role_credits > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => navigate('/partner/add-role')}
+            className="bg-gradient-to-r from-orange-400 to-rose-500 rounded-2xl p-5 text-white shadow-lg shadow-orange-100 flex items-center gap-4 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shrink-0">
+              <Gift size={24} />
+            </div>
+            <div className="flex-grow relative z-10">
+              <h4 className="font-black text-[13px] uppercase tracking-tight">You have {partner.role_credits} Free Role Credit{partner.role_credits > 1 ? 's' : ''}!</h4>
+              <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest mt-0.5">Claim your 1+1 offer now</p>
+            </div>
+            <ChevronRight size={20} className="text-white/50" />
+          </motion.div>
+        )}
+
         <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h4 className="text-[11px] font-black text-[#001b4e] uppercase tracking-widest">Usage Quota</h4>
@@ -402,6 +433,27 @@ export default function PartnerSubscription() {
               <h3 className="text-[12px] font-black text-[#001b4e] uppercase tracking-widest">Upgrade Options</h3>
            </div>
 
+           {isOfferActive && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-5 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-3xl text-white shadow-xl shadow-indigo-100 relative overflow-hidden"
+              >
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shrink-0">
+                    <Gift size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-lg">Special Offer: 1 + 1 Free!</h4>
+                    <p className="text-white/80 text-xs font-bold leading-relaxed">
+                      Purchase any premium plan &ge; ₹{minAmount} and get one additional role category for FREE!
+                    </p>
+                  </div>
+                </div>
+                <Zap className="absolute -right-4 -bottom-4 text-white/10 w-32 h-32 rotate-12" />
+              </motion.div>
+           )}
+
            {plans.map((plan, idx) => {
              const isCurrent = plan.name === currentPlanName;
              const isFree = plan.price === 0 || plan.name?.toLowerCase().includes('free');
@@ -422,6 +474,12 @@ export default function PartnerSubscription() {
                                {ROLE_LABELS[r] || r.replace('_', ' ')}
                              </span>
                            ))}
+                         </div>
+                       )}
+                       {isOfferActive && plan.price >= minAmount && (
+                         <div className="flex items-center gap-1.5 text-indigo-600 mt-2">
+                           <Gift size={12} />
+                           <span className="text-[9px] font-black uppercase tracking-widest">Eligible for 1+1 Offer</span>
                          </div>
                        )}
                     </div>
