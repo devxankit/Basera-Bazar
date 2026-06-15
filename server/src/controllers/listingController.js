@@ -633,6 +633,7 @@ const updateListing = async (req, res) => {
     const message = nextStatus === 'active' ? 'Listing updated successfully' : 'Listing updated and submitted for review';
     await invalidate.publicListings();
     await invalidate.adminDashboard();
+    await invalidate.partnerListings(updated.partner_id || partnerId);
     res.status(200).json({ success: true, message, data: updated });
   } catch (error) {
     logger.error({ err: error }, "Error updating listing:")
@@ -667,6 +668,7 @@ const deleteListing = async (req, res) => {
 
     await invalidate.publicListings();
     await invalidate.adminDashboard();
+    await invalidate.partnerListings(deleted.partner_id || partnerId);
 
     res.status(200).json({ success: true, message: 'Listing deleted successfully' });
   } catch (error) {
@@ -918,6 +920,10 @@ const toggleFeaturedListing = async (req, res) => {
     // 4. Update
     listing.is_featured = targetState;
     await listing.save();
+
+    await invalidate.publicListings();
+    await invalidate.adminDashboard();
+    await invalidate.partnerListings(partnerId);
 
     res.status(200).json({ 
       success: true, 

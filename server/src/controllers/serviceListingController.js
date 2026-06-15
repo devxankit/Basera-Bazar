@@ -177,6 +177,7 @@ const createServiceListing = async (req, res) => {
 
     await invalidate.publicListings();
     await invalidate.adminDashboard();
+    await invalidate.partnerListings(partnerId);
     res.status(201).json({ success: true, message: 'Service listing created successfully.', data: newService });
   } catch (error) {
     logger.error({ err: error }, "Error creating service listing:")

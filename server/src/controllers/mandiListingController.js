@@ -227,6 +227,7 @@ const createMandiListing = async (req, res) => {
 
     await invalidate.publicListings();
     await invalidate.adminDashboard();
+    await invalidate.partnerListings(partnerId);
     res.status(201).json({ success: true, message: 'Material listed successfully.', data: newMandiItem });
   } catch (error) {
     logger.error({ err: error }, "Error creating Mandi listing:")

@@ -139,6 +139,7 @@ const createPropertyListing = async (req, res) => {
 
     await invalidate.publicListings();
     await invalidate.adminDashboard();
+    await invalidate.partnerListings(partnerId);
     res.status(201).json({ success: true, message: 'Property submitted for Admin review.', data: newProperty });
 
   } catch (error) {

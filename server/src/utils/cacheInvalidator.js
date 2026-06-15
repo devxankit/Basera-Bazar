@@ -60,6 +60,11 @@ const cacheInvalidator = {
     await CacheManager.clearByPrefix(`__express__user:${partnerId}:/api/partners`);
   },
 
+  partnerListings: async (partnerId) => {
+    if (!partnerId) return;
+    await CacheManager.clearByPrefix(`__express__user:${partnerId}:/api/listings`);
+  },
+
   // Clears the leave list cache for a specific staff member (any role)
   staffLeaves: async (staffId) => {
     if (!staffId) return;
