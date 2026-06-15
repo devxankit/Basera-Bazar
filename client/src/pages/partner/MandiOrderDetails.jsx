@@ -5,7 +5,7 @@ import {
   Calendar, CheckCircle2, AlertTriangle,
   Package, ExternalLink, MapPin,
   Truck, ShieldCheck, Loader2, Star,
-  UserCheck, MessageCircle
+  UserCheck, MessageCircle, X
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -112,8 +112,8 @@ export default function MandiOrderDetails() {
       title = "Finalize Delivery?";
       message = "Verification OTP is required to complete this high-value transaction.";
     } else if (status === 'cancelled') {
-      title = "Cancel Order?";
-      message = "Operational impact: This will be logged as a seller-initiated cancellation.";
+      title = "Reject & Cancel Order?";
+      message = "Operational impact: This will cancel the order fulfillment and apply a seller penalty of the lost commission.";
       confirmText = "Yes, Cancel Order";
     }
 
@@ -409,6 +409,17 @@ export default function MandiOrderDetails() {
                     </button>
                   </div>
                 </div>
+              )}
+
+              {['pending', 'accepted', 'contacted', 'processing', 'shipped'].includes(item?.status) && (
+                <button
+                  onClick={() => updateStatus(item._id, 'cancelled')}
+                  disabled={updating}
+                  className="w-full h-11 border border-rose-200 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center gap-2 font-black text-[12px] uppercase tracking-widest active:scale-95 transition-all shadow-sm shrink-0"
+                >
+                  {updating ? <Loader2 className="animate-spin" size={14} /> : <X size={14} />}
+                  Reject Order (Penalty Applies)
+                </button>
               )}
 
               {item?.status === 'delivered' && (

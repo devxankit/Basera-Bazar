@@ -461,9 +461,12 @@ const updateLeadStatus = async (req, res) => {
 
     await order.save();
 
-    // Check if whole order is delivered
-    const allDelivered = order.items.every(i => i.status === 'delivered');
-    if (allDelivered) order.status = 'delivered';
+    // Update overall order status
+    const allFinished = order.items.every(i => ['delivered', 'cancelled'].includes(i.status));
+    if (allFinished) {
+      const hasDelivered = order.items.some(i => i.status === 'delivered');
+      order.status = hasDelivered ? 'delivered' : 'cancelled';
+    }
     await order.save();
 
     // Send notification to customer about status change
