@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { loadScript } from '../../utils/loadScript';
 import toast from '../../mockToast';
 import { RAZORPAY_ENABLED, RAZORPAY_DISABLED_MESSAGE, showRazorpayDisabledNotice } from '../../constants/paymentFlags';
+import { detectCoordinates } from '../../utils/geolocate';
 
 export default function MandiCheckout() {
    const navigate = useNavigate();
@@ -29,6 +30,102 @@ export default function MandiCheckout() {
    const [orderData, setOrderData] = useState(null);
    const [deliveryOtp, setDeliveryOtp] = useState('');
    const [searchParams, setSearchParams] = useSearchParams();
+
+   const [locLoading, setLocLoading] = useState(false);
+
+   const fetchCurrentLocation = async () => {
+      setLocLoading(true);
+      try {
+         const loc = await detectCoordinates({
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0,
+         });
+         const { latitude, longitude } = loc;
+
+         let city = "";
+         let state = "Bihar";
+         let pincode = "";
+         let landmark = "";
+         let street = "";
+         let success = false;
+
+         const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+         if (GMAPS_KEY) {
+            try {
+               const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GMAPS_KEY}`;
+               const response = await fetch(url);
+               const data = await response.json();
+
+               if (data.status === "OK" && data.results.length > 0) {
+                  const result = data.results[0];
+                  const components = result.address_components;
+
+                  const get = (type) =>
+                     (components || []).find((c) => c.types.includes(type))?.long_name || "";
+
+                  city = get("locality") || get("sublocality_level_1") || get("administrative_area_level_3") || "";
+                  state = get("administrative_area_level_1") || "Bihar";
+                  pincode = get("postal_code") || "";
+                  landmark = get("sublocality_level_2") || get("neighborhood") || "";
+                  street = result.formatted_address || "";
+                  success = true;
+               }
+            } catch (err) {
+               console.error("Google reverse geocoding failed, trying fallback:", err);
+            }
+         }
+
+         // Graceful fallback to Nominatim (OpenStreetMap)
+         if (!success) {
+            try {
+               const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`;
+               const response = await fetch(url, { headers: { "Accept-Language": "en-US,en" } });
+               const data = await response.json();
+
+               if (data && data.address) {
+                  const addr = data.address;
+                  city = addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || "";
+                  state = addr.state || "Bihar";
+                  pincode = addr.postcode || "";
+                  landmark = addr.suburb || addr.neighbourhood || addr.sublocality || "";
+                  street = data.display_name || "";
+                  success = true;
+               }
+            } catch (err) {
+               console.error("Nominatim geocoding fallback failed:", err);
+            }
+         }
+
+         if (success) {
+            setAddress(prev => ({
+               ...prev,
+               street: street || prev.street,
+               city: city || prev.city,
+               state: state || prev.state,
+               pincode: pincode || prev.pincode,
+               landmark: landmark || prev.landmark
+            }));
+            toast.success("Location auto-filled successfully!");
+         } else {
+            // Fallback for IP-based approximations if both geocoding calls fail
+            if (loc.source === 'ip') {
+               setAddress(prev => ({
+                  ...prev,
+                  city: loc.city || prev.city,
+                  state: loc.state || prev.state
+               }));
+               toast.success("Location auto-filled using IP!");
+            } else {
+               toast.error("Could not fetch location details. Please fill manually.");
+            }
+         }
+      } catch (err) {
+         toast.error("Failed to detect location. Please fill it manually.");
+      } finally {
+         setLocLoading(false);
+      }
+   };
 
    useEffect(() => {
       const error = searchParams.get('error');
@@ -227,11 +324,26 @@ export default function MandiCheckout() {
 
             {step === 1 ? (
                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                  <div className="flex items-center gap-3 mb-2 px-1">
-                     <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-[#001b4e]">
-                        <MapPin size={22} />
+                  <div className="flex items-center justify-between mb-2 px-1">
+                     <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-[#001b4e]">
+                           <MapPin size={22} />
+                        </div>
+                        <h3 className="text-[18px] font-bold text-[#001b4e]">Delivery Details</h3>
                      </div>
-                     <h3 className="text-[18px] font-bold text-[#001b4e]">Delivery Details</h3>
+                     <button
+                        type="button"
+                        onClick={fetchCurrentLocation}
+                        disabled={locLoading}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-[#001b4e] font-bold text-[12px] rounded-xl active:scale-95 transition-all shadow-sm border border-indigo-100/50 disabled:opacity-75"
+                     >
+                        {locLoading ? (
+                           <Loader2 size={13} className="animate-spin text-[#001b4e]" />
+                        ) : (
+                           <Navigation size={13} className="rotate-45 text-[#001b4e]" />
+                        )}
+                        {locLoading ? "Locating..." : "Auto Fill"}
+                     </button>
                   </div>
 
                   <div className="space-y-4">

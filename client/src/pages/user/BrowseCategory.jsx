@@ -6,7 +6,7 @@ import {
   ArrowLeft, Search, Filter, Map, LayoutGrid, Building2,
   ChevronRight, MapPin, Package, Star, Phone, MessageSquare, Clock, Award, X, Navigation, Send,
   ListFilter, History, TrendingUp, TrendingDown, Ruler, Maximize, Check, List, CheckCircle2, Store, Briefcase,
-  Bed, Bath, ArrowRight, Heart, Plus, ShoppingCart, Minus, Truck, FileText, MoreVertical, Megaphone, Users, Zap, Tag
+  Bed, Bath, ArrowRight, Heart, Plus, ShoppingCart, Minus, Truck, FileText, MoreVertical, Megaphone, Users, Zap, Tag, Flag
 } from 'lucide-react';
 import { useLocationContext } from '../../context/LocationContext';
 import { useCart } from '../../context/CartContext';
@@ -774,7 +774,7 @@ const BrowseCategory = () => {
                         </span>
                         {(item.is_featured || item.featured) && (
                           <span className="bg-orange-500 text-white shadow-sm px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest w-fit flex items-center gap-1">
-                            <Star size={8} fill="white" />
+                            <Flag size={8} fill="white" />
                             Featured
                           </span>
                         )}

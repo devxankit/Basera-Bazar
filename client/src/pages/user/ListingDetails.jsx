@@ -3,7 +3,7 @@ import { useScrollLock } from '../../hooks/useScrollLock';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from '../../mockToast';
 import { db } from '../../services/DataEngine';
-import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star, ShoppingCart, Plus, Minus, Package, Loader2 } from 'lucide-react';
+import { MapPin, Phone, MessageSquare, Navigation, ArrowLeft, CheckCircle2, ChevronRight, Tag, Home, Ruler, Send, LayoutGrid, Mail, User as UserIcon, X, Building2, Calendar, Map as MapIcon, ChevronDown, ShieldCheck, Star, ShoppingCart, Plus, Minus, Package, Loader2, Flag } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { clsx } from 'clsx';
@@ -490,18 +490,35 @@ const ListingDetails = () => {
             </div>
 
             {/* Glass Stats Grid */}
-            <div className="grid grid-cols-3 gap-3 relative z-20">
-              {[
+            {(() => {
+              const rating = listing.rating || 
+                             listing.profile?.supplier_profile?.avg_rating || 
+                             listing.profile?.mandi_profile?.avg_rating || 
+                             listing.profile?.service_profile?.avg_rating || 
+                             listing.profile?.property_profile?.avg_rating || 0;
+              
+              const stats = [
                 { label: 'Status', value: listing.owner?.verificationStatus || 'Verified', color: 'text-emerald-400', icon: ShieldCheck },
                 { label: 'Experience', value: listing.owner?.experience || 'N/A', color: 'text-white', icon: Navigation },
-                { label: 'Rating', value: listing.rating?.toFixed(1) || 'N/A', color: 'text-orange-400', icon: Star }
-              ].map((stat, i) => (
-                <div key={i} className="flex flex-col items-center justify-center py-4 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[24px] shadow-2xl">
-                  <span className={cn("font-black text-[14px] xs:text-[16px] leading-none mb-1.5", stat.color)}>{stat.value}</span>
-                  <span className="text-white/40 text-[9px] font-black uppercase tracking-widest">{stat.label}</span>
+              ];
+
+              if (rating > 0) {
+                stats.push({ label: 'Rating', value: rating.toFixed(1), color: 'text-orange-400', icon: Star });
+              }
+
+              const gridCols = stats.length === 3 ? 'grid-cols-3' : 'grid-cols-2';
+
+              return (
+                <div className={cn("grid gap-3 relative z-20", gridCols)}>
+                  {stats.map((stat, i) => (
+                    <div key={i} className="flex flex-col items-center justify-center py-4 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[24px] shadow-2xl">
+                      <span className={cn("font-black text-[14px] xs:text-[16px] leading-none mb-1.5", stat.color)}>{stat.value}</span>
+                      <span className="text-white/40 text-[9px] font-black uppercase tracking-widest">{stat.label}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
           </div>
         </>
       )}
@@ -685,7 +702,22 @@ const ListingDetails = () => {
                         )}
                       </div>
                       <div>
-                        <h4 className="text-[15px] font-bold text-[#1f2355]">{listing.owner?.name || 'Basera Properties'}</h4>
+                        <div className="flex items-center gap-2">
+                           <h4 className="text-[15px] font-bold text-[#1f2355]">{listing.owner?.name || 'Basera Properties'}</h4>
+                           {(() => {
+                              const rating = listing.rating || 
+                                             listing.partner_id?.profile?.mandi_profile?.avg_rating || 
+                                             listing.partner_id?.profile?.supplier_profile?.avg_rating || 
+                                             listing.partner_id?.profile?.service_profile?.avg_rating || 
+                                             listing.partner_id?.profile?.property_profile?.avg_rating || 0;
+                              return rating > 0 ? (
+                                 <div className="flex items-center gap-0.5 text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100/50">
+                                    <Star size={10} fill="currentColor" />
+                                    <span className="text-[10px] font-extrabold leading-none">{rating.toFixed(1)}</span>
+                                 </div>
+                              ) : null;
+                           })()}
+                        </div>
                         <p className="text-[12px] font-medium text-[#fa8639] -mt-0.5">
                           {listing.owner?.display_name && listing.owner.display_name !== listing.owner.name ? `Rep: ${listing.owner.display_name}` : (listing.owner?.role || 'Verified Partner')}
                         </p>

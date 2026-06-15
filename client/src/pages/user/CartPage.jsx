@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { useQuery } from '@tanstack/react-query';
-import { ShoppingCart, ArrowLeft, Trash2, Plus, Minus, ChevronRight, PackageOpen } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ShoppingCart, ArrowLeft, Trash2, Plus, Minus, ChevronRight, PackageOpen, Loader2 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CartPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { cart, addToCart, removeFromCart, deleteFromCart, cartTotal, cartCount } = useCart();
 
   const cartItems = Object.values(cart);
@@ -47,6 +48,58 @@ export default function CartPage() {
   };
 
   const tokenAmount = getCalculatedTokenAmount();
+
+  const [checkingPrice, setCheckingPrice] = useState(false);
+  const [priceMismatch, setPriceMismatch] = useState(false);
+  const [latestTokenAmount, setLatestTokenAmount] = useState(0);
+
+  const handleCheckout = async () => {
+    if (checkingPrice) return;
+    setCheckingPrice(true);
+    try {
+      const res = await api.get('/admin/mandi/settings');
+      const latestConfig = res.data?.success ? res.data.data : null;
+      
+      if (latestConfig) {
+        let calculatedLatestToken = 0;
+        const sellersCount = getUniqueSellersCount();
+
+        if (!latestConfig.categories) {
+          calculatedLatestToken = latestConfig.token_amount * sellersCount;
+        } else {
+          cartItems.forEach(c => {
+            const itemPrice = c.item.pricing?.price_per_unit || c.item.price?.value || 0;
+            const itemTotal = itemPrice * c.qty;
+            
+            const categoryId = c.item.category_id?._id || c.item.category_id;
+            const catConfig = latestConfig.categories.find(cat => cat.id === categoryId);
+            const percentage = catConfig ? Number(catConfig.percentage) : (latestConfig.commission_rate || 0);
+            
+            calculatedLatestToken += (itemTotal * (percentage / 100));
+          });
+
+          if (calculatedLatestToken <= 0) {
+            calculatedLatestToken = latestConfig.token_amount * sellersCount;
+          } else {
+            calculatedLatestToken = Math.round(calculatedLatestToken);
+          }
+        }
+
+        if (calculatedLatestToken !== tokenAmount) {
+          setLatestTokenAmount(calculatedLatestToken);
+          setPriceMismatch(true);
+          return;
+        }
+      }
+      
+      navigate('/mandi-bazar/checkout');
+    } catch (err) {
+      console.error("Error checking latest settings:", err);
+      navigate('/mandi-bazar/checkout');
+    } finally {
+      setCheckingPrice(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24">
@@ -199,13 +252,61 @@ export default function CartPage() {
             <span className="text-[22px] font-black text-[#0c2461] leading-none mt-1">₹{tokenAmount}</span>
           </div>
           <button 
-            onClick={() => navigate('/mandi-bazar/checkout')}
-            className="h-[52px] bg-[#0c2461] hover:bg-[#1e293b] text-white px-8 rounded-full font-bold text-[15px] shadow-xl shadow-indigo-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+            onClick={handleCheckout}
+            disabled={checkingPrice}
+            className="h-[52px] bg-[#0c2461] hover:bg-[#1e293b] text-white px-8 rounded-full font-bold text-[15px] shadow-xl shadow-indigo-900/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-75"
           >
-            Checkout <ChevronRight size={18} />
+            {checkingPrice ? <Loader2 size={18} className="animate-spin text-white" /> : <>Checkout <ChevronRight size={18} /></>}
           </button>
         </div>
       )}
+
+      {/* Price Mismatch Modal */}
+      <AnimatePresence>
+        {priceMismatch && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ['mandiSettings'] });
+                setPriceMismatch(false);
+              }}
+            />
+            {/* Modal Box */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-[32px] p-6 max-w-sm w-full relative z-10 shadow-2xl text-center space-y-5 border border-slate-100"
+            >
+              <div className="w-16 h-16 bg-amber-50 border border-amber-100 rounded-full flex items-center justify-center text-amber-500 mx-auto">
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-8 h-8">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                 </svg>
+              </div>
+              <div className="space-y-2">
+                 <h3 className="text-[18px] font-black text-slate-800 leading-tight">Payable Amount Changed</h3>
+                 <p className="text-[13px] text-slate-500 font-medium leading-relaxed">
+                    The booking token has changed from <strong className="text-slate-800">₹{tokenAmount}</strong> to <strong className="text-indigo-600">₹{latestTokenAmount}</strong> due to updated economics configuration.
+                 </p>
+              </div>
+              <button
+                 onClick={() => {
+                    queryClient.invalidateQueries({ queryKey: ['mandiSettings'] });
+                    setPriceMismatch(false);
+                 }}
+                 className="w-full py-4 bg-[#0c2461] hover:bg-[#1e293b] text-white rounded-2xl font-bold text-[14px] shadow-lg shadow-indigo-900/10 active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
+              >
+                 Okay
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

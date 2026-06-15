@@ -50,6 +50,10 @@ class DataEngine {
       normalized.image = rawImage || imageFallback;
       normalized.price = { value: 0, unit: 'Contact for Quote', currency: 'INR' };
       normalized.isPartner = true;
+      normalized.rating = profile.supplier_profile?.avg_rating || 
+                          profile.mandi_profile?.avg_rating || 
+                          profile.service_profile?.avg_rating || 
+                          profile.property_profile?.avg_rating || 0;
 
       // For partners, the "owner" is the partner itself
       normalized.owner = {
@@ -197,6 +201,11 @@ class DataEngine {
       location: ownerData.default_location ? `${ownerData.default_location.city || ''}, ${ownerData.default_location.state || ''}`.trim().replace(/^,/, '').trim() || 'Muzaffarpur, Bihar' : (ownerData.city ? `${ownerData.city}, ${ownerData.state}` : 'Muzaffarpur, Bihar'),
       joinedAt: ownerData.createdAt
     };
+
+    normalized.rating = profile.mandi_profile?.avg_rating || 
+                        profile.supplier_profile?.avg_rating || 
+                        profile.service_profile?.avg_rating || 
+                        profile.property_profile?.avg_rating || 0;
 
     return normalized;
   }

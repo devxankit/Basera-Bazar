@@ -415,11 +415,10 @@ export default function MandiMarketplace() {
          {/* ── BULK ORDER BANNER ── */}
          <div className="mt-5 px-4">
             <div
-               onClick={() => navigate('/browse/mandi')}
-               className="relative overflow-hidden bg-white rounded-2xl shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center"
+               className="relative overflow-hidden bg-white rounded-2xl shadow-sm flex items-center justify-center"
             >
                <img
-                  src="/mandi-bottom-banner.jpeg"
+                  src="/mandi-bottom-banner-white.png"
                   alt="Bulk Orders"
                   className="w-full h-auto object-contain"
                />
