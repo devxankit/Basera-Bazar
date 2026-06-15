@@ -200,6 +200,29 @@ describe('POST /api/orders/checkout', () => {
     expect(res.status).toBe(404);
     expect(res.body.success).toBe(false);
   });
+
+  test('handles 0-amount booking fallback cleanly without calling Razorpay API', async () => {
+    const { AppConfig } = require('../models/System');
+    // Set global fallback to 0 to simulate 0-amount token payment
+    await AppConfig.create({ key: 'mandi_token_amount', value: 0 });
+
+    const res = await request(app)
+      .post('/api/orders/checkout')
+      .set('Authorization', `Bearer ${buyerToken}`)
+      .send({
+        items: [{ productId: product._id.toString(), qty: 1 }],
+        shipping_address: { full_name: 'Test Buyer', phone: '9700000002', full_address: '1 Test Street Address', city: 'Patna', state: 'Bihar', pincode: '800001' }
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.payment_amount).toBe(0);
+    expect(res.body.data.razorpay_order_id).toMatch(/^order_mock_/);
+    expect(res.body.data.key).toBe('rzp_test_mock');
+
+    // Clean up
+    await AppConfig.deleteOne({ key: 'mandi_token_amount' });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -301,6 +324,43 @@ describe('POST /api/orders/payment/verify', () => {
 
     expect(verifyRes.status).toBe(409);
     expect(verifyRes.body.success).toBe(false);
+  });
+
+  test('handles 0-amount order payment verification bypass cleanly in production mode', async () => {
+    const { AppConfig } = require('../models/System');
+    await AppConfig.create({ key: 'mandi_token_amount', value: 0 });
+
+    const checkoutRes = await request(app)
+      .post('/api/orders/checkout')
+      .set('Authorization', `Bearer ${buyerToken}`)
+      .send({
+        items: [{ productId: product._id.toString(), qty: 1 }],
+        shipping_address: { full_name: 'Test Buyer', phone: '9700000002', full_address: '1 Test Street Address', city: 'Patna', state: 'Bihar', pincode: '800001' }
+      });
+
+    expect(checkoutRes.status).toBe(201);
+    const { razorpay_order_id } = checkoutRes.body.data;
+
+    // Temporarily set NODE_ENV to production to test bypass logic
+    const oldNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    try {
+      const verifyRes = await request(app)
+        .post('/api/orders/payment/verify')
+        .set('Authorization', `Bearer ${buyerToken}`)
+        .send({
+          razorpay_order_id,
+          razorpay_payment_id: 'pay_mock_free',
+          razorpay_signature: 'mock'
+        });
+
+      expect(verifyRes.status).toBe(200);
+      expect(verifyRes.body.success).toBe(true);
+    } finally {
+      process.env.NODE_ENV = oldNodeEnv;
+      await AppConfig.deleteOne({ key: 'mandi_token_amount' });
+    }
   });
 });
 

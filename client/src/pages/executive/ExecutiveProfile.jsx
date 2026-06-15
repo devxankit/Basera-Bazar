@@ -40,23 +40,8 @@ export default function ExecutiveProfile() {
   const [showBankForm, setShowBankForm] = useState(false);
   const [bankForm, setBankForm] = useState({ account_number: '', ifsc_code: '', bank_name: '', account_holder_name: '' });
   const [isSavingBank, setIsSavingBank] = useState(false);
-  const [sendingTest, setSendingTest] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
-
-  const handleTestPush = async () => {
-    setSendingTest(true);
-    try {
-      const res = await api.post('/push/test');
-      if (res.data.success) {
-        toast.success(res.data.message || 'Test push notification sent!');
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to send test push notification');
-    } finally {
-      setSendingTest(false);
-    }
-  };
 
   const { data: rawData, isLoading: loading } = useQuery({
     queryKey: ['executiveProfileData'],
@@ -397,18 +382,7 @@ export default function ExecutiveProfile() {
           )}
         </motion.div>
 
-        {/* Action: Test Push Notification */}
-        <motion.div variants={itemVariants}>
-          <button 
-            type="button"
-            onClick={handleTestPush}
-            disabled={sendingTest}
-            className="w-full p-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-medium text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/10 disabled:opacity-60"
-          >
-            {sendingTest ? <Loader2 size={16} className="animate-spin" /> : <Bell size={16} />}
-            {sendingTest ? 'Sending...' : 'Test Push Notification'}
-          </button>
-        </motion.div>
+
 
         {/* Action: Support Center */}
         <motion.div variants={itemVariants}>

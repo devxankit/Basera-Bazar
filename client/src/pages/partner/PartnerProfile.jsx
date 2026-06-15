@@ -20,21 +20,6 @@ export default function PartnerProfile() {
   const [showDeleteRoleModal, setShowDeleteRoleModal] = useState(null);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [sendingTest, setSendingTest] = useState(false);
-
-  const handleTestPush = async () => {
-    setSendingTest(true);
-    try {
-      const res = await api.post('/push/test');
-      if (res.data.success) {
-        toast.success(res.data.message || 'Test push notification sent!');
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to send test push notification');
-    } finally {
-      setSendingTest(false);
-    }
-  };
 
   useScrollLock(showLogoutModal || !!showDeleteRoleModal || showDeleteAccountModal);
 
@@ -230,15 +215,7 @@ export default function PartnerProfile() {
           </div>
         </div>
 
-        {/* Test Push Notification */}
-        <button 
-          onClick={handleTestPush}
-          disabled={sendingTest}
-          className="w-full bg-[#001b4e] hover:bg-[#00143a] text-white py-4.5 rounded-xl font-bold text-[13px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-3 shadow-lg shadow-blue-900/10 disabled:opacity-60"
-        >
-          {sendingTest ? <Loader2 size={18} className="animate-spin" /> : <Bell size={18} />}
-          Test Push Notification
-        </button>
+
 
         {/* Logout */}
         <button 

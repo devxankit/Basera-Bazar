@@ -130,7 +130,7 @@ const createMarketplaceOrder = async (req, res) => {
     let rpOrder;
     const hasKeys = process.env.NODE_ENV !== 'test' && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_ID !== 'your_razorpay_key_id';
     
-    if (hasKeys) {
+    if (hasKeys && totalBookingToken > 0) {
       rpOrder = await createRPOrder(totalBookingToken);
     } else {
       rpOrder = { id: `order_mock_${crypto.randomBytes(8).toString('hex')}`, amount: totalBookingToken * 100 };
@@ -169,7 +169,7 @@ const createMarketplaceOrder = async (req, res) => {
         order: newOrder,
         razorpay_order_id: rpOrder.id,
         payment_amount: totalBookingToken,
-        key: hasKeys ? process.env.RAZORPAY_KEY_ID : 'rzp_test_mock'
+        key: (hasKeys && totalBookingToken > 0) ? process.env.RAZORPAY_KEY_ID : 'rzp_test_mock'
       }
     });
 
@@ -186,8 +186,18 @@ const createMarketplaceOrder = async (req, res) => {
  * Helper to process marketplace order payment (shared between AJAX verify and Redirect callback)
  */
 const processMarketplacePaymentActivation = async ({ razorpay_order_id, razorpay_payment_id, razorpay_signature }) => {
-  // 1. Signature Verification (Only if not mock — mock bypass only allowed outside production)
-  const isMock = process.env.NODE_ENV !== 'production' && razorpay_order_id.startsWith('order_mock_');
+  const rzOrder = await RazorpayOrder.findOne({ razorpay_order_id });
+  if (!rzOrder) {
+    throw new Error('Payment record not found.');
+  }
+
+  if (rzOrder.status === 'paid') {
+    const order = await Order.findOne({ 'token_payment.razorpay_order_id': razorpay_order_id });
+    return { order, alreadyProcessed: true };
+  }
+
+  // 1. Signature Verification (Only if not mock — mock bypass only allowed outside production, except for zero-amount bookings)
+  const isMock = (process.env.NODE_ENV !== 'production' && razorpay_order_id.startsWith('order_mock_')) || rzOrder.amount === 0;
   if (!isMock) {
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
@@ -198,16 +208,6 @@ const processMarketplacePaymentActivation = async ({ razorpay_order_id, razorpay
     if (expectedSignature !== razorpay_signature) {
       throw new Error('Invalid payment signature');
     }
-  }
-
-  const rzOrder = await RazorpayOrder.findOne({ razorpay_order_id });
-  if (!rzOrder) {
-    throw new Error('Payment record not found.');
-  }
-
-  if (rzOrder.status === 'paid') {
-    const order = await Order.findOne({ 'token_payment.razorpay_order_id': razorpay_order_id });
-    return { order, alreadyProcessed: true };
   }
 
   // 1. Update Razorpay record
