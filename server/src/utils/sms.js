@@ -28,7 +28,7 @@ const sendOTP = async (phone, otp) => {
     const appName = "Basera Bazar";
 
     // 3. The SMS message text — must exactly match your DLT registered template!
-    const message = `Welcome to ${appName} powered by Appzeto. Your OTP for registration is ${otp}`;
+    const message = `Welcome to the ${appName} powered by Appzeto.Your OTP for registration is ${otp}.BGADEC`;
 
     // 4. URL-encode the message so special characters don't break the URL
     const encodedMessage = encodeURIComponent(message);
