@@ -8,7 +8,7 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { registerFCMToken } from '../../services/pushNotificationService';
 import { v, sanitize } from '../../utils/validators';
-import toast from '../../mockToast';
+import toast, { Toaster } from '../../mockToast';
 import TestingModeBanner from '../../components/common/TestingModeBanner';
 
 export default function PartnerLogin() {
@@ -43,7 +43,7 @@ export default function PartnerLogin() {
   const onLoginSuccess = async (user, token) => {
     login(user, token);
     localStorage.setItem('baserabazar_partner_role', user.role);
-    if (Notification.permission === 'default') {
+    if ('Notification' in window && Notification.permission === 'default') {
       setShowNotificationPrompt(true);
       return;
     }
@@ -53,8 +53,10 @@ export default function PartnerLogin() {
 
   const handleEnableNotifications = async () => {
     try {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') registerFCMToken(true);
+      if ('Notification' in window) {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') registerFCMToken(true);
+      }
     } catch (err) {
     } finally {
       setShowNotificationPrompt(false);
@@ -157,6 +159,7 @@ export default function PartnerLogin() {
 
   return (
     <div className="min-h-screen max-w-md mx-auto bg-white flex flex-col font-outfit">
+      <Toaster />
 
       {/* ── HEADER ── */}
       <div className="sticky top-0 z-10 bg-white border-b border-slate-100 px-6 py-4 flex flex-col items-center pt-10 pb-6">

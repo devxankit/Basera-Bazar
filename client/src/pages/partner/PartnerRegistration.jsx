@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import toast from '../../mockToast';
+import toast, { Toaster } from '../../mockToast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -422,6 +422,7 @@ export default function PartnerRegistration() {
 
   return (
     <div className="min-h-screen max-w-md mx-auto relative shadow-2xl shadow-slate-200 bg-white flex flex-col font-sans overflow-x-hidden">
+      <Toaster />
       {/* Exit registration confirmation */}
       {showExitConfirm && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-[#001b4e]/50 backdrop-blur-sm">

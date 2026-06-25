@@ -181,7 +181,7 @@ function setupForegroundHandler(onMessageReceived) {
     // showNotification() — `new Notification()` throws an "Illegal constructor"
     // error on Android/mobile browsers, so foreground notifications silently
     // fail to display there.
-    if (Notification.permission === 'granted' && payload.notification) {
+    if ('Notification' in window && Notification.permission === 'granted' && payload.notification) {
       try {
         const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')
           || await navigator.serviceWorker.ready;
