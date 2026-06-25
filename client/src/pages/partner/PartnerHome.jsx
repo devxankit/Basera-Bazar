@@ -19,7 +19,8 @@ import {
   UserCircle,
   ShoppingBag,
   AlertCircle,
-  ShieldCheck
+  ShieldCheck,
+  Globe
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -304,6 +305,12 @@ export default function PartnerHome() {
               icon={<TrendingUp size={24} />} 
               color="bg-indigo-600" 
               onClick={() => navigate('/partner/leads')}
+            />
+            <ActionCard 
+              title="Partner Network" 
+              icon={<Globe size={24} />} 
+              color="bg-emerald-600" 
+              onClick={() => window.open('https://baserabazarnetwork.in/index.aspx', '_blank')}
             />
             {role.includes('mandi') && (
               <ActionCard
