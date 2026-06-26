@@ -81,9 +81,18 @@ const supplierCategorySchema = new mongoose.Schema({
   is_active: { type: Boolean, default: true }
 }, { timestamps: true });
 
+// Measurement units offered to agents when listing a property's built-up area
+// (e.g. "sq. ft.", "acre", "gaj"). Managed by admins under Properties > Units.
+const propertyUnitSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true, trim: true }, // Display label shown in the dropdown
+  is_active: { type: Boolean, default: true },
+  order: { type: Number, default: 0 } // Controls dropdown ordering (lower first)
+}, { timestamps: true });
+
 module.exports = {
   Category: mongoose.model('Category', categorySchema),
   SupplierCategory: mongoose.model('SupplierCategory', supplierCategorySchema),
+  PropertyUnit: mongoose.model('PropertyUnit', propertyUnitSchema),
   Banner: mongoose.model('Banner', bannerSchema),
   Location: mongoose.model('Location', locationSchema),
   Notification: mongoose.model('Notification', notificationSchema),

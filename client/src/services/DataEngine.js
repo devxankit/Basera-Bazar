@@ -244,6 +244,14 @@ class DataEngine {
     }, 10 * 60 * 1000); // 10 minutes for categories
   }
 
+  // Active measurement units for a property's built-up area (admin-managed)
+  async getPropertyUnits() {
+    return cacheService.get('property_units', async () => {
+      const response = await api.get('/listings/property-units');
+      return response.data.data || [];
+    }, 10 * 60 * 1000); // 10 minutes — units change rarely
+  }
+
   async getAll(table, params = {}) {
     // Clean up params: remove null/undefined values to avoid stringifying them as "null" or "undefined"
     const cleanParams = Object.entries(params).reduce((acc, [key, value]) => {

@@ -70,6 +70,10 @@ const {
   createSupplierCategory,
   updateSupplierCategory,
   deleteSupplierCategory,
+  getPropertyUnits,
+  createPropertyUnit,
+  updatePropertyUnit,
+  deletePropertyUnit,
   validateReferralCode,
   createDailyTask,
   getDailyTaskHistory,
@@ -153,6 +157,12 @@ router.get('/system/supplier-categories/:id', getSupplierCategoryDetail);
 router.post('/system/supplier-categories', createSupplierCategory);
 router.put('/system/supplier-categories/:id', updateSupplierCategory);
 router.delete('/system/supplier-categories/:id', deleteSupplierCategory);
+
+// Property Unit Management (build-up area measurement units)
+router.get('/system/property-units', getPropertyUnits);
+router.post('/system/property-units', createPropertyUnit);
+router.put('/system/property-units/:id', vId, updatePropertyUnit);
+router.delete('/system/property-units/:id', vId, deletePropertyUnit);
 
 
 

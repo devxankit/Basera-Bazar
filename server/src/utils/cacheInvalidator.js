@@ -36,6 +36,10 @@ const cacheInvalidator = {
     await CacheManager.clearByPrefix('__express__public:/api/admin/system/categories');
   },
 
+  publicPropertyUnits: async () => {
+    await CacheManager.clearByPrefix('__express__public:/api/listings/property-units');
+  },
+
   publicBanners: async () => {
     await CacheManager.clearByPrefix('__express__public:/api/listings/banners');
     await CacheManager.clearByPrefix('__express__public:/api/admin/system/banners');

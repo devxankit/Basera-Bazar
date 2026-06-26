@@ -58,6 +58,7 @@ const navItems = [
       { label: 'Add Property', path: '/admin/properties/add' },
       { label: 'Categories', path: '/admin/properties/categories' },
       { label: 'Subcategories', path: '/admin/properties/subcategories' },
+      { label: 'Property Units', path: '/admin/properties/units' },
     ]
   },
   { 

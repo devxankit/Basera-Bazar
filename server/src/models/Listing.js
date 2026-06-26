@@ -88,7 +88,8 @@ const propertyListingSchema = new mongoose.Schema({
   details: {
     area: { 
       value: { type: Number },
-      unit: { type: String, enum: ['', 'sqft', 'sqyrd', 'sqmt', 'acre', 'dismil', 'gaj', 'bigha', 'katha'], default: 'sqft' },
+      unit: { type: String, default: 'sqft' }, // Dynamic — managed by admins under Properties > Units
+
       super_built_up_area: { type: Number },
       carpet_area: { type: Number }
     },

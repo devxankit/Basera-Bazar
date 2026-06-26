@@ -16,6 +16,7 @@ import { useScrollLock } from '../../hooks/useScrollLock';
 import { useBackgroundUpload } from '../../hooks/useBackgroundUpload';
 
 const TYPES = ['Commercial', 'Residential', 'Agricultural', 'Industrial'];
+// Fallback units used only if the admin-managed list fails to load.
 const UNITS = ['sq. ft.', 'sq. m.', 'acre', 'dismil', 'gaj'];
 
 import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
@@ -109,6 +110,14 @@ export default function AddProperty() {
         planName: limitsData.data.plan_name || 'Basic'
       }
     : { canAddListing: true, canFeature: false, message: '', planName: 'Verifying...' };
+
+  // --- React Query: admin-managed area units ---
+  const { data: unitsData } = useQuery({
+    queryKey: ['propertyUnits'],
+    queryFn: () => db.getPropertyUnits(),
+    staleTime: 10 * 60 * 1000,
+  });
+  const unitOptions = unitsData && unitsData.length ? unitsData.map(u => u.name) : UNITS;
 
   // --- React Query: edit property data ---
   const { data: editPropertyData } = useQuery({
@@ -869,7 +878,7 @@ function StepOne({ formData, handleChange, handleCategorySelect, handleSubCatego
             <InputField label="Built-up Area" name="builtUpArea" type="number" value={formData.builtUpArea} placeholder="Ex: 1200" onChange={handleChange} />
           </div>
           <div className="col-span-2">
-            <SelectField label="Unit" name="unit" icon={null} value={formData.unit} options={UNITS} onChange={handleChange} />
+            <SelectField label="Unit" name="unit" icon={null} value={formData.unit} options={unitOptions} onChange={handleChange} />
           </div>
         </div>
         <div className="mt-4">

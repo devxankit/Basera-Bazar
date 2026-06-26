@@ -1,10 +1,11 @@
 const logger = require('../../utils/logger');
 const { Partner } = require('../../models/Partner');
 const { PropertyListing, ServiceListing, MandiListing } = require('../../models/Listing');
-const { Category, SupplierCategory, Banner, AppConfig } = require('../../models/System');
+const { Category, SupplierCategory, PropertyUnit, Banner, AppConfig } = require('../../models/System');
 const invalidate = require('../../utils/cacheInvalidator');
 const pick = require('../../utils/pick');
 const respondError = require('../../utils/respondError');
+const { ensurePropertyUnitsSeeded, storedFormsForUnit } = require('../../utils/propertyUnits');
 
 const sanitizeCategoryName = (name) => {
   if (!name) return name;
@@ -173,6 +174,86 @@ const getSupplierCategoryDetail = async (req, res) => {
     res.status(200).json({ success: true, data: { ...category.toObject(), subcategories } });
   } catch (error) {
     return respondError(res, error, 'Get supplier category detail', 'Could not fetch supplier category details.');
+  }
+};
+
+/* ── Property Units (build-up area measurement units) ── */
+const getPropertyUnits = async (req, res) => {
+  try {
+    await ensurePropertyUnitsSeeded();
+    const { include_inactive } = req.query;
+    const query = include_inactive === 'true' ? {} : { is_active: true };
+    const units = await PropertyUnit.find(query).sort({ order: 1, name: 1 });
+
+    const processed = await Promise.all(units.map(async (unit) => {
+      const obj = unit.toObject();
+      obj.listing_count = await PropertyListing.countDocuments({
+        'details.area.unit': { $in: storedFormsForUnit(unit.name) }
+      });
+      return obj;
+    }));
+
+    res.status(200).json({ success: true, count: processed.length, data: processed });
+  } catch (error) {
+    logger.error({ err: error }, 'getPropertyUnits ERROR:');
+    res.status(500).json({ success: false, message: 'Error fetching property units.' });
+  }
+};
+
+const createPropertyUnit = async (req, res) => {
+  try {
+    const { name, is_active, order } = req.body;
+    if (!name?.trim()) return res.status(400).json({ success: false, message: 'Unit name is required.' });
+    const exists = await PropertyUnit.findOne({ name: name.trim() });
+    if (exists) return res.status(400).json({ success: false, message: 'A unit with this name already exists.' });
+    const unit = await PropertyUnit.create({
+      name: name.trim(),
+      is_active: is_active !== undefined ? is_active : true,
+      order: Number(order) || 0,
+    });
+    await invalidate.publicPropertyUnits();
+    res.status(201).json({ success: true, data: unit });
+  } catch (error) {
+    return respondError(res, error, 'Create property unit', 'Could not create property unit.');
+  }
+};
+
+const updatePropertyUnit = async (req, res) => {
+  try {
+    const update = pick(req.body, ['name', 'is_active', 'order']);
+    if (update.name !== undefined) {
+      if (!update.name.trim()) return res.status(400).json({ success: false, message: 'Unit name is required.' });
+      update.name = update.name.trim();
+      const clash = await PropertyUnit.findOne({ name: update.name, _id: { $ne: req.params.id } });
+      if (clash) return res.status(400).json({ success: false, message: 'A unit with this name already exists.' });
+    }
+    if (update.order !== undefined) update.order = Number(update.order) || 0;
+    const unit = await PropertyUnit.findByIdAndUpdate(req.params.id, { $set: update }, { new: true });
+    if (!unit) return res.status(404).json({ success: false, message: 'Property unit not found.' });
+    await invalidate.publicPropertyUnits();
+    res.status(200).json({ success: true, data: unit });
+  } catch (error) {
+    return respondError(res, error, 'Update property unit', 'Could not update property unit.');
+  }
+};
+
+const deletePropertyUnit = async (req, res) => {
+  try {
+    const unit = await PropertyUnit.findById(req.params.id);
+    if (!unit) return res.status(404).json({ success: false, message: 'Property unit not found.' });
+
+    const inUse = await PropertyListing.countDocuments({
+      'details.area.unit': { $in: storedFormsForUnit(unit.name) }
+    });
+    if (inUse > 0) {
+      return res.status(400).json({ success: false, message: `Cannot delete "${unit.name}". It is used by ${inUse} ${inUse === 1 ? 'property listing' : 'property listings'}. Deactivate it instead to hide it from new listings.` });
+    }
+
+    await unit.deleteOne();
+    await invalidate.publicPropertyUnits();
+    res.status(200).json({ success: true, message: 'Property unit deleted.' });
+  } catch (error) {
+    return respondError(res, error, 'Delete property unit', 'Could not delete property unit.');
   }
 };
 
@@ -417,6 +498,10 @@ module.exports = {
   updateSupplierCategory,
   deleteSupplierCategory,
   getSupplierCategoryDetail,
+  getPropertyUnits,
+  createPropertyUnit,
+  updatePropertyUnit,
+  deletePropertyUnit,
   getBanners,
   getBannerById,
   createBanner,

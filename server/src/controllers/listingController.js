@@ -1,6 +1,7 @@
 const { ServiceListing, PropertyListing, MandiListing } = require('../models/Listing');
 const logger = require('../utils/logger');
-const { Category, SupplierCategory } = require('../models/System');
+const { Category, SupplierCategory, PropertyUnit } = require('../models/System');
+const { ensurePropertyUnitsSeeded } = require('../utils/propertyUnits');
 const { Subscription } = require('../models/Finance');
 const { Partner } = require('../models/Partner');
 const {
@@ -407,6 +408,22 @@ const getPublicCategories = async (req, res) => {
   } catch (error) {
     logger.error({ err: error }, "Error in getPublicCategories:")
     res.status(500).json({ success: false, message: 'Server error fetching categories.' });
+  }
+};
+
+/**
+ * @desc    Get active property measurement units for the listing forms
+ * @route   GET /api/listings/property-units
+ * @access  Public
+ */
+const getPublicPropertyUnits = async (req, res) => {
+  try {
+    await ensurePropertyUnitsSeeded();
+    const units = await PropertyUnit.find({ is_active: true }).sort({ order: 1, name: 1 }).select('name order');
+    res.status(200).json({ success: true, count: units.length, data: units });
+  } catch (error) {
+    logger.error({ err: error }, 'Error in getPublicPropertyUnits:');
+    res.status(500).json({ success: false, message: 'Server error fetching property units.' });
   }
 };
 
@@ -942,6 +959,7 @@ module.exports = {
   getAllListings,
   getPublicBanners,
   getPublicCategories,
+  getPublicPropertyUnits,
   getMyListings,
   updateListing,
   deleteListing,

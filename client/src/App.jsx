@@ -322,6 +322,9 @@ const AdminPropertyCategories = lazy(
 const AdminPropertySubcategories = lazy(
   () => import("./pages/admin/AdminPropertySubcategories"),
 );
+const AdminPropertyUnits = lazy(
+  () => import("./pages/admin/AdminPropertyUnits"),
+);
 const AdminServiceCategories = lazy(
   () => import("./pages/admin/AdminServiceCategories"),
 );
@@ -1622,6 +1625,16 @@ function App() {
                             <AdminRoute>
                               <AdminLayout>
                                 <AdminPropertySubcategories />
+                              </AdminLayout>
+                            </AdminRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/properties/units"
+                          element={
+                            <AdminRoute>
+                              <AdminLayout>
+                                <AdminPropertyUnits />
                               </AdminLayout>
                             </AdminRoute>
                           }

@@ -26,6 +26,12 @@ const FURNISHING_TYPES = [
   { id: 'fully-furnished', label: 'Fully-Furnished' }
 ];
 
+// Fallback units used only if the admin-managed list fails to load.
+const FALLBACK_UNITS = ['sq. ft.', 'sq. m.', 'acre', 'dismil', 'gaj'];
+// Legacy short codes older listings may store, mapped to their display labels.
+const UNIT_CODE_TO_LABEL = { sqft: 'sq. ft.', 'sq.ft': 'sq. ft.', sqmt: 'sq. m.', 'sq.m.': 'sq. m.' };
+const unitCodeToLabel = (u) => UNIT_CODE_TO_LABEL[u] || u || 'sq. ft.';
+
 import { INDIAN_STATES_DISTRICTS } from '../../constants/indiaGeoData';
 
 const INDIAN_STATES = INDIAN_STATES_DISTRICTS;
@@ -46,7 +52,7 @@ export default function AdminPropertyForm() {
     address: { full_address: '', state: '', district: '', pincode: '' },
     pricing: { amount: '', currency: 'INR', negotiable: false, deposit: '', maintenance: '' },
     details: {
-      area: { value: '', unit: 'sqft', super_built_up_area: '', carpet_area: '' },
+      area: { value: '', unit: 'sq. ft.', super_built_up_area: '', carpet_area: '' },
       bhk: '', bathrooms: '', washrooms: '', furnishing: 'unfurnished',
       floor_number: '', total_floors: '', parking: 'none', facing: 'no-preference', possession: 'ready'
     },
@@ -83,6 +89,14 @@ export default function AdminPropertyForm() {
   });
   const subcategories = subcatData?.data || [];
 
+  // Fetch admin-managed area units
+  const { data: unitsData } = useQuery({
+    queryKey: ['propertyUnits'],
+    queryFn: () => api.get('/listings/property-units').then(r => r.data),
+    staleTime: 10 * 60 * 1000,
+  });
+  const unitOptions = unitsData?.data?.length ? unitsData.data.map(u => u.name) : FALLBACK_UNITS;
+
   // Fetch existing listing for edit mode
   const { isLoading: initLoading, data: propertyDetailData, error: propertyDetailError } = useQuery({
     queryKey: ['adminPropertyDetail', id],
@@ -106,7 +120,7 @@ export default function AdminPropertyForm() {
         address: { full_address: d.address?.full_address || '', state: d.address?.state || '', district: d.address?.district || '', pincode: d.address?.pincode || '' },
         pricing: { amount: d.pricing?.amount || '', currency: d.pricing?.currency || 'INR', negotiable: d.pricing?.negotiable || false, deposit: d.pricing?.deposit || '', maintenance: d.pricing?.maintenance || '' },
         details: {
-          area: { value: d.details?.area?.value || '', unit: d.details?.area?.unit || 'sqft', super_built_up_area: d.details?.area?.super_built_up_area || '', carpet_area: d.details?.area?.carpet_area || '' },
+          area: { value: d.details?.area?.value || '', unit: unitCodeToLabel(d.details?.area?.unit), super_built_up_area: d.details?.area?.super_built_up_area || '', carpet_area: d.details?.area?.carpet_area || '' },
           bhk: d.details?.bhk || '', bathrooms: d.details?.bathrooms || '', washrooms: d.details?.washrooms || '',
           furnishing: d.details?.furnishing || 'unfurnished', floor_number: d.details?.floor_number || '',
           total_floors: d.details?.total_floors || '', parking: d.details?.parking || 'none',
@@ -370,8 +384,19 @@ export default function AdminPropertyForm() {
                     <input type="number" value={formData.details.bathrooms} onChange={e => handleInputChange(e, 'details.bathrooms')} className={inputClass} />
                   </div>
                   <div>
-                     <label className={labelClass}>Area (Sqft)</label>
-                     <input type="number" value={formData.details.area.value} onChange={e => handleInputChange(e, 'details.area.value')} className={inputClass} />
+                     <label className={labelClass}>Built-up Area</label>
+                     <div className="flex gap-2">
+                       <input type="number" value={formData.details.area.value} onChange={e => handleInputChange(e, 'details.area.value')} className={inputClass} placeholder="Ex: 1200" />
+                       <select
+                         value={formData.details.area.unit}
+                         onChange={e => handleInputChange(e, 'details.area.unit')}
+                         className={`${inputClass} w-32 flex-shrink-0`}
+                       >
+                         {unitOptions.map((u, i) => (
+                           <option key={i} value={u}>{u}</option>
+                         ))}
+                       </select>
+                     </div>
                   </div>
                   <div>
                      <label className={labelClass}>Floors</label>

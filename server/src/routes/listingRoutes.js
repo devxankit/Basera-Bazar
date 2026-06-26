@@ -17,6 +17,7 @@ router.get('/banners', debounceMiddleware, cacheMiddleware(1), listingController
 router.get('/services', debounceMiddleware, cacheMiddleware(5), serviceListingController.getNearbyServices);
 router.get('/mandi', debounceMiddleware, cacheMiddleware(5), mandiListingController.getMandiListings);
 router.get('/categories', debounceMiddleware, cacheMiddleware(60), listingController.getPublicCategories); // Categories change rarely
+router.get('/property-units', debounceMiddleware, cacheMiddleware(60), listingController.getPublicPropertyUnits); // Build-up area units, change rarely
 
 // Seller Attributes (types, sub-types, brands) — public
 router.get('/seller-attributes', debounceMiddleware, cacheMiddleware(5, false), listingController.getSellerAttributes);
