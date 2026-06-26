@@ -92,7 +92,7 @@ export default function AdminPropertyForm() {
   // Fetch admin-managed area units
   const { data: unitsData } = useQuery({
     queryKey: ['propertyUnits'],
-    queryFn: () => api.get('/listings/property-units').then(r => r.data),
+    queryFn: () => api.get('/listings/property-units', { skipErrorToast: true }).then(r => r.data),
     staleTime: 10 * 60 * 1000,
   });
   const unitOptions = unitsData?.data?.length ? unitsData.data.map(u => u.name) : FALLBACK_UNITS;
