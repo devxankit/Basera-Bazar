@@ -657,13 +657,14 @@ export default function AddProperty() {
             transition={{ duration: 0.2 }}
           >
             {activeStep === 1 && (
-              <StepOne 
-                formData={formData} 
-                handleChange={handleChange} 
+              <StepOne
+                formData={formData}
+                handleChange={handleChange}
                 handleCategorySelect={handleCategorySelect}
                 handleSubCategorySelect={handleSubCategorySelect}
                 parentCategories={parentCategories}
                 subCategories={subCategories}
+                unitOptions={unitOptions}
               />
             )}
             {activeStep === 2 && (
@@ -779,7 +780,7 @@ export default function AddProperty() {
 // -------------------------------------------------------------
 // STEP 1 COMPONENTS
 // -------------------------------------------------------------
-function StepOne({ formData, handleChange, handleCategorySelect, handleSubCategorySelect, parentCategories, subCategories }) {
+function StepOne({ formData, handleChange, handleCategorySelect, handleSubCategorySelect, parentCategories, subCategories, unitOptions }) {
   return (
     <div className="space-y-4">
       <SectionCard title="Essential Details" icon={<Home size={14} className="text-blue-500" />}>
