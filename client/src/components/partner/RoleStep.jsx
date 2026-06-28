@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 const roles = [
   {
     id: 'agent',
-    title: 'Agent',
+    title: 'Property Dealer',
     description: 'Buy, sell & rent properties.',
     icon: <Building2 size={26} />,
     theme: 'blue'
