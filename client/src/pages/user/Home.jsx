@@ -300,10 +300,14 @@ const Home = () => {
                 <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md rounded-full w-7 h-7 flex items-center justify-center text-slate-400">
                   <Heart size={14} />
                 </div>
-                <div className="absolute bottom-2 left-2 flex flex-col gap-1.5">
-                   <div className="bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase w-fit">
-                     {item.serviceType || 'Property'}
-                   </div>
+                <div className="absolute bottom-2 left-2 right-2 flex flex-col gap-1.5">
+                   {(item.category_name || item.subcategory_name) && (
+                     <div className="bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase w-fit max-w-full truncate">
+                       {item.subcategory_name && item.category_name && item.subcategory_name !== item.category_name
+                         ? `${item.category_name} › ${item.subcategory_name}`
+                         : (item.subcategory_name || item.category_name)}
+                     </div>
+                   )}
                    {item.emiAvailable && (
                      <div className="bg-green-500/95 backdrop-blur text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase w-fit flex items-center gap-1">
                         <CheckCircle2 size={8} />
@@ -318,9 +322,13 @@ const Home = () => {
                   <Pin size={10} className="shrink-0" />
                   <span className="text-[10px] font-bold truncate">{item.address?.full_address || item.display_location}</span>
                 </div>
-                <div className="mt-2 pt-2 border-t border-slate-50 flex items-center justify-between">
-                  <span className="text-[#181d5f] font-black text-[13px]">₹{item.price?.value || 'Price on request'}</span>
-                  {item.price?.unit && <span className="text-slate-400 text-[9px] font-bold uppercase">{item.price.unit}</span>}
+                <div className="mt-2 pt-2 border-t border-slate-50 flex items-center justify-between gap-2">
+                  <span className="text-[#181d5f] font-black text-[13px] truncate">₹{item.price?.value || 'Price on request'}</span>
+                  {item.area ? (
+                    <span className="text-slate-400 text-[9px] font-bold uppercase shrink-0">{item.area} {item.areaUnit}</span>
+                  ) : item.price?.unit && (
+                    <span className="text-slate-400 text-[9px] font-bold uppercase shrink-0">{item.price.unit}</span>
+                  )}
                 </div>
               </div>
             </div>
