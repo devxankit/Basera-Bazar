@@ -7,8 +7,10 @@ export const REGEX = {
   BUSINESS_NAME: /^[A-Za-z0-9\s&.,\-()']{2,100}$/,
   PHONE:         /^[6-9]\d{9}$/,
   EMAIL:         /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
-  // min 8 chars, ≥1 uppercase, ≥1 lowercase, ≥1 digit, ≥1 special char
-  PASSWORD:      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/,
+  // Customer/partner/executive accounts: any characters allowed, min 6 chars — no complexity rules.
+  PASSWORD:      /^.{6,}$/,
+  // Staff (team leader / office staff) accounts: min 8 chars, ≥1 uppercase, ≥1 digit, ≥1 special char
+  STRONG_PASSWORD: /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[\s\S]{8,}$/,
   OTP:           /^\d{6}$/,
   PINCODE:       /^\d{6}$/,
   PAN:           /^[A-Z]{5}[0-9]{4}[A-Z]$/,
@@ -64,7 +66,14 @@ export const v = {
 
   password(val) {
     if (!val) return 'Password is required.';
-    if (!REGEX.PASSWORD.test(val)) return 'Password must be at least 8 characters with uppercase, lowercase, digit, and special character (@$!%*?&#).';
+    if (!REGEX.PASSWORD.test(val)) return 'Password must be at least 6 characters.';
+    return null;
+  },
+
+  // Stricter policy retained for staff (team leader / office staff) accounts created by admin.
+  passwordStrong(val) {
+    if (!val) return 'Password is required.';
+    if (!REGEX.STRONG_PASSWORD.test(val)) return 'Password must be at least 8 characters with uppercase, digit, and special character.';
     return null;
   },
 

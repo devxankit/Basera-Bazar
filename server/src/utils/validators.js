@@ -9,10 +9,7 @@ const partnerRegistrationSchema = z.object({
   email: z.string().email("Invalid email address"),
   phone: z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
   password: z.string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number")
-    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+    .min(6, "Password must be at least 6 characters"),
   businessName: z.string().min(2, "Business name is required"),
   address: z.string().min(5, "Complete address is required"),
   city: z.string().min(2, "City is required"),

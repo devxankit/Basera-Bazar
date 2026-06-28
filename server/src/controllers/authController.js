@@ -594,8 +594,8 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide current and new password.' });
     }
 
-    if (newPassword.length < 8) {
-      return res.status(400).json({ success: false, message: 'New password must be at least 8 characters.' });
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 6 characters.' });
     }
 
     const isPartner = req.user.role === 'partner';
@@ -820,8 +820,8 @@ const resetPassword = async (req, res) => {
     if (!phone || !otp || !newPassword) {
       return res.status(400).json({ success: false, message: 'Phone, OTP and new password are required.' });
     }
-    if (newPassword.length < 8) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
     }
 
     // Verify OTP

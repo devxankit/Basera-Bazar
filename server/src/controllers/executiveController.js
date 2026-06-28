@@ -156,6 +156,10 @@ exports.createExecutive = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
     }
 
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    }
+
     // Require all KYC fields
     if (!kyc?.aadhar_number || !kyc?.aadhar_image || !kyc?.pan_number || !kyc?.pan_image || !kyc?.live_photo) {
       return res.status(400).json({ success: false, message: 'All KYC fields (Aadhaar number, Aadhaar image, PAN number, PAN image, live photo) are required.' });

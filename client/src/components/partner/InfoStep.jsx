@@ -453,7 +453,7 @@ export default function InfoStep({ formData, setFormData, onBack, onComplete, on
               autoComplete="new-password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Min 8 chars, include a number"
+              placeholder="Min 6 characters"
               error={errors.password}
               toggle={<button type="button" onClick={handleTogglePassword}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>}
             />

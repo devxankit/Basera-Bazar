@@ -425,7 +425,7 @@ const EditProfile = () => {
                   type={showPass.next ? 'text' : 'password'}
                   value={passwords.next}
                   onChange={(e) => setPasswords({ ...passwords, next: e.target.value })}
-                  className={inputClass} placeholder="Min. 8 characters" required
+                  className={inputClass} placeholder="Min. 6 characters" required
                 />
                 <button type="button" onClick={() => setShowPass({ ...showPass, next: !showPass.next })} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">
                   {showPass.next ? <EyeOff size={20} /> : <Eye size={20} />}

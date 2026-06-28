@@ -300,7 +300,7 @@ export default function SignUp() {
                 <span style={iconStyle}><Lock size={22} strokeWidth={1.8} /></span>
                 <input
                   ref={register('password')}
-                  type={showPassword ? 'text' : 'password'} placeholder="Password (uppercase, lowercase, digit, special char)" required
+                  type={showPassword ? 'text' : 'password'} placeholder="Password (min 6 characters)" required
                   value={form.password}
                   onChange={e => { setForm({ ...form, password: e.target.value }); clearError('password'); }}
                   style={{ ...inputStyle, paddingRight: '54px', borderColor: errors.password ? '#f87171' : '#dde1f0' }}

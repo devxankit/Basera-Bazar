@@ -76,7 +76,7 @@ export default function ExecutiveSignUp() {
     name: (v) => !v?.trim() ? 'Full name is required' : !/^[a-zA-Z\s]+$/.test(v.trim()) ? 'Name can only contain letters' : '',
     email: (v) => !v?.trim() ? 'Email is required' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? 'Invalid email format' : '',
     phone: (v) => !v ? 'Phone is required' : !/^[6-9]\d{9}$/.test(v) ? 'Enter a valid 10-digit Indian number' : '',
-    password: (v) => !v ? 'Password is required' : v.length < 8 ? 'Min 8 characters' : !/\d/.test(v) ? 'Must include a number' : '',
+    password: (v) => !v ? 'Password is required' : v.length < 6 ? 'Min 6 characters' : '',
     confirmPassword: (v, fd) => !v ? 'Please confirm your password' : v !== fd.password ? 'Passwords do not match' : '',
     pincode: (v) => !v ? 'Pincode is required' : !/^\d{6}$/.test(v) ? 'Must be exactly 6 digits' : '',
     account_number: (v) => !v ? 'Account number is required' : !/^\d{9,18}$/.test(v) ? 'Must be 9–18 digits' : '',
@@ -572,7 +572,7 @@ export default function ExecutiveSignUp() {
               <InputField label="Full Name" name="name" icon={UserCircle} value={formData.name} onChange={handleInputChange} placeholder="As per documents" inputMode="text" autoComplete="name" maxLength={60} error={errors.name} />
               <InputField label="Email Address" name="email" icon={Mail} type="email" value={formData.email} onChange={handleInputChange} placeholder="you@example.com" autoComplete="email" maxLength={100} error={errors.email} />
               <InputField label="Phone Number" name="phone" icon={Phone} type="tel" inputMode="numeric" maxLength={10} autoComplete="tel-national" prefix="+91" value={formData.phone} onChange={handleInputChange} placeholder="10-digit number" error={errors.phone} />
-              <PasswordField label="Password" name="password" autoComplete="new-password" value={formData.password} onChange={handleInputChange} placeholder="Min 8 chars, include a number" error={errors.password} />
+              <PasswordField label="Password" name="password" autoComplete="new-password" value={formData.password} onChange={handleInputChange} placeholder="Min 6 characters" error={errors.password} />
               <PasswordField label="Confirm Password" name="confirmPassword" autoComplete="new-password" value={formData.confirmPassword} onChange={handleInputChange} placeholder="Re-enter your password" error={errors.confirmPassword} />
 
               <button

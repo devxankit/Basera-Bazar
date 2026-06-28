@@ -129,7 +129,7 @@ export default function AdminOfficeStaffForm() {
     const emailErr = v.email(form.email);
     if (emailErr) { toast.error(emailErr); return; }
     if (!isEdit) {
-      const passErr = v.password(form.password);
+      const passErr = v.passwordStrong(form.password);
       if (passErr) { toast.error(passErr); return; }
       if (form.password !== form.confirm_password) { toast.error('Passwords do not match.'); return; }
     }

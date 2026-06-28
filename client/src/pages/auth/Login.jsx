@@ -745,7 +745,7 @@ export default function Login() {
                   <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#4a567a', display: 'flex' }}>
                     <Lock size={20} strokeWidth={1.8} />
                   </span>
-                  <input type={fpShowPass ? 'text' : 'password'} placeholder="New password (min 8 chars)"
+                  <input type={fpShowPass ? 'text' : 'password'} placeholder="New password (min 6 chars)"
                     value={fpNewPass} onChange={e => setFpNewPass(e.target.value)}
                     style={{ width: '100%', boxSizing: 'border-box', padding: '16px 48px 16px 48px', border: '1.5px solid #dde1f0', borderRadius: '12px', fontSize: '16px', fontWeight: '500', color: '#1b2c7a', outline: 'none', backgroundColor: '#f8f9ff' }}
                   />
